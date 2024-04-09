@@ -215,6 +215,7 @@ set(SOURCE_FILES
 	src/linker.c
 	src/lld_ld.c
 	src/lld_link.c
+	src/llvm_api.cpp
 	src/main.c
 	src/mir.c
 	src/mir_printer.c
@@ -232,7 +233,6 @@ set(SOURCE_FILES
 	src/vm_runner.c
 	src/vmdbg.c
 	src/x86_64.c
-	src/llvm_api.cpp
 )
 
 # rpmalloc

@@ -40,6 +40,9 @@
 
 #include "assembly.h"
 #include "builder.h"
+
+#if BL_WINDOWS
+
 #include "common.h"
 #include "stb_ds.h"
 #include "threading.h"
@@ -2885,3 +2888,8 @@ void x86_64run(struct assembly *assembly) {
 	pthread_spin_destroy(&ctx.uq_name_lock);
 	pthread_mutex_destroy(&ctx.mutex);
 }
+#else
+void x86_64run(struct assembly *assembly) {
+	builder_error("Experimental x64 backend is not implemented for current platform.");
+}
+#endif
