@@ -30,13 +30,20 @@ endif()
 set(CMAKE_C_FLAGS_DEBUG "-DBL_DEBUG")
 set(CMAKE_CXX_FLAGS_DEBUG "-DBL_DEBUG")
 
-option(BL_ASSERT_ENABLE "Turn on assert checks" OFF)
+option(BL_ASSERT_ENABLE "Turn on assert checks." OFF)
 if(BL_ASSERT_ENABLE)
     add_compile_definitions(BL_ASSERT_ENABLE=1)
 else()
     add_compile_definitions(
         $<$<CONFIG:Debug>:BL_ASSERT_ENABLE=1>
         $<$<CONFIG:Release>:BL_ASSERT_ENABLE=0>)
+endif()
+
+option(BL_DEVELOPER "Turn on incomplete stuff in development." OFF)
+if(BL_DEVELOPER)
+    add_compile_definitions(BL_DEVELOPER=1)
+else()
+    add_compile_definitions(BL_DEVELOPER=0)
 endif()
 
 option(TRACY_ENABLE "Turn on Tracy profiler." OFF)
