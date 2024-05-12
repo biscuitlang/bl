@@ -148,6 +148,18 @@ array_erase_keep_order :: fn (_arr: *[..]?T, i: s64) {
 	arr.len -= 1;
 }
 
+/// Erase element of the value `v` and return `true` in case element was erased. Note this might be expensive
+/// since all elements in array might be visited in the worst case.
+array_erase_value :: fn (arr: *[..]?T, v: T) bool {
+	loop i := 0; i < arr.len; i += 1 {
+		if (@arr)[i] == v {
+			array_erase(arr, i);
+			return true;
+		}
+	}
+	return false;
+}
+
 /// Insert a new element into the array before position `before_index` and return index of the new
 /// inserted element. All elements after the new one are moved in the memory by one slot.
 ///
