@@ -222,7 +222,7 @@ ensure_space :: fn (arr: *_Array, elem_size: usize, needed_elems: usize, alignem
 		extended_needed_elems = auto (GROW_FACTOR * auto extended_needed_elems);
 	}
 
-	assert(extended_needed_elems > 0);
+	assert(extended_needed_elems >= needed_elems);
 
 	needed_bytes :: extended_needed_elems * elem_size;
 	mem, err :: realloc(arr.ptr, needed_bytes, alignement, arr.allocator);

@@ -35,21 +35,47 @@ simple_write_1 :: fn () #test {
 	n :: 10;
 	write_value(&s, &n);
 
-	test_eq(s.data.len, 8);
+	test_eq(s.data.len, 32);
 	test_eq(s.position, 4);
 	test_eq(s.end, 4);
 
 	write_value(&s, &n);
 
-	test_eq(s.data.len, 8);
+	test_eq(s.data.len, 32);
 	test_eq(s.position, 8);
 	test_eq(s.end, 8);
 
 	write_value(&s, &n);
 
-	test_eq(s.data.len, 16);
+	test_eq(s.data.len, 32);
 	test_eq(s.position, 12);
 	test_eq(s.end, 12);
+}
+
+simple_write_2 :: fn () #test {
+	using std;
+
+	s: GrowingBufferStream;
+	growing_buffer_stream_init(&s);
+	defer growing_buffer_stream_terminate(&s);
+
+	data: struct {
+		a: [64]u8;
+	};
+
+	write_value(&s, &data);
+
+	test_eq(s.data.len, 64);
+	test_eq(s.position, auto sizeof(data));
+	test_eq(s.end, auto sizeof(data));
+
+	n := 10;
+	write_value(&s, &n);
+
+	test_eq(s.data.len, 96);
+	test_eq(s.position, auto sizeof(data) + sizeof(s32));
+	test_eq(s.end, auto sizeof(data) + sizeof(s32));
+
 }
 
 read_empty :: fn () #test {
@@ -98,7 +124,7 @@ simple_read_write_sequence :: fn () #test {
 
 	seek(&s, StreamLocator.BEGIN, 0);
 
-	test_eq(s.data.len, 16);
+	test_eq(s.data.len, 32);
 	test_eq(s.position, 0);
 	test_eq(s.end, 12);
 
@@ -111,7 +137,7 @@ simple_read_write_sequence :: fn () #test {
 	read_value(&s, &n);
 	test_eq(n, 30);
 
-	test_eq(s.data.len, 16);
+	test_eq(s.data.len, 32);
 	test_eq(s.position, 12);
 	test_eq(s.end, 12);
 }
