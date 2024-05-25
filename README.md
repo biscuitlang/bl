@@ -87,6 +87,7 @@ Screenshot of an unnamed 3D experimental game created using BL.
 
 <div style="text-align:center"><img src="logo/the_game.png" /></div>
 
+[Video](https://youtu.be/8nconux9oxM)
 
 ### Space Shooter
 

@@ -2,8 +2,8 @@
 
 #scope std
 
-//! # Growing Buffer Stream 
-//! 
+//! # Growing Buffer Stream
+//!
 //! `#import "std/growing_buffer_stream"`
 //!
 //! Growing Buffer Stream is dynamically allocated stream buffer reallocating internal memory block if it runs out
@@ -12,7 +12,7 @@
 
 GrowingBufferStream :: struct #base Stream {
 	allocator: *Allocator;
-	
+
 	data: []u8;
 	position: s64;
 	end: s64;
@@ -38,6 +38,9 @@ growing_buffer_stream_terminate :: fn (stream: *GrowingBufferStream) {
 
 #private
 
+ALLOC_BLOCK_SIZE : usize : 32;
+GROW_FACTOR      : f32   : 1.5f;
+
 STREAM_VTABLE :: StreamVTable.{
 	read  = auto &read,
 	write = auto &write,
@@ -56,7 +59,16 @@ read :: fn (stream: *GrowingBufferStream, dest: *u8, bytes_to_read: s64) (s64, E
 write :: fn (stream: *GrowingBufferStream, src: *u8, bytes_to_write: s64) (s64, Error) {
 	next_position :: stream.position + bytes_to_write;
 	if next_position > stream.data.len {
-		new_size :: cast(usize) (stream.data.len + bytes_to_write * 2);
+		// new_size :: cast(usize) (stream.data.len + bytes_to_write * 2);
+		new_size : usize = 0;
+		if stream.data.len == 0 {
+			new_size = std.max(ALLOC_BLOCK_SIZE, auto bytes_to_write);
+		} else {
+			new_size = std.max(cast(usize) (GROW_FACTOR * auto stream.data.len), auto bytes_to_write);
+		}
+
+		assert(new_size >= auto bytes_to_write);
+
 		mem, err :: realloc(stream.data.ptr, new_size, DEFAULT_ALIGNMENT, stream.allocator);
 		if err { return 0, err; }
 		stream.data.ptr = mem;
