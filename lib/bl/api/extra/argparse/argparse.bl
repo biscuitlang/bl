@@ -1,9 +1,9 @@
 //! # Argument Parser
-//! 
+//!
 //! `#import "extra/argparse"`
 //!
 //! Generic command line argument parsing tool.
-//! 
+//!
 //! ### Example
 //!
 //! ```c

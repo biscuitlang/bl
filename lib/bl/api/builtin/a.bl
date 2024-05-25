@@ -31,7 +31,7 @@
 #load "std/utils.bl"
 
 //! # Builtin
-//! 
+//!
 //! Compiler builtins are automatically loaded into every assembly.
 //!
 //! ## Current running platform
@@ -42,7 +42,7 @@
 //!     DARWIN;
 //!     LINUX;
 //! }
-//! 
+//!
 //! PLATFORM :: <SET_BY_COMPILER>;
 //! ```
 //!
@@ -54,7 +54,7 @@
 //!     AARCH64;
 //!     ARM64;
 //! }
-//! 
+//!
 //! ARCH :: <SET_BY_COMPILER>;
 //! ```
 //!
@@ -66,7 +66,7 @@
 //!     GNU;
 //!     MUSL;
 //! }
-//! 
+//!
 //! ENV :: <SET_BY_COMPILER>;
 //! ```
 //! ## Compiler version
@@ -80,7 +80,7 @@
 string_view :: []u8;
 
 
-/// TypeKind describes kind of BL type returned in `TypeInfo` structure. This value can be used for 
+/// TypeKind describes kind of BL type returned in `TypeInfo` structure. This value can be used for
 /// safe casting.
 TypeKind :: enum #compiler {
 	/// Base type of all types in type system.
@@ -91,27 +91,27 @@ TypeKind :: enum #compiler {
 	INT     = 3;
 	/// Any real type: `f32`, `f64`.
 	REAL    = 4;
-	/// Function type. 
+	/// Function type.
 	FN      = 5;
-	/// Pointer type. 
+	/// Pointer type.
 	PTR     = 6;
-	/// Boolean type. 
+	/// Boolean type.
 	BOOL    = 7;
-	/// Array type. 
+	/// Array type.
 	ARRAY   = 8;
-	/// Structure type. 
+	/// Structure type.
 	STRUCT  = 9;
-	/// Enumerator type. 
+	/// Enumerator type.
 	ENUM    = 10;
-	/// Null-value type. 
+	/// Null-value type.
 	NULL    = 11;
 	/// String type. @Cleanup: remove this!
 	STRING  = 12;
-	/// Function group type. 
+	/// Function group type.
 	FN_GROUP = 16;
 };
 
-/// Base `TypeInfo` structure returned by `typeinfo` operator. This structure pointer can be casted to 
+/// Base `TypeInfo` structure returned by `typeinfo` operator. This structure pointer can be casted to
 /// child type to get more descriptive information about the type.
 TypeInfo :: struct #compiler {
 	/// Type info kind.
@@ -125,7 +125,7 @@ TypeInfo :: struct #compiler {
 /// Detailed information about integer types: `s8`, `s16`, `s32`, `s64`, `u8`, `u16`, `u32`, `u64`, `usize`.
 TypeInfoInt :: struct #base TypeInfo #compiler {
 	/// Size of type in bits.
-	bit_count: s32; 
+	bit_count: s32;
 	/// True when type is signed integer type.
 	is_signed: bool;
 };
@@ -139,18 +139,18 @@ TypeInfoReal :: struct #base TypeInfo  #compiler {
 /// Detailed information about function types.
 TypeInfoFn :: struct #base TypeInfo #compiler {
 	/// Slice of argument type infos.
-	args: []TypeInfoFnArg; 
+	args: []TypeInfoFnArg;
 	/// Return type info.
 	ret_type: *TypeInfo;
 	/// True when function has variable argument list.
-	is_vargs: bool; 
+	is_vargs: bool;
 };
 
 
 /// Detailed information about function group and contained possible overloads.
 TypeInfoFnGroup :: struct #base TypeInfo #compiler {
-	/// Group content. 
-	variants: []*TypeInfoFn; 
+	/// Group content.
+	variants: []*TypeInfoFn;
 }
 
 /// Detailed information about pointer types.
@@ -164,9 +164,9 @@ TypeInfoArray :: struct #base TypeInfo #compiler {
 	/// Array name.
 	name: string_view;
 	/// Array element type info.
-	elem_type: *TypeInfo; 
+	elem_type: *TypeInfo;
 	/// Array element count.
-	len: s64 
+	len: s64
 };
 
 /// Detailed information about structure types.
@@ -174,7 +174,7 @@ TypeInfoStruct :: struct #base TypeInfo #compiler {
 	/// Structure type name.
 	name: string_view;
 	/// Slice of structure member infos.
-	members: []TypeInfoStructMember; 
+	members: []TypeInfoStructMember;
 	/// True when structure is slice.
 	is_slice: bool;
 	/// True when structure is union.
@@ -192,7 +192,7 @@ TypeInfoEnum :: struct #base TypeInfo #compiler {
 	/// Enumerator type name.
 	name: string_view;
 	/// Base type info.
-	base_type: *TypeInfo; 
+	base_type: *TypeInfo;
 	/// Slice of all enumerator variants.
 	variants: []TypeInfoEnumVariant;
 	/// True when enumerator was defined with #flags directive.
@@ -231,7 +231,7 @@ TypeInfoStructMember :: struct #compiler {
 	index: s32;
 	/// User defined member tag can be used to store any custom user data up to 8 bytes into the type
 	/// info structure when structure member is defined.
-	/// 
+	///
 	/// ```
 	/// Foo :: struct {
 	///     i: s32 #tag 123;
@@ -259,7 +259,7 @@ TypeInfoFnArg :: struct #compiler {
 	base_type: *TypeInfo
 };
 
-/// Any type is special builtin type used for passing value of "any" type as function argument. 
+/// Any type is special builtin type used for passing value of "any" type as function argument.
 Any :: struct #compiler {
 	/// Type info associated to data type.
 	type_info: *TypeInfo;
@@ -271,7 +271,7 @@ Any :: struct #compiler {
 TestCase :: struct #compiler {
 	/// Pointer to test case function.
 	func: *fn();
-	/// Name of the test case. 
+	/// Name of the test case.
 	name: string_view;
 	/// File where the test case is declared.
 	file: string_view;
@@ -286,7 +286,7 @@ TestCase :: struct #compiler {
 /// foo :: fn (loc: *CodeLocation = #call_location) {
 ///     print("%\n", @loc);
 /// }
-/// 
+///
 /// main :: fn () s32 {
 ///     foo();
 ///     return 0;
@@ -304,13 +304,13 @@ CodeLocation :: struct #compiler {
 }
 
 /// Type of print log function.
-/// 
+///
 /// ### Arguments
-/// * `kind` Kind of report message. 
-/// * `format` Format string. 
-/// * `args` Additional arguments. 
-/// * `file` Call side filename. 
-/// * `line` Call side line in source file. 
+/// * `kind` Kind of report message.
+/// * `format` Format string.
+/// * `args` Additional arguments.
+/// * `file` Call side filename.
+/// * `line` Call side line in source file.
 PrintLogFn :: * fn (kind: PrintLogKind, file: string_view, line: s32, format: string_view, args: ...);
 
 AbortFn :: * fn ();
@@ -329,7 +329,7 @@ Context :: struct {
 	allocator: *Allocator;
 
 	/// Global temporary allocator. This allocator is implicitly used i.e. by `tprint` function. The default implementation
-	/// is thread save (be careful replacing this allocator with a custom implementation, it may be called from other 
+	/// is thread save (be careful replacing this allocator with a custom implementation, it may be called from other
 	/// threads depending on use case).
 	temporary_allocator: *Allocator;
 
@@ -357,6 +357,13 @@ enum_count :: fn (T: type #comptime) s64 #comptime {
 	info :: typeinfo(T);
 	static_assert(info.kind == TypeKind.ENUM);
 	return (cast(*TypeInfoEnum)info).variants.len;
+}
+
+enum_variant_name :: fn (T: type #comptime, index: s64) string_view #inline {
+	info :: cast(*TypeInfoEnum) typeinfo(T);
+	static_assert(info.kind == TypeKind.ENUM);
+	assert(index < info.variants.len);
+	return info.variants[index].name;
 }
 
 /// Returns `true` if the `T` type is an integer type.
@@ -454,7 +461,7 @@ struct_count :: fn (TStruct: type #comptime) s32 #comptime {
 	info :: cast(*TypeInfoStruct) typeinfo(TStruct);
 	static_assert(info.kind == TypeKind.STRUCT);
 	return auto info.members.len;
-}    
+}
 
 // Resolve structure member `member_name` offset in bytes inside the `TStruct` memory layout.
 member_offset_bytes :: fn (TStruct: type #comptime, member_name: string_view) s64 {
