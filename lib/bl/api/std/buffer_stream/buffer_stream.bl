@@ -1,0 +1,64 @@
+#import "std/io"
+
+#scope std
+
+//! # Buffer Stream
+//!
+//! `#import "std/buffer_stream"`
+//!
+//!
+
+BufferStream :: struct #base Stream {
+	data: []u8;
+	position: s64;
+}
+
+buffer_stream_init :: fn (stream: *BufferStream, data: []u8) {
+	zeroinit(stream);
+	stream.vtable = &STREAM_VTABLE;
+	stream.data   = data;
+}
+
+buffer_stream_terminate :: fn (stream: *BufferStream) {
+	zeroinit(stream);
+}
+
+#private
+
+STREAM_VTABLE :: StreamVTable.{
+	read  = auto &read,
+	write = auto &write,
+	seek = auto &seek,
+};
+
+read :: fn (stream: *BufferStream, dest: *u8, bytes_to_read: s64) (s64, Error) {
+	size :: min(stream.data.len - stream.position, bytes_to_read);
+	assert(size >= 0);
+	memcpy(dest, &stream.data[stream.position], auto size);
+	stream.position += size;
+	assert(stream.position <= stream.data.len);
+	return size, OK;
+}
+
+write :: fn (stream: *BufferStream, src: *u8, bytes_to_write: s64) (s64, Error) {
+	next_position :: stream.position + bytes_to_write;
+	if next_position > stream.data.len {
+		return 0, error("Stream buffer is full.");
+	}
+
+	memcpy(&stream.data[stream.position], src, auto bytes_to_write);
+	stream.position = next_position;
+	return bytes_to_write, OK;
+}
+
+seek :: fn (stream: *BufferStream, locator: StreamLocator, offset: s64) (position: s64, err: Error) {
+	new_position : s64 = 0;
+	using StreamLocator;
+	switch locator {
+		CURRENT { new_position = stream.position + offset; }
+		BEGIN   { new_position = offset; }
+		END     { new_position = stream.data.len + offset; }
+	}
+	stream.position = clamp(new_position, 0, stream.data.len);
+	return stream.position, OK;
+}
