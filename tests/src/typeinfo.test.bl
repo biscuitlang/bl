@@ -356,8 +356,20 @@ member_offset :: fn () #test {
 	Foo :: struct {
 		first: s32;
 		second: s32;
+		bar: struct {
+			first: s32;
+			second: s32;
+			baz: struct {
+				first: s32;
+				second: s32;
+			}
+		};
 	};
 
-	test_eq(member_offset_bytes(Foo, "first"), 0);
-	test_eq(member_offset_bytes(Foo, "second"), cast(s64) sizeof(Foo.first));
+	test_eq(member_offset_bytes(Foo, "second"), auto sizeof(s32));
+	test_eq(member_offset_bytes(Foo, "bar"), auto sizeof(s32) * 2);
+	test_eq(member_offset_bytes(Foo, "bar/first"), auto sizeof(s32) * 2);
+	test_eq(member_offset_bytes(Foo, "bar/second"), auto sizeof(s32) * 3);
+	test_eq(member_offset_bytes(Foo, "bar/baz/first"), auto sizeof(s32) * 4);
+	test_eq(member_offset_bytes(Foo, "bar/baz/second"), auto sizeof(s32) * 5);
 }
