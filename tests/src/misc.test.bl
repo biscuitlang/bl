@@ -1,0 +1,15 @@
+#private
+
+any_forwarding :: fn () #test {
+	info :: foo(bar());
+	test_eq(info, typeinfo(s32));
+}
+
+foo :: fn (v: Any) *TypeInfo {
+	return v.type_info;
+}
+
+bar :: fn () Any {
+	return Any.{ typeinfo(s32), null };
+}
+

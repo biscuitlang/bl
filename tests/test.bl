@@ -1,3 +1,16 @@
+main :: fn () s32 {
+	foo(bar());
+	return 0;
+}
+
+foo :: fn (v: Any) {
+	print("%", @v.type_info);
+}
+
+bar :: fn () Any {
+	return Any.{ typeinfo(s32), null };
+}
+
 /*
 enum_variants_to_string_list :: fn (TEnum: type #comptime) [enum_count(TEnum)]string_view #comptime {
 	assert(is_enum(TEnum));
@@ -15,9 +28,12 @@ enum_variants_to_string_list :: fn (TEnum: type #comptime) [enum_count(TEnum)]st
 }
 */
 
-// main :: fn () s32 {
-// 	return 0;
-// }
+
+/*
+
+// =================================================================================================
+// x64 TESTING BEGIN
+// =================================================================================================
 
 #import "libc"
 #import "os/windows"
@@ -826,6 +842,12 @@ use_global_number :: fn () {
 	my_number = 20;
 	print_number(my_number);
 }
+
+// =================================================================================================
+// x64 TESTING END
+// =================================================================================================
+
+*/
 
 /*
 

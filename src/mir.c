@@ -1468,12 +1468,12 @@ static inline bool is_to_any_needed(struct context *ctx, struct mir_instr *src, 
 
 	if (dest_type != any_type) return false;
 
+	struct mir_type *src_type = src->value.type;
 	if (is_load_needed(src)) {
-		struct mir_type *src_type = src->value.type;
 		if (mir_deref_type(src_type) == any_type) return false;
 	}
 
-	return true;
+	return src_type != any_type;
 }
 
 void ast_push_defer_stack(struct context *ctx) {
