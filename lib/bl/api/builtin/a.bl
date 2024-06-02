@@ -476,8 +476,15 @@ member_offset_bytes :: fn (TStruct: type #comptime, path: string_view) s64 {
 	static_assert(typeinfo(TStruct).kind == TypeKind.STRUCT);
 	assert(path.len > 0);
 
+	return member_offset_bytes2(auto typeinfo(TStruct), path);
+}
+
+member_offset_bytes2 :: fn (type_info: *TypeInfoStruct, path: string_view) s64 {
+	assert(path.len > 0);
+
 	offset: s64;
-	info := cast(*TypeInfoStruct) typeinfo(TStruct);
+	info := type_info;
+	assert(info.kind == TypeKind.STRUCT);
 
 	lhs: string_view;
 	rhs := path;
@@ -498,15 +505,14 @@ member_offset_bytes :: fn (TStruct: type #comptime, path: string_view) s64 {
 			}
 		}
 		if !found {
-			panic("No such member '%' in the structure '%' on path '%'.", lhs, TStruct, path);
+			panic("No such member '%' in the structure '%' on path '%'.", lhs, info, path);
 		}
 		if traverse && info.kind != TypeKind.STRUCT {
-			panic("Member '%' in the structure '%' is supposed to be struct type.", lhs, TStruct);
+			panic("Member '%' in the structure '%' is supposed to be struct type.", lhs, type_info.name);
 		}
 	}
 	return offset;
 }
-
 
 // Resolve pointer to a structure member relative to the structure `base_ptr`.
 member_ptr :: fn {
