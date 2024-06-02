@@ -463,19 +463,50 @@ struct_count :: fn (TStruct: type #comptime) s32 #comptime {
 	return auto info.members.len;
 }
 
-// Resolve structure member `member_name` offset in bytes inside the `TStruct` memory layout.
-member_offset_bytes :: fn (TStruct: type #comptime, member_name: string_view) s64 {
-	info :: cast(*TypeInfoStruct) typeinfo(TStruct);
-	static_assert(info.kind == TypeKind.STRUCT);
-	loop i := 0; i < info.members.len; i += 1 {
-		member :: &info.members[i];
-		if std.str_match(member.name, member_name) {
-			return member.offset_bytes;
+/// Calculate offset of member ad `path` starting from `TStruct` root. Each member in the pash is supposed to
+/// be separated by '/'.
+///
+/// ### Example
+/// ```
+/// number
+/// foo/number
+/// foo/bar/number
+/// ```
+member_offset_bytes :: fn (TStruct: type #comptime, path: string_view) s64 {
+	static_assert(typeinfo(TStruct).kind == TypeKind.STRUCT);
+	assert(path.len > 0);
+
+	offset: s64;
+	info := cast(*TypeInfoStruct) typeinfo(TStruct);
+
+	lhs: string_view;
+	rhs := path;
+	traverse := true;
+	loop traverse {
+		if !std.str_split_by_first(rhs, '/', &lhs, &rhs) {
+			lhs = rhs;
+			traverse = false;
+		}
+		found := false;
+		loop i := 0; i < info.members.len; i += 1 {
+			member :: &info.members[i];
+			if std.str_match(member.name, lhs) {
+				offset += member.offset_bytes;
+				info    = auto member.base_type;
+				found   = true;
+				break;
+			}
+		}
+		if !found {
+			panic("No such member '%' in the structure '%' on path '%'.", lhs, TStruct, path);
+		}
+		if traverse && info.kind != TypeKind.STRUCT {
+			panic("Member '%' in the structure '%' is supposed to be struct type.", lhs, TStruct);
 		}
 	}
-	panic("No such member '%' in the structure '%'.", member_name, TStruct);
-	return 0;
+	return offset;
 }
+
 
 // Resolve pointer to a structure member relative to the structure `base_ptr`.
 member_ptr :: fn {
