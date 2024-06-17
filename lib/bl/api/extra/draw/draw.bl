@@ -77,7 +77,6 @@ init :: fn (viewport_width: s32, viewport_height: s32, initialize_opengl := true
 	}
 
 	gl.Enable(GL_BLEND);
-	//gl.Enable(GL_FRAMEBUFFER_SRGB);
 	gl.Enable(GL_LINE_SMOOTH);
 	gl.Enable(GL_MULTISAMPLE);
 	gl.DepthFunc(GL_LEQUAL);
@@ -98,7 +97,7 @@ init :: fn (viewport_width: s32, viewport_height: s32, initialize_opengl := true
 
 	err = shader_init(&texture_shader, SHADER_TEXTURE_SOURCE, "texture");
 	if err { return err; }
-	
+
 	err = shader_init(&text_shader, SHADER_TEXT_SOURCE, "text");
 	if err { return err; }
 
@@ -112,6 +111,10 @@ init :: fn (viewport_width: s32, viewport_height: s32, initialize_opengl := true
 set_viewport_size :: fn (viewport_width: s32, viewport_height: s32) {
 	gl.Viewport(0, 0, viewport_width, viewport_height);
 	glm.mat4_init_ortho(&view_matrix, 0.f, auto viewport_width, auto viewport_height, 0.f, 0.f, 1.f);
+}
+
+toggle_gamma_correciton :: fn (v: bool) #inline {
+	apply_gamma_correction = v;
 }
 
 /// Release all resources used by the module. This should be called when the module is not needed anymore.
@@ -200,6 +203,11 @@ rect_centered :: fn (center_x: f32, center_y: f32, width: f32, height: f32, colo
 rect_rounded :: fn (position_x: f32, position_y: f32, width: f32, height: f32, r: f32, inner_color := glm.v4_one, outer_color := glm.v4_one) #inline {
 	using glm;
 	using std;
+
+	if r == 0.f {
+		rect(position_x, position_y, width, height, inner_color);
+		return;
+	}
 
 	px :: position_x;
 	py :: position_y;
@@ -748,6 +756,8 @@ color_buffer:        [..]glm.v4;
 uv_buffer:           [..]glm.v2;
 index_buffer:        [..]u32;
 
+apply_gamma_correction := false;
+
 VBO_VERTEX :: 0;
 VBO_COLOR  :: 1;
 VBO_UV     :: 2;
@@ -850,7 +860,8 @@ do_render :: fn () {
 		gl.BlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	}
 
-	shader_bind_uniform(context.shader, DATA_MV, view_matrix);
+	shader_bind_uniform(context.shader, MV, view_matrix);
+	shader_bind_uniform(context.shader, APPLY_GAMMA, ternary(apply_gamma_correction, 1, 0));
 	if context.texture {
 		shader_bind_texture(context.shader, context.texture, DIFFUSE);
 	}
@@ -942,7 +953,8 @@ gl_terminate_texture :: fn (texture: *Texture) {
 // Shader
 // =================================================================================================
 ShaderUniform :: enum {
-	DATA_MV;
+	MV;
+	APPLY_GAMMA;
 	DIFFUSE;
 }
 
@@ -976,7 +988,8 @@ shader_init :: fn (shader: *Shader, source: string_view, name: string_view) Erro
 	shader.attrib_locs[auto ShaderAttribute.COLOR]  = gl_get_attribute(h, "fgc");
 	shader.attrib_locs[auto ShaderAttribute.UV]     = gl_get_attribute(h, "uv");
 
-	shader.uniform_locs[auto ShaderUniform.DATA_MV] = gl_get_uniform(h, "data.mv");
+	shader.uniform_locs[auto ShaderUniform.MV] = gl_get_uniform(h, "mv");
+	shader.uniform_locs[auto ShaderUniform.APPLY_GAMMA] = gl_get_uniform(h, "apply_gamma");
 	shader.uniform_locs[auto ShaderUniform.DIFFUSE] = gl_get_uniform(h, "diffuse");
 
 	return OK;
@@ -1118,7 +1131,7 @@ compile_unit :: fn (kind: u32, source: string_view) u32 {
 		default { panic(); }
 	}
 	shader := gl.CreateShader(kind);
-	data :: [3]*u8.{ prefix.ptr, SHADER_DATA_STRUCT.ptr, source.ptr };
+	data :: [2]*u8.{ prefix.ptr, source.ptr };
 	gl.ShaderSource(shader, auto data.len, data.ptr, 0);
 	gl.CompileShader(shader);
 	is_compiled := GL_FALSE;
@@ -1416,28 +1429,24 @@ gen_glyphs :: fn (font: *Font, face: *FreeType.Face) {
 // GLSL
 // =================================================================================================
 
-SHADER_DATA_STRUCT ::
-	"struct Data {\n"
-	"    mat4 mv;\n"
-	"};\n"
-	;
-
 SHADER_SIMPLE_COLOR_SOURCE ::
 	"#ifdef SUBPROGRAM_VERTEX\n"
 	"layout(location = 0) in vec2 v;\n"
 	"layout(location = 1) in vec4 fgc;\n"
-	"uniform Data data;\n"
+	"uniform mat4 mv;\n"
 	"out vec4 color;\n"
 	"void main(void) {\n"
-	"    gl_Position = data.mv * vec4(v.x, v.y, 0.f, 1.0f);\n"
+	"    gl_Position = mv * vec4(v.x, v.y, 0.f, 1.0f);\n"
 	"    color = fgc;\n"
 	"}\n"
 	"#endif\n"
 	"#ifdef SUBPROGRAM_FRAGMENT\n"
 	"in vec4 color;\n"
 	"out vec4 frag_color;\n"
+    "uniform int apply_gamma;\n"
 	"void main(void) {\n"
-	"    frag_color = color;\n"
+    "    if (apply_gamma != 0) { frag_color = vec4(pow(color.rgb, vec3(1.0/2.2)), color.a); }\n"
+    "    else { frag_color = color; }\n"
 	"}\n"
 	"#endif\n"
 	;
@@ -1446,10 +1455,10 @@ SHADER_TEXTURE_SOURCE ::
 	"#ifdef SUBPROGRAM_VERTEX\n"
 	"layout(location = 0) in vec2 v;\n"
 	"layout(location = 1) in vec2 uv;\n"
-	"uniform Data data;\n"
+	"uniform mat4 mv;\n"
 	"out vec2 st;\n"
 	"void main(void) {\n"
-	"    gl_Position = data.mv * vec4(v.x, v.y, 0.f, 1.0f);\n"
+	"    gl_Position = mv * vec4(v.x, v.y, 0.f, 1.0f);\n"
 	"    st = uv;\n"
 	"}\n"
 	"#endif\n"
@@ -1457,8 +1466,11 @@ SHADER_TEXTURE_SOURCE ::
 	"uniform sampler2D diffuse;\n"
 	"in vec2 st;\n"
 	"out vec4 frag_color;\n"
+    "uniform int apply_gamma;\n"
 	"void main(void) {\n"
-	"    frag_color = texture(diffuse, st);\n"
+    "    vec4 texel = texture(diffuse, st);\n"
+    "    if (apply_gamma != 0) { frag_color = vec4(pow(texel.rgb, vec3(1.0/2.2)), texel.a); }\n"
+    "    else { frag_color = texel; }\n"
 	"}\n"
 	"#endif\n"
 	;
@@ -1468,11 +1480,11 @@ SHADER_TEXT_SOURCE ::
 	"layout(location = 0) in vec2 v;\n"
 	"layout(location = 1) in vec2 uv;\n"
 	"layout(location = 2) in vec4 fgc;\n"
-	"uniform Data data;\n"
+	"uniform mat4 mv;\n"
 	"out vec2 st;\n"
 	"out vec4 color;\n"
 	"void main(void) {\n"
-	"    gl_Position = data.mv * vec4(v.x, v.y, 0.f, 1.0f);\n"
+	"    gl_Position = mv * vec4(v.x, v.y, 0.f, 1.0f);\n"
 	"    st = uv;\n"
 	"    color = fgc;\n"
 	"}\n"
@@ -1483,11 +1495,13 @@ SHADER_TEXT_SOURCE ::
 	"in vec4 color;\n"
 	"layout(location = 0, index = 0) out vec4 frag_color;\n"
 	"layout(location = 0, index = 1) out vec4 mask_color;\n"
+    "uniform int apply_gamma;\n"
 	"void main(void) {\n"
 	"    float sample_left   = textureOffset(diffuse, st, ivec2(-1, 0)).r;\n"
 	"    float sample_center = texture(diffuse, st).r;\n"
 	"    float sample_right  = textureOffset(diffuse, st, ivec2( 1, 0)).r;\n"
-	"    frag_color = color;\n"
+    "    if (apply_gamma != 0) { frag_color = vec4(pow(color.rgb, vec3(1.0/2.2)), color.a); }\n"
+    "    else { frag_color = color; }\n"
 	"    mask_color = vec4(sample_left * frag_color.a, sample_center * frag_color.a, sample_right * frag_color.a, 1.0);\n"
 	"}\n"
 	"#endif\n"
