@@ -113,7 +113,7 @@ set_viewport_size :: fn (viewport_width: s32, viewport_height: s32) {
 	glm.mat4_init_ortho(&view_matrix, 0.f, auto viewport_width, auto viewport_height, 0.f, 0.f, 1.f);
 }
 
-toggle_gamma_correciton :: fn (v: bool) #inline {
+toggle_gamma_correction :: fn (v: bool) #inline {
 	apply_gamma_correction = v;
 }
 
