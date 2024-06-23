@@ -1,0 +1,461 @@
+#scope ui
+
+Font :: *u8;
+
+// API functions
+DrawRectFn             :: *fn (position: glm.v3, size: glm.v2, color: glm.v4, mask: glm.v4);
+DrawRectWithColorsFn   :: *fn (position: glm.v3, size: glm.v2, colors: []glm.v4, mask: glm.v4);
+DrawTextFn             :: *fn (position: glm.v3, text: string_view, font: Font, color: glm.v4, mask: glm.v4);
+DrawHsRectFn           :: *fn (position: glm.v3, size: glm.v2, mask: glm.v4);
+GetMousePositionFn     :: *fn () glm.v2;
+GetMouseScrollOffsetFn :: *fn () (bool, glm.v2);
+GetLastCharInputFn     :: *fn () (bool, u32);
+GetTextSizeFn          :: *fn (text: string_view, font: Font, n: s32) (w: f32, h: f32);
+MouseButtonFn          :: *fn () bool;
+KeyEventFn             :: *fn (event: KeyEvent) bool;
+
+KeyEvent :: enum {
+	COMMIT;
+	CANCEL;
+	CURSOR_LEFT;
+	CURSOR_RIGHT;
+	CURSOR_UP;
+	CURSOR_DOWN;
+	CURSOR_ERASE;
+}
+
+WindowFlags :: enum #flags {
+	DEFAULT = 0;
+	NO_MOVE = 1 << 1;
+	NO_RESIZE = 1 << 2;
+	MINIMIZE_TO_BOTTOM = 1 << 4;
+	NO_MINIMIZE = 1 << 5;
+	NO_CLOSE = 1 << 6;
+	NO_DECORATION = (1 << 7) | NO_MOVE | NO_RESIZE | NO_MINIMIZE;
+	MENU = (1 << 8) | NO_DECORATION;
+}
+
+ButtonFlags :: enum #flags {
+	DEFAULT = 0;
+	CLICK_ON_PRESS;
+	DISABLED;
+}
+
+Style :: struct {
+	window: WindowStyle;
+	label: LabelStyle;
+	button: ButtonStyle;
+	scroll_area: ScrollAreaStyle;
+	checkbox: CheckboxStyle;
+	variants: VariantsStyle;
+	textbox: TextboxStyle;
+	focus_color: glm.v4;
+}
+
+WindowStyle :: struct {
+	using glm;
+
+	title_focus: LabelStyle;
+	title_no_focus: LabelStyle;
+	button: ButtonStyle;
+	bar_color_focus: v4;
+	bar_color_no_focus: v4;
+	bar_height: s32;
+	frame_color: v4;
+	body_color: v4;
+	content_color: v4;
+	frame_size: s32;
+}
+
+LabelStyle :: struct {
+	using glm;
+
+	color: v4;
+	font:  Font;
+	horizontal_alignment: HorizontalAlign;
+	vertical_alignment: VerticalAlign;
+}
+
+ButtonStyle :: struct {
+	using glm;
+
+	label: LabelStyle;
+	frame_color: v4;
+	body_color: v4;
+	color_disabled: v4;
+	press_color: v4;
+	frame_size: s32;
+	no_body: bool;
+	swap_shadow_colors: bool;
+}
+
+ScrollAreaStyle :: struct {
+	using glm;
+	handle: ButtonStyle;
+	color: v4;
+	body_color: v4;
+	scroll_speed: f32;
+	content_padding: f32;
+	handle_width: f32;
+}
+
+CheckboxStyle :: struct {
+	name: LabelStyle;
+	on: ButtonStyle;
+	off: ButtonStyle;
+	on_icon: string_view;
+	off_icon: string_view;
+}
+
+VariantsStyle :: struct {
+	name: LabelStyle;
+	button: ButtonStyle;
+	label: LabelStyle;
+	body_color: glm.v4;
+}
+
+VariantsFlags :: enum #flags {
+	DEFAULT;
+	READONLY;
+}
+
+TextboxStyle :: struct {
+	name: LabelStyle;
+	text: LabelStyle;
+	text_readonly: LabelStyle;
+	body: ButtonStyle;
+	padding: s32;
+	cursor_color: glm.v4;
+}
+
+TextboxFlags :: enum #flags {
+	DEFAULT;
+	READONLY;
+	NUMBER_INPUT;
+	MULTILINE;
+	IMMEDIATE; // Do not require commit.
+}
+
+Expand :: enum {
+	NONE;
+	HORIZONTAL;
+	VERICAL;
+	FULL;
+}
+
+HorizontalAlign :: enum {
+	LEFT;
+	RIGHT;
+	CENTER;
+}
+
+VerticalAlign :: enum {
+	TOP;
+	CENTER;
+}
+
+Rect :: struct {
+	x: f32;
+	y: f32;
+	w: f32;
+	h: f32;
+}
+
+WHITE       : glm.v4 : rgba(0xffffffff);
+BLACK       : glm.v4 : rgba(0x000000ff);
+RED         : glm.v4 : rgba(0xff0000ff);
+GREEN       : glm.v4 : rgba(0x00ff00ff);
+BLUE        : glm.v4 : rgba(0x0000ffff);
+LIGHT_GRAY  : glm.v4 : rgba(0xbbbbbbff);
+GRAY        : glm.v4 : rgba(0xaaaaaaff);
+DARK_GRAY   : glm.v4 : rgba(0x444444ff);
+YELLOW      : glm.v4 : rgba(0xffff00ff);
+PINK        : glm.v4 : rgba(0xff00ffff);
+TRANSPARENT : glm.v4 : rgba(0x0);
+
+ICON_CLOSE        : u32 : 0x00D7;
+ICON_CHECKBOX_OFF : u32 : 0x00D7;
+ICON_CHECKBOX_ON  : u32 : 0x2713;
+ICON_PLUS         : u32 : 0x002B;
+ICON_MINUS        : u32 : 0xF068;
+ICON_ARROW_UP     : u32 : 0x2191;
+ICON_ARROW_DOWN   : u32 : 0x2193;
+ICON_ARROW_RIGHT  : u32 : 0x2192;
+ICON_ARROW_LEFT   : u32 : 0x2190;
+ICON_VISIBLE      : u32 : 0xF06E;
+ICON_HIDDEN       : u32 : 0xF070;
+ICON_DELETE       : u32 : 0xF1F8;
+
+// Converts the unicode icone ID to utf8 string in the compile time.
+icon_utf8 :: fn (unicode: u32) string_view #inline #comptime {
+	using std;
+	tmp :: str_new();
+	err :: utf32_to_utf8_single_char(unicode, &tmp);
+	if err { panic(err); }
+	return tmp;
+}
+
+generate_icon_charset :: fn (icon_set: *[..]u32) {
+	array_push(icon_set, auto 'X');
+	// Use push all + array?
+	array_push(icon_set, ICON_CLOSE);
+	// array_push(icon_set, ICON_CHECKBOX_OFF); // same as close
+	array_push(icon_set, ICON_CHECKBOX_ON);
+	array_push(icon_set, ICON_PLUS);
+	array_push(icon_set, ICON_MINUS);
+	array_push(icon_set, ICON_ARROW_UP);
+	array_push(icon_set, ICON_ARROW_DOWN);
+	array_push(icon_set, ICON_ARROW_RIGHT);
+	array_push(icon_set, ICON_ARROW_LEFT);
+	array_push(icon_set, ICON_VISIBLE);
+	array_push(icon_set, ICON_HIDDEN);
+	array_push(icon_set, ICON_DELETE);
+}
+
+rect_zero :: Rect.{};
+
+make_rect :: fn (x: ?T, y: T, w: T, h: T) Rect #inline {
+	static_assert(is_real_or_number(T));
+	return Rect.{ auto x, auto y, auto w, auto h };
+}
+
+rect_resized :: fn (orig: Rect, w: ?T, h: T) Rect #inline {
+	static_assert(is_real_or_number(T));
+	r := orig;
+	r.w = auto w;
+	r.h = auto h;
+	return r;
+}
+
+rect_rounded :: fn (rect: Rect) Rect #inline {
+	using std;
+	return Rect.{
+		ceil(rect.x),
+		ceil(rect.y),
+		ceil(rect.w),
+		ceil(rect.h),
+	};
+}
+
+rect_scaled :: fn (rect: Rect, s: f32/*, rounding := true*/) Rect #inline {
+	using std;
+	r := Rect.{
+		rect.x * s,
+		rect.y * s,
+		rect.w * s,
+		rect.h * s,
+	};
+		r.x -= 0.5f;
+		r.y -= 0.5f;
+		r.w += 1.f;
+		r.h += 1.f;
+	// if rounding {
+	// 	r.x = round(r.x) - 0.5f;
+	// 	r.y = round(r.y) - 0.5f;
+	// 	r.w = round(r.w) + 1.f;
+	// 	r.h = round(r.h) + 1.f;
+	// }
+	return r;
+}
+
+rect_adjusted :: fn (rect: Rect, dx: ?T, dy: T = auto 0, dz : T = auto 0, dw : T = auto 0) Rect #inline {
+	static_assert(is_real_or_number(T));
+	return Rect.{ rect.x + auto dx, rect.y + auto dy, rect.w - auto (dx - dz), rect.h - auto (dy - dw) };
+}
+
+rect_translated :: fn (rect: Rect, x := 0.f, y := 0.f) Rect #inline {
+	return Rect.{ x, y, rect.w, rect.h };
+}
+
+rect_center :: fn (rect: Rect) (hori: f32, vert: f32) #inline {
+	return rect.x + rect.w * 0.5f, rect.y + rect.h * 8.5f;
+}
+
+rect_min :: fn (rect: Rect) glm.v2 #inline {
+	return glm.v2.{ rect.x, rect.y };
+}
+
+rect_united :: fn (a: Rect, b: Rect) Rect #inline {
+	using std;
+	minx :: min(a.x, b.x);
+	miny :: min(a.y, b.y);
+	maxx :: max(a.x+a.w, b.x+b.w);
+	maxy :: max(a.y+a.h, b.y+b.h);
+	return Rect.{
+		minx,
+		miny,
+		maxx - minx,
+		maxy - miny
+	};
+}
+
+rect_match :: fn (a: Rect, b: Rect) bool #inline {
+	using std;
+	return compare(a.x, b.x) && compare(a.y, b.y) && compare(a.w, b.w) && compare(a.h, b.h);
+}
+
+is_point_in_rect :: fn (rect: Rect, p: glm.v2) bool #inline {
+	return p.x > rect.x && p.x < (rect.x + rect.w) && p.y > rect.y && p.y < (rect.y + rect.h);
+}
+
+// Convert sRGBA color to linear RGBA
+rgba :: fn (c: u32) glm.v4 #comptime {
+	using std;
+	T :: union {
+		v: u32;
+		ch: [4]u8;
+	};
+	tmp: T #noinit;
+	tmp.v = c;
+
+	result: glm.v4 #noinit;
+	result.x = pow(cast(f32) tmp.ch[3] / 255.f, 2.2f);
+	result.y = pow(cast(f32) tmp.ch[2] / 255.f, 2.2f);
+	result.z = pow(cast(f32) tmp.ch[1] / 255.f, 2.2f);
+	// result.x = cast(f32) tmp.ch[3] / 255.f;
+	// result.y = cast(f32) tmp.ch[2] / 255.f;
+	// result.z = cast(f32) tmp.ch[1] / 255.f;
+	result.w = cast(f32) tmp.ch[0] / 255.f;
+	return result;
+}
+
+add_gamma :: fn (c: glm.v4) glm.v4 #inline {
+	using std;
+	return glm.v4.{
+		pow(c.x, 2.2f),
+		pow(c.y, 2.2f),
+		pow(c.z, 2.2f),
+		c.w
+	};
+}
+
+remove_gamma :: fn (c: glm.v4) glm.v4 #inline {
+	using std;
+	return glm.v4.{
+		pow(c.x, 1.f/2.2f),
+		pow(c.y, 1.f/2.2f),
+		pow(c.z, 1.f/2.2f),
+		c.w
+	};
+}
+
+color_lerp :: fn (a: glm.v4, b: glm.v4, friction: f32) glm.v4 #inline {
+	result: glm.v4;
+
+	using std;
+	result.x = lerp(a.x, b.x, friction);
+	result.y = lerp(a.y, b.y, friction);
+	result.z = lerp(a.z, b.z, friction);
+	result.w = lerp(a.w, b.w, friction);
+	return result;
+}
+
+color_mix :: fn (dark: glm.v4, mid: glm.v4, light: glm.v4, friction: f32) glm.v4 #inline {
+	using std;
+	f := clamp(friction, -1.f, 1.f);
+	if abs(f) < 0.001f {
+		return mid;
+	}
+	if f < -0.9999f {
+		return dark;
+	}
+	if f > 0.9999f {
+		return light;
+	}
+	if f < 0.f {
+		f2 :: -f;
+		return color_lerp(mid, dark, f2);
+	}
+	return color_lerp(mid, light, f);
+}
+
+color_darker :: fn (c: glm.v4, amount: f32) glm.v4 {
+	using std;
+	a :: max(1.f - amount, 0.f);
+	result: glm.v4 #noinit;
+	result.x = c.x * a;
+	result.y = c.y * a;
+	result.z = c.z * a;
+	result.w = c.w;
+	return result;
+}
+
+color_lighter :: fn (c: glm.v4, amount: f32) glm.v4 {
+	a :: 1.f + amount;
+	result: glm.v4 #noinit;
+	result.x = c.x * a;
+	result.y = c.y * a;
+	result.z = c.z * a;
+	result.w = c.w;
+	return result;
+}
+
+is_valid_clipping_mask :: fn (mask: glm.v4) bool #inline {
+	eps :: std.F32_EPSILON;
+	return mask.z - mask.x > eps && mask.w - mask.y > eps;
+}
+
+rgba_to_hsv :: fn (rgb: glm.v4) glm.v3 {
+	using std;
+
+	M :: max(max(rgb.x, rgb.y), rgb.z);
+	m :: min(min(rgb.x, rgb.y), rgb.z);
+	C :: M - m; // Chroma
+
+	H, S, V: f32;
+
+	if C != 0.f {
+		if M == rgb.x {
+			H = fmod(((rgb.y - rgb.z) / C), 6.f);
+		} else if M == rgb.y {
+			H = ((rgb.z - rgb.x) / C) + 2.f;
+		} else if M == rgb.z {
+			H = ((rgb.x - rgb.y) / C) + 4.f;
+		}
+
+		H *= 60.f;
+	}
+	if H < 0.f {
+		H += 360.f;
+	}
+	V = M;
+	if V != 0.f {
+		S = C / V;
+	}
+	return glm.v3.{ H, S, V };
+}
+
+hsv_to_rgba :: fn (hsv: glm.v3, alpha := 1.f) glm.v4 {
+	using std;
+	result := glm.v4.{ w = alpha };
+
+	chroma :: hsv.z * hsv.y;
+	hprime  :: fmod(hsv.x / 60.f, 6.f);
+	x :: chroma * (1.f - abs(fmod(hprime, 2.f) - 1.f));
+	m :: hsv.z - chroma;
+
+	if 0.f <= hprime && hprime < 1.f {
+		result.x = chroma;
+		result.y = x;
+	} else if 1.f <= hprime && hprime < 2.f {
+		result.x = x;
+		result.y = chroma;
+	} else if 2.f <= hprime && hprime < 3.f {
+		result.y = chroma;
+		result.z = x;
+	} else if 3.f <= hprime && hprime < 4.f {
+		result.y = x;
+		result.z = chroma;
+	} else if 4.f <= hprime && hprime < 5.f {
+		result.x = x;
+		result.z = chroma;
+	} else if 5.f <= hprime && hprime < 6.f {
+		result.x = chroma;
+		result.z = x;
+	}
+
+	result.x += m;
+	result.y += m;
+	result.z += m;
+	return result;
+}

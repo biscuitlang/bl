@@ -1,0 +1,2013 @@
+#load "ui_common.bl"
+
+#scope ui
+
+// Scale of the UI for conversion from device independent pixels to raw pixels.
+scale_factor := 1.f;
+global_alpha := 1.f;
+
+// No mouse and keyboard input when true.
+ignore_inputs: bool;
+
+Api :: struct {
+	// Drawing
+	draw_rect:             DrawRectFn;
+	draw_rect_with_colors: DrawRectWithColorsFn;
+	draw_text:             DrawTextFn;
+	draw_hs_rect:          DrawHsRectFn;
+
+	// Input
+	get_mouse_position:      GetMousePositionFn;
+	get_mouse_scroll_offset: GetMouseScrollOffsetFn;
+	get_last_char_input:     GetLastCharInputFn;
+	is_lmb_press:            MouseButtonFn;
+	is_lmb_down:             MouseButtonFn;
+	is_lmb_release:          MouseButtonFn;
+	is_key_press_or_repeat:  KeyEventFn;
+	is_key_release:          KeyEventFn;
+	is_key_press:            KeyEventFn;
+
+	// Font
+	get_text_size: GetTextSizeFn;
+}
+
+InitInfo :: struct {
+	api:        Api;
+
+	font:       Font;
+	font_icons: Font;
+
+	use_light_theme: bool;
+}
+
+init :: fn (info: *InitInfo) {
+	using std;
+
+	main_font = info.font;
+	icon_font = info.font_icons;
+
+	use_light_theme = info.use_light_theme;
+
+	memcpy(auto &api, auto &info.api, sizeof(Api));
+
+	context_pool = pool_make(null, 2048);
+}
+
+terminate :: fn () {
+	release_allocator(&context_pool);
+	array_terminate(&nodes);
+	array_terminate(&edit_lines_tmp);
+}
+
+get_default_style :: fn (T: type #comptime) T {
+	tmp: *T;
+	tmp = get_style(tmp);
+	return @tmp;
+}
+
+get_default_style_ref :: fn {
+	fn () *Style {
+		return get_style();
+	};
+	fn (T: type #comptime) *T {
+		tmp: *T;
+		tmp = get_style(tmp);
+		return tmp;
+	};
+};
+
+begin :: fn () {
+	edit_tmp = std.str_new();
+	num_conversion_tmp = std.str_new();
+}
+
+end :: fn () {
+	using std;
+	tbl_terminate(&buttons);
+	tbl_terminate(&scroll_areas);
+	tbl_terminate(&lists);
+	tbl_terminate(&textboxes);
+	tbl_terminate(&color_pickers);
+
+	array_terminate(&window_stack);
+
+	focus_window = 0;
+	hover = Hover.{};
+	hover_frame = Hover.{};
+	current_keyboard_focus = 0;
+
+	str_delete(&edit_tmp);
+	str_delete(&num_conversion_tmp);
+
+	reset_allocator(&context_pool);
+}
+
+frame_begin :: fn (viewport_size: glm.v2, dt: f32) {
+	delta_time = dt;
+
+	push(make_rect(0.f, 0.f, viewport_size.x, viewport_size.y));
+	canvas_size = viewport_size;
+	hover = hover_frame;
+	hover_frame = Hover.{};
+
+	if api.is_lmb_press() {
+		current_keyboard_focus = 0;
+	}
+}
+
+frame_end :: fn () #inline {
+	pop();
+	assert(nodes.len == 0);
+	sort_window_stack();
+}
+
+is_mouse_over :: fn () bool #inline {
+	return hover.window != 0;
+}
+
+has_keyboard_focus :: fn () bool #inline {
+	return current_keyboard_focus != 0;
+}
+
+//
+// Window
+//
+
+Window :: struct {
+	rect: Rect;
+	is_minimized: bool;
+	is_visible: bool; // Window may be invisible (closed).
+
+	// Mostly private
+	style: *WindowStyle;
+	title: string_view;
+	flags: WindowFlags;
+	focus: bool;
+
+	move_start: glm.v2;
+	z_order: s32;
+	hash: u64;
+	is_moving: bool;
+	is_scrolling: bool;
+	resize: WindowResize;
+}
+
+init_window :: fn (w: *Window, rect: Rect, title: string_view, flags := WindowFlags.DEFAULT, style: *WindowStyle = null, index: u64 = 0, loc := #call_location) {
+	zeromem(auto w, sizeof(Window));
+	w.hash       = get_window_hash(loc, index);
+	w.style      = get_style(style);
+	w.rect       = rect;
+	w.title      = title;
+	w.flags      = flags;
+	w.is_visible = true;
+	w.focus      = true; // To bring the window on top.
+	w.is_visible = !is_flag(flags, WindowFlags.MENU);
+}
+
+window_begin :: fn (window: *Window) bool {
+	using WindowFlags;
+
+	if !window.is_visible { return false; }
+
+	// Adjust the window possition to get propper pixel-perfect element rendering.
+	window.rect = rect_rounded(window.rect);
+
+	push_window(window);
+	mouse :: api.get_mouse_position();
+
+	style :: window.style;
+	assert(style);
+
+	if window.focus {
+		window.focus = false;
+		window.z_order = auto window_stack.len;
+		focus_window = window.hash;
+	}
+
+	if (!is_flag(window.flags, NO_MOVE)) && window.is_moving {
+		window.rect.x = mouse.x - window.move_start.x;
+		window.rect.y = mouse.y - window.move_start.y;
+
+		if window.rect.x < 0.f { window.rect.x = 0.f; }
+		if window.rect.y < 0.f { window.rect.y = 0.f; }
+		if window.rect.x + window.rect.w > canvas_size.x { window.rect.x = canvas_size.x - window.rect.w; }
+		if window.rect.y + window.rect.h > canvas_size.y { window.rect.y = canvas_size.y - window.rect.h; }
+	}
+
+	if (!is_flag(window.flags, NO_RESIZE)) {
+		min_size :: glm.v2.{ 50.f , 50.f };
+		using WindowResize;
+		switch window.resize {
+			NONE;
+			LEFT {
+				if window.rect.w + window.rect.x - mouse.x > min_size.x {
+					window.rect.w += window.rect.x - mouse.x;
+					window.rect.x = mouse.x;
+				}
+			}
+			RIGHT {
+				window.rect.w = mouse.x - window.rect.x;
+			}
+			BOTTOM {
+				window.rect.h = mouse.y - window.rect.y;
+			}
+			BOTTOM_LEFT {
+				if window.rect.w + window.rect.x - mouse.x > min_size.x {
+					window.rect.w += window.rect.x - mouse.x;
+					window.rect.x = mouse.x;
+				}
+				window.rect.h = mouse.y - window.rect.y;
+			}
+			BOTTOM_RIGHT {
+				window.rect.w = mouse.x - window.rect.x;
+				window.rect.h = mouse.y - window.rect.y;
+			}
+		}
+
+		// Check minimum size
+		if window.rect.w < min_size.x { window.rect.w = min_size.x; }
+		if window.rect.h < min_size.y { window.rect.h = min_size.y; }
+	}
+
+	rect := window.rect;
+	lmb_pressed :: api.is_lmb_down();
+	lmb_pressed_over_window :: lmb_pressed && hover.window == window.hash;
+
+	if lmb_pressed && hover.window != window.hash && is_flag(window.flags, MENU) {
+		window.is_visible = false;
+	}
+
+	if window.is_minimized {
+		if is_flag(window.flags, MINIMIZE_TO_BOTTOM) {
+			rect.y += rect.h - auto style.bar_height+style.frame_size * 2;
+			rect = rect_resized(rect, rect.w, auto style.bar_height+style.frame_size * 2);
+		} else {
+			rect = rect_resized(rect, rect.w, auto style.bar_height+style.frame_size * 2);
+		}
+	}
+
+	// Add virtual extend to the window to get some area for resizing trigger.
+	resize_offset :: 5;
+	_, mouse_rect :: push(rect_adjusted(rect, -resize_offset, -resize_offset, resize_offset, resize_offset));
+	frame_rect :: push(rect_translated(rect, auto resize_offset, auto resize_offset));
+	fill_current_rect(style.frame_color);
+
+	if is_point_in_rect(mouse_rect, mouse) {
+		set_window_hover(window);
+	}
+
+	if lmb_pressed_over_window {
+		focus_window = window.hash;
+	}
+
+	is_focused :: focus_window == window.hash;
+
+	content_rect :: push(rect_adjusted(frame_rect, auto style.frame_size, auto style.frame_size, auto -style.frame_size, auto -style.frame_size));
+	fill_current_rect(style.body_color);
+
+	// title bar
+	title_height := 0.f;
+	if !is_flag(window.flags, NO_DECORATION) {
+		bar_color := style.bar_color_no_focus;
+		if is_focused { bar_color = style.bar_color_focus; }
+		title_rect, title_mouse_rect :: push(rect_resized(content_rect, content_rect.w, auto style.bar_height));
+		fill_current_rect(bar_color);
+		title_height = title_rect.h;
+
+		button_x := title_rect.w - auto style.bar_height;
+		button_wh :: cast(f32) style.bar_height;
+		if !is_flag(window.flags, NO_CLOSE) { // Close button
+			if button(
+				make_rect(button_x, 0.f, button_wh, button_wh),
+				icon_utf8(ICON_CLOSE),
+				ButtonFlags.DEFAULT,
+				&style.button)
+			{
+				window.is_visible = false;
+			}
+			button_x -= button_wh;
+		}
+
+		if !is_flag(window.flags, NO_MINIMIZE) { // Minimize button
+			minimize_label := icon_utf8(ICON_ARROW_DOWN);
+			if window.is_minimized { minimize_label = icon_utf8(ICON_ARROW_UP); }
+			if button(
+				make_rect(button_x, 0.f, button_wh, button_wh),
+				minimize_label,
+				ButtonFlags.DEFAULT,
+				&style.button)
+			{
+				window.is_minimized = !window.is_minimized;
+			}
+		}
+
+		// Handle window move
+		if window.resize == WindowResize.NONE && is_point_in_rect(rect_adjusted(title_mouse_rect, 0, 0, -style.bar_height, 0), mouse) {
+			if lmb_pressed_over_window && !is_flag(window.flags, NO_MOVE) {
+				window.is_moving = true;
+				window.move_start.x = mouse.x - window.rect.x;
+				window.move_start.y = mouse.y - window.rect.y;
+			}
+		}
+
+		// Handle window resizing
+		if (!window.is_scrolling) && (!window.is_minimized) && api.is_lmb_press() && (hover.window == window.hash) && (!is_flag(window.flags, NO_RESIZE)) && (window.resize == WindowResize.NONE) {
+			offset :: cast(f32) resize_offset * 2.f;
+			if is_point_in_rect(make_rect(mouse_rect.x + mouse_rect.w - offset, mouse_rect.y + mouse_rect.h - offset, offset, offset), mouse) {
+				// bottom-right
+				#if PLATFORM == Platform.WINDOWS {
+					win32.SetCursor(win32.LoadCursorA(null, win32.IDC_SIZENWSE));
+				}
+				if lmb_pressed_over_window {
+					window.resize = WindowResize.BOTTOM_RIGHT;
+				}
+			} else if is_point_in_rect(make_rect(mouse_rect.x + mouse_rect.w - offset, mouse_rect.y, offset, mouse_rect.h - offset), mouse) {
+				// right
+				#if PLATFORM == Platform.WINDOWS {
+					win32.SetCursor(win32.LoadCursorA(null, win32.IDC_SIZEWE));
+				}
+				if lmb_pressed_over_window {
+					window.resize = WindowResize.RIGHT;
+				}
+			} else if is_point_in_rect(make_rect(mouse_rect.x + offset, mouse_rect.y + mouse_rect.h - offset, mouse_rect.w - offset * 2.f, offset), mouse) {
+				// bottom
+				#if PLATFORM == Platform.WINDOWS {
+					win32.SetCursor(win32.LoadCursorA(null, win32.IDC_SIZENS));
+				}
+				if lmb_pressed_over_window {
+					window.resize = WindowResize.BOTTOM;
+				}
+			} else if is_point_in_rect(make_rect(mouse_rect.x, mouse_rect.y + mouse_rect.h - offset, offset, offset), mouse) {
+				// bottom-left
+				#if PLATFORM == Platform.WINDOWS {
+					win32.SetCursor(win32.LoadCursorA(null, win32.IDC_SIZENESW));
+				}
+				if lmb_pressed_over_window {
+					window.resize = WindowResize.BOTTOM_LEFT;
+				}
+			} else if is_point_in_rect(make_rect(mouse_rect.x, mouse_rect.y, offset, mouse_rect.h - offset), mouse) {
+				// left
+				#if PLATFORM == Platform.WINDOWS {
+					win32.SetCursor(win32.LoadCursorA(null, win32.IDC_SIZEWE));
+				}
+				if lmb_pressed_over_window {
+					window.resize = WindowResize.LEFT;
+				}
+			}
+		}
+
+		if api.is_lmb_release() {
+			window.is_moving = false;
+			window.resize    = WindowResize.NONE;
+		}
+
+		title_style := &style.title_no_focus;
+		if is_focused { title_style = &style.title_focus; }
+
+		label_rect :: peek();
+		label(rect_translated(label_rect), window.title, title_style);
+		pop();
+	}
+
+	// Body
+	push(rect_adjusted(content_rect, 1.f, title_height + 2.f, -1.f, -2.f));
+	if !window.is_minimized {
+		fill_current_rect(style.content_color);
+	}
+
+	if window.is_minimized { window_end(); }
+
+	return !window.is_minimized;
+}
+
+window_end :: fn () #inline {
+	pop(4);
+}
+
+//
+// Label
+//
+
+label :: fn {
+	label_impl;
+	label_item_impl;
+}
+
+item_title :: fn (rect: Rect, text: string_view, style: *LabelStyle = null) Rect {
+	assert(current_list);
+	label_rect :: rect_resized(rect, ternary(current_list.title_width == 0.f, rect.w * ITEM_LABEL_RATIO, current_list.title_width), rect.h);
+	value_rect :: make_rect(label_rect.w + ITEM_LABEL_VALUE_GAP, 0.f, rect.w - label_rect.w - ITEM_LABEL_VALUE_GAP, rect.h);
+	label(label_rect, text, style);
+	return value_rect;
+}
+
+//
+// Button
+//
+
+button_begin :: fn (rect: Rect, flags := ButtonFlags.DEFAULT, _style: *ButtonStyle = null, index : u64 = 0, loc := #call_location) (clicked: bool, button_state: *Button) {
+	using std;
+	using ButtonState;
+	using ButtonFlags;
+
+	style :: get_style(_style);
+	hash  :: get_hash(loc, index);
+	dt    :: delta_time;
+
+	button := get_ctx(&buttons, hash);
+	body_color := style.body_color;
+	hover_color :: color_lighter(body_color, 0.9f);
+	// press_color :: color_darker(body_color, 0.5f);
+	press_color :: style.press_color;
+	swap_shadow_colors := style.swap_shadow_colors;
+
+	if is_flag(flags, DISABLED) {
+		body_color = style.color_disabled;
+		swap_shadow_colors = true;
+	}
+
+	button_rect, mouse_rect :: push(rect);
+
+	clicked := false;
+	is_mouse_over :: hover.elem == hash;
+
+	button.t += dt * 0.01f;
+	button.t = clamp(button.t, 0.f, 1.f);
+
+	if button.state == NORMAL {
+		if is_mouse_over && (!is_flag(flags, DISABLED)) {
+			button.effect_from = button.effect;
+			button.effect_to = 1.f;
+			button.t = 0.f;
+			button.state = HOVER;
+		}
+	}
+
+	if button.state == HOVER {
+		if !is_mouse_over {
+			button.effect_from = button.effect;
+			button.effect_to = 0.f;
+			button.t = 0.f;
+			button.state = NORMAL;
+		} else if api.is_lmb_press() {
+			button.state = PRESS;
+			button.effect_from = button.effect;
+			button.effect_to = -1.f;
+			button.t = 0.f;
+			clicked = is_flag(flags, CLICK_ON_PRESS);
+		}
+	}
+
+	if button.state == PRESS {
+		if api.is_lmb_release() {
+			clicked = is_mouse_over && (!is_flag(flags, CLICK_ON_PRESS));
+			button.effect_from = button.effect;
+			button.effect_to = 1.f;
+			button.t = 0.f;
+			button.state = HOVER;
+		}
+	}
+
+	button.effect = lerp(button.effect_from, button.effect_to, button.t);
+	body_color = color_mix(press_color, body_color, hover_color, button.effect);
+
+	if !style.no_body {
+		// Shadows
+		lighter := color_lighter(body_color, 0.8f);
+		darker  := color_darker(body_color,  0.8f);
+
+		if swap_shadow_colors {
+			swap(&lighter, &darker);
+		}
+
+		if button.state == PRESS { swap(&lighter, &darker); }
+
+		// Fill the whole button area with darker color first.
+		fill_current_rect(darker);
+
+		// Fill part of the button area with lighter color.
+		push(rect_adjusted(button_rect, 0, 0, -style.frame_size, -style.frame_size));
+		fill_current_rect(lighter);
+		pop();
+	}
+
+	// Fill central area with body color.
+	push(rect_adjusted(button_rect, style.frame_size, style.frame_size, -style.frame_size, -style.frame_size));
+	if !style.no_body { fill_current_rect(body_color); }
+
+	mouse :: api.get_mouse_position();
+	if is_point_in_rect(mouse_rect, mouse) {
+		set_elem_hover(hash);
+	}
+
+	return clicked, button;
+}
+
+button_end :: fn () #inline {
+	pop(2);
+}
+
+button :: fn {
+	button_impl;
+	button_item_impl;
+}
+
+//
+// Scroll Area
+//
+
+scroll_area_begin :: fn (_style: *ScrollAreaStyle = null, index : u64 = 0, loc := #call_location) {
+	assert(current_scroll_area == null);
+	style :: get_style(_style);
+	hash :: get_hash(loc, index);
+	mouse :: api.get_mouse_position();
+
+	area, is_new := get_ctx(&scroll_areas, hash);
+
+	handle_width :: style.handle_width;
+	content_rect, mask := peek();
+	content_rect = rect_translated(content_rect);
+	mouse_rect :: mask_to_rect(mask);
+
+	if is_point_in_rect(mouse_rect, mouse) {
+		set_scroll_area_hover(hash);
+	}
+
+	content_h :: std.max(area.rect.h, 1.f) + 4.f;
+	has_scrollbar :: content_h > content_rect.h;
+	if has_scrollbar {
+		// scroll handle
+		handle_area :: push(make_rect(content_rect.w - handle_width, 0.f, handle_width, content_rect.h));
+		fill_current_rect(style.color);
+		ratio := handle_area.h / content_h;
+		if area.rect.y > 0.f { area.rect.y = 0.f; }
+		if button(make_rect(0.f, area.rect.y * -ratio, handle_width, handle_area.h * ratio), "", ButtonFlags.CLICK_ON_PRESS, &style.handle) {
+			area.is_scrolling = (!is_new) && (content_h > content_rect.h);
+			area.move_start.y = mouse.y - (area.rect.y * -ratio);
+
+			current_window := get_current_window();
+			if current_window { current_window.is_scrolling = true; }
+		}
+		pop(); // pop handle area
+
+		if area.is_scrolling {
+			area.rect.y = (area.move_start.y - mouse.y) / ratio;
+			area.rect.y = std.ceil(area.rect.y);
+			if api.is_lmb_release() {
+				area.is_scrolling = false;
+
+				current_window := get_current_window();
+				if current_window { current_window.is_scrolling = false; }
+			}
+		} else if hover.scroll_area == hash {
+			changed, offset :: api.get_mouse_scroll_offset();
+			if changed {
+				area.rect.y += offset.y * style.scroll_speed;
+			}
+		}
+		if area.rect.y > 0.f { area.rect.y = 0.f; }
+		if area.rect.y + content_h < content_rect.h { area.rect.y = content_rect.h - content_h; }
+	} else {
+		area.rect.y = 0.f;
+	}
+
+	right_padding := handle_width + style.content_padding;
+	if !has_scrollbar { right_padding = style.content_padding; }
+	push(rect_adjusted(content_rect, style.content_padding, style.content_padding, auto -right_padding, -style.content_padding));
+	push(area.rect, Expand.HORIZONTAL);
+	fill_current_rect(style.body_color);
+
+	current_scroll_area = area;
+}
+
+scroll_area_end :: fn () #inline {
+	pop(2);
+	assert(current_scroll_area);
+	current_scroll_area.rect.h = content_extend.h;
+	current_scroll_area = null;
+	content_extend = rect_zero;
+}
+
+//
+// ListLayout
+//
+
+list_begin :: fn (style : *ScrollAreaStyle = null, title_width := 0.f, colorize_items_base_color := TRANSPARENT, index : u64 = 0, loc := #call_location) {
+	assert(!current_list); // No nesting for now!
+	list := get_ctx(&lists, get_hash(loc, index));
+	list.y = 0.f;
+	list.index = 0;
+	list.title_width = title_width;
+	list.colorize_items_base_color = colorize_items_base_color;
+	current_list = list;
+	scroll_area_begin(style, index); // pass style
+}
+
+list_end :: fn () #inline {
+	scroll_area_end();
+	current_list = null;
+}
+
+list_item_begin :: fn (item_offset := 2, _item_height := -1, _color := TRANSPARENT) (rect: Rect, is_visible: bool) {
+	assert(current_list); // Not inside the list?
+	parent_rect :: peek();
+
+	item_height: f32 #noinit;
+	if _item_height == -1 {
+		item_height = get_list_item_height();
+	} else {
+		item_height = auto _item_height;
+	}
+
+	rect :: make_rect(0.f, current_list.y, parent_rect.w, auto item_height);
+	list :: current_list;
+	list.y += rect.h + auto item_offset;
+	push(rect);
+
+	color := _color;
+	if color.w < std.F32_EPSILON && list.colorize_items_base_color.w > 0.f {
+		if (list.index % 2) == 0 {
+			color = list.colorize_items_base_color;
+		} else {
+			color = glm.mul(list.colorize_items_base_color, 1.5f);
+		}
+	}
+
+	list.index += 1;
+	return rect_translated(rect), fill_current_rect(color);
+}
+
+list_item_end :: fn () #inline {
+	assert(current_list); // Not inside the list?
+	pop();
+}
+
+list_item_separator :: fn (height := 8) #inline {
+	list_item_begin(2, height);
+	list_item_end();
+}
+
+list_background_color :: fn (color: glm.v4) glm.v4 #inline {
+	assert(current_list);
+	tmp :: current_list.colorize_items_base_color;
+	current_list.colorize_items_base_color = color;
+	return tmp;
+}
+
+//
+// Checkbox
+//
+
+checkbox :: fn {
+	checkbox_impl;
+	checkbox_item_impl;
+}
+
+//
+// Variants
+//
+
+variants :: fn {
+	variants_impl;
+	variants_item_impl;
+}
+
+//
+// Textbox
+//
+
+textbox :: fn {
+	textbox_impl;
+	textbox_item_impl;
+	intbox_item_impl;
+	floatbox_impl;
+	floatbox_item_impl;
+}
+
+//
+// Canvas
+//
+
+canvas_begin :: fn (background_color: glm.v4 = TRANSPARENT) {
+	rect :: peek();
+	push(rect_translated(rect));
+	fill_current_rect(background_color);
+}
+
+canvas_end :: fn () {
+	pop();
+}
+
+canvas_rect :: fn (rect: Rect, color: glm.v4) {
+	using glm;
+	_, mask := peek();
+	if !is_valid_clipping_mask(mask) { return; }
+	if color.w < std.F32_EPSILON { return; }
+
+	c := color;
+	c.w = global_alpha;
+	the_rect :: rect_scaled(rect_to_global(rect), scale_factor);
+	mask = glm.mul(mask, scale_factor);
+
+	api.draw_rect(v3.{ the_rect.x, the_rect.y, get_current_depth() }, v2.{ the_rect.w, the_rect.h }, c, mask);
+}
+
+canvas_text :: fn (pos: glm.v2, text: string_view, font: Font, color: glm.v4) {
+	_, mask := peek();
+	if !is_valid_clipping_mask(mask) { return; }
+	if color.w < std.F32_EPSILON { return; }
+
+	rect := Rect.{ pos.x, pos.y };
+	rect = rect_scaled(rect_to_global(rect), scale_factor);
+	c := color;
+
+	mask = glm.mul(mask, scale_factor);
+	c.w = global_alpha;
+
+	api.draw_text(glm.v3.{ rect.x, rect.y, get_current_depth() }, text, font, c, mask);
+}
+
+//
+// Color Picker
+//
+
+// The color picker internally works over HSV values, which cannot be correctly stored in RGB(A) values, so we need to set reset to true each
+// time the picker is supposed to pick another color.
+color_picker :: fn (color: *glm.v4, base_color: glm.v4, reset := false, edit_alpha := true,  index : u64 = 0, loc := #call_location) (applied: bool, cancelled: bool) {
+	hash :: get_hash(loc, index);
+	mouse :: api.get_mouse_position();
+
+	interactions_enabled :: get_current_window_hash() == focus_window;
+
+	picker, is_new := get_ctx(&color_pickers, hash);
+
+	// We have to do all editing on HVS copy of the input color, since RGB does not preserve all HSV values correctly.
+	if is_new || reset {
+		picker.hsv   = rgba_to_hsv(remove_gamma(@color));
+		picker.alpha = std.clamp(color.w, 0.f, 1.f);
+	}
+
+	parent_rect :: peek();
+	content_rect :: rect_translated(parent_rect);
+
+	if api.is_lmb_release() {
+		picker.is_hs_edit = false;
+		picker.is_v_edit  = false;
+	}
+
+	slider_rect_height :: 24.f;
+	values_rect_height :: 90.f;
+	button_rect_height :: 24.f;
+
+	hs_rect_height :: content_rect.h - values_rect_height - slider_rect_height - button_rect_height;
+
+	pointer_color :: add_gamma(hsv_to_rgba(glm.v3.{ picker.hsv.x + 180.f, 1.f, 1.f }, 1.f));
+
+	// Draw HS palette
+	hs_rect, hs_mouse_rect :: push(make_rect(content_rect.x, content_rect.y, content_rect.w, hs_rect_height)); {
+		using glm;
+		rect, mask := peek();
+		if is_valid_clipping_mask(mask) {
+			rect = rect_scaled(rect, scale_factor);
+			mask = glm.mul(mask, scale_factor);
+
+			api.draw_hs_rect(v3.{ rect.x, rect.y, get_current_depth() }, v2.{ rect.w, rect.h }, mask);
+
+			pointer_size :: 10.f;
+			hue_x := hs_rect.w * (picker.hsv.x / 360.f);
+			hue_y := hs_rect.h * (1.f - picker.hsv.y);
+
+			push(make_rect(hue_x - pointer_size * 0.5f, hue_y - 1.f, pointer_size, 2.f));
+			fill_current_rect(pointer_color);
+			pop();
+
+			push(make_rect(hue_x - 1.f, hue_y - pointer_size * 0.5f, 2.f, pointer_size));
+			fill_current_rect(pointer_color);
+			pop();
+
+			// interactions
+			if interactions_enabled {
+				if api.is_lmb_press() && is_point_in_rect(hs_mouse_rect, mouse) {
+					picker.is_hs_edit = true;
+				}
+
+				if picker.is_hs_edit && hs_rect.w > 0.f {
+					using std;
+					picker.hsv.x = clamp((mouse.x - hs_mouse_rect.x) / hs_rect.w * 360.f, 0.f, 360.f);
+					picker.hsv.y = clamp(1.f - (mouse.y - hs_mouse_rect.y) / hs_rect.h, 0.f, 1.f);
+				}
+			}
+		}
+	} pop();
+
+	// Draw Value gradient panel.
+	v_rect, v_mouse_rect :: push(make_rect(content_rect.x, content_rect.y + hs_rect_height, content_rect.w, slider_rect_height)); {
+		using glm;
+		rect, mask := peek();
+		if is_valid_clipping_mask(mask) {
+			rect = rect_scaled(rect, scale_factor);
+			mask = glm.mul(mask, scale_factor);
+
+			c0 :: add_gamma(hsv_to_rgba(v3.{ picker.hsv.x, picker.hsv.y, 0.f }));
+			c1 :: add_gamma(hsv_to_rgba(v3.{ picker.hsv.x, picker.hsv.y, 1.f }));
+
+			colors :: [4]v4.{ c0, c1, c1, c0 };
+			api.draw_rect_with_colors(v3.{ rect.x, rect.y, get_current_depth() }, v2.{ rect.w, rect.h }, colors, mask);
+
+			pointer_size :: 4.f;
+			value_x :: (content_rect.w * picker.hsv.z) - (pointer_size * 0.5f);
+
+			push(make_rect(value_x, 0.f, pointer_size, v_rect.h));
+			fill_current_rect(pointer_color);
+			pop();
+
+			// interactions
+			if interactions_enabled {
+				if api.is_lmb_press() && is_point_in_rect(v_mouse_rect, mouse) {
+					picker.is_v_edit = true;
+				}
+
+				if picker.is_v_edit && v_rect.w > 0.f {
+					using std;
+					picker.hsv.z = clamp((mouse.x - v_mouse_rect.x) / v_rect.w, 0.f, 1.f);
+				}
+			}
+		}
+	} pop();
+
+	values_y :: content_rect.x + hs_rect_height + slider_rect_height;
+	push(make_rect(content_rect.x, values_y, content_rect.w * 0.5f, values_rect_height)); {
+		list_begin(null, 0.f, TRANSPARENT, 0);
+		defer list_end();
+
+		rgba := add_gamma(hsv_to_rgba(picker.hsv, picker.alpha));
+
+		// @Hack Keep this on separate lines to get different hash (lol).
+		rgba_changed := textbox("Red", &rgba.x) ||
+			textbox("Green", &rgba.y) ||
+			textbox("Blue", &rgba.z);
+		if edit_alpha {
+			rgba_changed = rgba_changed || textbox("Alpha", &rgba.w);
+		}
+		if rgba_changed {
+			using std;
+
+			picker.hsv = rgba_to_hsv(remove_gamma(rgba));
+			picker.alpha = clamp(rgba.w, 0.f, 1.f);
+		}
+	} pop();
+
+	push(make_rect(content_rect.w * 0.5f, values_y, content_rect.w * 0.5f, values_rect_height)); {
+		list_begin(null, 0.f, TRANSPARENT, 1);
+		defer list_end();
+
+		tmp_hsv := picker.hsv;
+		tmp_hsv.y *= 100.f;
+		tmp_hsv.z *= 100.f;
+
+		// @Hack Keep this on separate lines to get different hash (lol).
+		hsv_changed :: textbox("Hue", &tmp_hsv.x)
+			|| textbox("Saturation", &tmp_hsv.y)
+			|| textbox("Value", &tmp_hsv.z);
+
+		if hsv_changed {
+			using std;
+			picker.hsv.x = clamp(tmp_hsv.x, 0.f, 360.f);
+			picker.hsv.y = clamp(tmp_hsv.y * 0.01f, 0.f, 1.f);
+			picker.hsv.z = clamp(tmp_hsv.z * 0.01f, 0.f, 1.f);
+		}
+
+		// Draw preview.
+		list_item_begin(); {
+			using glm;
+			rect, mask := peek();
+			if is_valid_clipping_mask(mask) {
+				rect = rect_scaled(rect, scale_factor);
+				mask = glm.mul(mask, scale_factor);
+
+				rgba :: add_gamma(hsv_to_rgba(picker.hsv, picker.alpha));
+				api.draw_rect(v3.{ rect.x, rect.y, get_current_depth() }, v2.{ rect.w * 0.5f, rect.h }, base_color, mask);
+				api.draw_rect(v3.{ rect.x + rect.w * 0.5f, rect.y, get_current_depth() }, v2.{ rect.w * 0.5f, rect.h }, rgba, mask);
+			}
+		} list_item_end();
+	} pop();
+
+	// cancel, apply buttons
+	button_size :: 100.f;
+	buttons_y :: values_y + values_rect_height;
+
+	cancelled :: button(make_rect(content_rect.x + content_rect.w - button_size * 2.f - 2.f, buttons_y, button_size, button_rect_height), "Cancel");
+	applied   :: button(make_rect(content_rect.x + content_rect.w - button_size, buttons_y, button_size, button_rect_height), "Apply");
+
+	@color = add_gamma(hsv_to_rgba(picker.hsv, picker.alpha));
+
+	return applied, cancelled;
+}
+
+//
+// ButtonBar
+//
+
+button_bar :: fn {
+	button_bar_impl;
+	button_bar_item_impl;
+};
+
+get_list_item_height :: fn () f32 {
+	_, line_height := api.get_text_size("", main_font, -1);
+	line_height *= 1.5f / scale_factor;
+	return line_height;
+}
+
+#private
+
+Node :: struct {
+	using glm;
+
+	rect: Rect;
+	mask: v4;
+}
+
+WindowResize :: enum {
+	NONE;
+	LEFT;
+	RIGHT;
+	BOTTOM;
+	BOTTOM_LEFT;
+	BOTTOM_RIGHT;
+}
+
+ScrollArea :: struct {
+	rect: Rect;
+	move_start: glm.v2;
+	yoff: f32;
+	is_scrolling: bool;
+}
+
+Textbox :: struct {
+	cursor: s64;
+}
+
+ButtonState :: enum {
+	NORMAL;
+	HOVER;
+	PRESS;
+}
+
+Button :: struct {
+	state: ButtonState;
+	t: f32;
+	effect_from: f32;
+	effect_to: f32;
+	effect: f32;
+}
+
+List :: struct {
+	y: f32;
+	index: s32;
+	colorize_items_base_color: glm.v4;
+	title_width: f32;
+}
+
+ColorPicker :: struct {
+	hsv: glm.v3;
+	alpha: f32;
+	is_hs_edit: bool;
+	is_v_edit: bool;
+}
+
+Hover :: struct {
+	z_order: s32;
+	window: u64;
+	elem: u64;
+	scroll_area: u64;
+}
+
+TextBoxLine :: struct {
+	start_index: s32;
+	len: s32;
+}
+
+ITEM_LABEL_RATIO :: 0.4f;
+ITEM_LABEL_VALUE_GAP :: 8.f;
+
+api: Api;
+context_pool: std.PoolAllocator;
+
+use_light_theme := false;
+
+canvas_size: glm.v2;
+
+main_font: Font;
+icon_font: Font;
+nodes: [..]Node;
+
+default_style: Style;
+current_style: *Style;
+
+hover: Hover;
+hover_frame: Hover;
+focus_window: u64;
+
+delta_time: f32;
+
+current_keyboard_focus: u64;
+current_scroll_area: *ScrollArea;
+current_list: *List;
+content_extend: Rect;
+
+edit_cursor_phase: f32;
+edit_tmp: string;
+num_conversion_tmp: string;
+edit_lines_tmp: [..]TextBoxLine;
+
+// Widget internal states
+buttons:       std.Table(u64, *Button);
+scroll_areas:  std.Table(u64, *ScrollArea);
+lists:         std.Table(u64, *List);
+textboxes:     std.Table(u64, *Textbox);
+color_pickers: std.Table(u64, *ColorPicker);
+
+window_stack: [..]*Window;
+
+get_window_hash :: fn (loc: *CodeLocation, i : u64 = 0) u64 #inline {
+	return hash_combine(cast(u64)loc.hash, i);
+}
+
+// Returns hash as combination of code location, current window hash and index.
+get_hash :: fn (loc: *CodeLocation, i : u64 = 0) u64 {
+	return hash_combine(cast(u64)loc.hash, get_current_window_hash(), i);
+}
+
+get_current_window_hash :: fn () u64 #inline {
+	w :: get_current_window();
+	if !w { return 0; }
+	return w.hash;
+}
+
+get_current_window :: fn () *Window #inline {
+	if window_stack.len == 0 { return null; }
+	return window_stack[window_stack.len - 1];
+}
+
+get_current_window_order :: fn () s32 #inline {
+	w :: get_current_window();
+	if !w { return 0; }
+	return w.z_order;
+}
+
+get_current_depth :: fn () f32 #inline {
+	return auto get_current_window_order();
+}
+
+get_ctx :: fn (tbl: *?T, hash: u64) (ctx: std.tbl_typeof_value(T), is_new: bool) {
+	using std;
+	ctx, found := tbl_lookup(tbl, hash);
+	if found { return ctx, false; }
+
+	TContext :: @tbl_typeof_value(T);
+	new_ctx :: new(TContext, false, &context_pool);
+	tbl_insert(tbl, hash, new_ctx);
+	return new_ctx, true;
+}
+
+set_window_hover :: fn (window: *Window) #inline {
+	if ignore_inputs { return; }
+	if window.z_order >= hover_frame.z_order {
+		hover_frame.window = window.hash;
+		hover_frame.z_order  = window.z_order;
+	}
+}
+
+set_elem_hover :: fn (hash: u64) #inline {
+	if ignore_inputs { return; }
+	z_order :: get_current_window_order();
+	if z_order >= hover_frame.z_order {
+		hover_frame.elem = hash;
+		//_hover_frame.z_order = z_order;
+	}
+}
+
+set_scroll_area_hover :: fn (hash: u64) #inline {
+	if ignore_inputs { return; }
+	order :: get_current_window_order();
+	if order >= hover_frame.z_order {
+		hover_frame.scroll_area = hash;
+	}
+}
+
+sort_window_stack :: fn () {
+	sort(window_stack, &fn (a: **Window, b: **Window) bool {
+		return (@a).z_order > (@b).z_order;
+	});
+
+	focused: *Window;
+	index := 0;
+	loop ; index < window_stack.len; index += 1 {
+		w := window_stack[index];
+		if w.hash == focus_window { focused = w; }
+		w.z_order = index;
+	}
+	if focused { focused.z_order = index; }
+	window_stack.len = 0;
+}
+
+push_window :: fn (window: *Window) #inline {
+	array_push(&window_stack, window);
+}
+
+push :: fn (rect: Rect, expand := Expand.NONE) (rect: Rect, mouse_rect: Rect) {
+	adjust_mask :: fn (mask: glm.v4) glm.v4 #inline {
+		if nodes.len == 0 { return mask; }
+		_, parent :: peek();
+		using std;
+		return glm.v4.{
+			max(mask.x, parent.x),
+			max(mask.y, parent.y),
+			min(mask.z, parent.z),
+			min(mask.w, parent.w),
+		};
+	};
+
+	if current_scroll_area {
+		// @Cleanup: Why we don't store the content_extend into the scroll_area object?
+		// @Cleanup: Why we don't store the content_extend into the scroll_area object?
+		// @Cleanup: Why we don't store the content_extend into the scroll_area object?
+		content_extend = rect_united(content_extend, rect);
+	}
+
+	global_rect :: rect_to_global(rect, expand);
+	mask        :: adjust_mask(rect_to_mask(global_rect));
+
+	array_push(&nodes, Node.{ global_rect, mask });
+	return rect_translated(global_rect), mask_to_rect(mask);
+}
+
+pop :: fn (n := 1) #inline {
+	loop i := 0; i < n; i += 1 {
+		array_erase(&nodes, nodes.len - 1);
+	}
+}
+
+peek :: fn () (rect: Rect, mask: glm.v4) #inline {
+	assert(nodes.len > 0);
+	node :: &nodes[nodes.len - 1];
+	return node.rect, node.mask;
+}
+
+// Converts local relative rect to global one using already pushed parent.
+rect_to_global :: fn (rect: Rect, expand := Expand.NONE) Rect #inline {
+	if nodes.len == 0 { return rect; }
+	parent :: peek();
+	global_rect := Rect.{
+		x = rect.x + parent.x,
+		y = rect.y + parent.y,
+		w = rect.w,
+		h = rect.h,
+	};
+	using Expand;
+	switch expand {
+		NONE;
+		HORIZONTAL {
+			global_rect.w = parent.w;
+		}
+		VERICAL {
+			global_rect.h = parent.h;
+		}
+		FULL {
+			global_rect.w = parent.w;
+			global_rect.h = parent.h;
+		}
+	}
+	return global_rect;
+}
+
+rect_to_mask :: fn (rect: Rect) glm.v4 #inline {
+	return glm.v4.{ rect.x, rect.y, rect.x + rect.w, rect.y + rect.h };
+}
+
+mask_to_rect :: fn (mask: glm.v4) Rect #inline {
+	return make_rect(mask.x, mask.y, mask.z - mask.x, mask.w - mask.y);
+}
+
+// Returns whether the rectangle was drown according to current mask.
+fill_current_rect :: fn (color: glm.v4) bool {
+	using glm;
+	rect, mask := peek();
+	if is_valid_clipping_mask(mask) {
+		if color.w < std.F32_EPSILON { return true; }
+		c := color;
+		c.w = global_alpha;
+		rect = rect_rounded(rect_scaled(rect, scale_factor));
+		mask = glm.mul(mask, scale_factor);
+
+			mask.x -= 0.5f;
+			mask.y -= 0.5f;
+			mask.z += 0.5f;
+			mask.w += 0.5f;
+
+		api.draw_rect(v3.{ rect.x, rect.y, get_current_depth() }, v2.{ rect.w, rect.h }, c, mask);
+		return true;
+	}
+	return false;
+}
+
+draw_label :: fn (text: string_view, style: *LabelStyle) #inline {
+	rect, mask := peek();
+	if !is_valid_clipping_mask(mask) { return; }
+
+	rect = rect_rounded(rect_scaled(rect, scale_factor));
+	mask = glm.mul(mask, scale_factor);
+	w, h := api.get_text_size(text, style.font, -1);
+
+	switch style.vertical_alignment {
+		VerticalAlign.TOP;
+		VerticalAlign.CENTER {
+			rect.y += rect.h * 0.5f - h * (0.5f/* + style.font.vertical_correction*/); // @Incomplete
+		}
+	}
+
+	switch style.horizontal_alignment {
+		HorizontalAlign.LEFT;
+		HorizontalAlign.CENTER {
+			rect.x += rect.w * 0.5f - w * 0.5f;
+		}
+		HorizontalAlign.RIGHT {
+			rect.x += rect.w - w;
+		}
+	}
+
+	c := style.color;
+	// c.w = global_alpha;
+	api.draw_text(glm.v3.{ rect.x, rect.y, get_current_depth() }, text, style.font, c, mask);
+}
+
+//
+// Button Impl
+//
+
+button_impl :: fn (rect: Rect, text := "", flags := ButtonFlags.DEFAULT, _style: *ButtonStyle = null, index : u64 = 0, loc := #call_location) bool {
+	style :: get_style(_style);
+	clicked, button_state :: button_begin(rect, flags, style, index, loc);
+	defer button_end();
+
+	if !std.str_is_empty(text) {
+		parent_rect :: peek();
+		label_style := style.label;
+
+		if is_flag(flags, ButtonFlags.DISABLED) {
+			label_style.color = color_darker(label_style.color, 0.8f);
+		} else {
+			hover_color :: color_lighter(label_style.color, 0.9f);
+			press_color :: color_darker(label_style.color, 0.5f);
+			label_style.color = color_mix(press_color, label_style.color, hover_color, button_state.effect);
+		}
+		label(rect_translated(parent_rect), text, &label_style);
+	}
+
+	return clicked;
+}
+
+button_item_impl :: fn (text := "", flags := ButtonFlags.DEFAULT, _style: *ButtonStyle = null, index : u64 = 0, loc := #call_location) bool {
+	style :: get_style(_style);
+	list_item_begin();
+	defer list_item_end();
+	parent_rect :: peek();
+	return button_impl(rect_translated(parent_rect), text, flags, style, index, loc);
+}
+
+//
+// Button Bar Impl
+//
+
+button_bar_impl :: fn (rect: Rect, text: []string_view, style := []*ButtonStyle.{}, index : u64 = 0, loc := #call_location) s32 {
+	default_style: *ButtonStyle;
+	if style.len == 0 {
+		s :: get_style();
+		default_style = &s.button;
+	} else {
+		assert(text.len == style.len);
+	}
+
+	button_count :: text.len;
+
+	button_pressed := -1;
+	x := 0.f;
+	loop i := 0; i < button_count; i += 1 {
+		button_style: *ButtonStyle #noinit;
+		if default_style {
+			button_style = default_style;
+		} else {
+			button_style = style[i];
+		}
+		assert(button_style);
+
+		button_text  :: text[i];
+		button_width := api.get_text_size(button_text, button_style.label.font, -1);
+		button_width *= ternary(button_style.no_body, 1.f, 1.2f) / scale_factor;
+		button_width += 4.f;
+
+		button_rect := rect_resized(rect, button_width, rect.h);
+		button_rect.x += x;
+		if button(button_rect, button_text, ButtonFlags.DEFAULT, button_style, index + auto i, loc) {
+			button_pressed = i;
+		}
+
+		x += button_width + ternary(button_style.no_body, 6.f, 0.f);
+	}
+
+	return button_pressed;
+}
+
+button_bar_item_impl :: fn (name: string_view, text: []string_view, style := []*ButtonStyle.{}, index : u64 = 0, loc := #call_location) s32 {
+	list_item_begin();
+	defer list_item_end();
+
+	rect :: peek();
+	value_rect :: item_title(rect_translated(rect), name);
+	return button_bar_impl(value_rect, text, style, index, loc);
+}
+
+//
+// Label Impl
+//
+
+label_impl :: fn (rect: Rect, text: string_view, _style: *LabelStyle = null) #inline {
+	push(rect);
+	defer pop();
+	draw_label(text, get_style(_style));
+}
+
+label_item_impl :: fn (text: string_view, _style: *LabelStyle = null) #inline {
+	list_item_begin();
+	defer list_item_end();
+	draw_label(text, get_style(_style));
+}
+
+//
+// Checkbox Impl
+//
+
+checkbox_impl :: fn (rect: Rect, value: *bool, _style: *CheckboxStyle = null, index : u64 = 0, loc := #call_location) bool {
+	style :: get_style(_style);
+
+	size :: std.min(rect.w, rect.h);
+
+	button_style := &style.off;
+	icon := style.off_icon;
+	if @value {
+		button_style = &style.on;
+		icon = style.on_icon;
+	}
+
+	changed := false;
+	if button(rect_resized(rect, size, size), icon, ButtonFlags.DEFAULT, button_style, index, loc) {
+		@value = !@value;
+		changed = true;
+	}
+	return changed;
+}
+
+checkbox_item_impl :: fn (name: string_view, value: *bool, _style: *CheckboxStyle = null, index : u64 = 0, loc := #call_location) bool #inline {
+	style :: get_style(_style);
+
+	list_item_begin();
+	defer list_item_end();
+
+	rect :: peek();
+	value_rect :: item_title(rect_translated(rect), name, &style.name);
+	return checkbox_impl(value_rect, value, style, index, loc);
+}
+
+//
+// Variants Impl
+//
+
+variants_impl :: fn (rect: Rect, value: Any, _style: *VariantsStyle = null, flags := VariantsFlags.DEFAULT, index : u64 = 0, _ := #call_location) bool {
+	style :: get_style(_style);
+
+	info :: cast(*TypeInfoEnum) value.type_info;
+	data :: reinterpret_read_any(u64, value);
+	assert(info.kind == TypeKind.ENUM);
+
+	text := "(unknown)";
+	variant_index := 0;
+	loop ; variant_index < info.variants.len; variant_index += 1 {
+		v :: &info.variants[variant_index];
+		if v.value == auto data {
+			text = v.name;
+			break;
+		}
+	}
+
+	push(rect);
+	fill_current_rect(style.body_color);
+
+	button_flags := ButtonFlags.DEFAULT;
+	if is_flag(flags, VariantsFlags.READONLY) { button_flags = ButtonFlags.DISABLED; }
+
+	prev_variant_index :: variant_index;
+	if button(make_rect(0.f, 0.f, rect.h, rect.h), icon_utf8(ICON_ARROW_LEFT), button_flags, &style.button, index) {
+		variant_index -= 1;
+	}
+	if button(make_rect(rect.w - rect.h, 0.f, rect.h, rect.h), icon_utf8(ICON_ARROW_RIGHT), button_flags, &style.button, index) {
+		variant_index += 1;
+	}
+
+	changed :: prev_variant_index != variant_index;
+	if changed {
+		if variant_index < 0 { variant_index = auto info.variants.len - 1; }
+		else if variant_index >= info.variants.len { variant_index = 0; }
+		reinterpret_write_any(value, info.variants[variant_index].value);
+	}
+
+	push(make_rect(rect.h, 0.f, rect.w-rect.h*2.f, rect.h));
+
+	label_rect :: peek();
+	label(rect_translated(label_rect), text, &style.label);
+	pop(2);
+	return changed;
+}
+
+variants_item_impl :: fn (name: string_view, value: Any, flags := VariantsFlags.DEFAULT, _style: *VariantsStyle = null, index : u64 = 0, loc := #call_location) bool {
+	style :: get_style(_style);
+
+	list_item_begin();
+	defer list_item_end();
+
+	rect :: peek();
+	value_rect :: item_title(rect_translated(rect), name, &style.name);
+
+	return variants_impl(value_rect, value, style, flags, index, loc);
+}
+
+//
+// Textbox Impl
+//
+
+intbox_item_impl :: fn (name: string_view, value: *s64, flags := TextboxFlags.DEFAULT, style: *TextboxStyle = null, index : u64 = 0, loc := #call_location) bool {
+	using std;
+
+	str_clear(&num_conversion_tmp);
+	str_append(&num_conversion_tmp, @value);
+	if textbox_item_impl(name, &num_conversion_tmp, flags | TextboxFlags.NUMBER_INPUT, style, index, loc) {
+		n, err :: strtos64(&num_conversion_tmp);
+		if !err {
+			@value = n;
+			return true;
+		}
+	}
+	return false;
+}
+
+floatbox_item_impl :: fn (name: string_view, value: *f32, flags := TextboxFlags.DEFAULT, _style: *TextboxStyle = null, index : u64 = 0, loc := #call_location) bool {
+	style :: get_style(_style);
+	list_item_begin();
+	defer list_item_end();
+
+	rect :: peek();
+	value_rect :: item_title(rect_translated(rect), name, &style.name);
+	return floatbox_impl(value_rect, value, flags, style, index, loc);
+}
+
+floatbox_impl :: fn (rect: Rect, value: *f32, flags := TextboxFlags.DEFAULT, style: *TextboxStyle = null, index : u64 = 0, loc := #call_location) bool {
+	using std;
+
+	str_clear(&num_conversion_tmp);
+	str_append(&num_conversion_tmp, fmt_real(@value, 2));
+	if textbox_impl(rect, &num_conversion_tmp, flags | TextboxFlags.NUMBER_INPUT, style, index, loc) {
+		n, err :: strtof64(&num_conversion_tmp);
+		if !err {
+			float :: cast(f32) n;
+			@value = float;
+			return true;
+		}
+	}
+	return false;
+}
+
+textbox_item_impl :: fn (name: string_view, text: *string, flags := TextboxFlags.DEFAULT, _style: *TextboxStyle = null, index : u64 = 0, loc := #call_location) bool {
+	style :: get_style(_style);
+	list_item_begin();
+	defer list_item_end();
+
+	rect :: peek();
+	value_rect :: item_title(rect_translated(rect), name, &style.name);
+	return textbox_impl(value_rect, text, flags, style, index, loc);
+}
+
+textbox_impl :: fn (rect: Rect, text: *string, flags := TextboxFlags.DEFAULT, _style: *TextboxStyle = null, index : u64 = 0, loc := #call_location) bool {
+	style   :: get_style(_style);
+	hash    :: get_hash(loc, index);
+	textbox :: get_ctx(&textboxes, hash);
+
+	is_multiline :: is_flag(flags, TextboxFlags.MULTILINE);
+	is_immediate :: is_flag(flags, TextboxFlags.IMMEDIATE);
+
+	_, line_height := api.get_text_size("", style.text.font, -1);
+	line_height *= 1.3f / scale_factor;
+
+	assert(text);
+
+	body_style := style.body;
+	if current_keyboard_focus == hash {
+		body_style.frame_color = body_style.press_color;
+	}
+	button_flags := ButtonFlags.DEFAULT;
+	if is_flag(flags, TextboxFlags.READONLY) {
+		button_flags = ButtonFlags.DISABLED;
+	}
+	clicked :: button_begin(rect, button_flags, &body_style, index, loc);
+	defer button_end();
+
+	// add some padding
+	push(rect_adjusted(rect_translated(rect), style.padding, 0, -style.padding, -2));
+	defer pop();
+
+	is_focused_for_first_time := false;
+
+	if clicked {
+		is_focused_for_first_time = current_keyboard_focus != hash;
+		current_keyboard_focus = hash;
+		edit_cursor_phase = 0.f;
+	}
+
+	is_focused           :: current_keyboard_focus == hash;
+	use_tmp_string       :: is_focused && is_multiline == false && is_immediate == false;
+	target_text          :: ternary(use_tmp_string, &edit_tmp, text);
+	edit_rect, edit_mask :: peek();
+
+	if use_tmp_string && is_focused_for_first_time {
+		target_text.len = 0;
+		std.str_append(target_text, @text);
+	}
+
+	lines := calculate_line_offsets(@target_text, edit_rect, style.text.font);
+	assert(lines.len > 0);
+
+	if clicked {
+		// Setup initial cursor position.
+		mouse := api.get_mouse_position();
+		mouse.x -= edit_rect.x;
+		mouse.y -= edit_rect.y;
+
+		ln   :: std.clamp(cast(s64) (mouse.y / line_height), 0, lines.len-1);
+		line :: lines[ln];
+
+		line_text :: get_line_text(@target_text, line);
+		acc_width: f32;
+
+		cl := 0;
+		loop cl < line_text.len {
+			if line_text[cl] == '\n' { break; }
+			char_len :: get_character_len(line_text[cl]);
+			w :: api.get_text_size(string_view.{ char_len, &line_text[cl] }, style.text.font, -1);
+			acc_width += w / scale_factor;
+			if acc_width > mouse.x {
+				break;
+			}
+			cl += char_len;
+		}
+		cl = std.clamp(cl, 0, auto line_text.len);
+		textbox.cursor = line.start_index + cl;
+	}
+
+	changed := false;
+	if is_focused {
+		changed = handle_textbox_input(textbox, lines, target_text, text, flags);
+	}
+
+	if changed {
+		lines = calculate_line_offsets(@target_text, edit_rect, style.text.font);
+		assert(lines.len > 0);
+	}
+
+	draw_textbox_text(@target_text, lines, style, flags, line_height);
+	if is_focused {
+		ln := cast(s32) calculate_line_index(lines, textbox.cursor);
+		cl := cast(s32) (textbox.cursor - lines[ln].start_index);
+		if target_text.len > 0 && textbox.cursor == target_text.len && (@target_text)[textbox.cursor-1] == '\n' {
+			ln += 1;
+			cl  = 0;
+		}
+		line_text  :: get_line_text(@target_text, lines[ln]);
+		draw_textbox_cursor(line_text, rect_translated(edit_rect), edit_mask, style, line_height, cl, ln);
+	}
+	return changed;
+}
+
+handle_textbox_input :: fn (textbox: *Textbox, lines: []TextBoxLine, target_text: *string, original_text: *string, flags: TextboxFlags) bool {
+	using std;
+
+	is_number :: fn (str: string_view) bool {
+		if str.len != 1 { return false; }
+		if str[0] >= '0' && str[0] <= '9' { return true; }
+		return str[0] == '.' || str[0] == '-';
+	};
+
+	is_multiline :: is_flag(flags, TextboxFlags.MULTILINE);
+	is_immediate :: is_flag(flags, TextboxFlags.IMMEDIATE);
+
+	changed := false;
+
+	using KeyEvent;
+	if api.is_key_press_or_repeat(CURSOR_LEFT) {
+		prev_character :: peek_before_position(@target_text, textbox.cursor);
+		textbox.cursor -= prev_character.len;
+		edit_cursor_phase = 0.f;
+	} else if api.is_key_press_or_repeat(CURSOR_RIGHT) {
+		curr_character :: peek_position(@target_text, textbox.cursor);
+		textbox.cursor += curr_character.len;
+		edit_cursor_phase = 0.f;
+	} else if api.is_key_press_or_repeat(CURSOR_UP) {
+		ln :: calculate_line_index(lines, textbox.cursor);
+		if ln > 0 {
+			line      :: lines[ln];
+			prev_line :: lines[ln-1];
+			right_offset_chars :: count_characters_in_range(@target_text, line.start_index, textbox.cursor);
+			textbox.cursor = prev_line.start_index;
+			loop i := 0; i < right_offset_chars; i += 1 {
+				char_len :: get_character_len((@target_text)[textbox.cursor]);
+				if textbox.cursor + char_len >= (prev_line.start_index + prev_line.len) {
+					break;
+				}
+				textbox.cursor += char_len;
+			}
+			edit_cursor_phase = 0.f;
+		}
+	} else if api.is_key_press_or_repeat(CURSOR_DOWN) {
+		ln :: calculate_line_index(lines, textbox.cursor);
+		if ln+1 < lines.len {
+			line      :: lines[ln];
+			next_line :: lines[ln+1];
+			right_offset_chars :: count_characters_in_range(@target_text, line.start_index, textbox.cursor);
+			textbox.cursor = next_line.start_index;
+			loop i := 0; i < right_offset_chars; i += 1 {
+				char_len :: get_character_len((@target_text)[textbox.cursor]);
+				if textbox.cursor + char_len >= (next_line.start_index + next_line.len) {
+					break;
+				}
+				textbox.cursor += char_len;
+			}
+			edit_cursor_phase = 0.f;
+		}
+	} else if api.is_key_press_or_repeat(CURSOR_ERASE) && textbox.cursor > 0 {
+		prev_character :: peek_before_position(@target_text, textbox.cursor);
+		if prev_character.len > 0 {
+			prev_cursor :: textbox.cursor;
+			textbox.cursor -= prev_character.len;
+
+			delete_range(target_text, textbox.cursor, prev_cursor);
+			changed = is_immediate || is_multiline;
+		}
+		edit_cursor_phase = 0.f;
+	}
+
+	if is_multiline {
+		if api.is_key_press_or_repeat(COMMIT) {
+			str_insert(target_text, cast(s32) textbox.cursor, '\n');
+			textbox.cursor   += 1;
+			edit_cursor_phase = 0.f;
+
+			changed = true;
+		}
+	} else {
+		if api.is_key_press(COMMIT) && is_immediate == false {
+			current_keyboard_focus = 0;
+			original_text.len = 0;
+			str_append(original_text, @target_text);
+
+			changed = true;
+		} else if api.is_key_press(CANCEL) {
+			current_keyboard_focus = 0;
+		}
+	}
+
+	if textbox.cursor < 0 { textbox.cursor = 0; }
+	else if textbox.cursor > target_text.len { textbox.cursor = target_text.len; }
+
+	has_input, unicode_character :: api.get_last_char_input();
+	if has_input {
+		utf_character :: unicode_char_to_utf8_with_fallback(unicode_character);
+		if (!is_flag(flags, TextboxFlags.NUMBER_INPUT)) || is_number(utf_character) {
+			str_insert(target_text, cast(s32) textbox.cursor, utf_character);
+			textbox.cursor += utf_character.len;
+			edit_cursor_phase = 0.f;
+
+			changed = is_immediate || is_multiline;
+		}
+	}
+
+	return changed;
+}
+
+draw_textbox_text :: fn (target_text: string_view, lines: []TextBoxLine, style: *TextboxStyle, flags: TextboxFlags, line_height: f32) {
+	text_style := &style.text;
+	if is_flag(flags, TextboxFlags.READONLY) {
+		text_style = &style.text_readonly;
+	}
+
+	edit_rect := peek();
+	edit_rect = rect_translated(edit_rect);
+
+	if is_flag(flags, TextboxFlags.MULTILINE) {
+		edit_rect = rect_resized(edit_rect, edit_rect.w, line_height);
+	}
+
+	loop i := 0; i < lines.len; i += 1 {
+		line_text :: get_line_text(target_text, lines[i]);
+		label(edit_rect, line_text, text_style);
+		edit_rect.y += edit_rect.h;
+	}
+}
+
+draw_textbox_cursor :: fn (text: string_view, rect: Rect, mask: glm.v4, style: *TextboxStyle, line_height: f32, cursor: s32, line: s32) {
+	w :: api.get_text_size(text, style.text.font, cursor);
+	cursor_shape := make_rect(rect.x + 0.5f, rect.y + 1.f + line_height * auto line, 0.5f, line_height);
+	cursor_color := style.cursor_color;
+	if edit_cursor_phase < 1.f {
+		cursor_color.w = 1.f;
+	} else {
+		cursor_color.w = 0.f;
+	}
+
+	cursor_shape = rect_scaled(rect_to_global(cursor_shape), scale_factor);
+	cursor_mask :: glm.mul(mask, scale_factor);
+
+	cursor_shape.x += w;
+
+	api.draw_rect(
+		glm.v3.{ cursor_shape.x, cursor_shape.y, get_current_depth() },
+		glm.v2.{ cursor_shape.w, cursor_shape.h },
+		cursor_color,
+		cursor_mask
+	);
+
+	edit_cursor_phase += delta_time * 0.001f;
+	if edit_cursor_phase > 2.f {
+		edit_cursor_phase = 0.f;
+	}
+}
+
+
+//
+// Styling
+//
+
+get_style :: fn {
+	fn () *Style {
+		if current_style {
+			return current_style;
+		}
+		s :: &default_style;
+
+		edit_body :: ternary(use_light_theme, WHITE, rgba(0x101010ff));
+
+		s.focus_color = ternary(use_light_theme, rgba(0x24CCEDff), rgba(0x12678fff));
+
+		s.label.color              = ternary(use_light_theme, rgba(0x505050ff), rgba(0xBBBBBBFF));
+		s.label.font               = main_font;
+		s.label.vertical_alignment = VerticalAlign.CENTER;
+
+		s.button.label                      = s.label;
+		s.button.label.horizontal_alignment = HorizontalAlign.CENTER;
+		s.button.frame_color                = rgba(0xf3f3f3ff);  // @Cleanup: not used.
+		s.button.body_color                 = ternary(use_light_theme, rgba(0xD2D2D2ff), rgba(0x505050ff));
+		s.button.color_disabled             = ternary(use_light_theme, rgba(0xB8B8B8FF), rgba(0x131313ff));
+		s.button.press_color                = s.button.body_color;
+		s.button.frame_size                 = 1;
+
+		s.window.title_focus                         = s.label;
+		s.window.title_focus.horizontal_alignment    = HorizontalAlign.CENTER;
+		s.window.title_no_focus                      = s.label;
+		s.window.title_no_focus.horizontal_alignment = HorizontalAlign.CENTER;
+		s.window.button                              = s.button;
+		s.window.button.label.font                   = icon_font;
+		s.window.bar_color_no_focus                  = ternary(use_light_theme, rgba(0xDDDDDDff), rgba(0x202020ff));
+		s.window.bar_color_focus                     = s.focus_color;
+		s.window.frame_color                         = ternary(use_light_theme, rgba(0xDBDBDBff), rgba(0x808080ff));
+		s.window.body_color                          = ternary(use_light_theme, rgba(0xD2D2D2ff), rgba(0x1a1a1aff));
+		s.window.content_color                       = ternary(use_light_theme, rgba(0xD2D2D2ff), rgba(0x303030ff));
+		s.window.bar_height                          = 20;
+		s.window.frame_size                          = 1;
+
+		item_name := s.label;
+
+		s.scroll_area.handle = s.button;
+		if use_light_theme {
+			s.scroll_area.handle.body_color = rgba(0xC2C2C2ff);
+		}
+		s.scroll_area.color           = ternary(use_light_theme, WHITE, rgba(0x000000ff));
+		s.scroll_area.scroll_speed    = 25.f;
+		s.scroll_area.body_color      = TRANSPARENT;
+		s.scroll_area.content_padding = 2.f;
+		s.scroll_area.handle_width    = 8.f;
+
+		s.checkbox.name            = item_name;
+		s.checkbox.on              = s.button;
+		s.checkbox.on_icon         = icon_utf8(ICON_CHECKBOX_ON);
+		s.checkbox.on.label.font   = icon_font;
+		s.checkbox.on.label.color  = ternary(use_light_theme, rgba(0x00BB00FF), GREEN);
+		s.checkbox.on.no_body      = true;
+		s.checkbox.off             = s.button;
+		s.checkbox.off_icon        = icon_utf8(ICON_CHECKBOX_OFF);
+		s.checkbox.off.label.font  = icon_font;
+		s.checkbox.off.label.color = RED;
+		s.checkbox.off.no_body     = true;
+
+		s.variants.name                       = item_name;
+		s.variants.label                      = s.label;
+		s.variants.label.horizontal_alignment = HorizontalAlign.CENTER;
+		s.variants.button                     = s.button;
+		s.variants.button.label.font          = icon_font;
+		s.variants.body_color                 = edit_body;
+
+		s.textbox.name                             = item_name;
+		s.textbox.text                             = s.label;
+		s.textbox.text.vertical_alignment          = VerticalAlign.CENTER;
+		s.textbox.text_readonly                    = s.label;
+		s.textbox.text_readonly.color              = rgba(0x909090ff);
+		s.textbox.text_readonly.vertical_alignment = VerticalAlign.CENTER;
+		s.textbox.body                             = s.button;
+		s.textbox.body.body_color                  = edit_body;
+		s.textbox.body.frame_color                 = rgba(0x909090ff);
+		s.textbox.body.swap_shadow_colors          = true;
+		s.textbox.body.press_color                 = s.textbox.body.body_color;
+		s.textbox.padding                          = 2;
+		s.textbox.cursor_color                     = s.label.color;
+
+		return s;
+	};
+
+	fn (style: *Style) *Style #inline {
+		if style { return style; }
+		return get_style();
+	};
+
+	fn (style: *WindowStyle) *WindowStyle #inline {
+		if style { return style; }
+		s :: get_style();
+		return &s.window;
+	};
+
+	fn (style: *LabelStyle) *LabelStyle #inline {
+		if style { return style; }
+		s :: get_style();
+		return &s.label;
+	};
+
+	fn (style: *ButtonStyle) *ButtonStyle #inline {
+		if style { return style; }
+		s :: get_style();
+		return &s.button;
+	};
+
+	fn (style: *ScrollAreaStyle) *ScrollAreaStyle #inline {
+		if style { return style; }
+		s :: get_style();
+		return &s.scroll_area;
+	};
+
+	fn (style: *CheckboxStyle) *CheckboxStyle #inline {
+		if style { return style; }
+		s :: get_style();
+		return &s.checkbox;
+	};
+
+	fn (style: *VariantsStyle) *VariantsStyle #inline {
+		if style { return style; }
+		s :: get_style();
+		return &s.variants;
+	};
+
+	fn (style: *TextboxStyle) *TextboxStyle #inline {
+		if style { return style; }
+		s :: get_style();
+		return &s.textbox;
+	};
+}
+
+unicode_char_to_utf8_with_fallback :: fn (c: u32, fallback: string_view = "?") string_view #inline {
+	tmp :: std.str_new(4, application_context.temporary_allocator);
+	err :: utf32_to_utf8_single_char(c, &tmp);
+	if err {
+		print_err(err);
+		return fallback;
+	}
+	return tmp;
+}
+
+peek_before_position :: fn (str: string_view, position: s64) string_view {
+	if position < 0 || position > str.len { return ""; }
+	i := position;
+	loop {
+		if i <= 0 { break; }
+		i -= 1;
+		if (str[i] & 0xC0) != 0x80 { break; }
+	}
+	unicode_char_len :: auto (position - i);
+	if unicode_char_len <= 0 { return ""; }
+	assert(unicode_char_len < 5);
+
+	return string_view.{ unicode_char_len, &str[position-unicode_char_len] };
+}
+
+peek_position :: fn (str: string_view, position: s64) string_view {
+	if position < 0 || position >= str.len { return ""; }
+	return string_view.{ get_character_len(str[position]), &str[position] };
+}
+
+get_character_len :: fn (c: u8) s32 #inline {
+	if c < 0x80           { return 1; }
+	if (c & 0xE0) == 0xC0 { return 2; }
+	if (c & 0xE0) == 0xE0 { return 3; }
+	if (c & 0xF8) == 0xF0 { return 4; }
+	return 0;
+}
+
+delete_range :: fn (str: *string, start: s64, end: s64) {
+	len :: end - start;
+	memmove(&(@str)[start], &(@str)[end], auto (@str).len - end);
+	str.len -= len;
+}
+
+calculate_line_offsets :: fn (text: string_view, rect: Rect, font: Font) []TextBoxLine {
+	acc_width             := 0.f;
+	last_whitespace_index := -1;
+	last_whitespace_width := 0.f;
+	start_index           := 0;
+
+	edit_lines_tmp.len = 0;
+
+	loop index := 0; index < text.len; {
+		if text[index] == ' ' || text[index] == '\t' {
+			last_whitespace_index = index;
+			last_whitespace_width = acc_width;
+		} else if text[index] == '\n' {
+			array_push(&edit_lines_tmp, TextBoxLine.{ start_index = start_index, len = index - start_index + 1 });
+			start_index           = index + 1;
+			acc_width             = 0.f;
+			last_whitespace_index = -1;
+			index += 1;
+			continue;
+		}
+
+		char_len :: get_character_len(text[index]);
+
+		w :: api.get_text_size(string_view.{ char_len, &text[index] }, font, -1);
+		acc_width += w;
+
+		if acc_width < (rect.w * scale_factor){
+			index += char_len;
+			continue;
+		}
+
+		if last_whitespace_index != -1 {
+			len :: last_whitespace_index - start_index + 1;
+			array_push(&edit_lines_tmp, TextBoxLine.{ start_index = start_index, len = len });
+			start_index += len;
+			acc_width   -= last_whitespace_width;
+		} else {
+			array_push(&edit_lines_tmp, TextBoxLine.{ start_index = start_index, len = index - start_index });
+			start_index = index;
+			acc_width   = 0.f;
+		}
+		last_whitespace_index = -1;
+		index += char_len;
+	}
+
+	if start_index < text.len {
+		array_push(&edit_lines_tmp, TextBoxLine.{ start_index = start_index, len = auto text.len - start_index });
+	}
+
+	if edit_lines_tmp.len == 0 {
+		array_push(&edit_lines_tmp, TextBoxLine.{});
+	}
+	return edit_lines_tmp;
+}
+
+get_line_text :: fn (text: string_view, line: TextBoxLine) string_view #inline {
+	return string_view.{ line.len, &text[line.start_index] };
+}
+
+calculate_line_index :: fn (lines: []TextBoxLine, cursor_position: s64) s64 {
+	loop i := 0; i < lines.len; i += 1 {
+		line :: lines[i];
+		if cursor_position >= line.start_index && cursor_position < (line.start_index + line.len) {
+			return i;
+		}
+	}
+	return lines.len - 1;
+}
+
+count_characters_in_range :: fn (text: string_view, start_index: s64, end_index: s64) s32 #inline {
+	num := 0;
+	loop i := start_index; i < end_index; {
+		char_len :: get_character_len(text[i]);
+		if char_len == 0 { break; }
+		i   += char_len;
+		num += 1;
+	}
+	return num;
+}
+

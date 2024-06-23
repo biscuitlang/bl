@@ -1,0 +1,10 @@
+# Vulkan renderer API version: 1.3.231.1 
+version: 20221205 
+src: "vulkan.bl"
+
+x86_64-pc-windows-msvc:
+  linker_lib_path: "win32"
+  linker_opt: "vulkan-1.lib"
+
+arm64-apple-darwin:
+  link: "vulkan"
