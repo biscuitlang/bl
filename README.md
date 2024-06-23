@@ -89,6 +89,10 @@ Screenshot of an unnamed 3D experimental game created using BL.
 
 [Video](https://youtu.be/8nconux9oxM)
 
+### Notes App
+
+<div style="text-align:center"><img src="logo/the_note_app.png" /></div>
+
 ### Space Shooter
 
 - Source code [here](https://github.com/travisdoor/bl/tree/master/how-to/gunner).
