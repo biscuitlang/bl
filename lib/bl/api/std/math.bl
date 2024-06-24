@@ -1,7 +1,7 @@
 // =================================================================================================
 // bl
 //
-// File:   math.bl 
+// File:   math.bl
 // Author: Martin Dorazil
 // Date:   11/3/19
 //
@@ -27,7 +27,7 @@
 // =================================================================================================
 
 //! # Math
-//! 
+//!
 //! `#load "std/math.bl"`
 
 #scope std
@@ -35,9 +35,9 @@
 PI          :: 3.141592653589793;
 TWO_PI      :: 6.283185307179587;
 HALF_PI     :: 1.570796326794897;
-F32_PI      :: cast(f32) PI; 
-F32_TWO_PI  :: cast(f32) TWO_PI; 
-F32_HALF_PI :: cast(f32) HALF_PI; 
+F32_PI      :: cast(f32) PI;
+F32_TWO_PI  :: cast(f32) TWO_PI;
+F32_HALF_PI :: cast(f32) HALF_PI;
 
 F32_EPSILON :: 0.00001f;
 F64_EPSILON :: 0.00001;
@@ -83,19 +83,19 @@ inf :: fn (T: type #comptime) T #comptime {
 /// Returns `true` in case the input real number is NaN (i.e. result of operation 0./0.).
 is_nan :: fn (n: ?T) bool #inline {
 	static_assert(is_real(T));
-	return n != n; 
+	return n != n;
 }
 
 /// Returns `true` in case the input real number is positive infinity number (i.e. result of operation 1./0.).
 is_inf :: fn (n: ?T) bool #inline {
 	static_assert(is_real(T));
-	return n == inf(T); 
+	return n == inf(T);
 }
 
 /// Returns `true` in case the input real number is negative infinity number (i.e. result of operation -1./0.).
 is_ninf :: fn (n: ?T) bool #inline {
 	static_assert(is_real(T));
-	return n == -inf(T); 
+	return n == -inf(T);
 }
 
 sin       :: fn { f32_sin; f64_sin; }
@@ -130,12 +130,12 @@ compare :: fn { f32_compare; f64_compare; }
 degtorad :: fn { f32_degtorad; f64_degtorad; }
 radtodeg :: fn { f32_radtodeg; f64_radtodeg; }
 
-max :: fn (a: ?T, b: T) T  #inline { 
+max :: fn (a: ?T, b: T) T  #inline {
 	if b > a { return b; }
 	return a;
 }
 
-min :: fn (a: ?T, b: T) T #inline { 
+min :: fn (a: ?T, b: T) T #inline {
 	if b < a { return b; }
 	return a;
 }
@@ -150,11 +150,15 @@ smooth_step :: fn (a: ?T, b: T, fraction: T) T  #inline {
 	return lerp(a, b, fraction * fraction * (three - two * fraction));
 }
 
-clamp :: fn (v: ?T, minimum: T, maximum: T) T { 
+clamp :: fn (v: ?T, minimum: T, maximum: T) T {
 	if v <= minimum { return minimum; }
 	if v >= maximum { return maximum; }
 
 	return v;
+}
+
+map :: fn (value: ?T, min1: T, max1: T, min2: T, max2: T) #inline {
+	return min2 + (value - min1) * (max2 - min2) / (max1 - min1);
 }
 
 #private
