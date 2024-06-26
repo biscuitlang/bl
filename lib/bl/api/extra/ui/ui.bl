@@ -27,6 +27,12 @@ Api :: struct {
 	is_key_release:          KeyEventFn;
 	is_key_press:            KeyEventFn;
 
+	set_cursor: SetCursorFn;
+
+	// clipboard
+	set_clipboard: SetClipboardFn;
+	get_clipboard: GetClipboardFn;
+
 	// Font
 	get_text_size: GetTextSizeFn;
 }
@@ -95,6 +101,7 @@ end :: fn () {
 	hover = Hover.{};
 	hover_frame = Hover.{};
 	current_keyboard_focus = 0;
+	last_keyboard_focus    = 0;
 
 	str_delete(&edit_tmp);
 	str_delete(&num_conversion_tmp);
@@ -113,12 +120,14 @@ frame_begin :: fn (viewport_size: glm.v2, dt: f32) {
 	if api.is_lmb_press() {
 		current_keyboard_focus = 0;
 	}
+	api.set_cursor(CursorKind.NORMAL);
 }
 
 frame_end :: fn () #inline {
 	pop();
 	assert(nodes.len == 0);
 	sort_window_stack();
+	last_keyboard_focus = current_keyboard_focus;
 }
 
 is_mouse_over :: fn () bool #inline {
@@ -405,7 +414,7 @@ item_title :: fn (rect: Rect, text: string_view, style: *LabelStyle = null) Rect
 // Button
 //
 
-button_begin :: fn (rect: Rect, flags := ButtonFlags.DEFAULT, _style: *ButtonStyle = null, index : u64 = 0, loc := #call_location) (clicked: bool, button_state: *Button) {
+button_begin :: fn (rect: Rect, flags := ButtonFlags.DEFAULT, _style: *ButtonStyle = null, index : u64 = 0, loc := #call_location) (clicked: bool, button_state: *Button, is_hovered: bool) {
 	using std;
 	using ButtonState;
 	using ButtonFlags;
@@ -421,7 +430,8 @@ button_begin :: fn (rect: Rect, flags := ButtonFlags.DEFAULT, _style: *ButtonSty
 	press_color :: style.press_color;
 	swap_shadow_colors := style.swap_shadow_colors;
 
-	if is_flag(flags, DISABLED) {
+	is_disabled :: is_flag(flags, DISABLED);
+	if is_disabled {
 		body_color = style.color_disabled;
 		swap_shadow_colors = true;
 	}
@@ -429,7 +439,8 @@ button_begin :: fn (rect: Rect, flags := ButtonFlags.DEFAULT, _style: *ButtonSty
 	button_rect, mouse_rect :: push(rect);
 
 	clicked := false;
-	is_mouse_over :: hover.elem == hash;
+	current_window_hash :: get_current_window_hash();
+	is_mouse_over :: is_disabled == false && hover.elem == hash && current_window_hash == hover.window;
 
 	button.t += dt * 0.01f;
 	button.t = clamp(button.t, 0.f, 1.f);
@@ -500,7 +511,7 @@ button_begin :: fn (rect: Rect, flags := ButtonFlags.DEFAULT, _style: *ButtonSty
 		set_elem_hover(hash);
 	}
 
-	return clicked, button;
+	return clicked, button, is_mouse_over;
 }
 
 button_end :: fn () #inline {
@@ -946,6 +957,9 @@ ScrollArea :: struct {
 
 Textbox :: struct {
 	cursor: s64;
+	marker: s64;
+
+	wait_for_lmb_release: bool;
 }
 
 ButtonState :: enum {
@@ -1012,6 +1026,7 @@ focus_window: u64;
 delta_time: f32;
 
 current_keyboard_focus: u64;
+last_keyboard_focus: u64;
 current_scroll_area: *ScrollArea;
 current_list: *List;
 content_extend: Rect;
@@ -1084,7 +1099,6 @@ set_elem_hover :: fn (hash: u64) #inline {
 	z_order :: get_current_window_order();
 	if z_order >= hover_frame.z_order {
 		hover_frame.elem = hash;
-		//_hover_frame.z_order = z_order;
 	}
 }
 
@@ -1499,7 +1513,11 @@ textbox_item_impl :: fn (name: string_view, text: *string, flags := TextboxFlags
 textbox_impl :: fn (rect: Rect, text: *string, flags := TextboxFlags.DEFAULT, _style: *TextboxStyle = null, index : u64 = 0, loc := #call_location) bool {
 	style   :: get_style(_style);
 	hash    :: get_hash(loc, index);
-	textbox :: get_ctx(&textboxes, hash);
+	textbox, is_new :: get_ctx(&textboxes, hash);
+
+	if is_new {
+		textbox.marker = -1;
+	}
 
 	is_multiline :: is_flag(flags, TextboxFlags.MULTILINE);
 	is_immediate :: is_flag(flags, TextboxFlags.IMMEDIATE);
@@ -1513,11 +1531,11 @@ textbox_impl :: fn (rect: Rect, text: *string, flags := TextboxFlags.DEFAULT, _s
 	if current_keyboard_focus == hash {
 		body_style.frame_color = body_style.press_color;
 	}
-	button_flags := ButtonFlags.DEFAULT;
+	button_flags := ButtonFlags.CLICK_ON_PRESS;
 	if is_flag(flags, TextboxFlags.READONLY) {
 		button_flags = ButtonFlags.DISABLED;
 	}
-	clicked :: button_begin(rect, button_flags, &body_style, index, loc);
+	clicked, _, is_hovered :: button_begin(rect, button_flags, &body_style, index, loc);
 	defer button_end();
 
 	// add some padding
@@ -1525,17 +1543,32 @@ textbox_impl :: fn (rect: Rect, text: *string, flags := TextboxFlags.DEFAULT, _s
 	defer pop();
 
 	is_focused_for_first_time := false;
-
 	if clicked {
-		is_focused_for_first_time = current_keyboard_focus != hash;
+		is_focused_for_first_time = last_keyboard_focus != hash;
 		current_keyboard_focus = hash;
 		edit_cursor_phase = 0.f;
+		clear_textbox_selection(textbox);
+
+		// This is needed because in case of single line edit box, we need to select all text on the
+		// first click, however while user is pressing the LMB we catch is_hold in a few frames and
+		// radjust selection. This bool makes sure that further selection changes are allowed after
+		// first press lmb is released.
+		textbox.wait_for_lmb_release = is_focused_for_first_time && is_multiline == false;
+	}
+
+	if textbox.wait_for_lmb_release && api.is_lmb_release() {
+		textbox.wait_for_lmb_release = false;
 	}
 
 	is_focused           :: current_keyboard_focus == hash;
 	use_tmp_string       :: is_focused && is_multiline == false && is_immediate == false;
 	target_text          :: ternary(use_tmp_string, &edit_tmp, text);
 	edit_rect, edit_mask :: peek();
+
+	is_hold := api.is_lmb_down() && is_focused && textbox.wait_for_lmb_release == false;
+	if is_hovered {
+		api.set_cursor(CursorKind.IBEAM);
+	}
 
 	if use_tmp_string && is_focused_for_first_time {
 		target_text.len = 0;
@@ -1545,7 +1578,12 @@ textbox_impl :: fn (rect: Rect, text: *string, flags := TextboxFlags.DEFAULT, _s
 	lines := calculate_line_offsets(@target_text, edit_rect, style.text.font);
 	assert(lines.len > 0);
 
-	if clicked {
+	if is_focused_for_first_time && is_multiline == false {
+		if target_text.len > 0 {
+			textbox.marker = 0;
+			textbox.cursor = target_text.len;
+		}
+	} else if is_hold {
 		// Setup initial cursor position.
 		mouse := api.get_mouse_position();
 		mouse.x -= edit_rect.x;
@@ -1563,13 +1601,20 @@ textbox_impl :: fn (rect: Rect, text: *string, flags := TextboxFlags.DEFAULT, _s
 			char_len :: get_character_len(line_text[cl]);
 			w :: api.get_text_size(string_view.{ char_len, &line_text[cl] }, style.text.font, -1);
 			acc_width += w / scale_factor;
-			if acc_width > mouse.x {
+
+			if acc_width - (w * 0.5f) > mouse.x {
 				break;
 			}
+
 			cl += char_len;
 		}
+
 		cl = std.clamp(cl, 0, auto line_text.len);
-		textbox.cursor = line.start_index + cl;
+		position :: line.start_index + cl;
+		textbox.cursor = position;
+		if textbox.marker == -1 {
+			textbox.marker = position;
+		}
 	}
 
 	changed := false;
@@ -1582,6 +1627,9 @@ textbox_impl :: fn (rect: Rect, text: *string, flags := TextboxFlags.DEFAULT, _s
 		assert(lines.len > 0);
 	}
 
+	if is_focused {
+		draw_textbox_selection(textbox, @target_text, lines, style, line_height);
+	}
 	draw_textbox_text(@target_text, lines, style, flags, line_height);
 	if is_focused {
 		ln := cast(s32) calculate_line_index(lines, textbox.cursor);
@@ -1615,11 +1663,17 @@ handle_textbox_input :: fn (textbox: *Textbox, lines: []TextBoxLine, target_text
 		prev_character :: peek_before_position(@target_text, textbox.cursor);
 		textbox.cursor -= prev_character.len;
 		edit_cursor_phase = 0.f;
-	} else if api.is_key_press_or_repeat(CURSOR_RIGHT) {
+		clear_textbox_selection(textbox);
+	}
+
+	if api.is_key_press_or_repeat(CURSOR_RIGHT) {
 		curr_character :: peek_position(@target_text, textbox.cursor);
 		textbox.cursor += curr_character.len;
 		edit_cursor_phase = 0.f;
-	} else if api.is_key_press_or_repeat(CURSOR_UP) {
+		clear_textbox_selection(textbox);
+	}
+
+	if api.is_key_press_or_repeat(CURSOR_UP) {
 		ln :: calculate_line_index(lines, textbox.cursor);
 		if ln > 0 {
 			line      :: lines[ln];
@@ -1634,8 +1688,11 @@ handle_textbox_input :: fn (textbox: *Textbox, lines: []TextBoxLine, target_text
 				textbox.cursor += char_len;
 			}
 			edit_cursor_phase = 0.f;
+			clear_textbox_selection(textbox);
 		}
-	} else if api.is_key_press_or_repeat(CURSOR_DOWN) {
+	}
+
+	if api.is_key_press_or_repeat(CURSOR_DOWN) {
 		ln :: calculate_line_index(lines, textbox.cursor);
 		if ln+1 < lines.len {
 			line      :: lines[ln];
@@ -1650,17 +1707,57 @@ handle_textbox_input :: fn (textbox: *Textbox, lines: []TextBoxLine, target_text
 				textbox.cursor += char_len;
 			}
 			edit_cursor_phase = 0.f;
+			clear_textbox_selection(textbox);
 		}
-	} else if api.is_key_press_or_repeat(CURSOR_ERASE) && textbox.cursor > 0 {
-		prev_character :: peek_before_position(@target_text, textbox.cursor);
-		if prev_character.len > 0 {
-			prev_cursor :: textbox.cursor;
-			textbox.cursor -= prev_character.len;
+	}
 
-			delete_range(target_text, textbox.cursor, prev_cursor);
+	if api.is_key_press_or_repeat(CURSOR_ERASE) {
+		if cut_textbox_selection(textbox, target_text) {
 			changed = is_immediate || is_multiline;
+		} else if textbox.cursor > 0 {
+			prev_character :: peek_before_position(@target_text, textbox.cursor);
+			if prev_character.len > 0 {
+				prev_cursor :: textbox.cursor;
+				textbox.cursor -= prev_character.len;
+
+				delete_range(target_text, textbox.cursor, prev_cursor);
+				changed = is_immediate || is_multiline;
+			}
 		}
 		edit_cursor_phase = 0.f;
+	}
+
+	if api.is_key_press(CLIPBOARD_COPY) {
+		text :: get_textbox_selection(textbox, @target_text);
+		if text.len > 0 {
+			api.set_clipboard(text);
+		}
+		clear_textbox_selection(textbox);
+	}
+
+	if api.is_key_press(CLIPBOARD_CUT) {
+		cut_textbox_selection(textbox, target_text);
+		clear_textbox_selection(textbox);
+	}
+
+	if api.is_key_press(CLIPBOARD_PASTE) {
+		orig_text := api.get_clipboard();
+		text :: std.str_new(orig_text, application_context.temporary_allocator);
+		cut_textbox_selection(textbox, target_text);
+		std.str_replace_all(&text, '\r');
+
+		if text.len > 0 {
+			result_text, first_line: string_view;
+			if is_multiline == false && str_split_by_first(text, '\n', &first_line) {
+				result_text = first_line;
+			} else {
+				result_text = text;
+			}
+			str_insert(target_text, cast(s32) textbox.cursor, result_text);
+			textbox.cursor += text.len;
+		}
+
+		clear_textbox_selection(textbox);
 	}
 
 	if is_multiline {
@@ -1670,6 +1767,8 @@ handle_textbox_input :: fn (textbox: *Textbox, lines: []TextBoxLine, target_text
 			edit_cursor_phase = 0.f;
 
 			changed = true;
+		} else if api.is_key_press(CANCEL) {
+			clear_textbox_selection(textbox);
 		}
 	} else {
 		if api.is_key_press(COMMIT) && is_immediate == false {
@@ -1679,7 +1778,11 @@ handle_textbox_input :: fn (textbox: *Textbox, lines: []TextBoxLine, target_text
 
 			changed = true;
 		} else if api.is_key_press(CANCEL) {
-			current_keyboard_focus = 0;
+			if has_textbox_selection(textbox) {
+				clear_textbox_selection(textbox);
+			} else {
+				current_keyboard_focus = 0;
+			}
 		}
 	}
 
@@ -1690,6 +1793,8 @@ handle_textbox_input :: fn (textbox: *Textbox, lines: []TextBoxLine, target_text
 	if has_input {
 		utf_character :: unicode_char_to_utf8_with_fallback(unicode_character);
 		if (!is_flag(flags, TextboxFlags.NUMBER_INPUT)) || is_number(utf_character) {
+			cut_textbox_selection(textbox, target_text);
+
 			str_insert(target_text, cast(s32) textbox.cursor, utf_character);
 			textbox.cursor += utf_character.len;
 			edit_cursor_phase = 0.f;
@@ -1699,6 +1804,48 @@ handle_textbox_input :: fn (textbox: *Textbox, lines: []TextBoxLine, target_text
 	}
 
 	return changed;
+}
+
+draw_textbox_selection :: fn (textbox: *Textbox, target_text: string_view, lines: []TextBoxLine, style: *TextboxStyle, line_height: f32) {
+	edit_rect, edit_mask := peek();
+	edit_rect = rect_scaled(edit_rect, scale_factor);
+	edit_mask = glm.mul(edit_mask, scale_factor);
+
+	height :: line_height * scale_factor;
+
+	start_index, end_index :: get_textbox_selection_range(textbox);
+	yoff := 0.f;
+
+	if start_index >= end_index { return; }
+
+	// Might not be reimplementad for speed...
+	loop i := 0; i < lines.len; i += 1 {
+		line :: lines[i];
+		line_end_index :: line.start_index + line.len;
+		if end_index < line.start_index {
+			break;
+		}
+
+		select_start_index :: std.max(start_index, line.start_index);
+		select_end_index   :: std.min(end_index, line_end_index);
+
+		if select_start_index < select_end_index {
+			left  :: string_view.{ select_start_index - line.start_index, &target_text[line.start_index] };
+			right :: string_view.{ select_end_index - select_start_index, &target_text[select_start_index] };
+
+			start_x := api.get_text_size(left,  main_font, -1);
+			end_x   := api.get_text_size(right, main_font, -1);
+
+			api.draw_rect(
+				glm.v3.{ edit_rect.x + start_x, edit_rect.y + yoff, get_current_depth() },
+				glm.v2.{ end_x, height },
+				style.selection_color,
+				edit_mask
+			);
+		}
+
+		yoff += line_height * scale_factor;
+	}
 }
 
 draw_textbox_text :: fn (target_text: string_view, lines: []TextBoxLine, style: *TextboxStyle, flags: TextboxFlags, line_height: f32) {
@@ -1749,7 +1896,6 @@ draw_textbox_cursor :: fn (text: string_view, rect: Rect, mask: glm.v4, style: *
 	}
 }
 
-
 //
 // Styling
 //
@@ -1763,7 +1909,7 @@ get_style :: fn {
 
 		edit_body :: ternary(use_light_theme, WHITE, rgba(0x101010ff));
 
-		s.focus_color = ternary(use_light_theme, rgba(0x24CCEDff), rgba(0x12678fff));
+		s.focus_color = ternary(use_light_theme, rgba(0x99D9EAFF), rgba(0x12678fff));
 
 		s.label.color              = ternary(use_light_theme, rgba(0x505050ff), rgba(0xBBBBBBFF));
 		s.label.font               = main_font;
@@ -1785,7 +1931,7 @@ get_style :: fn {
 		s.window.button.label.font                   = icon_font;
 		s.window.bar_color_no_focus                  = ternary(use_light_theme, rgba(0xDDDDDDff), rgba(0x202020ff));
 		s.window.bar_color_focus                     = s.focus_color;
-		s.window.frame_color                         = ternary(use_light_theme, rgba(0xDBDBDBff), rgba(0x808080ff));
+		s.window.frame_color                         = ternary(use_light_theme, rgba(0xAAAAAAff), rgba(0x808080ff));
 		s.window.body_color                          = ternary(use_light_theme, rgba(0xD2D2D2ff), rgba(0x1a1a1aff));
 		s.window.content_color                       = ternary(use_light_theme, rgba(0xD2D2D2ff), rgba(0x303030ff));
 		s.window.bar_height                          = 20;
@@ -1807,7 +1953,7 @@ get_style :: fn {
 		s.checkbox.on              = s.button;
 		s.checkbox.on_icon         = icon_utf8(ICON_CHECKBOX_ON);
 		s.checkbox.on.label.font   = icon_font;
-		s.checkbox.on.label.color  = ternary(use_light_theme, rgba(0x00BB00FF), GREEN);
+		s.checkbox.on.label.color  = ternary(use_light_theme, rgba(0x00AA00FF), GREEN);
 		s.checkbox.on.no_body      = true;
 		s.checkbox.off             = s.button;
 		s.checkbox.off_icon        = icon_utf8(ICON_CHECKBOX_OFF);
@@ -1835,6 +1981,7 @@ get_style :: fn {
 		s.textbox.body.press_color                 = s.textbox.body.body_color;
 		s.textbox.padding                          = 2;
 		s.textbox.cursor_color                     = s.label.color;
+		s.textbox.selection_color                  = s.focus_color;
 
 		return s;
 	};
@@ -1990,6 +2137,43 @@ get_line_text :: fn (text: string_view, line: TextBoxLine) string_view #inline {
 	return string_view.{ line.len, &text[line.start_index] };
 }
 
+clear_textbox_selection :: fn (textbox: *Textbox) {
+	textbox.marker = -1;
+}
+
+cut_textbox_selection :: fn (textbox: *Textbox, target_text: *string) bool {
+	defer clear_textbox_selection(textbox);
+
+	start, end :: get_textbox_selection_range(textbox);
+	if start < end {
+		text :: get_textbox_selection(textbox, @target_text);
+		api.set_clipboard(text);
+		delete_range(target_text, start, end);
+		textbox.cursor = start;
+		return true;
+	}
+
+	return false;
+}
+
+get_textbox_selection_range :: fn (textbox: *Textbox) (start: s64, end: s64)  #inline {
+	if textbox.marker == -1 { return 0, 0; }
+	start_index :: std.min(textbox.marker, textbox.cursor);
+	end_index   :: std.max(textbox.marker, textbox.cursor);
+	return start_index, end_index;
+}
+
+get_textbox_selection :: fn (textbox: *Textbox, target_text: string_view) string_view {
+	start_index, end_index :: get_textbox_selection_range(textbox);
+	if start_index >= end_index { return ""; }
+	return string_view.{ end_index - start_index, &target_text[start_index] };
+}
+
+has_textbox_selection :: fn (textbox: *Textbox) bool #inline {
+	start, end :: get_textbox_selection_range(textbox);
+	return start < end;
+}
+
 calculate_line_index :: fn (lines: []TextBoxLine, cursor_position: s64) s64 {
 	loop i := 0; i < lines.len; i += 1 {
 		line :: lines[i];
@@ -2010,4 +2194,3 @@ count_characters_in_range :: fn (text: string_view, start_index: s64, end_index:
 	}
 	return num;
 }
-

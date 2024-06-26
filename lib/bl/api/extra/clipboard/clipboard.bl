@@ -1,0 +1,38 @@
+#scope clipboard
+
+init :: fn () {
+	_cb = clipboard_new(null);
+	if !_cb { panic("Cannot initialize clipboard!"); }
+}
+
+terminate :: fn () {
+	clipboard_free(_cb);
+	C.free(auto _tmp);
+}
+
+set :: fn (str: string_view) Error {
+	if str.len == 0 { return OK; }
+	if clipboard_set_text_ex(_cb, auto str.ptr, auto str.len, 0) == 0 {
+		return error("Failed to copy text into the clipboard.");
+	}
+	return OK;
+}
+
+get :: fn () string_view {
+	C.free(auto _tmp);
+	len: s32 #noinit;
+	_tmp = clipboard_text_ex(_cb, &len, 0);
+	if (!_tmp) || (len == 0) { return ""; }
+	return string_view.{ len, auto _tmp };
+}
+
+#private
+clipboard_c :: u8;
+
+clipboard_new :: fn (opts: *u8) *clipboard_c #extern;
+clipboard_free :: fn (cb: *clipboard_c) #extern;
+clipboard_text_ex :: fn (cb: *clipboard_c, length: *C.int, mode: C.int) *C.char #extern;
+clipboard_set_text_ex :: fn (cb: *clipboard_c, str: *C.char, lenght: C.int, mode: C.int) C.int #extern;
+
+_cb: *clipboard_c;
+_tmp: *C.char;

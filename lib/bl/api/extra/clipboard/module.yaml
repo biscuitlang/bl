@@ -1,0 +1,19 @@
+version: 1
+src: "clipboard.bl"
+
+x86_64-pc-windows-msvc:
+  linker_lib_path: "win32"
+  linker_opt: "clipboard.lib"
+
+x86_64-pc-linux-gnu:
+  linker_lib_path: "linux"
+  linker_opt: "-lclipboard -lxcb-util -lxcb -lpthread"
+
+x86_64-apple-darwin:
+  linker_lib_path: "macos"
+  linker_opt: "-lclipboard -lpthread"
+
+arm64-apple-darwin:
+  linker_lib_path: "macos"
+  linker_opt: "-lclipboard -lpthread"
+

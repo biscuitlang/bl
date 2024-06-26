@@ -13,6 +13,10 @@ GetLastCharInputFn     :: *fn () (bool, u32);
 GetTextSizeFn          :: *fn (text: string_view, font: Font, n: s32) (w: f32, h: f32);
 MouseButtonFn          :: *fn () bool;
 KeyEventFn             :: *fn (event: KeyEvent) bool;
+SetCursorFn            :: *fn (kind: CursorKind);
+GetCursorFn            :: *fn () CursorKind;
+SetClipboardFn         :: *fn (text: string_view);
+GetClipboardFn         :: *fn () string_view;
 
 KeyEvent :: enum {
 	COMMIT;
@@ -22,6 +26,14 @@ KeyEvent :: enum {
 	CURSOR_UP;
 	CURSOR_DOWN;
 	CURSOR_ERASE;
+	CLIPBOARD_COPY;
+	CLIPBOARD_PASTE;
+	CLIPBOARD_CUT;
+}
+
+CursorKind :: enum {
+	NORMAL;
+	IBEAM;
 }
 
 WindowFlags :: enum #flags {
@@ -126,6 +138,7 @@ TextboxStyle :: struct {
 	body: ButtonStyle;
 	padding: s32;
 	cursor_color: glm.v4;
+	selection_color: glm.v4;
 }
 
 TextboxFlags :: enum #flags {
