@@ -1579,10 +1579,7 @@ textbox_impl :: fn (rect: Rect, text: *string, flags := TextboxFlags.DEFAULT, _s
 	assert(lines.len > 0);
 
 	if is_focused_for_first_time && is_multiline == false {
-		if target_text.len > 0 {
-			textbox.marker = 0;
-			textbox.cursor = target_text.len;
-		}
+		select_textbox_all(textbox, @target_text);
 	} else if is_hold {
 		// Setup initial cursor position.
 		mouse := api.get_mouse_position();
@@ -1671,6 +1668,10 @@ handle_textbox_input :: fn (textbox: *Textbox, lines: []TextBoxLine, target_text
 		textbox.cursor += curr_character.len;
 		edit_cursor_phase = 0.f;
 		clear_textbox_selection(textbox);
+	}
+
+	if api.is_key_press_or_repeat(SELECT_ALL) {
+		select_textbox_all(textbox, @target_text);
 	}
 
 	if api.is_key_press_or_repeat(CURSOR_UP) {
@@ -2172,6 +2173,12 @@ get_textbox_selection :: fn (textbox: *Textbox, target_text: string_view) string
 has_textbox_selection :: fn (textbox: *Textbox) bool #inline {
 	start, end :: get_textbox_selection_range(textbox);
 	return start < end;
+}
+
+select_textbox_all :: fn (textbox: *Textbox, target_text: string_view) #inline {
+	if target_text.len == 0 { return; }
+	textbox.marker = 0;
+	textbox.cursor = target_text.len;
 }
 
 calculate_line_index :: fn (lines: []TextBoxLine, cursor_position: s64) s64 {

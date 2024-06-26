@@ -481,6 +481,7 @@ str_erase :: fn (str: *string, index: s32) bool {
 ///     Slice elements are not guaranteed to be zero terminated.
 str_split_by :: fn (str: string_view, delimiter: u8, allocator: *Allocator = null) [..]string_view {
 	ret: [..]string_view;
+	if str.len == 0 { return ret; }
 	array_init(&ret, 256, allocator);
 	lhs, rhs: string_view;
 	rest := str;
