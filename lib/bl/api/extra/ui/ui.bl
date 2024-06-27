@@ -138,6 +138,14 @@ has_keyboard_focus :: fn () bool #inline {
 	return current_keyboard_focus != 0;
 }
 
+clear_keyboard_focus :: fn () #inline {
+	current_keyboard_focus = 0;
+}
+
+set_keyboard_focus :: fn (hash: u64) #inline {
+	current_keyboard_focus = hash;
+}
+
 //
 // Window
 //
@@ -1270,7 +1278,11 @@ button_impl :: fn (rect: Rect, text := "", flags := ButtonFlags.DEFAULT, _style:
 		label_style := style.label;
 
 		if is_flag(flags, ButtonFlags.DISABLED) {
-			label_style.color = color_darker(label_style.color, 0.8f);
+			if use_light_theme {
+				label_style.color = color_lighter(label_style.color, 5.f);
+			} else {
+				label_style.color = color_darker(label_style.color, 0.8f);
+			}
 		} else {
 			hover_color :: color_lighter(label_style.color, 0.9f);
 			press_color :: color_darker(label_style.color, 0.5f);
@@ -1464,7 +1476,7 @@ intbox_item_impl :: fn (name: string_view, value: *s64, flags := TextboxFlags.DE
 
 	str_clear(&num_conversion_tmp);
 	str_append(&num_conversion_tmp, @value);
-	if textbox_item_impl(name, &num_conversion_tmp, flags | TextboxFlags.NUMBER_INPUT, style, index, loc) {
+	if textbox_item_impl(name, &num_conversion_tmp, flags | TextboxFlags.NUMBER_INPUT, style, null, index, loc) {
 		n, err :: strtos64(&num_conversion_tmp);
 		if !err {
 			@value = n;
@@ -1489,7 +1501,7 @@ floatbox_impl :: fn (rect: Rect, value: *f32, flags := TextboxFlags.DEFAULT, sty
 
 	str_clear(&num_conversion_tmp);
 	str_append(&num_conversion_tmp, fmt_real(@value, 2));
-	if textbox_impl(rect, &num_conversion_tmp, flags | TextboxFlags.NUMBER_INPUT, style, index, loc) {
+	if textbox_impl(rect, &num_conversion_tmp, flags | TextboxFlags.NUMBER_INPUT, style, null, index, loc) {
 		n, err :: strtof64(&num_conversion_tmp);
 		if !err {
 			float :: cast(f32) n;
@@ -1500,20 +1512,22 @@ floatbox_impl :: fn (rect: Rect, value: *f32, flags := TextboxFlags.DEFAULT, sty
 	return false;
 }
 
-textbox_item_impl :: fn (name: string_view, text: *string, flags := TextboxFlags.DEFAULT, _style: *TextboxStyle = null, index : u64 = 0, loc := #call_location) bool {
+textbox_item_impl :: fn (name: string_view, text: *string, flags := TextboxFlags.DEFAULT, _style: *TextboxStyle = null, out_hash: *u64 = null, index : u64 = 0, loc := #call_location) bool {
 	style :: get_style(_style);
 	list_item_begin();
 	defer list_item_end();
 
 	rect :: peek();
 	value_rect :: item_title(rect_translated(rect), name, &style.name);
-	return textbox_impl(value_rect, text, flags, style, index, loc);
+	return textbox_impl(value_rect, text, flags, style, out_hash, index, loc);
 }
 
-textbox_impl :: fn (rect: Rect, text: *string, flags := TextboxFlags.DEFAULT, _style: *TextboxStyle = null, index : u64 = 0, loc := #call_location) bool {
+textbox_impl :: fn (rect: Rect, text: *string, flags := TextboxFlags.DEFAULT, _style: *TextboxStyle = null, out_hash: *u64 = null, index : u64 = 0, loc := #call_location) bool {
 	style   :: get_style(_style);
 	hash    :: get_hash(loc, index);
 	textbox, is_new :: get_ctx(&textboxes, hash);
+
+	if out_hash { @out_hash = hash; }
 
 	if is_new {
 		textbox.marker = -1;
@@ -1737,7 +1751,7 @@ handle_textbox_input :: fn (textbox: *Textbox, lines: []TextBoxLine, target_text
 	}
 
 	if api.is_key_press(CLIPBOARD_CUT) {
-		cut_textbox_selection(textbox, target_text);
+		changed = cut_textbox_selection(textbox, target_text);
 		clear_textbox_selection(textbox);
 	}
 
@@ -1756,6 +1770,7 @@ handle_textbox_input :: fn (textbox: *Textbox, lines: []TextBoxLine, target_text
 			}
 			str_insert(target_text, cast(s32) textbox.cursor, result_text);
 			textbox.cursor += text.len;
+			changed = true;
 		}
 
 		clear_textbox_selection(textbox);
@@ -1932,8 +1947,8 @@ get_style :: fn {
 		s.window.button.label.font                   = icon_font;
 		s.window.bar_color_no_focus                  = ternary(use_light_theme, rgba(0xDDDDDDff), rgba(0x202020ff));
 		s.window.bar_color_focus                     = s.focus_color;
-		s.window.frame_color                         = ternary(use_light_theme, rgba(0xAAAAAAff), rgba(0x808080ff));
-		s.window.body_color                          = ternary(use_light_theme, rgba(0xD2D2D2ff), rgba(0x1a1a1aff));
+		s.window.frame_color                         = ternary(use_light_theme, rgba(0xAAAAAAff), rgba(0x505050ff));
+		s.window.body_color                          = ternary(use_light_theme, rgba(0xD2D2D2ff), rgba(0x404040ff));
 		s.window.content_color                       = ternary(use_light_theme, rgba(0xD2D2D2ff), rgba(0x303030ff));
 		s.window.bar_height                          = 20;
 		s.window.frame_size                          = 1;
