@@ -26,6 +26,7 @@ KeyEvent :: enum {
 	CURSOR_UP;
 	CURSOR_DOWN;
 	CURSOR_ERASE;
+	CURSOR_DELETE;
 	SELECT_ALL;
 	CLIPBOARD_COPY;
 	CLIPBOARD_PASTE;
@@ -136,6 +137,7 @@ TextboxStyle :: struct {
 	name: LabelStyle;
 	text: LabelStyle;
 	text_readonly: LabelStyle;
+	scroll_area: ScrollAreaStyle;
 	body: ButtonStyle;
 	padding: s32;
 	cursor_color: glm.v4;

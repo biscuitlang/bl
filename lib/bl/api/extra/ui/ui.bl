@@ -590,8 +590,8 @@ scroll_area_begin :: fn (_style: *ScrollAreaStyle = null, index : u64 = 0, loc :
 		area.rect.y = 0.f;
 	}
 
-	right_padding := handle_width + style.content_padding;
-	if !has_scrollbar { right_padding = style.content_padding; }
+	right_padding := style.content_padding;
+	if has_scrollbar { right_padding = handle_width + style.content_padding; }
 	push(rect_adjusted(content_rect, style.content_padding, style.content_padding, auto -right_padding, -style.content_padding));
 	push(area.rect, Expand.HORIZONTAL);
 	fill_current_rect(style.body_color);
@@ -968,6 +968,7 @@ Textbox :: struct {
 	marker: s64;
 
 	wait_for_lmb_release: bool;
+	last_click_positon:   glm.v2;
 }
 
 ButtonState :: enum {
@@ -1245,7 +1246,7 @@ draw_label :: fn (text: string_view, style: *LabelStyle) #inline {
 	switch style.vertical_alignment {
 		VerticalAlign.TOP;
 		VerticalAlign.CENTER {
-			rect.y += rect.h * 0.5f - h * (0.5f/* + style.font.vertical_correction*/); // @Incomplete
+			rect.y += rect.h * 0.5f - h * (0.5f); // @Incomplete
 		}
 	}
 
@@ -1568,10 +1569,15 @@ textbox_impl :: fn (rect: Rect, text: *string, flags := TextboxFlags.DEFAULT, _s
 		// radjust selection. This bool makes sure that further selection changes are allowed after
 		// first press lmb is released.
 		textbox.wait_for_lmb_release = is_focused_for_first_time && is_multiline == false;
+		textbox.last_click_positon   = api.get_mouse_position();
 	}
 
 	if textbox.wait_for_lmb_release && api.is_lmb_release() {
 		textbox.wait_for_lmb_release = false;
+	}
+
+	if is_multiline {
+		scroll_area_begin(&style.scroll_area, index);
 	}
 
 	is_focused           :: current_keyboard_focus == hash;
@@ -1591,6 +1597,8 @@ textbox_impl :: fn (rect: Rect, text: *string, flags := TextboxFlags.DEFAULT, _s
 
 	lines := calculate_line_offsets(@target_text, edit_rect, style.text.font);
 	assert(lines.len > 0);
+
+	last_cursor_position :: textbox.cursor;
 
 	if is_focused_for_first_time && is_multiline == false {
 		select_textbox_all(textbox, @target_text);
@@ -1623,7 +1631,7 @@ textbox_impl :: fn (rect: Rect, text: *string, flags := TextboxFlags.DEFAULT, _s
 		cl = std.clamp(cl, 0, auto line_text.len);
 		position :: line.start_index + cl;
 		textbox.cursor = position;
-		if textbox.marker == -1 {
+		if textbox.marker == -1 && glm.length(glm.sub(api.get_mouse_position(), textbox.last_click_positon)) > 1.f {
 			textbox.marker = position;
 		}
 	}
@@ -1650,8 +1658,16 @@ textbox_impl :: fn (rect: Rect, text: *string, flags := TextboxFlags.DEFAULT, _s
 			cl  = 0;
 		}
 		line_text  :: get_line_text(@target_text, lines[ln]);
+		if is_multiline && last_cursor_position != textbox.cursor {
+			adjust_textbox_scrolling_to_make_cursor_visible(edit_mask, line_height, ln);
+		}
 		draw_textbox_cursor(line_text, rect_translated(edit_rect), edit_mask, style, line_height, cl, ln);
 	}
+
+	if is_multiline {
+		scroll_area_end();
+	}
+
 	return changed;
 }
 
@@ -1736,6 +1752,19 @@ handle_textbox_input :: fn (textbox: *Textbox, lines: []TextBoxLine, target_text
 				textbox.cursor -= prev_character.len;
 
 				delete_range(target_text, textbox.cursor, prev_cursor);
+				changed = is_immediate || is_multiline;
+			}
+		}
+		edit_cursor_phase = 0.f;
+	}
+
+	if api.is_key_press_or_repeat(CURSOR_DELETE) {
+		if cut_textbox_selection(textbox, target_text) {
+			changed = is_immediate || is_multiline;
+		} else if textbox.cursor < target_text.len {
+			curr_character :: peek_position(@target_text, textbox.cursor);
+			if curr_character.len > 0 {
+				delete_range(target_text, textbox.cursor, textbox.cursor + curr_character.len);
 				changed = is_immediate || is_multiline;
 			}
 		}
@@ -1882,6 +1911,29 @@ draw_textbox_text :: fn (target_text: string_view, lines: []TextBoxLine, style: 
 		label(edit_rect, line_text, text_style);
 		edit_rect.y += edit_rect.h;
 	}
+	// @Hack: Because text positioning is fucking nightmare we do this to make last glyphs in scroll area bottom fully visible...
+	//        Also last empty line does not have visual representation so it will be cropped!!!
+	if is_flag(flags, TextboxFlags.MULTILINE) {
+		content_extend.h += line_height;
+	}
+}
+
+adjust_textbox_scrolling_to_make_cursor_visible :: fn (mask: glm.v4, line_height: f32, line: s32) {
+	assert(current_scroll_area);
+
+	cursor_shape := make_rect(0.f, 1.f + line_height * auto line, 0.f, line_height);
+	cursor_shape = rect_scaled(rect_to_global(cursor_shape), scale_factor);
+	cursor_mask :: glm.mul(mask, scale_factor);
+
+	viewport_height :: cursor_mask.w - cursor_mask.y;
+	cursor_from_top :: cursor_shape.y - cursor_mask.y;
+	if (cursor_from_top + line_height) > viewport_height {
+		current_scroll_area.rect.y -= ((cursor_from_top + cursor_shape.h) - viewport_height) / scale_factor;
+	} else if cursor_from_top < 0.f {
+		current_scroll_area.rect.y -= cursor_from_top / scale_factor;
+	}
+
+	current_scroll_area.rect.y = std.min(current_scroll_area.rect.y, 0.f);
 }
 
 draw_textbox_cursor :: fn (text: string_view, rect: Rect, mask: glm.v4, style: *TextboxStyle, line_height: f32, cursor: s32, line: s32) {
@@ -1898,6 +1950,7 @@ draw_textbox_cursor :: fn (text: string_view, rect: Rect, mask: glm.v4, style: *
 	cursor_mask :: glm.mul(mask, scale_factor);
 
 	cursor_shape.x += w;
+
 
 	api.draw_rect(
 		glm.v3.{ cursor_shape.x, cursor_shape.y, get_current_depth() },
@@ -1998,6 +2051,7 @@ get_style :: fn {
 		s.textbox.padding                          = 2;
 		s.textbox.cursor_color                     = s.label.color;
 		s.textbox.selection_color                  = s.focus_color;
+		s.textbox.scroll_area                      = s.scroll_area;
 
 		return s;
 	};
