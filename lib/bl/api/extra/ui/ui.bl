@@ -142,6 +142,10 @@ clear_keyboard_focus :: fn () #inline {
 	current_keyboard_focus = 0;
 }
 
+get_keyboard_focus :: fn () u64 #inline {
+	return current_keyboard_focus;
+}
+
 set_keyboard_focus :: fn (hash: u64) #inline {
 	current_keyboard_focus = hash;
 }
@@ -1635,6 +1639,8 @@ textbox_impl :: fn (rect: Rect, text: *string, flags := TextboxFlags.DEFAULT, _s
 			textbox.marker = position;
 		}
 	}
+	
+	textbox.marker = std.min(target_text.len, textbox.marker);
 
 	changed := false;
 	if is_focused {
