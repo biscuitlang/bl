@@ -33,7 +33,7 @@ STREAM_VTABLE :: StreamVTable.{
 
 read :: fn (stream: *BufferStream, dest: *u8, bytes_to_read: s64) (s64, Error) {
 	size :: min(stream.data.len - stream.position, bytes_to_read);
-	assert(size >= 0);
+	if size <= 0 { return 0, error("Stream read out of the data bounds."); }
 	memcpy(dest, &stream.data[stream.position], auto size);
 	stream.position += size;
 	assert(stream.position <= stream.data.len);

@@ -2,7 +2,7 @@
 
 #private
 test_multiline_str_literal :: fn () #test {
-	FOO :: 
+	FOO ::
 	   "Hello "
 	   "this "
 	   "is "
@@ -153,31 +153,31 @@ test_str_split_by_first :: fn () #test {
 }
 
 test_str_compare1 :: fn () #test {
-	test_true(std.str_match("hello", "hello")); 
-	test_true(std.str_match("", "")); 
-	test_false(std.str_match("aaaa", "bb")); 
-	test_false(std.str_match("aa", "bbbb")); 
-	test_false(std.str_match("", "bbbb")); 
-	test_false(std.str_match("aa", "")); 
+	test_true(std.str_match("hello", "hello"));
+	test_true(std.str_match("", ""));
+	test_false(std.str_match("aaaa", "bb"));
+	test_false(std.str_match("aa", "bbbb"));
+	test_false(std.str_match("", "bbbb"));
+	test_false(std.str_match("aa", ""));
 }
 
 test_str_compare2 :: fn () #test {
-	test_true(std.str_match("", "", 0)); 
-	test_true(std.str_match("", "", 10)); 
-	test_true(std.str_match("hello", "hello", 0)); 
-	test_true(std.str_match("hello", "hello", -1)); 
-	test_true(std.str_match("hello", "hello", 3)); 
-	test_true(std.str_match("bbaa", "bb", 2)); 
-	test_true(std.str_match("b", "b", 100)); 
-	test_true(std.str_match("b", "b", 0)); 
-	test_true(std.str_match("bbbb", "b", 0)); 
-	test_true(std.str_match("b", "bbbb", 0)); 
-	test_true(std.str_match("bbbb", "b", 1)); 
-	test_true(std.str_match("b", "bbbb", 1)); 
-	test_true(std.str_match("", "b", 0)); 
-	test_true(std.str_match("b", "", 0)); 
-	test_false(std.str_match("", "b", 1)); 
-	test_false(std.str_match("b", "", 1)); 
+	test_true(std.str_match("", "", 0));
+	test_true(std.str_match("", "", 10));
+	test_true(std.str_match("hello", "hello", 0));
+	test_true(std.str_match("hello", "hello", -1));
+	test_true(std.str_match("hello", "hello", 3));
+	test_true(std.str_match("bbaa", "bb", 2));
+	test_true(std.str_match("b", "b", 100));
+	test_true(std.str_match("b", "b", 0));
+	test_true(std.str_match("bbbb", "b", 0));
+	test_true(std.str_match("b", "bbbb", 0));
+	test_true(std.str_match("bbbb", "b", 1));
+	test_true(std.str_match("b", "bbbb", 1));
+	test_true(std.str_match("", "b", 0));
+	test_true(std.str_match("b", "", 0));
+	test_false(std.str_match("", "b", 1));
+	test_false(std.str_match("b", "", 1));
 }
 
 test_strtos64 :: fn () #test {
@@ -407,8 +407,7 @@ test_str_split_by4 :: fn () #test {
 test_str_split_by5 :: fn () #test {
 	s1 :: std.str_split_by("", ':');
 	defer array_terminate(&s1);
-	test_eq(s1.len, 1);
-	test_eq(s1[0], "");
+	test_eq(s1.len, 0);
 }
 
 test_str_split_by6 :: fn () #test {
@@ -528,62 +527,62 @@ test_str_count2 :: fn () #test {
 
 test_str_sub_default_len :: fn () #test {
 	s1 :: std.str_sub("hello world", 0);
-	test_eq(s1.len, 11); 
-	test_eq(s1, "hello world"); 
+	test_eq(s1.len, 11);
+	test_eq(s1, "hello world");
 }
 
 test_str_sub_empty :: fn () #test {
 	s1 :: std.str_sub(std.str_empty, 0);
-	test_eq(s1.len, 0); 
-	test_eq(s1, std.str_empty); 
+	test_eq(s1.len, 0);
+	test_eq(s1, std.str_empty);
 }
 
 test_str_sub_empty2 :: fn () #test {
 	s1 :: std.str_sub("hello world", 0, 0);
-	test_eq(s1.len, 0); 
-	test_eq(s1, std.str_empty); 
+	test_eq(s1.len, 0);
+	test_eq(s1, std.str_empty);
 }
 
 test_str_sub_full :: fn () #test {
 	s1 :: std.str_sub("hello world", 0, 11);
-	test_eq(s1.len, 11); 
-	test_eq(s1, "hello world"); 
+	test_eq(s1.len, 11);
+	test_eq(s1, "hello world");
 }
 
 test_str_sub_1 :: fn () #test {
 	s1 :: std.str_sub("hello world", 0, 5);
-	test_eq(s1.len, 5); 
-	test_eq(s1, "hello"); 
+	test_eq(s1.len, 5);
+	test_eq(s1, "hello");
 }
 
 test_str_sub_2 :: fn () #test {
 	s1 :: std.str_sub("hello world", 6, 5);
-	test_eq(s1.len, 5); 
-	test_eq(s1, "world"); 
+	test_eq(s1.len, 5);
+	test_eq(s1, "world");
 }
 
 test_str_sub_3 :: fn () #test {
 	s1 :: std.str_sub("hello world", 10, 1);
-	test_eq(s1.len, 1); 
-	test_eq(s1, "d"); 
+	test_eq(s1.len, 1);
+	test_eq(s1, "d");
 }
 
 test_str_sub_4 :: fn () #test {
 	s1 :: std.str_sub("hello world", 10);
-	test_eq(s1.len, 1); 
-	test_eq(s1, "d"); 
+	test_eq(s1.len, 1);
+	test_eq(s1, "d");
 }
 
 test_str_sub_5 :: fn () #test {
 	s1 :: std.str_sub("hello world", 6);
-	test_eq(s1.len, 5); 
-	test_eq(s1, "world"); 
+	test_eq(s1.len, 5);
+	test_eq(s1, "world");
 }
 
 test_str_sub_6 :: fn () #test {
 	s1 :: std.str_sub("hello world", 11);
-	test_eq(s1.len, 0); 
-	test_eq(s1, std.str_empty); 
+	test_eq(s1.len, 0);
+	test_eq(s1, std.str_empty);
 }
 
 test_str_clean_concat_1 :: fn () #test {
@@ -606,7 +605,7 @@ test_reserve :: fn () #test {
 	test_eq(s.len, 0);
 	allocated :: std.str_get_allocated_bytes(s);
 	test_true(allocated > 0);
-	
+
 	loop i := 0; i < 1000; i += 1 {
 		std.str_append(&s, "1");
 	}

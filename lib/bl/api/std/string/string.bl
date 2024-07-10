@@ -473,6 +473,7 @@ str_erase :: fn (str: *string, index: s32) bool {
 }
 
 /// Split the `str` input string by delimiter and return new slice containing all found sub-strings.
+/// In case input string is empty, returs empty slice.
 ///
 /// !!! warning
 ///     String slice should be terminated by `free_slice` call.

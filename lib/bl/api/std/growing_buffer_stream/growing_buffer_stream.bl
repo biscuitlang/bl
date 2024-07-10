@@ -64,7 +64,7 @@ write :: fn (stream: *GrowingBufferStream, src: *u8, bytes_to_write: s64) (s64, 
 		if stream.data.len == 0 {
 			new_size = std.max(ALLOC_BLOCK_SIZE, auto bytes_to_write);
 		} else {
-			new_size = std.max(cast(usize) (GROW_FACTOR * auto stream.data.len), auto bytes_to_write);
+			new_size = std.max(cast(usize) (GROW_FACTOR * auto stream.data.len), auto bytes_to_write + stream.data.len);
 		}
 
 		assert(new_size >= auto bytes_to_write);
@@ -78,6 +78,7 @@ write :: fn (stream: *GrowingBufferStream, src: *u8, bytes_to_write: s64) (s64, 
 	memcpy(&stream.data[stream.position], src, auto bytes_to_write);
 	stream.position = next_position;
 	stream.end = max(stream.position, stream.end);
+	assert(stream.position <= stream.data.len);
 	return bytes_to_write, OK;
 }
 
