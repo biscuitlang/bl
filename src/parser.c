@@ -613,10 +613,12 @@ struct ast *parse_expr_compound(struct context *ctx, struct ast *prev) {
 
 	struct ast *type = prev;
 	if (!type) {
+		// @Cleanup
 		// This can be allowed eventually if we decide to support type infer of compound expressions
 		// based on its usage.
-		report_error(
-		    EXPECTED_TYPE, tok_very_first, CARET_BEFORE, "Expected type of compound value.");
+		// report_error(
+		//     EXPECTED_TYPE, tok_very_first, CARET_BEFORE, "Expected type of compound value.");
+		(void)tok_very_first;
 	}
 
 	struct ast *compound =

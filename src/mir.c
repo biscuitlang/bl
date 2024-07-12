@@ -43,6 +43,7 @@
 #define ARENA_INSTR_CHUNK_COUNT 2048
 #define RESOLVE_TYPE_FN_NAME cstr(".type")
 #define RESOLVE_EXPR_FN_NAME cstr(".expr")
+#define RESOLVE_UNTYPED_COMPOUND_FN_NAME cstr(".untyped.compound")
 #define INIT_VALUE_FN_NAME cstr(".init")
 #define IMPL_FN_NAME cstr(".impl")
 #define IMPL_VARGS_TMP_ARR cstr(".vargs.arr")
@@ -129,6 +130,8 @@ struct context {
 		struct mir_instr_block *continue_block;
 		struct id              *current_entity_id;
 		struct mir_instr       *current_fwd_struct_decl;
+
+		array(struct ast *) propageted_compound_type_stack;
 
 		array(defer_stack_t) defer_stack;
 		s32 current_defer_stack_index;
@@ -669,6 +672,7 @@ static struct mir_instr *ast_expr_unary(struct context *ctx, struct ast *unop);
 static struct mir_instr *ast_expr_compound(struct context *ctx, struct ast *cmp);
 static struct mir_instr *ast_call_loc(struct context *ctx, struct ast *loc);
 static struct mir_instr *ast_tag(struct context *ctx, struct ast *tag);
+static void              ast_propagate_compound_type(struct context *ctx, struct ast *ast_compound, struct ast *ast_type);
 
 // analyze
 static enum vm_interp_state evaluate(struct context *ctx, struct mir_instr *instr);
@@ -1533,7 +1537,7 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 	scope_insert(scope, layer_index, entry);
 	return entry;
 
-COLLIDE : {
+COLLIDE: {
 	char *err_msg = (collision->is_builtin || is_builtin) ? "Symbol name collision with compiler builtin '%.*s'." : "Duplicate symbol";
 	report_error(DUPLICATE_SYMBOL, node, err_msg, id->str.len, id->str.ptr);
 	if (collision->node) {
@@ -4567,7 +4571,10 @@ static struct result analyze_instr_compound_regular(struct context *ctx, struct 
 		bassert(cmp->base.value.type);
 	} else if (!cmp->base.value.type) {
 		// Generate load instruction if needed
-		bassert(cmp->type->state == MIR_IS_COMPLETE);
+		// bassert(cmp->type->state == MIR_IS_COMPLETE);
+		if (cmp->type->state != MIR_IS_COMPLETE) {
+			return_zone(POSTPONE);
+		}
 		if (analyze_slot(ctx, analyze_slot_conf_basic, &cmp->type, NULL) != ANALYZE_PASSED) return_zone(FAIL);
 
 		struct mir_instr *instr_type = cmp->type;
@@ -6248,7 +6255,7 @@ struct result analyze_instr_load(struct context *ctx, struct mir_instr_load *loa
 
 	return_zone(PASS);
 
-INVALID_SRC : {
+INVALID_SRC: {
 	bassert(err_type);
 	str_buf_t type_name = mir_type2str(err_type, /* prefer_name */ true);
 	report_error(INVALID_TYPE, src->node, "Expected value of pointer type, got '%.*s'.", type_name.len, type_name.ptr);
@@ -9807,6 +9814,16 @@ struct mir_instr *ast_tag(struct context *ctx, struct ast *tag) {
 	return ast(ctx, tag->data.tag.expr);
 }
 
+void ast_propagate_compound_type(struct context *ctx, struct ast *ast_compound, struct ast *ast_type) {
+	if (!ast_compound || ast_compound->kind != AST_EXPR_COMPOUND || ast_compound->data.expr_compound.type) {
+		return;
+	}
+	if (!ast_type) {
+		report_error(EXPECTED_TYPE, ast_compound, "Expression type cannot be inferred.");
+	}
+	ast_compound->data.expr_compound.type = ast_type;
+}
+
 static bool is_array_size_inferred(struct ast *node) {
 	if (!node || node->kind != AST_EXPR_TYPE) return false;
 	node = node->data.expr_type.type;
@@ -9818,7 +9835,7 @@ struct mir_instr *ast_expr_compound(struct context *ctx, struct ast *cmp) {
 	ast_nodes_t      *ast_values = cmp->data.expr_compound.values;
 	struct ast       *ast_type   = cmp->data.expr_compound.type;
 	struct mir_instr *type       = NULL;
-	bassert(ast_type);
+	// bassert(ast_type);
 
 	const usize valc = ast_values ? sarrlenu(ast_values) : 0;
 
@@ -9829,8 +9846,12 @@ struct mir_instr *ast_expr_compound(struct context *ctx, struct ast *cmp) {
 	} else {
 		type = ast(ctx, ast_type);
 	}
-	bassert(type);
+
+	// bassert(type);
+	// @Incomplete untyped compound without values?
 	if (!ast_values) return append_instr_compound(ctx, cmp, type, NULL, false);
+
+	if (ast_type) arrpush(ctx->ast.propageted_compound_type_stack, ast_type);
 
 	mir_instrs_t *values = arena_alloc(&ctx->assembly->arenas.sarr);
 	sarrsetlen(values, valc);
@@ -9839,6 +9860,10 @@ struct mir_instr *ast_expr_compound(struct context *ctx, struct ast *cmp) {
 	// Values must be appended in reverse order.
 	for (usize i = valc; i-- > 0;) {
 		ast_value = sarrpeek(ast_values, i);
+		if (arrlen(ctx->ast.propageted_compound_type_stack)) {
+			struct ast *ast_propagated_type = arrlast(ctx->ast.propageted_compound_type_stack);
+			ast_propagate_compound_type(ctx, ast_value, ast_propagated_type);
+		}
 		if (ast_value->kind == AST_EXPR_BINOP && ast_value->data.expr_binop.kind == BINOP_ASSIGN) {
 			// In case the compound initializer value is written as <name> = <value> we use compound
 			// initializer designator as a placeholder here. This instruction is later replaced
@@ -9866,6 +9891,7 @@ struct mir_instr *ast_expr_compound(struct context *ctx, struct ast *cmp) {
 		bassert(value);
 		sarrpeek(values, i) = value;
 	}
+	if (ast_type) arrpop(ctx->ast.propageted_compound_type_stack);
 	return append_instr_compound(ctx, cmp, type, values, false);
 }
 
@@ -10502,7 +10528,10 @@ static void ast_decl_var_local(struct context *ctx, struct ast *ast_local) {
 	struct ast *ast_value = ast_local->data.decl_entity.value;
 	// Create type resolver if there is explicitly defined type mentioned by user in
 	// declaration.
-	struct mir_instr *type        = ast_type ? ast_create_type_resolver_call(ctx, ast_type) : NULL;
+	struct mir_instr *type = ast_type ? ast_create_type_resolver_call(ctx, ast_type) : NULL;
+
+	ast_propagate_compound_type(ctx, ast_value, ast_type);
+
 	struct mir_instr *value       = ast(ctx, ast_value);
 	const bool        is_compiler = isflag(ast_local->data.decl.flags, FLAG_COMPILER);
 	const bool        is_unroll   = ast_value && ast_value->kind == AST_EXPR_CALL;
@@ -11760,6 +11789,7 @@ void mir_run(struct assembly *assembly) {
 DONE:
 	assembly->stats.mir_s = runtime_measure_end(mir);
 	ast_free_defer_stack(&ctx);
+	arrfree(ctx.ast.propageted_compound_type_stack);
 	arrfree(ctx.analyze.stack[0]);
 	arrfree(ctx.analyze.stack[1]);
 	hmfree(ctx.analyze.waiting);

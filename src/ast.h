@@ -294,7 +294,7 @@ struct ast_expr_type {
 };
 
 struct ast_expr_compound {
-	struct ast  *type;
+	struct ast  *type; // Optional
 	ast_nodes_t *values;
 	// Allow type infer from function return type.
 	bool is_multiple_return_value;

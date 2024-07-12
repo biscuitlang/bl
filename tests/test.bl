@@ -1,16 +1,26 @@
 main :: fn () s32 {
 
-	a :: true;
-	b :: false;
-	c :: false;
+	foo : Foo : .{ 10, 20 };
+	// foo2 :: .{ 10, 20 };
+	bar :: [_]Foo.{
+		.{ 10, 20 },
+		.{ 30, 40 },
+	};
 
-	if !b && a && c {
-		print("We should NOT see this!\n");
-	} else {
-		print("We should see this!\n");
-	}
+	arr : [2]s32 : .{ 10, 20 };
+
+	// hello(.{ 10, 20 });
+
 
 	return 0;
+}
+
+Foo :: struct {
+	a: s32;
+	b: s32;
+}
+
+hello :: fn (foo: Foo) {
 }
 
 /*
@@ -852,8 +862,6 @@ use_global_number :: fn () {
 */
 
 /*
-
-BUG: Invalid ! precedence
 
 if !settings.modal_ctrl && (mods & MOD_CONTROL) == MOD_CONTROL {
 	control_pressed = true;
