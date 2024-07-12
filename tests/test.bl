@@ -1,14 +1,16 @@
 main :: fn () s32 {
-	foo(bar());
+
+	a :: true;
+	b :: false;
+	c :: false;
+
+	if !b && a && c {
+		print("We should NOT see this!\n");
+	} else {
+		print("We should see this!\n");
+	}
+
 	return 0;
-}
-
-foo :: fn (v: Any) {
-	print("%", @v.type_info);
-}
-
-bar :: fn () Any {
-	return Any.{ typeinfo(s32), null };
 }
 
 /*
