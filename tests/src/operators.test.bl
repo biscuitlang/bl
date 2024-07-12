@@ -12,30 +12,30 @@ assign_operators :: fn () #test {
 	test_eq(i, 5);
 	i %= 5;
 	test_eq(i, 0);
-	
-	
+
+
 	i1 := 0b101;
 	i1 &= 0b10;
 	test_eq(i1, 0);
 	i2 := 0b111;
 	i2 &= 0b100;
 	test_eq(i2, 0b100);
-	
+
 	i3 := 0b101;
 	i3 |= 0b10;
 	test_eq(i3, 0b111);
 	i4 := 0b111;
 	i4 |= 0b0;
 	test_eq(i4, 0b111);
-	
+
 	i5 := 0b101;
 	i5 ^= 0b111;
 	test_eq(i5, 0b10);
-	
+
 	i6 := 0b111;
 	i6 ^= 0b111;
 	test_eq(i6, 0b0);
-	
+
 	i7 := 0b0;
 	i7 ^= 0b111;
 	test_eq(i7, 0b111);
@@ -49,14 +49,14 @@ compare_operators :: fn () #test {
 	test_true(i < 11);
 	test_true(i >= 10);
 	test_true(i <= 10);
-	
+
 	test_true(s32 == s32);
 	test_true(s32 != u8);
-	
+
 	T :: string;
 	test_true(T == string);
 	test_true(T != s32);
-	
+
 	Foo :: struct { i: s32; j: string };
 	Baz :: struct { i: s32; j: string };
 	Bar :: Foo;
@@ -69,17 +69,17 @@ compare_operators :: fn () #test {
 bitwise_operators :: fn () #test {
 	test_eq(0b101 & 0b10, 0);
 	test_eq(0b111 & 0b100, 0b100);
-	
+
 	test_eq(0b101 | 0b10, 0b111);
 	test_eq(0b111 | 0, 0b111);
-	
+
 	test_eq(0b101 ^ 0b111, 0b10);
-	test_eq(0b111 ^ 0b111, 0b0);    
-	test_eq(0b0 ^ 0b111, 0b111);    
-	
+	test_eq(0b111 ^ 0b111, 0b0);
+	test_eq(0b0 ^ 0b111, 0b111);
+
 	test_eq(0b1 << 1, 0b10);
 	test_eq(0b10 >> 1, 0b1);
-	
+
 	test_eq(~cast(u32)0xffffffff, 0);
 }
 
@@ -88,7 +88,7 @@ logical_operators :: fn () #test {
 	test_false(true && false);
 	test_false(false  && true);
 	test_false(false  && false);
-	
+
 	test_true(true || true);
 	test_true(true || false);
 	test_true(false  || true);
@@ -111,7 +111,7 @@ type_members :: fn () #test {
 		i: s32;
 		j: bool;
 	};
-	
+
 	test_eq(typeinfo(Bar.i), typeinfo(s32));
 	test_eq(typeinfo(Bar.j), typeinfo(bool));
 	test_eq(typeinfo(Bar.foo.i), typeinfo(s32));
@@ -125,4 +125,14 @@ type_of_operator :: fn () #test {
 	test_eq(typeinfo(typeof(b)), typeinfo(b));
 	c: typeof(a);
 	test_eq(typeinfo(typeof(c)), typeinfo(a));
+}
+
+unary_precedence :: fn () #test {
+	a := true;
+	b := false;
+	c := false;
+
+	test_false(!b && a && c);
+	test_false(a && !b && c);
+	test_false(a && c && !b);
 }
