@@ -43,7 +43,6 @@
 #define ARENA_INSTR_CHUNK_COUNT 2048
 #define RESOLVE_TYPE_FN_NAME cstr(".type")
 #define RESOLVE_EXPR_FN_NAME cstr(".expr")
-#define RESOLVE_UNTYPED_COMPOUND_FN_NAME cstr(".untyped.compound")
 #define INIT_VALUE_FN_NAME cstr(".init")
 #define IMPL_FN_NAME cstr(".impl")
 #define IMPL_VARGS_TMP_ARR cstr(".vargs.arr")
@@ -73,6 +72,11 @@
 		.state = ANALYZE_PASSED \
 	}
 
+#define SKIP                  \
+	(struct result) {         \
+		.state = ANALYZE_SKIP \
+	}
+
 #define FAIL                    \
 	(struct result) {           \
 		.state = ANALYZE_FAILED \
@@ -98,6 +102,9 @@
 		((struct mir_instr_compound *)(_instr))->is_naked = v; \
 	}                                                          \
 	(void)0
+
+#define INVALID_COMPOUND_TYPE_INFER_MESSAGE "Unknown compound expression type. In case the compound expression is untyped, the type must" \
+	                                        " be possible to infer from usage. Otherwise explicit type must be used 'Type.{ ... }'."
 
 struct rtti_incomplete {
 	struct mir_var  *var;
@@ -130,8 +137,6 @@ struct context {
 		struct mir_instr_block *continue_block;
 		struct id              *current_entity_id;
 		struct mir_instr       *current_fwd_struct_decl;
-
-		array(struct ast *) propageted_compound_type_stack;
 
 		array(defer_stack_t) defer_stack;
 		s32 current_defer_stack_index;
@@ -175,6 +180,13 @@ struct context {
 		mir_types_t          complete_check_type_stack;
 		struct scope_entry **usage_check_arr;
 		struct scope_entry  *unnamed_entry;
+
+		// Table of instruction being skipped in analyze pass, this should be empty at the end
+		// of analyze!
+		hash_table(struct {
+			struct mir_instr *key;
+			u8                value; // this is not used
+		}) skipped_instructions;
 	} analyze;
 
 	struct
@@ -208,6 +220,10 @@ enum result_state {
 	// In this case struct result will contain hash of desired symbol which be satisfied later,
 	// instruction is pushed into waiting table.
 	ANALYZE_WAIT = 3,
+
+	// In some rare cases we have to skip analyze of the instruction (namely in case of untyped
+	// compound) to resolve type fisrt. This state passes analyze stage to the next instruction.
+	ANALYZE_SKIP = 4,
 };
 
 struct result {
@@ -221,11 +237,7 @@ enum stage_state {
 	ANALYZE_STAGE_FAILED,
 };
 
-// Argument list used in slot analyze functions
-#define ANALYZE_STAGE_ARGS struct context UNUSED(*ctx), struct mir_instr UNUSED(**input), struct mir_type UNUSED(*slot_type), bool UNUSED(is_initializer)
-
-#define ANALYZE_STAGE_FN(N) enum stage_state analyze_stage_##N(ANALYZE_STAGE_ARGS)
-typedef enum stage_state (*analyze_stage_fn_t)(ANALYZE_STAGE_ARGS);
+typedef enum stage_state (*analyze_stage_fn_t)(struct context *, struct mir_instr **, struct mir_type *, bool);
 
 // Arena destructor for functions.
 static void fn_dtor(struct mir_fn *fn) {
@@ -672,12 +684,12 @@ static struct mir_instr *ast_expr_unary(struct context *ctx, struct ast *unop);
 static struct mir_instr *ast_expr_compound(struct context *ctx, struct ast *cmp);
 static struct mir_instr *ast_call_loc(struct context *ctx, struct ast *loc);
 static struct mir_instr *ast_tag(struct context *ctx, struct ast *tag);
-static void              ast_propagate_compound_type(struct context *ctx, struct ast *ast_compound, struct ast *ast_type);
 
 // analyze
 static enum vm_interp_state evaluate(struct context *ctx, struct mir_instr *instr);
 static struct result        analyze_var(struct context *ctx, struct mir_var *var, const bool check_usage);
 static struct result        analyze_instr(struct context *ctx, struct mir_instr *instr);
+static struct result        analyze_resolve_compound_type(struct context *ctx, struct mir_instr *instr, struct mir_type *type);
 
 #define analyze_slot(ctx, conf, input, slot_type) _analyze_slot((ctx), (conf), (input), (slot_type), false)
 
@@ -685,26 +697,29 @@ static struct result        analyze_instr(struct context *ctx, struct mir_instr 
 
 static enum result_state _analyze_slot(struct context *ctx, const analyze_stage_fn_t *conf, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
 
-static ANALYZE_STAGE_FN(load);
-static ANALYZE_STAGE_FN(toany);
-static ANALYZE_STAGE_FN(arrtoslice);
-static ANALYZE_STAGE_FN(toslice);
-static ANALYZE_STAGE_FN(implicit_cast);
-static ANALYZE_STAGE_FN(report_type_mismatch);
-static ANALYZE_STAGE_FN(unroll);
-static ANALYZE_STAGE_FN(set_volatile_expr);
-static ANALYZE_STAGE_FN(set_null);
-static ANALYZE_STAGE_FN(set_auto);
+static enum stage_state analyze_stage_load(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
+static enum stage_state analyze_stage_toany(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
+static enum stage_state analyze_stage_arrtoslice(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
+static enum stage_state analyze_stage_toslice(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
+static enum stage_state analyze_stage_implicit_cast(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
+static enum stage_state analyze_stage_report_type_mismatch(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
+static enum stage_state analyze_stage_unroll(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
+static enum stage_state analyze_stage_set_volatile_expr(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
+static enum stage_state analyze_stage_set_null(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
+static enum stage_state analyze_stage_set_auto(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
+static enum stage_state analyze_stage_propagate_compound_type(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
 
 static const analyze_stage_fn_t analyze_slot_conf_dummy[] = {NULL};
 
 static const analyze_stage_fn_t analyze_slot_conf_basic[] = {
+    analyze_stage_propagate_compound_type,
     analyze_stage_unroll,
     analyze_stage_load,
     NULL,
 };
 
 static const analyze_stage_fn_t analyze_slot_conf_default[] = {
+    analyze_stage_propagate_compound_type,
     analyze_stage_unroll,
     analyze_stage_set_volatile_expr,
     analyze_stage_set_null,
@@ -718,6 +733,7 @@ static const analyze_stage_fn_t analyze_slot_conf_default[] = {
 };
 
 static const analyze_stage_fn_t analyze_slot_conf_full[] = {
+    analyze_stage_propagate_compound_type,
     analyze_stage_set_volatile_expr,
     analyze_stage_set_null,
     analyze_stage_set_auto,
@@ -789,6 +805,7 @@ static struct result analyze_instr_call_loc(struct context *ctx, struct mir_inst
 static struct result analyze_instr_msg(struct context *ctx, struct mir_instr_msg *msg);
 static void          analyze_report_unresolved(struct context *ctx);
 static void          analyze_report_unused(struct context *ctx);
+static void          analyze_report_skipped(struct context *ctx);
 
 // =================================================================================================
 //  RTTI
@@ -1537,7 +1554,7 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 	scope_insert(scope, layer_index, entry);
 	return entry;
 
-COLLIDE: {
+COLLIDE : {
 	char *err_msg = (collision->is_builtin || is_builtin) ? "Symbol name collision with compiler builtin '%.*s'." : "Duplicate symbol";
 	report_error(DUPLICATE_SYMBOL, node, err_msg, id->str.len, id->str.ptr);
 	if (collision->node) {
@@ -4569,12 +4586,9 @@ static struct result analyze_instr_compound_regular(struct context *ctx, struct 
 		bassert(fn && fn->type);
 		cmp->base.value.type = fn->type->data.fn.ret_type;
 		bassert(cmp->base.value.type);
-	} else if (!cmp->base.value.type) {
+	} else if (!cmp->base.value.type && cmp->type) {
 		// Generate load instruction if needed
-		// bassert(cmp->type->state == MIR_IS_COMPLETE);
-		if (cmp->type->state != MIR_IS_COMPLETE) {
-			return_zone(POSTPONE);
-		}
+		bassert(cmp->type->state == MIR_IS_COMPLETE);
 		if (analyze_slot(ctx, analyze_slot_conf_basic, &cmp->type, NULL) != ANALYZE_PASSED) return_zone(FAIL);
 
 		struct mir_instr *instr_type = cmp->type;
@@ -4585,6 +4599,9 @@ static struct result analyze_instr_compound_regular(struct context *ctx, struct 
 		struct mir_type *type = MIR_CEV_READ_AS(struct mir_type *, &instr_type->value);
 		bmagic_assert(type);
 		cmp->base.value.type = type;
+	} else if (!cmp->base.value.type) {
+		bassert(cmp->type == NULL);
+		return_zone(SKIP);
 	}
 
 	struct mir_type *type = cmp->base.value.type;
@@ -6255,7 +6272,7 @@ struct result analyze_instr_load(struct context *ctx, struct mir_instr_load *loa
 
 	return_zone(PASS);
 
-INVALID_SRC: {
+INVALID_SRC : {
 	bassert(err_type);
 	str_buf_t type_name = mir_type2str(err_type, /* prefer_name */ true);
 	report_error(INVALID_TYPE, src->node, "Expected value of pointer type, got '%.*s'.", type_name.len, type_name.ptr);
@@ -7540,6 +7557,12 @@ static struct mir_fn *group_select_overload(struct context *ctx, struct mir_inst
 			struct mir_instr *arg      = sarrpeek(call->args, j);
 			struct mir_type  *arg_type = arg->value.type;
 
+			if (arg->kind == MIR_INSTR_COMPOUND && arg->state == MIR_IS_PENDING) {
+				report_error(INVALID_TYPE, arg->node, "Use of untyped compound expression with overloaded function is not allowed due to explicitness."
+				                                      " Expression type must be specified like this 'Type.{ ... }'.");
+				return NULL;
+			}
+
 			const struct mir_type *t1 = is_load_needed(arg) ? mir_deref_type(arg_type) : arg_type;
 			const struct mir_type *t2 = sarrpeek(args, j)->type;
 			bassert(t1 && t2);
@@ -7841,6 +7864,10 @@ struct result analyze_call_stage_resolve_overload(struct context *ctx, struct mi
 	struct mir_fn *selected_overload_fn;
 	// lookup best call candidate in group
 	selected_overload_fn = group_select_overload(ctx, call, group);
+	if (!selected_overload_fn) {
+		return_zone(FAIL);
+	}
+
 	bmagic_assert(selected_overload_fn);
 	replace_callee(call, selected_overload_fn);
 	return_zone(PASS);
@@ -8092,6 +8119,12 @@ struct result analyze_call_stage_prescan_arguments(struct context *ctx, struct m
 					struct mir_instr *call_arg_instr = sarrpeekor(call->args, index, NULL);
 					if (!call_arg_instr) break;
 
+					if (call_arg_instr->kind == MIR_INSTR_COMPOUND && call_arg_instr->state == MIR_IS_PENDING) {
+						report_error(INVALID_TYPE, call_arg_instr->node, "Use of untyped compound expression with varargs is not allowed due to explicitness."
+						                                                 " Expression type must be specified like this 'Type.{ ... }'.");
+						return_zone(FAIL);
+					}
+
 					struct result result = is_argument_complete(ctx, call_arg_instr);
 					if (result.state != ANALYZE_PASSED) return_zone(result);
 				}
@@ -8166,6 +8199,13 @@ struct result analyze_call_stage_finalize(struct context *ctx, struct mir_instr_
 		struct mir_instr *call_arg_instr = sarrpeekor(call->args, index, NULL);
 
 		bassert(fn_arg);
+
+		if (call_arg_instr && call_arg_instr->kind == MIR_INSTR_COMPOUND && call_arg_instr->state == MIR_IS_PENDING) {
+			const struct result compound_result = analyze_resolve_compound_type(ctx, call_arg_instr, fn_arg->type);
+			if (compound_result.state != ANALYZE_PASSED) {
+				return compound_result;
+			}
+		}
 
 		bool forward_vargs = false;
 		if (call_arg_instr && is_load_needed(call_arg_instr)) {
@@ -8382,7 +8422,7 @@ enum result_state _analyze_slot(struct context *ctx, const analyze_stage_fn_t *c
 	return ANALYZE_PASSED;
 }
 
-ANALYZE_STAGE_FN(load) {
+enum stage_state analyze_stage_load(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
 	if (is_load_needed(*input)) {
 		*input = insert_instr_load(ctx, *input);
 
@@ -8393,7 +8433,7 @@ ANALYZE_STAGE_FN(load) {
 	return ANALYZE_STAGE_CONTINUE;
 }
 
-ANALYZE_STAGE_FN(unroll) {
+enum stage_state analyze_stage_unroll(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
 	struct mir_instr_unroll *unroll = (*input)->kind == MIR_INSTR_UNROLL ? ((struct mir_instr_unroll *)*input) : NULL;
 	if (!unroll) return ANALYZE_STAGE_CONTINUE;
 	// Erase unroll instruction in case it's marked for remove.
@@ -8412,7 +8452,7 @@ ANALYZE_STAGE_FN(unroll) {
 	return ANALYZE_STAGE_CONTINUE;
 }
 
-ANALYZE_STAGE_FN(set_null) {
+enum stage_state analyze_stage_set_null(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
 	bassert(slot_type);
 	struct mir_instr *_input = *input;
 
@@ -8438,7 +8478,7 @@ ANALYZE_STAGE_FN(set_null) {
 	return ANALYZE_STAGE_FAILED;
 }
 
-ANALYZE_STAGE_FN(set_auto) {
+enum stage_state analyze_stage_set_auto(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
 	bassert(slot_type);
 	if ((*input)->kind != MIR_INSTR_CAST) return ANALYZE_STAGE_CONTINUE;
 	struct mir_instr_cast *cast = (struct mir_instr_cast *)*input;
@@ -8459,7 +8499,7 @@ ANALYZE_STAGE_FN(set_auto) {
 	return ANALYZE_STAGE_BREAK;
 }
 
-ANALYZE_STAGE_FN(toany) {
+enum stage_state analyze_stage_toany(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
 	bassert(slot_type);
 
 	// check any
@@ -8492,7 +8532,7 @@ static void analyze_make_tmp_var(struct context *ctx, struct mir_instr **input, 
 	*input = tmp_ref;
 }
 
-ANALYZE_STAGE_FN(toslice) {
+enum stage_state analyze_stage_toslice(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
 	// Cast from dynamic array to slice can be done by bitcast from pointer to dynamic array to
 	// slice pointer, both structures have the same data layout of first two members.
 	bassert(slot_type);
@@ -8524,7 +8564,7 @@ ANALYZE_STAGE_FN(toslice) {
 	return ANALYZE_STAGE_BREAK;
 }
 
-ANALYZE_STAGE_FN(arrtoslice) {
+enum stage_state analyze_stage_arrtoslice(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
 	// Produce implicit cast from array type to slice. This will create implicit compound
 	// initializer representing array length and pointer to array data.
 	bassert(slot_type);
@@ -8574,7 +8614,7 @@ ANALYZE_STAGE_FN(arrtoslice) {
 	return ANALYZE_STAGE_BREAK;
 }
 
-ANALYZE_STAGE_FN(set_volatile_expr) {
+enum stage_state analyze_stage_set_volatile_expr(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
 	bassert(slot_type);
 	if (slot_type->kind != MIR_TYPE_INT) return ANALYZE_STAGE_CONTINUE;
 	if (!is_instr_type_volatile(*input)) return ANALYZE_STAGE_CONTINUE;
@@ -8590,7 +8630,7 @@ ANALYZE_STAGE_FN(set_volatile_expr) {
 	return ANALYZE_STAGE_BREAK;
 }
 
-ANALYZE_STAGE_FN(implicit_cast) {
+enum stage_state analyze_stage_implicit_cast(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
 	if (mir_type_cmp((*input)->value.type, slot_type)) return ANALYZE_STAGE_BREAK;
 	if (!can_impl_cast((*input)->value.type, slot_type)) return ANALYZE_STAGE_CONTINUE;
 	*input          = insert_instr_cast(ctx, *input, slot_type);
@@ -8599,9 +8639,40 @@ ANALYZE_STAGE_FN(implicit_cast) {
 	return ANALYZE_STAGE_BREAK;
 }
 
-ANALYZE_STAGE_FN(report_type_mismatch) {
+enum stage_state analyze_stage_report_type_mismatch(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
 	error_types(ctx, *input, (*input)->value.type, slot_type, (*input)->node, NULL);
 	return ANALYZE_STAGE_FAILED;
+}
+
+enum stage_state analyze_stage_propagate_compound_type(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
+	struct mir_instr *instr = *input;
+	if (instr->kind != MIR_INSTR_COMPOUND || instr->state != MIR_IS_PENDING) {
+		return ANALYZE_STAGE_CONTINUE;
+	}
+
+	if (!slot_type) {
+		report_error(INVALID_TYPE, instr->node, INVALID_COMPOUND_TYPE_INFER_MESSAGE);
+		return ANALYZE_STAGE_FAILED;
+	}
+
+	const struct result compound_result = analyze_resolve_compound_type(ctx, instr, slot_type);
+	if (compound_result.state != ANALYZE_PASSED) {
+		return ANALYZE_STAGE_FAILED;
+	}
+	return ANALYZE_STAGE_CONTINUE;
+}
+
+// Helper function to setup and analyze skipped compound instruction. This way we can support untyped compound expressions where
+// the type is inferred from usage. Untyped compounds are skipped during analyze and are analyzed later when the type is known.
+struct result analyze_resolve_compound_type(struct context *ctx, struct mir_instr *instr, struct mir_type *type) {
+	bassert(instr);
+	bassert(instr->state == MIR_IS_PENDING);
+	bassert(type);
+	bassert(instr->kind == MIR_INSTR_COMPOUND);
+	bassert(instr->value.type == NULL);
+
+	instr->value.type = type;
+	return analyze_instr(ctx, instr);
 }
 
 struct result analyze_instr(struct context *ctx, struct mir_instr *instr) {
@@ -8784,6 +8855,10 @@ struct result analyze_instr(struct context *ctx, struct mir_instr *instr) {
 
 		if (state.state == ANALYZE_PASSED) {
 			(*analyze_state) = MIR_IS_ANALYZED;
+			if (instr->kind == MIR_INSTR_COMPOUND) {
+				// Supported only for compounds right now!
+				hmdel(ctx->analyze.skipped_instructions, instr);
+			}
 		} else if (state.state == ANALYZE_FAILED) {
 			(*analyze_state) = MIR_IS_FAILED;
 #ifdef BL_DEBUG
@@ -8791,6 +8866,13 @@ struct result analyze_instr(struct context *ctx, struct mir_instr *instr) {
 			mir_print_instr(stdout, ctx->assembly, instr);
 			fprintf(stdout, "\n\n");
 #endif
+		} else if (state.state == ANALYZE_SKIP) {
+#if defined(BL_ASSERT_ENABLE)
+			bassert(instr->kind == MIR_INSTR_COMPOUND && "ANALYZE_SKIP is supported only for compounds right now!");
+			const s64 index = hmgeti(ctx->analyze.skipped_instructions, instr);
+			bassert(index == -1);
+#endif
+			hmput(ctx->analyze.skipped_instructions, instr, 0);
 		}
 	} // PENDING
 
@@ -8879,6 +8961,7 @@ void analyze(struct context *ctx) {
 
 		switch (result.state) {
 		case ANALYZE_PASSED:
+		case ANALYZE_SKIP:
 			pc = 0;
 			break;
 
@@ -8994,6 +9077,14 @@ void analyze_report_unused(struct context *ctx) {
 			               name.ptr);
 		}
 		}
+	}
+}
+
+void analyze_report_skipped(struct context *ctx) {
+	for (s64 i = 0; i < hmlen(ctx->analyze.skipped_instructions); ++i) {
+		struct mir_instr *instr = ctx->analyze.skipped_instructions[i].key;
+		bassert(instr->kind == MIR_INSTR_COMPOUND);
+		report_error(INVALID_TYPE, instr->node, INVALID_COMPOUND_TYPE_INFER_MESSAGE);
 	}
 }
 
@@ -9814,16 +9905,6 @@ struct mir_instr *ast_tag(struct context *ctx, struct ast *tag) {
 	return ast(ctx, tag->data.tag.expr);
 }
 
-void ast_propagate_compound_type(struct context *ctx, struct ast *ast_compound, struct ast *ast_type) {
-	if (!ast_compound || ast_compound->kind != AST_EXPR_COMPOUND || ast_compound->data.expr_compound.type) {
-		return;
-	}
-	if (!ast_type) {
-		report_error(EXPECTED_TYPE, ast_compound, "Expression type cannot be inferred.");
-	}
-	ast_compound->data.expr_compound.type = ast_type;
-}
-
 static bool is_array_size_inferred(struct ast *node) {
 	if (!node || node->kind != AST_EXPR_TYPE) return false;
 	node = node->data.expr_type.type;
@@ -9835,7 +9916,6 @@ struct mir_instr *ast_expr_compound(struct context *ctx, struct ast *cmp) {
 	ast_nodes_t      *ast_values = cmp->data.expr_compound.values;
 	struct ast       *ast_type   = cmp->data.expr_compound.type;
 	struct mir_instr *type       = NULL;
-	// bassert(ast_type);
 
 	const usize valc = ast_values ? sarrlenu(ast_values) : 0;
 
@@ -9847,11 +9927,7 @@ struct mir_instr *ast_expr_compound(struct context *ctx, struct ast *cmp) {
 		type = ast(ctx, ast_type);
 	}
 
-	// bassert(type);
-	// @Incomplete untyped compound without values?
 	if (!ast_values) return append_instr_compound(ctx, cmp, type, NULL, false);
-
-	if (ast_type) arrpush(ctx->ast.propageted_compound_type_stack, ast_type);
 
 	mir_instrs_t *values = arena_alloc(&ctx->assembly->arenas.sarr);
 	sarrsetlen(values, valc);
@@ -9860,10 +9936,6 @@ struct mir_instr *ast_expr_compound(struct context *ctx, struct ast *cmp) {
 	// Values must be appended in reverse order.
 	for (usize i = valc; i-- > 0;) {
 		ast_value = sarrpeek(ast_values, i);
-		if (arrlen(ctx->ast.propageted_compound_type_stack)) {
-			struct ast *ast_propagated_type = arrlast(ctx->ast.propageted_compound_type_stack);
-			ast_propagate_compound_type(ctx, ast_value, ast_propagated_type);
-		}
 		if (ast_value->kind == AST_EXPR_BINOP && ast_value->data.expr_binop.kind == BINOP_ASSIGN) {
 			// In case the compound initializer value is written as <name> = <value> we use compound
 			// initializer designator as a placeholder here. This instruction is later replaced
@@ -9891,7 +9963,6 @@ struct mir_instr *ast_expr_compound(struct context *ctx, struct ast *cmp) {
 		bassert(value);
 		sarrpeek(values, i) = value;
 	}
-	if (ast_type) arrpop(ctx->ast.propageted_compound_type_stack);
 	return append_instr_compound(ctx, cmp, type, values, false);
 }
 
@@ -10528,10 +10599,7 @@ static void ast_decl_var_local(struct context *ctx, struct ast *ast_local) {
 	struct ast *ast_value = ast_local->data.decl_entity.value;
 	// Create type resolver if there is explicitly defined type mentioned by user in
 	// declaration.
-	struct mir_instr *type = ast_type ? ast_create_type_resolver_call(ctx, ast_type) : NULL;
-
-	ast_propagate_compound_type(ctx, ast_value, ast_type);
-
+	struct mir_instr *type        = ast_type ? ast_create_type_resolver_call(ctx, ast_type) : NULL;
 	struct mir_instr *value       = ast(ctx, ast_value);
 	const bool        is_compiler = isflag(ast_local->data.decl.flags, FLAG_COMPILER);
 	const bool        is_unroll   = ast_value && ast_value->kind == AST_EXPR_CALL;
@@ -11781,6 +11849,8 @@ void mir_run(struct assembly *assembly) {
 	analyze(&ctx);
 	if (builder.errorc) goto DONE;
 	bassert(arrlen(ctx.analyze.stack[0]) == 0 && arrlen(ctx.analyze.stack[1]) == 0);
+	analyze_report_skipped(&ctx);
+	if (builder.errorc) goto DONE;
 	analyze_report_unresolved(&ctx);
 	if (builder.errorc) goto DONE;
 	analyze_report_unused(&ctx);
@@ -11789,9 +11859,9 @@ void mir_run(struct assembly *assembly) {
 DONE:
 	assembly->stats.mir_s = runtime_measure_end(mir);
 	ast_free_defer_stack(&ctx);
-	arrfree(ctx.ast.propageted_compound_type_stack);
 	arrfree(ctx.analyze.stack[0]);
 	arrfree(ctx.analyze.stack[1]);
+	hmfree(ctx.analyze.skipped_instructions);
 	hmfree(ctx.analyze.waiting);
 
 	arrfree(ctx.analyze.usage_check_arr);

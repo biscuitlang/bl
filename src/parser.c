@@ -612,14 +612,6 @@ struct ast *parse_expr_compound(struct context *ctx, struct ast *prev) {
 	struct token *tok_begin = tokens_consume(ctx->tokens);
 
 	struct ast *type = prev;
-	if (!type) {
-		// @Cleanup
-		// This can be allowed eventually if we decide to support type infer of compound expressions
-		// based on its usage.
-		// report_error(
-		//     EXPECTED_TYPE, tok_very_first, CARET_BEFORE, "Expected type of compound value.");
-		(void)tok_very_first;
-	}
 
 	struct ast *compound =
 	    ast_create_node(ctx->ast_arena, AST_EXPR_COMPOUND, tok_begin, scope_get(ctx));

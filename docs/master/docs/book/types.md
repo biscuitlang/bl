@@ -47,9 +47,10 @@ array_type :: fn () #test {
     arr1.ptr; // yields pointer to first element '&arr[0]'
 
     // inline initialization of array type
-    arr2 := [10].s32{};            // Initialize all elements to 0.
-    arr3 := [4]s32.{ 1, 2, 3, 4 }; // Initialize array to the sequence 1, 2, 3, 4
-    arr4 := [_]s32.{ 1, 2, 3, 4 ]; // The same as previous one but the legth of the array is set automatically.
+    arr2 := [10].s32{};              // Initialize all elements to 0.
+    arr3 := [4]s32.{ 1, 2, 3, 4 };   // Initialize array to the sequence 1, 2, 3, 4
+    arr4 := [_]s32.{ 1, 2, 3, 4 ];   // The same as previous one but the legth of the array is set automatically.
+	arr5 : [4]s32 : .{ 1, 2, 3, 4 }; // With use of anonymous compound initializer.
 };
 ```
 
@@ -145,6 +146,9 @@ main :: fn () s32 {
 
     // Or initialize only something. In such a case the rest is initialized to 0 by default.
     my_person5 := Person.{ name = "Martin" };
+
+    // Untyped compound initializer can be used too.
+    my_persor6 : Person = .{ name = "Martin" };
 
     return 0;
 }

@@ -1,26 +1,16 @@
 main :: fn () s32 {
 
-	foo : Foo : .{ 10, 20 };
-	// foo2 :: .{ 10, 20 };
-	bar :: [_]Foo.{
-		.{ 10, 20 },
-		.{ 30, 40 },
-	};
+	a :: true;
+	b :: false;
+	c :: false;
 
-	arr : [2]s32 : .{ 10, 20 };
-
-	// hello(.{ 10, 20 });
-
+	if !b && a && c {
+		print("We should NOT see this!\n");
+	} else {
+		print("We should see this!\n");
+	}
 
 	return 0;
-}
-
-Foo :: struct {
-	a: s32;
-	b: s32;
-}
-
-hello :: fn (foo: Foo) {
 }
 
 /*

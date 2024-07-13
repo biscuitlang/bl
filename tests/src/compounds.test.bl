@@ -9,10 +9,10 @@ g4 :: T2.{T1.{},       T1.{}};
 
 compound_comptime_composition :: fn () #test {
 	test_eq(g1.a.i, 10);
-	test_eq(g1.a.j, 20);    
-	test_eq(g1.b.i, 30);    
+	test_eq(g1.a.j, 20);
+	test_eq(g1.b.i, 30);
 	test_eq(g1.b.j, 40);
-	
+
 	test_eq(g2.a.i, 0);
 	test_eq(g2.a.j, 0);
 	test_eq(g2.b.i, 30);
@@ -22,7 +22,7 @@ compound_comptime_composition :: fn () #test {
 	test_eq(g3.a.j, 20);
 	test_eq(g3.b.i, 0);
 	test_eq(g3.b.j, 0);
-	
+
 	test_eq(g4.a.i, 0);
 	test_eq(g4.a.j, 0);
 	test_eq(g4.b.i, 0);
@@ -36,10 +36,10 @@ g8 := T2.{T1.{},       T1.{}};
 
 compound_comptime_composition2 :: fn () #test {
 	test_eq(g5.a.i, 10);
-	test_eq(g5.a.j, 20);    
-	test_eq(g5.b.i, 30);    
+	test_eq(g5.a.j, 20);
+	test_eq(g5.b.i, 30);
 	test_eq(g5.b.j, 40);
-	
+
 	test_eq(g6.a.i, 0);
 	test_eq(g6.a.j, 0);
 	test_eq(g6.b.i, 30);
@@ -49,7 +49,7 @@ compound_comptime_composition2 :: fn () #test {
 	test_eq(g7.a.j, 20);
 	test_eq(g7.b.i, 0);
 	test_eq(g7.b.j, 0);
-	
+
 	test_eq(g8.a.i, 0);
 	test_eq(g8.a.j, 0);
 	test_eq(g8.b.i, 0);
@@ -63,10 +63,10 @@ compound_comptime_composition3 :: fn () #test {
 	l8 :: T2.{T1.{},       T1.{}};
 
 	test_eq(l5.a.i, 10);
-	test_eq(l5.a.j, 20);    
-	test_eq(l5.b.i, 30);    
+	test_eq(l5.a.j, 20);
+	test_eq(l5.b.i, 30);
 	test_eq(l5.b.j, 40);
-	
+
 	test_eq(l6.a.i, 0);
 	test_eq(l6.a.j, 0);
 	test_eq(l6.b.i, 30);
@@ -76,7 +76,7 @@ compound_comptime_composition3 :: fn () #test {
 	test_eq(l7.a.j, 20);
 	test_eq(l7.b.i, 0);
 	test_eq(l7.b.j, 0);
-	
+
 	test_eq(l8.a.i, 0);
 	test_eq(l8.a.j, 0);
 	test_eq(l8.b.i, 0);
@@ -90,10 +90,10 @@ compound_comptime_composition4 :: fn () #test {
 	l8 := T2.{T1.{},       T1.{}};
 
 	test_eq(l5.a.i, 10);
-	test_eq(l5.a.j, 20);    
-	test_eq(l5.b.i, 30);    
+	test_eq(l5.a.j, 20);
+	test_eq(l5.b.i, 30);
 	test_eq(l5.b.j, 40);
-	
+
 	test_eq(l6.a.i, 0);
 	test_eq(l6.a.j, 0);
 	test_eq(l6.b.i, 30);
@@ -103,7 +103,7 @@ compound_comptime_composition4 :: fn () #test {
 	test_eq(l7.a.j, 20);
 	test_eq(l7.b.i, 0);
 	test_eq(l7.b.j, 0);
-	
+
 	test_eq(l8.a.i, 0);
 	test_eq(l8.a.j, 0);
 	test_eq(l8.b.i, 0);
@@ -405,4 +405,97 @@ compound_designators2 :: fn () #test {
 		test_eq(a.boolean, false);
 		test_eq(a.float, 1.f);
 	}
+}
+
+anonymous_compound_call :: fn () #test {
+	Foo :: struct {
+		a: s32;
+		b: s32;
+	};
+
+	hello :: fn (v: Foo) {
+		test_eq(v.a, 10);
+		test_eq(v.b, 20);
+	};
+
+	hello(.{ 10, 20 });
+}
+
+anonymous_compound_expr :: fn () #test {
+	Foo :: struct {
+		a: s32;
+		b: s32;
+	};
+
+	v1 : Foo : .{ 10, 20 };
+	test_eq(v1.a, 10);
+	test_eq(v1.b, 20);
+}
+
+anonymous_compound_expr_arr :: fn () #test {
+	Foo :: struct {
+		a: s32;
+		b: s32;
+	};
+
+	v1 :: [_]Foo.{
+		.{ 10, 20 },
+		.{ 30, 40 },
+	};
+
+	test_eq(v1[0].a, 10);
+	test_eq(v1[0].b, 20);
+	test_eq(v1[1].a, 30);
+	test_eq(v1[1].b, 40);
+
+
+	v2 : [2]Foo : .{
+		.{ 10, 20 },
+		.{ 30, 40 },
+	};
+
+	test_eq(v2[0].a, 10);
+	test_eq(v2[0].b, 20);
+	test_eq(v2[1].a, 30);
+	test_eq(v2[1].b, 40);
+}
+
+anonymous_compound_expr_arr_nested :: fn () #test {
+	Foo :: struct {
+		a: s32;
+		b: s32;
+	};
+
+	Bar :: struct {
+		foo: Foo;
+	};
+
+	v1 :: [_]Bar.{
+		.{
+			.{ 10, 20 },
+		},
+		.{
+			.{ 30, 40 },
+		},
+	};
+
+	test_eq(v1[0].foo.a, 10);
+	test_eq(v1[0].foo.b, 20);
+	test_eq(v1[1].foo.a, 30);
+	test_eq(v1[1].foo.b, 40);
+}
+
+anonymous_compound_return :: fn () #test {
+	Foo :: struct {
+		a: s32;
+		b: s32;
+	};
+
+	hello :: fn () Foo {
+		return .{ 10, 20 };
+	};
+
+	v :: hello();
+	test_eq(v.a, 10);
+	test_eq(v.b, 20);
 }
