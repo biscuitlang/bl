@@ -102,4 +102,10 @@ thread_local :: fn () #test {
 	tl3[0] = 10;
 }
 
+A, B, C :: 20;
 
+multiple_globals_initialized_at_once :: fn () #test {
+	test_eq(A, 20);
+	// test_eq(B, 20); // Intentionally not used!
+	test_eq(C, 20);
+}
