@@ -16,7 +16,7 @@ test_fn :: fn () #test {
         print("Hello from local function!!!\n");
     }; // Semicolon is required here.
 
-    // Call functions. 
+    // Call functions.
     my_global_function();
     my_local_function();
 }
@@ -76,7 +76,7 @@ main :: fn () s32 {
 
     return 0;
 }
-``` 
+```
 
 The explicit `f32` type is optional for the `epsilon` with default value since we have the value to get the type from, so the following code is also valid.
 
@@ -84,7 +84,7 @@ The explicit `f32` type is optional for the `epsilon` with default value since w
 compare :: fn (a: f32, b: f32, epsilon := 0.1f) bool {
     return std.abs(a - b) < epsilon;
 }
-``` 
+```
 
 One limitation here is that the arguments with default values must go very last in the argument list. Currently, there is no way how to specify namely which argument we want to call on the call side.
 
@@ -95,7 +95,7 @@ compare :: fn (epsilon := 0.1f, a: f32, b: f32) bool {
 ```
 
 ```text
-test2.bl:1:16: error(0035): All arguments with default value must be listed last in the function 
+test2.bl:1:16: error(0035): All arguments with default value must be listed last in the function
                             argument list. Before arguments without default value.
 >  1 | compare :: fn (epsilon := 0.1f, a: f32, b: f32) bool {
      |                ^^^^^^^
@@ -131,13 +131,13 @@ So far, in all examples, arguments passed to functions were processed in runtime
 load_data :: fn (BUFFER_SIZE: s32 #comptime) {
     // 'SIZE' is compile-time known constant here.
     buffer: [BUFFER_SIZE]s32;
-    // ... 
-} 
+    // ...
+}
 ```
 
 Since the `BUFFER_SIZE` is compile-time known constant, it can be used as size in an array type definition. This obviously means the `BUFFER_SIZE` argument needs to be compile-time constant when the function is called, otherwise the compiler generates an error.
 
-Internally, `load_data` function does not exist until the compiler hits a call to this function; we don't know what the value of `BUFFER_SIZE` is in advance. The compiler will generate a unique implementation with `BUFFER_SIZE` argument removed from the argument list and converted into compile-time known constant value for each compiled call to this function in the code. At this point, you may see some possible disadvantages. Since the compile-time argument is removed from the argument list, the *mixed* function cannot follow *C call conventions* and cannot be *exported* or *external*. Also, instantiating a new function implementation for each call in the code can lead to a bigger executable and slow down the compiler. 
+Internally, `load_data` function does not exist until the compiler hits a call to this function; we don't know what the value of `BUFFER_SIZE` is in advance. The compiler will generate a unique implementation with `BUFFER_SIZE` argument removed from the argument list and converted into compile-time known constant value for each compiled call to this function in the code. At this point, you may see some possible disadvantages. Since the compile-time argument is removed from the argument list, the *mixed* function cannot follow *C call conventions* and cannot be *exported* or *external*. Also, instantiating a new function implementation for each call in the code can lead to a bigger executable and slow down the compiler.
 
 One important thing, we can do with *mixed* functions is having also types as input arguments. See the implementation of `new` function from the *standard library*:
 
@@ -146,7 +146,7 @@ One important thing, we can do with *mixed* functions is having also types as in
 new :: fn (T: type #comptime, preferred_allocator: *Allocator = null, loc := #call_location)
           (ptr: *T, err: Error) #inline {
     mem, err :: alloc(sizeof(T), alignof(T), preferred_allocator, loc);
-    return auto mem, err; 
+    return auto mem, err;
 }
 
 main :: fn () s32 {
@@ -164,7 +164,7 @@ main :: fn () s32 {
 ** Cons **
 
 - Can produce larger binary and slow down the compilation process.
-- Compile-time known argument cannot be used as a default value of another argument. 
+- Compile-time known argument cannot be used as a default value of another argument.
 - Type-checking is very limited since we don't know `comptime` arguments in advance; the generated implementation is type-checked each time the function is called.
 - Mixed functions do not represent any stack-allocated memory (we cannot get its address).
 - Don't follow C calling conventions:
@@ -206,12 +206,12 @@ print :: fn (format: string_view, args: ...) s32 {
 ```
 ** Pros **
 
-- We can pass any number of arguments we want. 
+- We can pass any number of arguments we want.
 - Safe and easy to use.
 
 ** Cons **
 
-- Some overhead may be introduced by implicit conversion to an array. 
+- Some overhead may be introduced by implicit conversion to an array.
 - Must be the last in the argument list.
 - Don't follow C calling conventions:
     - Cannot be `extern`.
@@ -263,6 +263,12 @@ main :: fn () s32 {
 
     // We can use '_'  blank identifier to ignore some values.
     _, boolean2 := foo();
+
+    // We can access each return value like it was structure.
+    boolean3 := foo()._0; // '_0' is builtin index of first value.
+    boolean3 := foo()._1; // '_1' is builtin index of second value.
+
+    return 0;
 }
 ```
 
@@ -273,6 +279,16 @@ Each returned value can have a name:
 ```rust
 foo :: fn () (number: s32, is_valid: bool) {
     return 666, true;
+}
+
+main :: fn () s32 {
+    // s32 goes into int1 and bool into boolean1
+    int1, boolean1 := foo();
+
+    // We can access each return value like it was structure.
+    boolean2 := foo().is_valid;
+
+    return 0;
 }
 ```
 
@@ -345,16 +361,16 @@ main :: fn () s32 {
 }
 ```
 !!! note
-     There is no additional runtime overhead caused by function overloading. 
+     There is no additional runtime overhead caused by function overloading.
 
 !!! note
-     Ordering of functions inside the group is arbitrary. 
+     Ordering of functions inside the group is arbitrary.
 
 
 Functions can be declared directly inside the overload group:
 
 ```rust
-group :: fn { 
+group :: fn {
     fn (a: s32, b: s32) s32 {
         return a + b;
     };
@@ -383,16 +399,16 @@ When a function group is called the function overload resolution takes into acco
 **Resolving the best call candidate is done in two passes:**
 
 1. Pick all possible candidates based on call-side argument count when:
-    - The argument count is exactly matching the count of arguments required by the function interface. 
+    - The argument count is exactly matching the count of arguments required by the function interface.
     - All arguments, up to the first defaulted or variable count argument in the function interface, are provided.
-     
+
 2. Iterate over previously picked functions and rank them by comparing call-side arguments with each function's interface arguments one by one:
     - The type is exactly the same. (Rank +3)
-    - Can be implicitly casted. (Rank +2) 
-    - Can be implicitly converted. (Rank +2) 
-    - Can be implicitly converted to `Any`. (Rank +1) 
-    - Can be added to the variable count argument array. (Rank +1) 
-   
+    - Can be implicitly casted. (Rank +2)
+    - Can be implicitly converted. (Rank +2)
+    - Can be implicitly converted to `Any`. (Rank +1)
+    - Can be added to the variable count argument array. (Rank +1)
+
 3. Use the function with the highest rank.
 
 ```rust
@@ -403,33 +419,33 @@ d :: fn (_: s32, _: bool = true) {}
 
 group :: fn { a; b; c; d; }
 
-// a: rank = 3 <- used 
-// b: rank = 0  
+// a: rank = 3 <- used
+// b: rank = 0
 // c: rank = 1
 // d: rank = 0
 group("hello");
 
 // a: rank = 2 (can be implicitly converted to []u8)
-// b: rank = 3 <- used 
+// b: rank = 3 <- used
 // c: rank = 1
 // d: rank = 0
 str: string;
 group(str);
 
-// a: rank = 0 
-// b: rank = 0 
+// a: rank = 0
+// b: rank = 0
 // c: rank = 1
 // d: rank = 3 <- used
 group(10);
 
-// a: rank = 0 
-// b: rank = 0 
+// a: rank = 0
+// b: rank = 0
 // c: rank = 0
 // d: rank = 6 <- used
 group(10, false);
 
-// a: rank = 0 
-// b: rank = 0 
+// a: rank = 0
+// b: rank = 0
 // c: rank = 1
 // d: rank = 2 <- used (implicitly casted s8 to s32)
 i: s8;
@@ -557,7 +573,7 @@ is_equal :: fn { // function group
 
 **Limitations:**
 
-   - Polymorph master type cannot have a default value. 
+   - Polymorph master type cannot have a default value.
    - Type-checking is very limited since we don't know types of the arguments in advance.
    - Polymorph functions does not represent any stack allocated memory (we cannot get its address).
    - Don't follow C calling conventions:
@@ -589,7 +605,7 @@ free :: fn (ptr: void_ptr) #extern;
 
 ### export
 
-Functions with an `export` directive are exported from the binary when a program is compiled as a shared library (with `-shared` flag). So the function may be called from the other libraries or executables after successful linking. The `#export` directive can be optionally followed by the linkage name of the exported symbol. If the linkage name is not specified, the function name is used instead. 
+Functions with an `export` directive are exported from the binary when a program is compiled as a shared library (with `-shared` flag). So the function may be called from the other libraries or executables after successful linking. The `#export` directive can be optionally followed by the linkage name of the exported symbol. If the linkage name is not specified, the function name is used instead.
 
 The export functions must strictly follow *C call conventions*. That means, the function cannot be polymorphic (generated in compile time).
 
@@ -626,7 +642,7 @@ So the comptime function has no runtime overhead.
 
 **Pros:**
 
-- Since all comptime functions are evaluated in compile-time, there is no runtime overhead. 
+- Since all comptime functions are evaluated in compile-time, there is no runtime overhead.
 - The result of the comptime function call is also compile time known.
 - Compile time function can return types and can be used in type definitions.
 
@@ -649,15 +665,15 @@ main :: fn () s32 {
 
     // do something here
 
-    return 0; 
+    return 0;
 }
 
 measure_runtime_in_debug_only :: fn () #enable_if IS_DEBUG {
-    // ... 
+    // ...
 }
 
 measure_runtime_in_debug_only_end :: fn () #enable_if IS_DEBUG {
-    // ... 
+    // ...
 }
 ```
 

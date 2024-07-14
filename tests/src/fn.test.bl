@@ -7,13 +7,13 @@ function_calls :: fn () #test {
 		return i;
 	};
 
-	_1();  
+	_1();
 	assert(_2(10) == 10);
 };
 
 implicit_functions_direct_call :: fn () #test {
 	i := fn (i: s32, j: s32) s32 {
-		return i * j; 
+		return i * j;
 	} (2, 3);
 
 	assert(i == 6);
@@ -49,7 +49,7 @@ nested_function_pointers :: fn () #test {
 	TestFn :: fn () {};
 
 	foo := Foo.{};
-	foo.v_fn = &TestFn; 
+	foo.v_fn = &TestFn;
 
 	foo.v_fn();
 };
@@ -92,4 +92,47 @@ multiple_return4 :: fn () #test {
 	a, b :: bar();
 	test_eq(a, 10);
 	test_eq(b, 20);
+}
+
+gep_return_value :: fn () #test {
+	foo :: fn () (a: s32, b: s32) {
+		return 10, 20;
+	};
+
+	test_eq(foo().a, 10);
+	test_eq(foo().b, 20);
+}
+
+gep_return_value2 :: fn () #test {
+	foo :: fn () (s32, b: s32) {
+		return 10, 20;
+	};
+
+	test_eq(foo()._0, 10);
+	test_eq(foo().b, 20);
+}
+
+gep_return_value3 :: fn () #test {
+	foo :: fn () (s32, s32) {
+		return 10, 20;
+	};
+
+	test_eq(foo()._0, 10);
+	test_eq(foo()._1, 20);
+}
+
+Foo :: struct {
+	a: s32;
+	b: s32;
+}
+
+DATA :: Foo.{ 10, 20 };
+
+gep_return_value_ptr :: fn () #test {
+	foo :: fn () *Foo {
+		return &DATA;
+	};
+
+	test_eq(foo().a, 10);
+	test_eq(foo().b, 20);
 }

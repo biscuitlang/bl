@@ -55,6 +55,7 @@
 #define IMPL_ARG_DEFAULT cstr(".arg.default")
 #define IMPL_CALL_LOC cstr(".call.loc")
 #define IMPL_RET_TMP cstr(".ret")
+#define IMPL_CALL_RET_TMP cstr(".call.ret")
 #define IMPL_UNROLL_TMP cstr(".unroll")
 #define IMPL_TOSLICE_TMP cstr(".toslice")
 #define NO_REF_COUNTING (-1)
@@ -2097,15 +2098,7 @@ struct mir_type *create_type_struct(struct context *ctx, create_type_struct_args
 
 	if (!args->id) {
 		generate_struct_signature(&name, args);
-
-		if (args->user_id) {
-			// @Incomplete explain
-			can_use_cache = true;
-		} else {
-			// @Incomplete explain
-			can_use_cache = args->is_multiple_return_type;
-		}
-
+		can_use_cache     = args->user_id;
 		const hash_t hash = strhash(name);
 
 		if (can_use_cache) {
@@ -4972,6 +4965,7 @@ struct result analyze_instr_vargs(struct context *ctx, struct mir_instr_vargs *v
 		                                       .name       = tmp_name,
 		                                       .alloc_type = type,
 		                                       .is_mutable = true,
+		                                       .is_global  = mir_is_global(&vargs->base),
 		                                   });
 	}
 
@@ -5261,9 +5255,37 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 			return_zone(WAIT(target_type->user_id->hash));
 		}
 
+		// const bool require_temporary =
+		//     !mir_is_pointer_type(member_ptr->target_ptr->value.type) && (member_ptr->target_ptr->kind == MIR_INSTR_CALL || member_ptr->target_ptr->kind == MIR_INSTR_CONST);
+
 		if (additional_load_needed) {
 			member_ptr->target_ptr = insert_instr_load(ctx, member_ptr->target_ptr);
 			analyze_instr_rq(member_ptr->target_ptr);
+#if 0
+		} else if (require_temporary) {
+			bassert(!mir_is_global(&member_ptr->base));
+			// In case the target instruction is call, we need to put the result on the stack to make GEP happy,
+			// so implicit temporary variable is allocated and call result is copied into it. Then we can proceed
+			// as normal.
+			struct mir_instr *tmp_var = create_instr_decl_var_impl(ctx,
+			                                                       &(create_instr_decl_var_impl_args_t){
+			                                                           .name        = unique_name(ctx, IMPL_CALL_RET_TMP),
+			                                                           .init        = member_ptr->target_ptr,
+			                                                           .is_comptime = mir_is_comptime(&member_ptr->base),
+			                                                       });
+
+			insert_instr_before(&member_ptr->base, tmp_var);
+			analyze_instr_rq(tmp_var);
+			tmp_var = create_instr_decl_direct_ref(ctx, NULL, tmp_var);
+			insert_instr_before(&member_ptr->base, tmp_var);
+
+			struct result result = analyze_instr(ctx, tmp_var);
+			if (result.state != ANALYZE_PASSED) {
+				return_zone(result);
+			}
+
+			member_ptr->target_ptr = tmp_var;
+#endif
 		}
 
 		struct id          *rid   = &ast_member_ident->data.ident.id;
@@ -11044,6 +11066,7 @@ struct mir_instr *ast_type_struct(struct context *ctx, struct ast *type_struct) 
 	ast_nodes_t *ast_members             = type_struct->data.type_strct.members;
 	const bool   is_union                = type_struct->data.type_strct.is_union;
 	const bool   is_multiple_return_type = type_struct->data.type_strct.is_multiple_return_type;
+
 	bassert(ast_members);
 	struct ast *ast_base_type = type_struct->data.type_strct.base_type;
 
