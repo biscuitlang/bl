@@ -2502,7 +2502,7 @@ enum state emit_instr_set_initializer(struct context *ctx, struct mir_instr_set_
 	for (usize i = 0; i < sarrlenu(si->dests); ++i) {
 		struct mir_instr *dest = sarrpeek(si->dests, i);
 		struct mir_var   *var  = ((struct mir_instr_decl_var *)dest)->var;
-		if (var->ref_count == 0) return STATE_PASSED; // @Bug continue instead?
+		if (var->ref_count == 0) continue;
 
 		bassert(var->llvm_value);
 		LLVMValueRef llvm_init_value = si->src->llvm_value;

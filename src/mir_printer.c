@@ -376,6 +376,7 @@ void print_instr_set_initializer(struct context *ctx, struct mir_instr_set_initi
 		} else {
 			print_comptime_value_or_id(ctx, _dest);
 		}
+		if (i + 1 < sarrlenu(si->dests)) fprintf(ctx->stream, ", ");
 	}
 }
 
