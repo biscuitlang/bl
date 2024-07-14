@@ -104,7 +104,7 @@ default_args_fn_explicit_type :: fn () #test {
 }
 
 default_args_null_ptr :: fn () #test {
-	my_function :: fn (ptr: *s32 = null) *s32 { 
+	my_function :: fn (ptr: *s32 = null) *s32 {
 		return ptr;
 	};
 	test_null(my_function());
@@ -200,9 +200,21 @@ default_args_infer_type3 :: fn () #test {
 }
 
 default_args_callback_inline :: fn () #test {
-	my_function :: fn (callback: *fn() s32 = &fn () s32 { return 10; }) s32 { 
+	my_function :: fn (callback: *fn() s32 = &fn () s32 { return 10; }) s32 {
 		return callback();
 	};
 	test_eq(my_function(), 10);
 }
 
+get_default_number :: fn () s32 #comptime {
+	return 666;
+}
+
+default_args_from_comptime_funstion :: fn () #test {
+	foo :: fn (n := get_default_number()) {
+		test_eq(n, 666);
+	};
+
+	foo();
+	foo(666);
+}
