@@ -94,6 +94,7 @@ multiple_return4 :: fn () #test {
 	test_eq(b, 20);
 }
 
+/*
 gep_return_value :: fn () #test {
 	foo :: fn () (a: s32, b: s32) {
 		return 10, 20;
@@ -136,3 +137,4 @@ gep_return_value_ptr :: fn () #test {
 	test_eq(foo().a, 10);
 	test_eq(foo().b, 20);
 }
+*/

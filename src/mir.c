@@ -490,6 +490,7 @@ static struct mir_instr *append_instr_arg(struct context *ctx, struct ast *node,
 static struct mir_instr *append_instr_using(struct context *ctx, struct ast *node, struct scope *owner_scope, struct mir_instr *scope_expr);
 static struct mir_instr *append_instr_unroll(struct context *ctx, struct ast *node, struct mir_instr *src, struct mir_instr *prev_dest, s32 index);
 static struct mir_instr *append_instr_set_initializer(struct context *ctx, struct ast *node, mir_instrs_t *dests, struct mir_instr *src);
+static struct mir_instr *append_instr_set_initializer2(struct context *ctx, struct ast *node, struct mir_instr *dest, struct mir_instr *src);
 static struct mir_instr *append_instr_set_initializer_impl(struct context *ctx, mir_instrs_t *dests, struct mir_instr *src);
 static struct mir_instr *append_instr_compound(struct context *ctx, struct ast *node, struct mir_instr *type, mir_instrs_t *values, bool is_multiple_return_value);
 static struct mir_instr *append_instr_compound_impl(struct context *ctx, struct ast *node, struct mir_type *type, mir_instrs_t *values);
@@ -3130,6 +3131,25 @@ struct mir_instr_block *append_global_block(struct context *ctx, const str_t nam
 	return tmp;
 }
 
+struct mir_instr *append_instr_set_initializer2(struct context *ctx, struct ast *node, struct mir_instr *dest, struct mir_instr *src) {
+	struct mir_instr_set_initializer2 *tmp = create_instr(ctx, MIR_INSTR_SET_INITIALIZER2, node);
+	tmp->base.value.type                   = ctx->builtin_types->t_void;
+	tmp->base.value.is_comptime            = true;
+	tmp->base.ref_count                    = NO_REF_COUNTING;
+	tmp->dest                              = ref_instr(dest);
+	tmp->src                               = ref_instr(src);
+
+	bassert(dest && dest->kind == MIR_INSTR_DECL_VAR && "Expected variable declaration!");
+	struct mir_instr_decl_var *dest_var = (struct mir_instr_decl_var *)dest;
+	struct mir_var            *var      = dest_var->var;
+	bassert(var && "Missing variable!");
+	var->initializer_block = (struct mir_instr *)ast_current_block(ctx);
+
+	append_current_block(ctx, &tmp->base);
+	return &tmp->base;
+}
+
+// @Cleanup
 struct mir_instr *append_instr_set_initializer(struct context *ctx, struct ast *node, mir_instrs_t *dests, struct mir_instr *src) {
 	struct mir_instr_set_initializer *tmp = create_instr(ctx, MIR_INSTR_SET_INITIALIZER, node);
 	tmp->base.value.type                  = ctx->builtin_types->t_void;
@@ -3137,6 +3157,7 @@ struct mir_instr *append_instr_set_initializer(struct context *ctx, struct ast *
 	tmp->base.ref_count                   = NO_REF_COUNTING;
 	tmp->dests                            = dests;
 	tmp->src                              = ref_instr(src);
+
 	for (usize i = 0; i < sarrlenu(tmp->dests); ++i) {
 		struct mir_instr *dest = ref_instr(sarrpeek(tmp->dests, i));
 		bassert(dest && dest->kind == MIR_INSTR_DECL_VAR && "Expected variable declaration!");
@@ -10789,6 +10810,8 @@ struct mir_instr *ast_decl_arg(struct context *ctx, struct ast *arg) {
 
 	struct mir_instr *type = NULL;
 	if (ast_value) {
+		// We have default argument value!
+
 		type = ast_create_type_resolver_call(ctx, ast_type);
 		// Main idea here is create implicit global constant to hold default value, since
 		// value can be more complex compound with references, we need to use same solution
@@ -10892,6 +10915,9 @@ struct mir_instr *ast_ref(struct context *ctx, struct ast *ref) {
 	bassert(scope);
 	if (next) {
 		struct mir_instr *target = ast(ctx, next);
+		if (target->kind == MIR_INSTR_CALL) {
+			blog("Here!");
+		}
 		return append_instr_member_ptr(ctx, ref, target, ident, NULL, BUILTIN_ID_NONE);
 	}
 	return append_instr_decl_ref(ctx, ref, unit, &ident->data.ident.id, scope, scope_layer, NULL);
@@ -11163,10 +11189,11 @@ struct mir_instr *ast_create_global_initializer2(struct context *ctx, struct ast
 	set_current_block(ctx, block);
 	struct mir_instr *result = ast(ctx, ast_value);
 
-	if (ast_value)
+	if (ast_value) {
 		result = append_instr_set_initializer(ctx, ast_value, decls, result);
-	else
+	} else {
 		result = append_instr_set_initializer_impl(ctx, decls, result);
+	}
 
 	set_current_block(ctx, prev_block);
 	return result;
@@ -11434,6 +11461,8 @@ const char *mir_instr_name(const struct mir_instr *instr) {
 	case MIR_INSTR_SWITCH:
 		return "InstrSwitch";
 	case MIR_INSTR_SET_INITIALIZER:
+		return "InstrSetInitializer";
+	case MIR_INSTR_SET_INITIALIZER2:
 		return "InstrSetInitializer";
 	case MIR_INSTR_TEST_CASES:
 		return "InstrTestCases";

@@ -633,9 +633,15 @@ struct mir_instr_ret {
 	bool              expected_comptime;
 };
 
-struct mir_instr_set_initializer {
+struct mir_instr_set_initializer { // @Cleanup
 	struct mir_instr  base;
 	mir_instrs_t     *dests;
+	struct mir_instr *src;
+};
+
+struct mir_instr_set_initializer2 {
+	struct mir_instr  base;
+	struct mir_instr *dest;
 	struct mir_instr *src;
 };
 
