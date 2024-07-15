@@ -167,6 +167,7 @@ static LLVMValueRef emit_const_string(struct context *ctx, const str_t s);
 static enum state   emit_instr_binop(struct context *ctx, struct mir_instr_binop *binop);
 static enum state   emit_instr_phi(struct context *ctx, struct mir_instr_phi *phi);
 static enum state   emit_instr_set_initializer(struct context *ctx, struct mir_instr_set_initializer *si);
+static enum state   emit_instr_set_initializer2(struct context *ctx, struct mir_instr_set_initializer2 *si);
 static enum state   emit_instr_type_info(struct context *ctx, struct mir_instr_type_info *type_info);
 static enum state   emit_instr_test_cases(struct context *ctx, struct mir_instr_test_case *tc);
 static enum state   emit_instr_decl_ref(struct context *ctx, struct mir_instr_decl_ref *ref);
@@ -2516,6 +2517,22 @@ enum state emit_instr_set_initializer(struct context *ctx, struct mir_instr_set_
 	return STATE_PASSED;
 }
 
+enum state emit_instr_set_initializer2(struct context *ctx, struct mir_instr_set_initializer2 *si) {
+	struct mir_instr *dest = si->dest;
+	struct mir_var   *var  = ((struct mir_instr_decl_var *)dest)->var;
+	if (var->ref_count > 0) {
+		bassert(var->llvm_value);
+		LLVMValueRef llvm_init_value = si->src->llvm_value;
+		if (!llvm_init_value) {
+			bassert(si->src->kind == MIR_INSTR_COMPOUND);
+			llvm_init_value = emit_instr_compound_global(ctx, (struct mir_instr_compound *)si->src);
+		}
+		bassert(llvm_init_value);
+		LLVMSetInitializer(var->llvm_value, llvm_init_value);
+	}
+	return STATE_PASSED;
+}
+
 enum state emit_instr_decl_var(struct context *ctx, struct mir_instr_decl_var *decl) {
 	struct mir_var *var = decl->var;
 	bassert(var);
@@ -3101,6 +3118,9 @@ enum state emit_instr(struct context *ctx, struct mir_instr *instr) {
 		break;
 	case MIR_INSTR_SET_INITIALIZER:
 		state = emit_instr_set_initializer(ctx, (struct mir_instr_set_initializer *)instr);
+		break;
+	case MIR_INSTR_SET_INITIALIZER2:
+		state = emit_instr_set_initializer2(ctx, (struct mir_instr_set_initializer2 *)instr);
 		break;
 	case MIR_INSTR_TEST_CASES:
 		state = emit_instr_test_cases(ctx, (struct mir_instr_test_case *)instr);

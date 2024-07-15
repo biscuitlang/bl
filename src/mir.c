@@ -489,9 +489,7 @@ static struct mir_instr *append_instr_designator(struct context *ctx, struct ast
 static struct mir_instr *append_instr_arg(struct context *ctx, struct ast *node, unsigned i);
 static struct mir_instr *append_instr_using(struct context *ctx, struct ast *node, struct scope *owner_scope, struct mir_instr *scope_expr);
 static struct mir_instr *append_instr_unroll(struct context *ctx, struct ast *node, struct mir_instr *src, struct mir_instr *prev_dest, s32 index);
-static struct mir_instr *append_instr_set_initializer(struct context *ctx, struct ast *node, mir_instrs_t *dests, struct mir_instr *src);
 static struct mir_instr *append_instr_set_initializer2(struct context *ctx, struct ast *node, struct mir_instr *dest, struct mir_instr *src);
-static struct mir_instr *append_instr_set_initializer_impl(struct context *ctx, mir_instrs_t *dests, struct mir_instr *src);
 static struct mir_instr *append_instr_compound(struct context *ctx, struct ast *node, struct mir_instr *type, mir_instrs_t *values, bool is_multiple_return_value);
 static struct mir_instr *append_instr_compound_impl(struct context *ctx, struct ast *node, struct mir_type *type, mir_instrs_t *values);
 static struct mir_instr *append_instr_cast(struct context *ctx, struct ast *node, struct mir_instr *type, struct mir_instr *next);
@@ -623,69 +621,70 @@ static void              erase_instr_tree(struct mir_instr *instr, bool keep_roo
 static struct mir_instr *append_instr_call_loc(struct context *ctx, struct ast *node);
 
 // struct ast
-static struct mir_instr *ast_create_global_initializer2(struct context *ctx, struct ast *ast_value, mir_instrs_t *decls);
-static struct mir_instr *ast_create_global_initializer(struct context *ctx, struct ast *ast_value, struct mir_instr *decls);
-static struct mir_instr *ast_create_type_resolver_call(struct context *ctx, struct ast *ast_type);
-static struct mir_instr *ast_create_expr_resolver_call(struct context *ctx, str_t fn_name, struct mir_type *fn_type, struct ast *ast_expr);
-static void              ast_push_defer_stack(struct context *ctx);
-static void              ast_pop_defer_stack(struct context *ctx);
-static void              ast_free_defer_stack(struct context *ctx);
-static struct mir_instr *ast(struct context *ctx, struct ast *node);
-static void              ast_ublock(struct context *ctx, struct ast *ublock);
-static void              ast_unreachable(struct context *ctx, struct ast *unr);
-static void              ast_debugbreak(struct context *ctx, struct ast *debug_break);
-static void              ast_defer_block(struct context *ctx, struct ast *block, bool whole_tree);
-static void              ast_block(struct context *ctx, struct ast *block);
-static void              ast_stmt_if(struct context *ctx, struct ast *stmt_if);
-static void              ast_stmt_return(struct context *ctx, struct ast *ret);
-static void              ast_stmt_defer(struct context *ctx, struct ast *defer);
-static void              ast_stmt_loop(struct context *ctx, struct ast *loop);
-static void              ast_stmt_break(struct context *ctx, struct ast *br);
-static void              ast_stmt_continue(struct context *ctx, struct ast *cont);
-static void              ast_stmt_switch(struct context *ctx, struct ast *stmt_switch);
-static void              ast_stmt_using(struct context *ctx, struct ast *using);
-static struct mir_instr *ast_decl_entity(struct context *ctx, struct ast *entity);
-static struct mir_instr *ast_decl_arg(struct context *ctx, struct ast *arg);
-static struct mir_instr *ast_decl_member(struct context *ctx, struct ast *arg);
-static struct mir_instr *ast_decl_variant(struct context *ctx, struct ast *variant, struct mir_instr *base_type, struct mir_variant *prev_variant, bool is_flags);
-static struct mir_instr *ast_ref(struct context *ctx, struct ast *ref);
-static struct mir_instr *ast_type_struct(struct context *ctx, struct ast *type_struct);
-static struct mir_instr *ast_type_fn(struct context *ctx, struct ast *type_fn);
-static struct mir_instr *ast_type_fn_group(struct context *ctx, struct ast *group);
-static struct mir_instr *ast_type_arr(struct context *ctx, struct ast *type_arr, s64 override_len);
-static struct mir_instr *ast_type_slice(struct context *ctx, struct ast *type_slice);
-static struct mir_instr *ast_type_dynarr(struct context *ctx, struct ast *type_dynarr);
-static struct mir_instr *ast_type_ptr(struct context *ctx, struct ast *type_ptr);
-static struct mir_instr *ast_type_vargs(struct context *ctx, struct ast *type_vargs);
-static struct mir_instr *ast_type_enum(struct context *ctx, struct ast *type_enum);
-static struct mir_instr *ast_type_poly(struct context *ctx, struct ast *type_poly);
-static struct mir_instr *ast_expr_addrof(struct context *ctx, struct ast *addrof);
-static struct mir_instr *ast_expr_cast(struct context *ctx, struct ast *cast);
-static struct mir_instr *ast_expr_test_cases(struct context *ctx, struct ast *test_cases);
-static struct mir_instr *ast_expr_type(struct context *ctx, struct ast *type);
-static struct mir_instr *ast_expr_deref(struct context *ctx, struct ast *deref);
-static struct mir_instr *ast_expr_call(struct context *ctx, struct ast *call);
-static struct mir_instr *ast_expr_elem(struct context *ctx, struct ast *elem);
-static struct mir_instr *ast_expr_null(struct context *ctx, struct ast *nl);
-static struct mir_instr *ast_expr_lit_int(struct context *ctx, struct ast *expr);
-static struct mir_instr *ast_expr_lit_float(struct context *ctx, struct ast *expr);
-static struct mir_instr *ast_expr_lit_double(struct context *ctx, struct ast *expr);
-static struct mir_instr *ast_expr_lit_bool(struct context *ctx, struct ast *expr);
-static struct mir_instr *ast_expr_lit_fn(struct context      *ctx,
-                                         struct ast          *lit_fn,
-                                         struct ast          *decl_node,
-                                         str_t                explicit_linkage_name, // optional
-                                         bool                 is_global,
-                                         enum ast_flags       flags,
-                                         enum builtin_id_kind builtin_id);
-static struct mir_instr *ast_expr_lit_fn_group(struct context *ctx, struct ast *group);
-static struct mir_instr *ast_expr_lit_string(struct context *ctx, struct ast *lit_string);
-static struct mir_instr *ast_expr_lit_char(struct context *ctx, struct ast *expr);
-static struct mir_instr *ast_expr_binop(struct context *ctx, struct ast *binop);
-static struct mir_instr *ast_expr_unary(struct context *ctx, struct ast *unop);
-static struct mir_instr *ast_expr_compound(struct context *ctx, struct ast *cmp);
-static struct mir_instr *ast_call_loc(struct context *ctx, struct ast *loc);
-static struct mir_instr *ast_tag(struct context *ctx, struct ast *tag);
+static struct mir_instr_block *ast_initializer_block_begin(struct context *ctx, struct mir_instr_block** out_init_block);
+static void                    ast_initializer_block_end(struct context *ctx, struct mir_instr_block *prev_block);
+// static struct mir_instr       *ast_create_global_initializer2(struct context *ctx, struct ast *ast_value, mir_instrs_t *decls);
+static struct mir_instr       *ast_create_type_resolver_call(struct context *ctx, struct ast *ast_type);
+static struct mir_instr       *ast_create_expr_resolver_call(struct context *ctx, str_t fn_name, struct mir_type *fn_type, struct ast *ast_expr);
+static void                    ast_push_defer_stack(struct context *ctx);
+static void                    ast_pop_defer_stack(struct context *ctx);
+static void                    ast_free_defer_stack(struct context *ctx);
+static struct mir_instr       *ast(struct context *ctx, struct ast *node);
+static void                    ast_ublock(struct context *ctx, struct ast *ublock);
+static void                    ast_unreachable(struct context *ctx, struct ast *unr);
+static void                    ast_debugbreak(struct context *ctx, struct ast *debug_break);
+static void                    ast_defer_block(struct context *ctx, struct ast *block, bool whole_tree);
+static void                    ast_block(struct context *ctx, struct ast *block);
+static void                    ast_stmt_if(struct context *ctx, struct ast *stmt_if);
+static void                    ast_stmt_return(struct context *ctx, struct ast *ret);
+static void                    ast_stmt_defer(struct context *ctx, struct ast *defer);
+static void                    ast_stmt_loop(struct context *ctx, struct ast *loop);
+static void                    ast_stmt_break(struct context *ctx, struct ast *br);
+static void                    ast_stmt_continue(struct context *ctx, struct ast *cont);
+static void                    ast_stmt_switch(struct context *ctx, struct ast *stmt_switch);
+static void                    ast_stmt_using(struct context *ctx, struct ast *using);
+static struct mir_instr       *ast_decl_entity(struct context *ctx, struct ast *entity);
+static struct mir_instr       *ast_decl_arg(struct context *ctx, struct ast *arg);
+static struct mir_instr       *ast_decl_member(struct context *ctx, struct ast *arg);
+static struct mir_instr       *ast_decl_variant(struct context *ctx, struct ast *variant, struct mir_instr *base_type, struct mir_variant *prev_variant, bool is_flags);
+static struct mir_instr       *ast_ref(struct context *ctx, struct ast *ref);
+static struct mir_instr       *ast_type_struct(struct context *ctx, struct ast *type_struct);
+static struct mir_instr       *ast_type_fn(struct context *ctx, struct ast *type_fn);
+static struct mir_instr       *ast_type_fn_group(struct context *ctx, struct ast *group);
+static struct mir_instr       *ast_type_arr(struct context *ctx, struct ast *type_arr, s64 override_len);
+static struct mir_instr       *ast_type_slice(struct context *ctx, struct ast *type_slice);
+static struct mir_instr       *ast_type_dynarr(struct context *ctx, struct ast *type_dynarr);
+static struct mir_instr       *ast_type_ptr(struct context *ctx, struct ast *type_ptr);
+static struct mir_instr       *ast_type_vargs(struct context *ctx, struct ast *type_vargs);
+static struct mir_instr       *ast_type_enum(struct context *ctx, struct ast *type_enum);
+static struct mir_instr       *ast_type_poly(struct context *ctx, struct ast *type_poly);
+static struct mir_instr       *ast_expr_addrof(struct context *ctx, struct ast *addrof);
+static struct mir_instr       *ast_expr_cast(struct context *ctx, struct ast *cast);
+static struct mir_instr       *ast_expr_test_cases(struct context *ctx, struct ast *test_cases);
+static struct mir_instr       *ast_expr_type(struct context *ctx, struct ast *type);
+static struct mir_instr       *ast_expr_deref(struct context *ctx, struct ast *deref);
+static struct mir_instr       *ast_expr_call(struct context *ctx, struct ast *call);
+static struct mir_instr       *ast_expr_elem(struct context *ctx, struct ast *elem);
+static struct mir_instr       *ast_expr_null(struct context *ctx, struct ast *nl);
+static struct mir_instr       *ast_expr_lit_int(struct context *ctx, struct ast *expr);
+static struct mir_instr       *ast_expr_lit_float(struct context *ctx, struct ast *expr);
+static struct mir_instr       *ast_expr_lit_double(struct context *ctx, struct ast *expr);
+static struct mir_instr       *ast_expr_lit_bool(struct context *ctx, struct ast *expr);
+static struct mir_instr       *ast_expr_lit_fn(struct context      *ctx,
+                                               struct ast          *lit_fn,
+                                               struct ast          *decl_node,
+                                               str_t                explicit_linkage_name, // optional
+                                               bool                 is_global,
+                                               enum ast_flags       flags,
+                                               enum builtin_id_kind builtin_id);
+static struct mir_instr       *ast_expr_lit_fn_group(struct context *ctx, struct ast *group);
+static struct mir_instr       *ast_expr_lit_string(struct context *ctx, struct ast *lit_string);
+static struct mir_instr       *ast_expr_lit_char(struct context *ctx, struct ast *expr);
+static struct mir_instr       *ast_expr_binop(struct context *ctx, struct ast *binop);
+static struct mir_instr       *ast_expr_unary(struct context *ctx, struct ast *unop);
+static struct mir_instr       *ast_expr_compound(struct context *ctx, struct ast *cmp);
+static struct mir_instr       *ast_call_loc(struct context *ctx, struct ast *loc);
+static struct mir_instr       *ast_tag(struct context *ctx, struct ast *tag);
 
 // analyze
 static enum vm_interp_state evaluate(struct context *ctx, struct mir_instr *instr);
@@ -758,6 +757,7 @@ static struct result analyze_instr_using(struct context *ctx, struct mir_instr_u
 static struct result analyze_instr_compound(struct context *ctx, struct mir_instr_compound *cmp);
 static struct result analyze_instr_designator(struct context *ctx, struct mir_instr_designator *d);
 static struct result analyze_instr_set_initializer(struct context *ctx, struct mir_instr_set_initializer *si);
+static struct result analyze_instr_set_initializer2(struct context *ctx, struct mir_instr_set_initializer2 *si);
 static struct result analyze_instr_phi(struct context *ctx, struct mir_instr_phi *phi);
 static struct result analyze_instr_toany(struct context *ctx, struct mir_instr_to_any *toany);
 static struct result analyze_instr_vargs(struct context *ctx, struct mir_instr_vargs *vargs);
@@ -1754,14 +1754,12 @@ struct mir_var *add_global_variable(struct context *ctx, struct id *id, bool is_
 	                                                       .builtin_id = BUILTIN_ID_NONE,
 	                                                   });
 
-	struct mir_instr_block *prev_block = ast_current_block(ctx);
-	struct mir_instr_block *block      = append_global_block(ctx, INIT_VALUE_FN_NAME);
-	set_current_block(ctx, block);
-	append_current_block(ctx, initializer);
-	mir_instrs_t *decls = arena_alloc(&ctx->assembly->arenas.sarr);
-	sarrput(decls, decl_var);
-	append_instr_set_initializer(ctx, NULL, decls, initializer);
-	set_current_block(ctx, prev_block);
+	struct mir_instr_block *prev_block = ast_initializer_block_begin(ctx, NULL);
+	{
+		append_instr_set_initializer2(ctx, NULL, decl_var, initializer);
+	}
+	ast_initializer_block_end(ctx, prev_block);
+
 	struct mir_var *var = ((struct mir_instr_decl_var *)decl_var)->var;
 	var->entry          = register_symbol(ctx, NULL, id, scope, true);
 	return var;
@@ -3134,7 +3132,7 @@ struct mir_instr_block *append_global_block(struct context *ctx, const str_t nam
 struct mir_instr *append_instr_set_initializer2(struct context *ctx, struct ast *node, struct mir_instr *dest, struct mir_instr *src) {
 	struct mir_instr_set_initializer2 *tmp = create_instr(ctx, MIR_INSTR_SET_INITIALIZER2, node);
 	tmp->base.value.type                   = ctx->builtin_types->t_void;
-	tmp->base.value.is_comptime            = true;
+	tmp->base.value.is_comptime            = true; // @Incomplete: Is it?
 	tmp->base.ref_count                    = NO_REF_COUNTING;
 	tmp->dest                              = ref_instr(dest);
 	tmp->src                               = ref_instr(src);
@@ -3143,39 +3141,12 @@ struct mir_instr *append_instr_set_initializer2(struct context *ctx, struct ast 
 	struct mir_instr_decl_var *dest_var = (struct mir_instr_decl_var *)dest;
 	struct mir_var            *var      = dest_var->var;
 	bassert(var && "Missing variable!");
+
+	// Used later to generate IR of the initializer block only in case the variable is used.
 	var->initializer_block = (struct mir_instr *)ast_current_block(ctx);
 
 	append_current_block(ctx, &tmp->base);
 	return &tmp->base;
-}
-
-// @Cleanup
-struct mir_instr *append_instr_set_initializer(struct context *ctx, struct ast *node, mir_instrs_t *dests, struct mir_instr *src) {
-	struct mir_instr_set_initializer *tmp = create_instr(ctx, MIR_INSTR_SET_INITIALIZER, node);
-	tmp->base.value.type                  = ctx->builtin_types->t_void;
-	tmp->base.value.is_comptime           = true;
-	tmp->base.ref_count                   = NO_REF_COUNTING;
-	tmp->dests                            = dests;
-	tmp->src                              = ref_instr(src);
-
-	for (usize i = 0; i < sarrlenu(tmp->dests); ++i) {
-		struct mir_instr *dest = ref_instr(sarrpeek(tmp->dests, i));
-		bassert(dest && dest->kind == MIR_INSTR_DECL_VAR && "Expected variable declaration!");
-		struct mir_instr_decl_var *dest_var = (struct mir_instr_decl_var *)dest;
-		struct mir_var            *var      = dest_var->var;
-		bassert(var && "Missing variable!");
-		var->initializer_block = (struct mir_instr *)ast_current_block(ctx);
-	}
-	append_current_block(ctx, &tmp->base);
-	struct mir_instr_block *block = ast_current_block(ctx);
-	if (!is_block_terminated(block)) terminate_block(block, &tmp->base);
-	return &tmp->base;
-}
-
-struct mir_instr *append_instr_set_initializer_impl(struct context *ctx, mir_instrs_t *dests, struct mir_instr *src) {
-	struct mir_instr *tmp = append_instr_set_initializer(ctx, NULL, dests, src);
-	tmp->is_implicit      = true;
-	return tmp;
 }
 
 struct mir_instr *
@@ -4954,6 +4925,95 @@ struct result analyze_instr_set_initializer(struct context *ctx, struct mir_inst
 			ctx->assembly->vm_run.command_line_arguments = var;
 		}
 	}
+	return_zone(PASS);
+}
+
+struct result analyze_instr_set_initializer2(struct context *ctx, struct mir_instr_set_initializer2 *si) {
+	zone();
+	bassert(si->dest && "Expected at least one variable.");
+	// Just pre-scan to check if all destination variables are analyzed.
+	bassert(si->dest->kind == MIR_INSTR_DECL_VAR);
+	if (si->dest->state != MIR_IS_COMPLETE) {
+		return_zone(POSTPONE); // PERFORMANCE: use wait???
+	}
+
+	struct mir_type *type = ((struct mir_instr_decl_var *)si->dest)->var->value.type;
+
+	// When there is no source initialization value to set global we can omit type inferring and
+	// initialization value slot analyze pass.
+	const bool is_default = !si->src;
+	if (!is_default) {
+		const analyze_stage_fn_t *config = type ? analyze_slot_conf_default : analyze_slot_conf_basic;
+
+		if (analyze_slot(ctx, config, &si->src, type) != ANALYZE_PASSED) {
+			return_zone(FAIL);
+		}
+
+		// Infer variable type if needed.
+		if (!type) type = si->src->value.type;
+	} else {
+		// Generate default value based on type!
+		bassert(type && "Missing variable initializer type for default global initializer!");
+		struct mir_instr *default_init = create_default_value_for_type(ctx, type);
+		insert_instr_before(&si->base, default_init);
+		analyze_instr_rq(default_init);
+		si->src = default_init;
+	}
+
+	bassert(type && "Missing variable initializer type for default global initializer!");
+	bassert(type->kind != MIR_TYPE_VOID && "Global value cannot be void!");
+	bassert(si->src && "Invalid global initializer source value.");
+	// Global initializer must be compile time known.
+	if (!mir_is_comptime(si->src)) {
+		report_error(EXPECTED_COMPTIME, si->src->node, "Global variables must be initialized with compile-time known value.");
+		return_zone(FAIL);
+	}
+
+	set_compound_naked(si->src, false);
+
+	struct mir_var *var = ((struct mir_instr_decl_var *)si->dest)->var;
+	bassert(var && "Missing struct mir_var for variable declaration!");
+	bassert((isflag(var->iflags, MIR_VAR_GLOBAL) || isflag(var->iflags, MIR_VAR_STRUCT_TYPEDEF)) && "Only global variables can be initialized by initializer!");
+	var->value.type = type;
+	// Initializer value is guaranteed to be comptime so we just check variable mutability.
+	// (mutable variables cannot be comptime)
+	var->value.is_comptime = isnotflag(var->iflags, MIR_VAR_MUTABLE);
+
+	// Disable thread locality for some types.
+	if (isflag(var->flags, FLAG_THREAD_LOCAL)) {
+		switch (var->value.type->kind) {
+		case MIR_TYPE_FN:
+		case MIR_TYPE_FN_GROUP:
+		case MIR_TYPE_TYPE:
+			report_error(INVALID_TYPE, var->decl_node, "Invalid type of thread local variable.");
+			return FAIL;
+		default:
+			break;
+		}
+	}
+
+	struct result state = analyze_var(ctx, var, /* check_usage */ true);
+	if (state.state != ANALYZE_PASSED) return_zone(state);
+
+	if (!var->value.is_comptime) {
+		// Global variables which are not compile time constants are allocated
+		// on the stack, one option is to do allocation every time when we
+		// invoke comptime function execution, but we don't know which globals
+		// will be used by function and we also don't known whatever function
+		// has some side effect or not. So we produce allocation here. Variable
+		// will be stored in static data segment. There is no need to use
+		// relative pointers here.
+		vm_alloc_global(ctx->vm, ctx->assembly, var);
+	}
+
+	// Check whether variable is command_line_arguments, we store pointer to this variable
+	// for later use (it's going to be set to user input arguments in case of compile-time
+	// execution).
+	if (var->builtin_id == BUILTIN_ID_COMMAND_LINE_ARGUMENTS) {
+		bassert(!ctx->assembly->vm_run.command_line_arguments);
+		ctx->assembly->vm_run.command_line_arguments = var;
+	}
+
 	return_zone(PASS);
 }
 
@@ -8874,6 +8934,9 @@ struct result analyze_instr(struct context *ctx, struct mir_instr *instr) {
 		case MIR_INSTR_SET_INITIALIZER:
 			state = analyze_instr_set_initializer(ctx, (struct mir_instr_set_initializer *)instr);
 			break;
+		case MIR_INSTR_SET_INITIALIZER2:
+			state = analyze_instr_set_initializer2(ctx, (struct mir_instr_set_initializer2 *)instr);
+			break;
 		case MIR_INSTR_TEST_CASES:
 			state = analyze_instr_test_cases(ctx, (struct mir_instr_test_case *)instr);
 			break;
@@ -10740,9 +10803,17 @@ static void ast_decl_var_global_or_struct(struct context *ctx, struct ast *ast_g
 		ctx->ast.current_fwd_struct_decl = value;
 	}
 
-	mir_instrs_t *decls            = arena_alloc(&ctx->assembly->arenas.sarr);
+	struct mir_instr_block *init_block;
+	struct mir_instr_block *prev_block = ast_initializer_block_begin(ctx, &init_block);
+
+	// Generate initialization value in scope of init block.
+	struct mir_instr* init_value = ast(ctx, ast_value);
+	set_current_block(ctx, prev_block);
+
+	// mir_instrs_t *decls            = arena_alloc(&ctx->assembly->arenas.sarr);
 	struct ast   *ast_current_name = ast_name;
 	while (ast_current_name) {
+
 		enum builtin_id_kind builtin_id = BUILTIN_ID_NONE;
 		if (is_compiler) builtin_id = check_symbol_marked_compiler(ctx, ast_name);
 		struct id        *id   = &ast_current_name->data.ident.id;
@@ -10758,20 +10829,21 @@ static void ast_decl_var_global_or_struct(struct context *ctx, struct ast *ast_g
 		                                                   .builtin_id        = builtin_id,
 		                                                   .is_struct_typedef = is_struct_decl,
 		                                               });
-		sarrput(decls, decl);
+
+		{
+			// Append initialized into the init block.
+			set_current_block(ctx, init_block);
+			append_instr_set_initializer2(ctx, ast_current_name, decl, init_value);
+			set_current_block(ctx, prev_block);
+		}
 
 		struct mir_var *var = ((struct mir_instr_decl_var *)decl)->var;
 		var->entry          = register_symbol(ctx, ast_current_name, id, scope, is_compiler);
 		ast_current_name    = ast_current_name->data.ident.next;
 	}
 
-	// For globals we must generate initialization after variable declaration,
-	// SetInitializer instruction will be used to set actual value, also
-	// implicit initialization block is created into MIR (such block does not
-	// have LLVM representation -> globals must be evaluated in compile time).
-	//
-	// Generate implicit global initializer block.
-	ast_create_global_initializer2(ctx, ast_value, decls);
+	set_current_block(ctx, init_block);
+	ast_initializer_block_end(ctx, prev_block);
 
 	// Struct decl cleanup.
 	if (is_struct_decl) {
@@ -10830,7 +10902,14 @@ struct mir_instr *ast_decl_arg(struct context *ctx, struct ast *arg) {
 			                                       .type      = type,
 			                                       .is_global = true,
 			                                   });
-			ast_create_global_initializer(ctx, ast_value, value);
+
+			// Generate initializer block.
+			struct mir_instr_block *prev_block = ast_initializer_block_begin(ctx, NULL);
+			{
+				struct mir_instr *src = ast(ctx, ast_value);
+				append_instr_set_initializer2(ctx, ast_value, value, src);
+			}
+			ast_initializer_block_end(ctx, prev_block);
 		}
 	} else {
 		bassert(ast_type && "Function argument must have explicit type when no default "
@@ -11183,27 +11262,20 @@ USE_DUMMY:
 	return append_instr_const_type(ctx, poly, ctx->builtin_types->t_s32);
 }
 
-struct mir_instr *ast_create_global_initializer2(struct context *ctx, struct ast *ast_value, mir_instrs_t *decls) {
+// Returns previous active block.
+struct mir_instr_block *ast_initializer_block_begin(struct context *ctx, struct mir_instr_block **out_init_block) {
 	struct mir_instr_block *prev_block = ast_current_block(ctx);
 	struct mir_instr_block *block      = append_global_block(ctx, INIT_VALUE_FN_NAME);
 	set_current_block(ctx, block);
-	struct mir_instr *result = ast(ctx, ast_value);
 
-	if (ast_value) {
-		result = append_instr_set_initializer(ctx, ast_value, decls, result);
-	} else {
-		result = append_instr_set_initializer_impl(ctx, decls, result);
-	}
-
-	set_current_block(ctx, prev_block);
-	return result;
+	if (out_init_block) *out_init_block = block;
+	return prev_block;
 }
 
-struct mir_instr *ast_create_global_initializer(struct context *ctx, struct ast *ast_value, struct mir_instr *decl) {
-	bassert(decl);
-	mir_instrs_t *decls = arena_alloc(&ctx->assembly->arenas.sarr);
-	sarrput(decls, decl);
-	return ast_create_global_initializer2(ctx, ast_value, decls);
+void ast_initializer_block_end(struct context *ctx, struct mir_instr_block *prev_block) {
+	struct mir_instr_block *block = ast_current_block(ctx);
+	if (!is_block_terminated(block)) terminate_block(block, block->last_instr);
+	set_current_block(ctx, prev_block);
 }
 
 struct mir_instr *ast_create_type_resolver_call(struct context *ctx, struct ast *ast_type) {

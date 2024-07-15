@@ -5,19 +5,23 @@
   - Global variables use init block for initialization.
   - Each variable has reference to its initializer block, this way we generate IR only in case the variable is used.
 
--
 - Extend unroll to be used also as temporary in case we need GEP on call return value to be used directly after call!
 
 */
 
 main :: fn () s32 {
 	// print("%\n", DATA);
+	// print("%\n", A);
 	// print("%\n", B);
 
 	// v: s32;
 	// v = get_data().a;
-	// A, B :: get();
-	foobar();
+	A, B :: get();
+	homo();
+
+	print("%\n", A);
+	print("%\n", B);
+
 	return 0;
 }
 
@@ -36,19 +40,16 @@ main :: fn () s32 {
 // 	return .{ 10, 20 };
 // }
 
-// A, B :: get();
+A, B :: get();
 
-// get :: fn () (s32, s32) #comptime {
-// 	return 10, 20;
-// }
-
-boo :: fn () s32 #comptime {
-	return 666;
+get :: fn () (s32, s32) #comptime {
+	return 10, 20;
 }
 
-foobar :: fn (n := boo()) {
-	print("%\n", n);
+homo :: fn (n := 10) {
+	assert(n == 10);
 }
+
 
 /*
 enum_variants_to_string_list :: fn (TEnum: type #comptime) [enum_count(TEnum)]string_view #comptime {

@@ -262,6 +262,7 @@ _print_const_value(struct context *ctx, struct mir_type *type, vm_stack_ptr_t va
 }
 
 static void print_instr_set_initializer(struct context *ctx, struct mir_instr_set_initializer *si);
+static void print_instr_set_initializer2(struct context *ctx, struct mir_instr_set_initializer2 *si);
 static void print_instr_toany(struct context *ctx, struct mir_instr_to_any *toany);
 static void print_instr_phi(struct context *ctx, struct mir_instr_phi *phi);
 static void print_instr_cast(struct context *ctx, struct mir_instr_cast *cast);
@@ -377,6 +378,21 @@ void print_instr_set_initializer(struct context *ctx, struct mir_instr_set_initi
 			print_comptime_value_or_id(ctx, _dest);
 		}
 		if (i + 1 < sarrlenu(si->dests)) fprintf(ctx->stream, ", ");
+	}
+}
+
+void print_instr_set_initializer2(struct context *ctx, struct mir_instr_set_initializer2 *si) {
+	print_instr_head(ctx, &si->base, "setinit");
+	print_comptime_value_or_id(ctx, si->src);
+	fprintf(ctx->stream, " -> ");
+
+	struct mir_instr          *dest         = si->dest;
+	struct mir_instr_decl_var *dest_var     = (struct mir_instr_decl_var *)dest;
+	const str_t                linkage_name = dest_var->var->linkage_name;
+	if (dest && linkage_name.len) {
+		fprintf(ctx->stream, "%.*s", linkage_name.len, linkage_name.ptr);
+	} else {
+		print_comptime_value_or_id(ctx, dest);
 	}
 }
 
@@ -1135,6 +1151,9 @@ void print_instr(struct context *ctx, struct mir_instr *instr) {
 		break;
 	case MIR_INSTR_SET_INITIALIZER:
 		print_instr_set_initializer(ctx, (struct mir_instr_set_initializer *)instr);
+		break;
+	case MIR_INSTR_SET_INITIALIZER2:
+		print_instr_set_initializer2(ctx, (struct mir_instr_set_initializer2 *)instr);
 		break;
 	case MIR_INSTR_TEST_CASES:
 		print_instr_test_cases(ctx, (struct mir_instr_test_case *)instr);
