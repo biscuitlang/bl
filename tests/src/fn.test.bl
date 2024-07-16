@@ -109,7 +109,6 @@ multiple_return_global :: fn () #test {
 	test_eq(VD, 20);
 }
 
-/*
 gep_return_value :: fn () #test {
 	foo :: fn () (a: s32, b: s32) {
 		return 10, 20;
@@ -152,4 +151,24 @@ gep_return_value_ptr :: fn () #test {
 	test_eq(foo().a, 10);
 	test_eq(foo().b, 20);
 }
-*/
+
+gep_return_value_comptime :: fn () #test {
+	foo :: fn () Foo #comptime {
+		return .{ 10, 20 };
+	};
+
+	test_eq(foo().a, 10);
+	test_eq(foo().b, 20);
+}
+
+get_data_comptime :: fn () Foo #comptime {
+	return .{ 10, 20 };
+};
+
+DATA2_a :: get_data_comptime().a;
+DATA2_b :: get_data_comptime().b;
+
+gep_return_value_comptime_in_global_scope :: fn () #test {
+	test_eq(DATA2_a, 10);
+	test_eq(DATA2_b, 20);
+}

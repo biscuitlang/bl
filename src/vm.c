@@ -2163,11 +2163,20 @@ void eval_instr_member_ptr(struct virtual_machine       UNUSED(*vm),
 		// directly inside the analyze pass, but it should be here.
 		break;
 	case SCOPE_ENTRY_MEMBER: {
-		struct mir_member *member     = member_ptr->scope_entry->data.member;
-		vm_stack_ptr_t     strct_ptr  = MIR_CEV_READ_AS(vm_stack_ptr_t, &member_ptr->target_ptr->value);
-		vm_stack_ptr_t     result_ptr = NULL;
+		struct mir_member *member = member_ptr->scope_entry->data.member;
+		vm_stack_ptr_t     strct_ptr;
 
-		result_ptr = strct_ptr + member->offset_bytes;
+		if (member_ptr->target_ptr->kind == MIR_INSTR_CONST) {
+			// In case the target pointer is constant, we assume it's created from call instruction compile time evaluation.
+			// In such a case the call result is saved directly in the constant value.
+			bassert(member_ptr->target_ptr->_orig_kind == MIR_INSTR_CALL);
+			strct_ptr = (vm_stack_ptr_t)&member_ptr->target_ptr->value;
+		} else {
+			strct_ptr = MIR_CEV_READ_AS(vm_stack_ptr_t, &member_ptr->target_ptr->value);
+		}
+
+		vm_stack_ptr_t result_ptr = NULL;
+		result_ptr                = strct_ptr + member->offset_bytes;
 
 		MIR_CEV_WRITE_AS(vm_stack_ptr_t, &member_ptr->base.value, result_ptr);
 		break;

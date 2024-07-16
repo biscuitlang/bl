@@ -15,6 +15,7 @@ Fix invalid position of vargs generated before call causing stack problem in VM 
 Fix reports of unused symbols declared after usage in local scopes.
 Fix unary not operator precedence.
 Fix unroll on global variables.
+Fix member access directly on call result.
 Fix group initialization of multiple variables at once in global scope.
 Add support for x86_64-unknown-linux-gnu target architecture triple.
 Add untyped compound expressions.

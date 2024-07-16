@@ -491,7 +491,7 @@ struct mir_instr {
 	struct mir_instr *prev;
 	struct mir_instr *next;
 
-#ifdef BL_DEBUG
+#if defined(BL_DEBUG) || defined(BL_ASSERT_ENABLE)
 	enum mir_instr_kind _orig_kind;
 #endif
 	s32 ref_count;
@@ -757,7 +757,7 @@ struct mir_instr_call {
 	mir_instrs_t  *args; // Optional
 
 	// Optional temporary variable for unroll multi-return struct type.
-	struct mir_instr *unroll_tmp_var;
+	struct mir_instr *tmp_var;
 
 	// True if the call is inside the function type recipe, we should not call it while evaluation
 	// is done + we have to replace the result type by placeholder.

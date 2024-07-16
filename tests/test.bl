@@ -14,47 +14,57 @@ main :: fn () s32 {
 	// print("%\n", A);
 	// print("%\n", B);
 
+	n :: get_data().a;
+	print("%\n", n);
+
+	n2 :: get_data2().b;
+	print("%\n", n2);
+	print("%\n", N2);
+	print("%\n", DATA);
+
+	n3 :: get_data3().b;
+	print("%\n", n3);
+
+	n4 :: get_data4().b;
+	print("%\n", n4);
+
 	// v: s32;
 	// v = get_data().a;
 	// A, B :: get();
-	homo();
-
-	print("%\n", VA);
-	print("%\n", VB);
-	print("%\n", VC);
-	print("%\n", VD);
 
 	print("DONE!\n");
 	return 0;
 }
 
-// Foo :: struct {
-// 	a: s32;
-// 	b: s32;
-// }
+Foo :: struct {
+	a: s32;
+	b: s32;
+}
 
+N2 :: get_data2().b;
 
+foo :: Foo.{ 10, 20 };
 
-// foo :: Foo.{ 10, 20 };
+DATA :: foo.a;
 
-// DATA :: foo.a;
+get_data :: fn () Foo {
+	return .{ 10, 20 };
+}
 
-// get_data :: fn () Foo {
-// 	return .{ 10, 20 };
-// }
+get_data2 :: fn () Foo #comptime {
+	return .{ 10, 20 };
+}
 
-VA, VB := get();
-VC :: get();
-_, VD :: get();
-
-_ :: 10;
-
-get :: fn () (s32, s32) #comptime {
+get_data3 :: fn () (a: s32, b: s32) {
 	return 10, 20;
 }
 
-homo :: fn (n := 10) {
-	assert(n == 10);
+get_data4 :: fn () (a: s32, b: s32) #comptime {
+	return 10, 20;
+}
+
+get :: fn () (s32, s32) {
+	return 10, 20;
 }
 
 
