@@ -45,7 +45,6 @@ union __INSTR_T {\
     struct mir_instr_to_any          toany;\
     struct mir_instr_switch          sw;\
     struct mir_instr_set_initializer si;\
-    struct mir_instr_set_initializer2 si2;\
     struct mir_instr_test_case       tcs; \
     struct mir_instr_call_loc        cl; \
     struct mir_instr_unroll          unroll; \
@@ -104,7 +103,6 @@ union __INSTR_T {\
     MIR_INSTR_TOANY,
     MIR_INSTR_SWITCH,
     MIR_INSTR_SET_INITIALIZER,
-    MIR_INSTR_SET_INITIALIZER2,
     MIR_INSTR_TEST_CASES,
     MIR_INSTR_CALL_LOC,
     MIR_INSTR_UNROLL,

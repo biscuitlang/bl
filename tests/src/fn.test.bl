@@ -94,6 +94,21 @@ multiple_return4 :: fn () #test {
 	test_eq(b, 20);
 }
 
+get_comptime :: fn () (s32, s32) #comptime {
+	return 10, 20;
+}
+
+VA, VB :: get_comptime();
+VC :: get_comptime();
+_, VD :: get_comptime();
+
+multiple_return_global :: fn () #test {
+	test_eq(VA, 10);
+	test_eq(VB, 20);
+	test_eq(VC, 10);
+	test_eq(VD, 20);
+}
+
 /*
 gep_return_value :: fn () #test {
 	foo :: fn () (a: s32, b: s32) {

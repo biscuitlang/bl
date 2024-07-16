@@ -14,7 +14,7 @@ Fix rpmalloc missing terminations for threads causing deadlocks sometimes.
 Fix invalid position of vargs generated before call causing stack problem in VM execution.
 Fix reports of unused symbols declared after usage in local scopes.
 Fix unary not operator precedence.
-Fix GEP applied directly on call return value.
+Fix unroll on global variables.
 Fix group initialization of multiple variables at once in global scope.
 Add support for x86_64-unknown-linux-gnu target architecture triple.
 Add untyped compound expressions.

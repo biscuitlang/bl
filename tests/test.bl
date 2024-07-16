@@ -16,12 +16,15 @@ main :: fn () s32 {
 
 	// v: s32;
 	// v = get_data().a;
-	A, B :: get();
+	// A, B :: get();
 	homo();
 
-	print("%\n", A);
-	print("%\n", B);
+	print("%\n", VA);
+	print("%\n", VB);
+	print("%\n", VC);
+	print("%\n", VD);
 
+	print("DONE!\n");
 	return 0;
 }
 
@@ -40,7 +43,11 @@ main :: fn () s32 {
 // 	return .{ 10, 20 };
 // }
 
-A, B :: get();
+VA, VB := get();
+VC :: get();
+_, VD :: get();
+
+_ :: 10;
 
 get :: fn () (s32, s32) #comptime {
 	return 10, 20;

@@ -114,8 +114,6 @@ static void                 eval_instr_load(struct virtual_machine *vm, struct m
 static void                 eval_instr_addrof(struct virtual_machine *vm, struct mir_instr_addrof *addrof);
 static void                 eval_instr_set_initializer(struct virtual_machine           *vm,
                                                        struct mir_instr_set_initializer *si);
-static void                 eval_instr_set_initializer2(struct virtual_machine            *vm,
-                                                        struct mir_instr_set_initializer2 *si);
 static void                 eval_instr_cast(struct virtual_machine *vm, struct mir_instr_cast *cast);
 static void                 eval_instr_compound(struct virtual_machine *vm, struct mir_instr_compound *cmp);
 static void                 eval_instr_unroll(struct virtual_machine *vm, struct mir_instr_unroll *unroll);
@@ -1966,10 +1964,6 @@ void eval_instr(struct virtual_machine *vm, struct mir_instr *instr) {
 		eval_instr_set_initializer(vm, (struct mir_instr_set_initializer *)instr);
 		break;
 
-	case MIR_INSTR_SET_INITIALIZER2:
-		eval_instr_set_initializer2(vm, (struct mir_instr_set_initializer2 *)instr);
-		break;
-
 	case MIR_INSTR_LOAD:
 		eval_instr_load(vm, (struct mir_instr_load *)instr);
 		break;
@@ -2324,29 +2318,6 @@ void eval_instr_load(struct virtual_machine *vm, struct mir_instr_load *load) {
 }
 
 void eval_instr_set_initializer(struct virtual_machine *vm, struct mir_instr_set_initializer *si) {
-	for (usize i = 0; i < sarrlenu(si->dests); ++i) {
-		struct mir_instr *dest = sarrpeek(si->dests, i);
-		struct mir_var   *var  = ((struct mir_instr_decl_var *)dest)->var;
-		bassert(
-		    (isflag(var->iflags, MIR_VAR_GLOBAL) || isflag(var->iflags, MIR_VAR_STRUCT_TYPEDEF)) &&
-		    "Only globals can be initialized by initializer!");
-		if (var->value.is_comptime) {
-			// This is little optimization, we can simply reuse initializer pointer
-			// since we are dealing with constant values and variable is immutable
-			// comptime.
-			var->value.data = si->src->value.data;
-		} else {
-			const struct mir_type *var_type = var->value.type;
-			// Globals always use static segment allocation!!!
-			const vm_stack_ptr_t var_ptr = vm_read_var(vm, var);
-			// Runtime variable needs it's own memory location so we must create copy of
-			// initializer data
-			memcpy(var_ptr, si->src->value.data, var_type->store_size_bytes);
-		}
-	}
-}
-
-void eval_instr_set_initializer2(struct virtual_machine *vm, struct mir_instr_set_initializer2 *si) {
 	struct mir_instr *dest = si->dest;
 	struct mir_var   *var  = ((struct mir_instr_decl_var *)dest)->var;
 	bassert(

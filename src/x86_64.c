@@ -43,26 +43,26 @@
 
 #if BL_WINDOWS
 
-#include "common.h"
-#include "stb_ds.h"
-#include "threading.h"
-#include "x86_64_instructions.h"
+#	include "common.h"
+#	include "stb_ds.h"
+#	include "threading.h"
+#	include "x86_64_instructions.h"
 
-#define UNUSED_REGISTER_MAP_VALUE -1
-#define RESERVED_REGISTER_MAP_VALUE -2
+#	define UNUSED_REGISTER_MAP_VALUE -1
+#	define RESERVED_REGISTER_MAP_VALUE -2
 
-#define SECTION_EXTERN 0
-#define SECTION_TEXT 1
-#define SECTION_DATA 2
+#	define SECTION_EXTERN 0
+#	define SECTION_TEXT 1
+#	define SECTION_DATA 2
 
-#define DT_FUNCTION 0x20
+#	define DT_FUNCTION 0x20
 
-#define MEMCPY_BUILTIN cstr("__bl_memcpy")
+#	define MEMCPY_BUILTIN cstr("__bl_memcpy")
 hash_t MEMCPY_BUILTIN_HASH = 0;
-#define MEMSET_BUILTIN cstr("__bl_memset")
+#	define MEMSET_BUILTIN cstr("__bl_memset")
 hash_t MEMSET_BUILTIN_HASH = 0;
 
-#define data_ptr_s32(data, p) ((s32 *)&(data)[p])
+#	define data_ptr_s32(data, p) ((s32 *)&(data)[p])
 
 // @Performance: internal functions can support more arguments passed through registers.
 static const enum x64_register CALL_ABI[4] = {RCX, RDX, R8, R9};
@@ -105,13 +105,13 @@ struct x64_value {
 	};
 };
 
-#define peek(index) (tctx->values[(index)])
-#define peek_immediate(index) (tctx->values[(index)].imm)
-#define peek_relocation(index) (tctx->values[(index)].reloc)
-#define peek_offset(index) (tctx->values[(index)].offset)
-#define peek_register(index) (tctx->values[(index)].reg)
-#define peek_register_offset(index) (tctx->values[(index)].reg_off_addr)
-#define peek_register_address(index) (tctx->values[(index)].reg_off_addr)
+#	define peek(index) (tctx->values[(index)])
+#	define peek_immediate(index) (tctx->values[(index)].imm)
+#	define peek_relocation(index) (tctx->values[(index)].reloc)
+#	define peek_offset(index) (tctx->values[(index)].offset)
+#	define peek_register(index) (tctx->values[(index)].reg)
+#	define peek_register_offset(index) (tctx->values[(index)].reg_off_addr)
+#	define peek_register_address(index) (tctx->values[(index)].reg_off_addr)
 
 struct sym_patch {
 	s32               target_section;
@@ -231,8 +231,8 @@ static inline enum x64_type_kind get_type_kind(struct mir_type *type) {
 	}
 }
 
-#define op(value_kind, type_kind) ((value_kind << 4) | get_type_kind(type_kind))
-#define op_combined(a, b) ((((u64)a) << 8) | ((u64)b))
+#	define op(value_kind, type_kind) ((value_kind << 4) | get_type_kind(type_kind))
+#	define op_combined(a, b) ((((u64)a) << 8) | ((u64)b))
 
 enum op_kind {
 	// FFFF value_kind | FFFF type_kind
@@ -268,7 +268,7 @@ static inline u32 get_position(struct thread_context *tctx, s32 section_number) 
 	}
 }
 
-#ifdef BL_DEBUG
+#	ifdef BL_DEBUG
 static void check_dangling_registers(struct thread_context *tctx) {
 	// Check for dangling registers
 	for (s32 i = 0; i < REGISTER_COUNT; ++i) {
@@ -278,9 +278,9 @@ static void check_dangling_registers(struct thread_context *tctx) {
 		}
 	}
 }
-#else
-#	define check_dangling_registers(tctx) (void)0
-#endif
+#	else
+#		define check_dangling_registers(tctx) (void)0
+#	endif
 
 static inline void unique_name(struct context *ctx, str_buf_t *dest, const char *prefix, const str_t name) {
 	static u64 n = 0;
@@ -567,13 +567,13 @@ static inline void set_value(struct thread_context *tctx, struct mir_instr *inst
 	instr->backend_value = add_value(tctx, value);
 }
 
-#define get_value(tctx, V) _Generic((V),                \
-	                                struct mir_instr *  \
-	                                : _get_value_instr, \
-	                                  struct mir_arg *  \
-	                                : _get_value_arg,   \
-	                                  struct mir_var *  \
-	                                : _get_value_var)((tctx), (V))
+#	define get_value(tctx, V) _Generic((V),                \
+		                                struct mir_instr *  \
+		                                : _get_value_instr, \
+		                                  struct mir_arg *  \
+		                                : _get_value_arg,   \
+		                                  struct mir_var *  \
+		                                : _get_value_var)((tctx), (V))
 
 static inline u64 _get_value_instr(struct thread_context *tctx, struct mir_instr *instr) {
 	bassert(instr->backend_value);
@@ -590,11 +590,11 @@ static inline u64 _get_value_arg(struct thread_context *tctx, struct mir_arg *ar
 	return arg->backend_value - 1;
 }
 
-#define release_value(tctx, V) _Generic((V),                    \
-	                                    u64                     \
-	                                    : _release_value_index, \
-	                                      struct mir_instr *    \
-	                                    : _release_value_instr)((tctx), (V))
+#	define release_value(tctx, V) _Generic((V),                    \
+		                                    u64                     \
+		                                    : _release_value_index, \
+		                                      struct mir_instr *    \
+		                                    : _release_value_instr)((tctx), (V))
 
 static inline void _release_value_index(struct thread_context *tctx, u64 index) {
 	const struct x64_value value = tctx->values[index];
@@ -1032,8 +1032,8 @@ static hash_t emit_type_info(struct context *ctx, struct thread_context *tctx, s
 	const u32 dest_offset = add_data(tctx, NULL, (u32)var->value.type->store_size_bytes);
 	add_sym(tctx, SECTION_DATA, dest_offset, str_buf_view(sym_name), IMAGE_SYM_CLASS_EXTERNAL, 0);
 
-#define write_member(offset, type, index, value) \
-	memcpy(vm_get_struct_elem_ptr(ctx->assembly, type, &tctx->data[offset], index), value, mir_get_struct_elem_type(type, index)->store_size_bytes);
+#	define write_member(offset, type, index, value) \
+		memcpy(vm_get_struct_elem_ptr(ctx->assembly, type, &tctx->data[offset], index), value, mir_get_struct_elem_type(type, index)->store_size_bytes);
 
 	struct mir_type *type = var->value.type;
 	{ // base
@@ -1076,7 +1076,7 @@ static hash_t emit_type_info(struct context *ctx, struct thread_context *tctx, s
 	put_tmp_str(sym_name);
 	return hash;
 
-#undef write_member
+#	undef write_member
 }
 
 static inline bool is_relational_binop(enum binop_kind op) {
@@ -1276,11 +1276,11 @@ static void emit_instr(struct context *ctx, struct thread_context *tctx, struct 
 			bassert(block->base.value.is_comptime);
 		} else {
 			str_buf_t name = get_tmp_str();
-#ifdef BL_DEBUG
+#	ifdef BL_DEBUG
 			unique_name(ctx, &name, ".", block->name);
-#else
+#	else
 			unique_name(ctx, &name, ".", cstr("B"));
-#endif
+#	endif
 
 			block->base.backend_value = add_block(tctx, str_buf_view(name));
 			put_tmp_str(name);
@@ -1505,7 +1505,6 @@ static void emit_instr(struct context *ctx, struct thread_context *tctx, struct 
 		struct mir_type *target_type = mir_deref_type(elem->arr_ptr->value.type);
 
 		struct x64_value result = {0};
-
 
 		const enum x64_type_kind target_type_kind = get_type_kind(target_type);
 		if (target_type_kind == X64_ARRAY) {
@@ -2308,35 +2307,33 @@ static void emit_instr(struct context *ctx, struct thread_context *tctx, struct 
 	}
 
 	case MIR_INSTR_SET_INITIALIZER: {
-		struct mir_instr_set_initializer *si = (struct mir_instr_set_initializer *)instr;
-		for (usize i = 0; i < sarrlenu(si->dests); ++i) {
-			struct mir_instr *dest = sarrpeek(si->dests, i);
-			struct mir_var   *var  = ((struct mir_instr_decl_var *)dest)->var;
-			if (!var->ref_count) continue;
+		struct mir_instr_set_initializer *si   = (struct mir_instr_set_initializer *)instr;
+		struct mir_instr                 *dest = si->dest;
+		struct mir_var                   *var  = ((struct mir_instr_decl_var *)dest)->var;
+		if (!var->ref_count) continue;
 
-			const usize value_size  = var->value.type->store_size_bytes;
-			const u32   data_offset = add_data(tctx, NULL, (s32)value_size);
-			add_sym(tctx, SECTION_DATA, data_offset, var->linkage_name, IMAGE_SYM_CLASS_EXTERNAL, 0);
+		const usize value_size  = var->value.type->store_size_bytes;
+		const u32   data_offset = add_data(tctx, NULL, (s32)value_size);
+		add_sym(tctx, SECTION_DATA, data_offset, var->linkage_name, IMAGE_SYM_CLASS_EXTERNAL, 0);
 
-			if (si->src->backend_value == 0) {
-				struct mir_instr *cmp = si->src;
-				bassert(cmp->kind == MIR_INSTR_COMPOUND);
-				emit_global_compound(ctx, tctx, cmp, data_offset, (u32)value_size);
+		if (si->src->backend_value == 0) {
+			struct mir_instr *cmp = si->src;
+			bassert(cmp->kind == MIR_INSTR_COMPOUND);
+			emit_global_compound(ctx, tctx, cmp, data_offset, (u32)value_size);
+			break;
+		} else {
+			const u64   vi_init  = get_value(tctx, si->src);
+			const void *data_src = NULL;
+
+			switch (peek(vi_init).kind) {
+			case IMMEDIATE:
+				data_src = &peek_immediate(vi_init);
 				break;
-			} else {
-				const u64   vi_init  = get_value(tctx, si->src);
-				const void *data_src = NULL;
-
-				switch (peek(vi_init).kind) {
-				case IMMEDIATE:
-					data_src = &peek_immediate(vi_init);
-					break;
-				default:
-					BL_UNIMPLEMENTED;
-				}
-				memcpy(tctx->data + data_offset, data_src, value_size);
-				release_value(tctx, vi_init);
+			default:
+				BL_UNIMPLEMENTED;
 			}
+			memcpy(tctx->data + data_offset, data_src, value_size);
+			release_value(tctx, vi_init);
 		}
 		break;
 	}
