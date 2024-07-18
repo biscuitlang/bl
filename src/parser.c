@@ -987,8 +987,9 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
 	}
 
-	if (AST_IS_OK(stmt_if->data.stmt_if.test)) {
-		tokens_consume_till(ctx->tokens, SYM_LBLOCK);
+	struct token *tok_then = tokens_consume_if(ctx->tokens, SYM_THEN);
+	if (tok_then) {
+		blog("We have then!");
 	}
 
 	stmt_if->data.stmt_if.true_stmt = parse_block(ctx, SCOPE_LEXICAL);

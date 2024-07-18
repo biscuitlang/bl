@@ -1,70 +1,14 @@
 /* CURRENT TODO
 
-- Unroll does not work in global scope at all!!!
-
-  - Global variables use init block for initialization.
-  - Each variable has reference to its initializer block, this way we generate IR only in case the variable is used.
-
-- Extend unroll to be used also as temporary in case we need GEP on call return value to be used directly after call!
-
 */
 
 main :: fn () s32 {
-	// print("%\n", DATA);
-	// print("%\n", A);
-	// print("%\n", B);
 
-	n :: get_data().a;
-	print("%\n", n);
-
-	n2 :: get_data2().b;
-	print("%\n", n2);
-	print("%\n", N2);
-	print("%\n", DATA);
-
-	n3 :: get_data3().b;
-	print("%\n", n3);
-
-	n4 :: get_data4().b;
-	print("%\n", n4);
-
-	// v: s32;
-	// v = get_data().a;
-	// A, B :: get();
+	// expr := true;
+	if expr then 10 else 20;
 
 	print("DONE!\n");
 	return 0;
-}
-
-Foo :: struct {
-	a: s32;
-	b: s32;
-}
-
-N2 :: get_data2().b;
-
-foo :: Foo.{ 10, 20 };
-
-DATA :: foo.a;
-
-get_data :: fn () Foo {
-	return .{ 10, 20 };
-}
-
-get_data2 :: fn () Foo #comptime {
-	return .{ 10, 20 };
-}
-
-get_data3 :: fn () (a: s32, b: s32) {
-	return 10, 20;
-}
-
-get_data4 :: fn () (a: s32, b: s32) #comptime {
-	return 10, 20;
-}
-
-get :: fn () (s32, s32) {
-	return 10, 20;
 }
 
 
