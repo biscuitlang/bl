@@ -5,10 +5,15 @@
 main :: fn () s32 {
 
 	// expr := true;
-	if expr then 10 else 20;
+	// if expr then print("A\n") else print("B\n");
+	if get() == 10 then return 2;
 
 	print("DONE!\n");
 	return 0;
+}
+
+get :: fn () s32 {
+	return 10;
 }
 
 
