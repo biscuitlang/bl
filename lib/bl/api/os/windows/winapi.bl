@@ -181,6 +181,7 @@ GMEM_MOVEABLE : u32 : 0x0002;
 GMEM_ZEROINIT : u32 : 0x0040;
 GPTR : u32 : 0x0040;
 CF_TEXT : u32 : 1;
+CF_UNICODETEXT : u32 : 13;
 FILE_NOTIFY_CHANGE_FILE_NAME : u32 : 0x00000001;
 FILE_NOTIFY_CHANGE_DIR_NAME : u32 : 0x00000002;
 FILE_NOTIFY_CHANGE_ATTRIBUTES : u32 : 0x00000004;
@@ -560,6 +561,14 @@ WideCharToMultiByte :: fn (
 	lpDefaultChar: *LPCCH,
 	lpUsedDefaultChar: *LPBOOL
 ) s32 #extern "WideCharToMultiByte";
+MultiByteToWideChar :: fn (
+	CodePage: UINT,
+	dwFlags: DWORD,
+	lpMultiByteStr: *LPCCH,
+	cbMultiByte: s32,
+	lpWideCharStr: LPWSTR,
+	cchWideChar: u32
+) s32 #extern "MultiByteToWideChar";
 CreateEvent :: fn (
   lpEventAttributes: LPSECURITY_ATTRIBUTES,
   bManualReset: BOOL,
@@ -1029,6 +1038,7 @@ EmptyClipboard :: fn () BOOL #extern "EmptyClipboard";
 SetClipboardData :: fn (uFormat: UINT, hMem: HANDLE) HANDLE #extern "SetClipboardData";
 GetClipboardData :: fn (uFormat: UINT) HANDLE  #extern "GetClipboardData";
 CloseClipboard :: fn () BOOL #extern "CloseClipboard";
+IsClipboardFormatAvailable :: fn (format: UINT) BOOL #extern "IsClipboardFormatAvailable";
 GetLastError :: fn () DWORD #extern "GetLastError";
 CloseHandle :: fn (hObject: HANDLE) BOOL #extern "CloseHandle";
 GetTempPathA :: fn (nBufferLength: DWORD, lpBuffer: LPSTR) DWORD #extern "GetTempPathA";
