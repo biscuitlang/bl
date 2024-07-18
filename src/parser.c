@@ -992,14 +992,27 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 		blog("We have then!");
 	}
 
+	bool is_ternary_expression = false;
+
 	stmt_if->data.stmt_if.true_stmt = parse_block(ctx, SCOPE_LEXICAL);
 	if (!stmt_if->data.stmt_if.true_stmt) {
-		struct token *tok_err = tokens_consume(ctx->tokens);
-		report_error(EXPECTED_STMT,
-		             tok_err,
-		             CARET_WORD,
-		             "Expected compound statement for true result of the if expression test.");
-		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
+		if (tok_then) {
+			stmt_if->data.stmt_if.true_stmt = parse_expr(ctx);
+			struct token *tok_err = tokens_consume(ctx->tokens);
+			report_error(EXPECTED_EXPR,
+			             tok_err,
+			             CARET_WORD,
+			             "Expected expression.");
+			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
+			is_ternary_expression = true;
+		} else {
+			struct token *tok_err = tokens_consume(ctx->tokens);
+			report_error(EXPECTED_STMT,
+			             tok_err,
+			             CARET_WORD,
+			             "Expected compound statement for true result of the if expression test.");
+			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
+		}
 	}
 
 	stmt_if->data.stmt_if.false_stmt = NULL;
