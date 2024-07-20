@@ -96,7 +96,7 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 static struct ast *parse_unrecheable(struct context *ctx);
 static struct ast *parse_debugbreak(struct context *ctx);
 static struct ast *parse_ident_group(struct context *ctx);
-static struct ast *parse_single_block_stmt_or_expr(struct context *ctx);
+static struct ast *parse_single_block_stmt_or_expr(struct context *ctx, bool *out_require_semicolon);
 static struct ast *parse_block(struct context *ctx, enum scope_kind scope_kind);
 static struct ast *parse_decl(struct context *ctx);
 static struct ast *parse_decl_member(struct context *ctx, s32 index);
@@ -989,35 +989,41 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 	}
 
 	struct token *tok_then = tokens_consume_if(ctx->tokens, SYM_THEN);
-	if (tok_then) {
-		blog("We have then!");
-	}
 
 	stmt_if->data.stmt_if.true_stmt         = parse_block(ctx, SCOPE_LEXICAL);
 	const bool else_requires_explicit_block = stmt_if->data.stmt_if.true_stmt;
-	if (!stmt_if->data.stmt_if.true_stmt && tok_then) stmt_if->data.stmt_if.true_stmt = parse_expr(ctx);
+	if (!stmt_if->data.stmt_if.true_stmt && tok_then) stmt_if->data.stmt_if.true_stmt = parse_single_block_stmt_or_expr(ctx, NULL);
 	if (!stmt_if->data.stmt_if.true_stmt) {
 		struct token *tok_err = tokens_consume(ctx->tokens);
 		report_error(EXPECTED_STMT,
 		             tok_err,
 		             CARET_WORD,
-		             "Expected compound statement for true result of the if expression test.");
+		             "Expected statement, expression or block for the true result of the if test.");
 		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
 	}
 
 	stmt_if->data.stmt_if.false_stmt = NULL;
 	if (tokens_consume_if(ctx->tokens, SYM_ELSE)) {
 		stmt_if->data.stmt_if.false_stmt = parse_stmt_if(ctx, is_static);
+		if (!stmt_if->data.stmt_if.false_stmt) stmt_if->data.stmt_if.false_stmt = parse_block(ctx, SCOPE_LEXICAL);
+		if (!stmt_if->data.stmt_if.false_stmt && else_requires_explicit_block) {
+			struct token *tok_err = tokens_consume(ctx->tokens);
+			report_error(EXPECTED_STMT,
+			             tok_err,
+			             CARET_WORD,
+			             "Expected explicit block for false result of the if test. "
+			             "The block is required in case the explicit block was used for the true branch of the if statement.");
+			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
+		}
+
 		if (!stmt_if->data.stmt_if.false_stmt)
-			stmt_if->data.stmt_if.false_stmt = parse_block(ctx, SCOPE_LEXICAL);
-		if (!stmt_if->data.stmt_if.false_stmt && !else_requires_explicit_block)
-			stmt_if->data.stmt_if.false_stmt = parse_expr(ctx);
+			stmt_if->data.stmt_if.false_stmt = parse_single_block_stmt_or_expr(ctx, NULL);
 		if (!stmt_if->data.stmt_if.false_stmt) {
 			struct token *tok_err = tokens_consume(ctx->tokens);
 			report_error(EXPECTED_STMT,
 			             tok_err,
 			             CARET_WORD,
-			             "Expected statement for false result of the if expression test.");
+			             "Expected statement, expression or block for the false result of the if test.");
 			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
 		}
 	}
@@ -2323,9 +2329,11 @@ struct ast *parse_expr_type(struct context *ctx) {
 	return NULL;
 }
 
-struct ast *parse_single_block_stmt_or_expr(struct context *ctx) {
+struct ast *parse_single_block_stmt_or_expr(struct context *ctx, bool *out_require_semicolon) {
 	struct token *tok;
 	struct ast   *tmp = NULL;
+
+	if (out_require_semicolon) *out_require_semicolon = false;
 
 NEXT:
 	switch (tokens_peek_sym(ctx->tokens)) {
@@ -2341,11 +2349,11 @@ NEXT:
 	}
 	case SYM_RETURN:
 		tmp = parse_stmt_return(ctx);
-		if (!AST_IS_BAD(tmp)) parse_semicolon_rq(ctx);
+		if (out_require_semicolon && AST_IS_OK(tmp)) *out_require_semicolon = true;
 		break;
 	case SYM_USING:
 		tmp = parse_stmt_using(ctx);
-		if (!AST_IS_BAD(tmp)) parse_semicolon_rq(ctx);
+		if (out_require_semicolon && AST_IS_OK(tmp)) *out_require_semicolon = true;
 		break;
 	case SYM_IF:
 		tmp = parse_stmt_if(ctx, false);
@@ -2358,26 +2366,26 @@ NEXT:
 		break;
 	case SYM_BREAK:
 		tmp = parse_stmt_break(ctx);
-		if (AST_IS_OK(tmp)) parse_semicolon_rq(ctx);
+		if (out_require_semicolon) *out_require_semicolon = true;
 		break;
 	case SYM_CONTINUE:
 		tmp = parse_stmt_continue(ctx);
-		if (AST_IS_OK(tmp)) parse_semicolon_rq(ctx);
+		if (out_require_semicolon) *out_require_semicolon = true;
 		break;
 	case SYM_DEFER:
 		tmp = parse_stmt_defer(ctx);
-		if (AST_IS_OK(tmp)) parse_semicolon_rq(ctx);
+		if (out_require_semicolon && AST_IS_OK(tmp)) *out_require_semicolon = true;
 		break;
 	case SYM_LBLOCK:
 		tmp = parse_block(ctx, SCOPE_LEXICAL);
 		break;
 	case SYM_UNREACHABLE:
 		tmp = parse_unrecheable(ctx);
-		parse_semicolon_rq(ctx);
+		if (out_require_semicolon) *out_require_semicolon = true;
 		break;
 	case SYM_DEBUGBREAK:
 		tmp = parse_debugbreak(ctx);
-		parse_semicolon_rq(ctx);
+		if (out_require_semicolon) *out_require_semicolon = true;
 		break;
 	default:
 		break;
@@ -2387,11 +2395,11 @@ NEXT:
 
 	// Others
 	if ((tmp = (struct ast *)parse_decl(ctx))) {
-		if (AST_IS_OK(tmp)) parse_semicolon_rq(ctx);
+		if (out_require_semicolon && AST_IS_OK(tmp)) *out_require_semicolon = true;
 		return tmp;
 	}
 	if ((tmp = parse_expr(ctx))) {
-		if (AST_IS_OK(tmp)) parse_semicolon_rq(ctx);
+		if (out_require_semicolon && AST_IS_OK(tmp)) *out_require_semicolon = true;
 		return tmp;
 	}
 
@@ -2413,94 +2421,23 @@ struct ast *parse_block(struct context *ctx, enum scope_kind scope_kind) {
 		scope_push(ctx, scope);
 		scope_created = true;
 	}
-	struct ast   *block = ast_create_node(ctx->ast_arena, AST_BLOCK, tok_begin, scope_get(ctx));
-	struct token *tok;
-	struct ast   *tmp       = NULL;
+	struct ast *block = ast_create_node(ctx->ast_arena, AST_BLOCK, tok_begin, scope_get(ctx));
+	struct ast *tmp   = NULL;
+
 	block->data.block.nodes = arena_alloc(ctx->sarr_arena);
 
-NEXT:
-	tmp = parse_single_block_stmt_or_expr(ctx);
-	if (tmp && tmp->kind == AST_STMT_RETURN) {
-		block->data.block.has_return      = true;
-		tmp->data.stmt_return.owner_block = block;
-	}
+	bool require_semicolon = false;
+	while ((tmp = parse_single_block_stmt_or_expr(ctx, &require_semicolon))) {
+		if (tmp->kind == AST_STMT_RETURN) {
+			block->data.block.has_return      = true;
+			tmp->data.stmt_return.owner_block = block;
+		}
 
-	switch (tokens_peek_sym(ctx->tokens)) {
-	case SYM_SEMICOLON:
-		tok = tokens_consume(ctx->tokens);
-		report_warning(tok, CARET_WORD, "Extra semicolon can be removed ';'.");
-		goto NEXT;
-	case SYM_HASH: {
-		enum hash_directive_flags satisfied;
-		tmp = parse_hash_directive(ctx, HD_STATIC_IF, &satisfied);
-		break;
-	}
-	case SYM_RETURN:
-		tmp = parse_stmt_return(ctx);
-		if (!AST_IS_BAD(tmp)) parse_semicolon_rq(ctx);
-		block->data.block.has_return      = true;
-		tmp->data.stmt_return.owner_block = block;
-		break;
-	case SYM_USING:
-		tmp = parse_stmt_using(ctx);
-		if (!AST_IS_BAD(tmp)) parse_semicolon_rq(ctx);
-		break;
-	case SYM_IF:
-		tmp = parse_stmt_if(ctx, false);
-		break;
-	case SYM_SWITCH:
-		tmp = parse_stmt_switch(ctx);
-		break;
-	case SYM_LOOP:
-		tmp = parse_stmt_loop(ctx);
-		break;
-	case SYM_BREAK:
-		tmp = parse_stmt_break(ctx);
-		if (AST_IS_OK(tmp)) parse_semicolon_rq(ctx);
-
-		break;
-	case SYM_CONTINUE:
-		tmp = parse_stmt_continue(ctx);
-		if (AST_IS_OK(tmp)) parse_semicolon_rq(ctx);
-		break;
-	case SYM_DEFER:
-		tmp = parse_stmt_defer(ctx);
-		if (AST_IS_OK(tmp)) parse_semicolon_rq(ctx);
-		break;
-	case SYM_LBLOCK:
-		tmp = parse_block(ctx, SCOPE_LEXICAL);
-		break;
-	case SYM_UNREACHABLE:
-		tmp = parse_unrecheable(ctx);
-		parse_semicolon_rq(ctx);
-		break;
-	case SYM_DEBUGBREAK:
-		tmp = parse_debugbreak(ctx);
-		parse_semicolon_rq(ctx);
-		break;
-	default:
-		tmp = NULL;
-		break;
-	}
-
-	// Others
-	if (tmp) {
 		sarrput(block->data.block.nodes, tmp);
-		goto NEXT;
+		if (require_semicolon) parse_semicolon_rq(ctx);
 	}
 
-	if ((tmp = (struct ast *)parse_decl(ctx))) {
-		if (AST_IS_OK(tmp)) parse_semicolon_rq(ctx);
-		sarrput(block->data.block.nodes, tmp);
-		goto NEXT;
-	}
-	if ((tmp = parse_expr(ctx))) {
-		if (AST_IS_OK(tmp)) parse_semicolon_rq(ctx);
-		sarrput(block->data.block.nodes, tmp);
-		goto NEXT;
-	}
-
-	tok = tokens_consume_if(ctx->tokens, SYM_RBLOCK);
+	struct token *tok = tokens_consume_if(ctx->tokens, SYM_RBLOCK);
 	if (!tok) {
 		tok = tokens_peek_prev(ctx->tokens);
 		report_error(EXPECTED_BODY_END, tok, CARET_AFTER, "Expected end of block '}'.");

@@ -8,20 +8,20 @@ reset :: fn () #inline {
 	f2_called = 0;
 	f3_called = 0;
 }
-	
-f1 :: fn (v: bool) bool { 
+
+f1 :: fn (v: bool) bool {
 	f1_called += 1;
-	return v; 
-}
-	
-f2 :: fn (v: bool) bool { 
-	f2_called += 1;
-	return v; 
+	return v;
 }
 
-f3 :: fn (v: bool) bool { 
+f2 :: fn (v: bool) bool {
+	f2_called += 1;
+	return v;
+}
+
+f3 :: fn (v: bool) bool {
 	f3_called += 1;
-	return v; 
+	return v;
 }
 
 ifs :: fn () #test {
@@ -47,22 +47,22 @@ logical_op1 :: fn () #test {
 	test_true(a || a);
 	test_false(b || b);
 }
-	
+
 logical_op3 :: fn () #test {
 	test_true(f1(true) || f2(false));
 	test_eq(f1_called, 1);
 	test_eq(f2_called, 0);
 	reset();
-	
+
 	test_true(f1(false) || f2(true));
 	test_eq(f1_called, 1);
 	test_eq(f2_called, 1);
 	reset();
-	
+
 	test_true(f1(true) || f1(true));
 	test_eq(f1_called, 1);
 	reset();
-	  
+
 	test_false(f1(false) || f1(false));
 	test_eq(f1_called, 2);
 	reset();
@@ -74,7 +74,7 @@ logical_op4 :: fn () #test {
 	test_eq(f2_called, 0);
 	test_eq(f3_called, 0);
 	reset();
-	
+
 	test_true(f1(false) || f1(false) || f1(true));
 	test_eq(f1_called, 3);
 	reset();
@@ -103,16 +103,16 @@ logical_op7 :: fn () #test {
 	test_eq(f1_called, 1);
 	test_eq(f2_called, 1);
 	reset();
-	
+
 	test_false(f1(false) && f2(true));
 	test_eq(f1_called, 1);
 	test_eq(f2_called, 0);
 	reset();
-	
+
 	test_true(f1(true) && f1(true));
 	test_eq(f1_called, 2);
 	reset();
-	  
+
 	test_false(f1(false) && f1(false));
 	test_eq(f1_called, 1);
 	reset();
@@ -122,15 +122,15 @@ logical_op8 :: fn () #test {
 	test_true(f1(true) && f1(true) && f1(true));
 	test_eq(f1_called, 3);
 	reset();
-	
+
 	test_false(f1(false) && f1(true) && f1(true));
 	test_eq(f1_called, 1);
 	reset();
-	
+
 	test_false(f1(true) && f1(false) && f1(true));
 	test_eq(f1_called, 2);
 	reset();
-	
+
 	test_false(f1(true) && f1(true) && f1(false));
 	test_eq(f1_called, 3);
 	reset();
@@ -149,7 +149,7 @@ logical_op9 :: fn () #test {
 static_if_1 :: fn () #test {
 	#if false {
 		test_true(false);
-	} else {        
+	} else {
 		test_true(true);
 	}
 }
@@ -157,7 +157,7 @@ static_if_1 :: fn () #test {
 static_if_2 :: fn () #test {
 	FOO :: true;
 	BAR :: false;
-	
+
 	#if FOO {
 		test_true(true);
 		#if !FOO {
@@ -169,8 +169,42 @@ static_if_2 :: fn () #test {
 			}
 		}
 	}
-	
+
 	#if FOO && !BAR {
 		test_true(true);
 	}
+}
+
+optional_then :: fn () {
+	v := false;
+	expr := true;
+	if expr then {
+		v = true;
+	}
+	test_true(v);
+}
+
+optional_then_with_else :: fn () {
+	v := false;
+	expr := true;
+	if expr then {
+		v = true;
+	} else {
+		v = false;
+	}
+	test_true(v);
+}
+
+inline_if :: fn () {
+	v := false;
+	expr := true;
+	if expr then v = true;
+	test_true(v);
+}
+
+inline_if_with_else_branch :: fn () {
+	v := false;
+	expr := true;
+	if expr then v = true else v = false;
+	test_true(v);
 }

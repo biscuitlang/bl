@@ -4,9 +4,14 @@
 
 main :: fn () s32 {
 
-	// expr := true;
-	// if expr then print("A\n") else print("B\n");
+	expr := true;
+	if expr then print("A\n") else print("B\n");
 	if get() == 10 then return 2;
+
+	if get() == 10 then {
+		print("Hello");
+	}
+
 
 	print("DONE!\n");
 	return 0;

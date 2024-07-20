@@ -5,6 +5,7 @@ Improved documentation generator (added more value expressions).
 Add SIMD implementation for some hot code paths (Windows only).
 Reduced amount of types generated internally by the compiler (use cache).
 RPMalloc used for the compiler.
+Add 'then' keyword and inline if statements.
 Add fmod and trunc math functions.
 Add dlib VM runtime support.
 Add --dirty-mode compiler flag.

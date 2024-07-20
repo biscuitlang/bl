@@ -1,6 +1,6 @@
-# Flow Control 
+# Flow Control
 
-In this chapter, we'll focus on language features focused on conditional code execution and repetitive execution of some code blocks. The BL implements all well-known concepts of flow control and a little bit more. The most common way to let you execute a part of a code only in case some runtime condition is *true* is the *if* statement. 
+In this chapter, we'll focus on language features focused on conditional code execution and repetitive execution of some code blocks. The BL implements all well-known concepts of flow control and a little bit more. The most common way to let you execute a part of a code only in case some runtime condition is *true* is the *if* statement.
 
 ## If Else
 
@@ -28,14 +28,37 @@ main :: fn () s32 {
     } else {
         print("It's not done!\n");
     }
+
+    return 0;
 }
 
+```
+
+In some cases we might need only simple single line piece of code executed conditionally. To make it possible, since brackets around the if statement expression are not required, we've introduced `then` keyword. All following examples are valid.
+
+```rust
+main :: fn () s32 {
+	expr := true;
+
+	if expr { print("This is true branch!\n"); }
+    if !expr { print("This is true branch!\n"); } else { print("This is false branch!\n"); }
+
+    // Then is optional here.
+    if expr then { print("This is true branch!\n"); }
+    if !expr then { print("This is true branch!\n"); } else { print("This is false branch!\n"); }
+
+    // Then is required here. We can have only one statement/expression for each branch.
+    if expr then print("This is true branch!\n");
+    if !expr then print("This is true branch!\n") else print("This is false branch!\n");
+
+    return 0;
+}
 ```
 
 We can also create the whole conditional chain:
 
 ```rust
-Color :: enum { 
+Color :: enum {
     RED;
     GREEN;
     BLUE;
@@ -128,13 +151,13 @@ In the previous example we print a message for the default case, but we can use 
 switch color {
     Color.GREEN { print("It's red or green!\n"); }
     Color.BLUE  { print("It's  blue!\n");  }
-    default; 
+    default;
 }
 ```
 
 ## Loop
 
-Another common way how to manage program control flow is looping. This is a well-known concept available in a lot of languages. We simply run some part of code N-times where N is based on some condition. In BL there is only a single *loop* keyword for loops followed by an optional condition. We can use *break* and *continue* statements inside loops. The *break* statement will simply interrupt looping and skip out of the *loop* body. The *continue* statement will immediately jump to the next loop iteration. 
+Another common way how to manage program control flow is looping. This is a well-known concept available in a lot of languages. We simply run some part of code N-times where N is based on some condition. In BL there is only a single *loop* keyword for loops followed by an optional condition. We can use *break* and *continue* statements inside loops. The *break* statement will simply interrupt looping and skip out of the *loop* body. The *continue* statement will immediately jump to the next loop iteration.
 
 ```rust
 main :: fn () s32 {
@@ -144,9 +167,9 @@ main :: fn () s32 {
     // The loop without conditions will run infinitely until return or break is hit.
     loop {
         i += 1;
-        if i == count { 
+        if i == count {
             // Jump out of the loop.
-            break; 
+            break;
         }
     }
 
@@ -216,7 +239,7 @@ The output:
 4 3 2 8 7 6 5 1
 ```
 
-Another good example is the following: 
+Another good example is the following:
 
 ```rust
 {% include "../examples/open_file.bl" %}
