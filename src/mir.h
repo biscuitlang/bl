@@ -895,6 +895,10 @@ struct mir_instr_phi {
 	struct mir_instr base;
 	mir_instrs_t    *incoming_values;
 	mir_instrs_t    *incoming_blocks;
+
+	// 2024-07-21 Force the phi expression not being evaluated in comptime, this is used in case the
+	// phi result depends on runtime condition (ternary if).
+	bool             force_no_comptime;
 };
 
 struct mir_instr_to_any {

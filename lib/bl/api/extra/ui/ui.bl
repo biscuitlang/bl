@@ -416,7 +416,7 @@ label :: fn {
 
 item_title :: fn (rect: Rect, text: string_view, style: *LabelStyle = null) Rect {
 	assert(current_list);
-	label_rect :: rect_resized(rect, ternary(current_list.title_width == 0.f, rect.w * ITEM_LABEL_RATIO, current_list.title_width), rect.h);
+	label_rect :: rect_resized(rect, if current_list.title_width == 0.f then rect.w * ITEM_LABEL_RATIO else current_list.title_width, rect.h);
 	value_rect :: make_rect(label_rect.w + ITEM_LABEL_VALUE_GAP, 0.f, rect.w - label_rect.w - ITEM_LABEL_VALUE_GAP, rect.h);
 	label(label_rect, text, style);
 	return value_rect;
@@ -1335,7 +1335,7 @@ button_bar_impl :: fn (rect: Rect, text: []string_view, style := []*ButtonStyle.
 
 		button_text  :: text[i];
 		button_width := api.get_text_size(button_text, button_style.label.font, -1);
-		button_width *= ternary(button_style.no_body, 1.f, 1.2f) / scale_factor;
+		button_width *= (if button_style.no_body then 1.f else 1.2f) / scale_factor;
 		button_width += 4.f;
 
 		button_rect := rect_resized(rect, button_width, rect.h);
@@ -1344,7 +1344,7 @@ button_bar_impl :: fn (rect: Rect, text: []string_view, style := []*ButtonStyle.
 			button_pressed = i;
 		}
 
-		x += button_width + ternary(button_style.no_body, 6.f, 0.f);
+		x += button_width + if button_style.no_body then 6.f else 0.f;
 	}
 
 	return button_pressed;
@@ -1586,7 +1586,7 @@ textbox_impl :: fn (rect: Rect, text: *string, flags := TextboxFlags.DEFAULT, _s
 
 	is_focused           :: current_keyboard_focus == hash;
 	use_tmp_string       :: is_focused && is_multiline == false && is_immediate == false;
-	target_text          :: ternary(use_tmp_string, &edit_tmp, text);
+	target_text          :: if use_tmp_string then &edit_tmp else text;
 	edit_rect, edit_mask :: peek();
 
 	is_hold := api.is_lmb_down() && is_focused && textbox.wait_for_lmb_release == false;
@@ -1982,19 +1982,19 @@ get_style :: fn {
 		}
 		s :: &default_style;
 
-		edit_body :: ternary(use_light_theme, WHITE, rgba(0x101010ff));
+		edit_body :: if use_light_theme then WHITE else rgba(0x101010ff);
 
-		s.focus_color = ternary(use_light_theme, rgba(0x99D9EAFF), rgba(0x12678fff));
+		s.focus_color = if use_light_theme then rgba(0x99D9EAFF) else rgba(0x12678fff);
 
-		s.label.color              = ternary(use_light_theme, rgba(0x505050ff), rgba(0xBBBBBBFF));
+		s.label.color              = if use_light_theme then rgba(0x505050ff) else rgba(0xBBBBBBFF);
 		s.label.font               = main_font;
 		s.label.vertical_alignment = VerticalAlign.CENTER;
 
 		s.button.label                      = s.label;
 		s.button.label.horizontal_alignment = HorizontalAlign.CENTER;
 		s.button.frame_color                = rgba(0xf3f3f3ff);  // @Cleanup: not used.
-		s.button.body_color                 = ternary(use_light_theme, rgba(0xD2D2D2ff), rgba(0x505050ff));
-		s.button.color_disabled             = ternary(use_light_theme, rgba(0xB8B8B8FF), rgba(0x131313ff));
+		s.button.body_color                 = if use_light_theme then rgba(0xD2D2D2ff) else rgba(0x505050ff);
+		s.button.color_disabled             = if use_light_theme then rgba(0xB8B8B8FF) else rgba(0x131313ff);
 		s.button.press_color                = s.button.body_color;
 		s.button.frame_size                 = 1;
 
@@ -2004,11 +2004,11 @@ get_style :: fn {
 		s.window.title_no_focus.horizontal_alignment = HorizontalAlign.CENTER;
 		s.window.button                              = s.button;
 		s.window.button.label.font                   = icon_font;
-		s.window.bar_color_no_focus                  = ternary(use_light_theme, rgba(0xDDDDDDff), rgba(0x202020ff));
+		s.window.bar_color_no_focus                  = if use_light_theme then rgba(0xDDDDDDff) else rgba(0x202020ff);
 		s.window.bar_color_focus                     = s.focus_color;
-		s.window.frame_color                         = ternary(use_light_theme, rgba(0xAAAAAAff), rgba(0x505050ff));
-		s.window.body_color                          = ternary(use_light_theme, rgba(0xD2D2D2ff), rgba(0x404040ff));
-		s.window.content_color                       = ternary(use_light_theme, rgba(0xD2D2D2ff), rgba(0x303030ff));
+		s.window.frame_color                         = if use_light_theme then rgba(0xAAAAAAff) else rgba(0x505050ff);
+		s.window.body_color                          = if use_light_theme then rgba(0xD2D2D2ff) else rgba(0x404040ff);
+		s.window.content_color                       = if use_light_theme then rgba(0xD2D2D2ff) else rgba(0x303030ff);
 		s.window.bar_height                          = 20;
 		s.window.frame_size                          = 1;
 
@@ -2018,7 +2018,7 @@ get_style :: fn {
 		if use_light_theme {
 			s.scroll_area.handle.body_color = rgba(0xC2C2C2ff);
 		}
-		s.scroll_area.color           = ternary(use_light_theme, WHITE, rgba(0x000000ff));
+		s.scroll_area.color           = if use_light_theme then WHITE else rgba(0x000000ff);
 		s.scroll_area.scroll_speed    = 25.f;
 		s.scroll_area.body_color      = TRANSPARENT;
 		s.scroll_area.content_padding = 2.f;
@@ -2028,7 +2028,7 @@ get_style :: fn {
 		s.checkbox.on              = s.button;
 		s.checkbox.on_icon         = icon_utf8(ICON_CHECKBOX_ON);
 		s.checkbox.on.label.font   = icon_font;
-		s.checkbox.on.label.color  = ternary(use_light_theme, rgba(0x00AA00FF), GREEN);
+		s.checkbox.on.label.color  = if use_light_theme then rgba(0x00AA00FF) else GREEN;
 		s.checkbox.on.no_body      = true;
 		s.checkbox.off             = s.button;
 		s.checkbox.off_icon        = icon_utf8(ICON_CHECKBOX_OFF);

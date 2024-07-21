@@ -79,6 +79,7 @@ struct context {
 	array(struct ast *) decl_stack;
 	array(struct ast *) fn_type_stack;
 	bool          is_inside_loop;
+	bool          is_inside_expression;
 	struct scope *current_private_scope;
 	struct scope *current_named_scope;
 	struct ast   *current_docs;
@@ -975,12 +976,16 @@ NEXT:
 
 struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 	zone();
+
 	struct token *tok_begin = tokens_consume_if(ctx->tokens, SYM_IF);
 	if (!tok_begin) return_zone(NULL);
 
-	struct ast *stmt_if             = ast_create_node(ctx->ast_arena, AST_STMT_IF, tok_begin, scope_get(ctx));
-	stmt_if->data.stmt_if.is_static = is_static;
-	stmt_if->data.stmt_if.test      = parse_expr(ctx);
+	const bool is_expression = ctx->is_inside_expression;
+
+	struct ast *stmt_if                 = ast_create_node(ctx->ast_arena, AST_STMT_IF, tok_begin, scope_get(ctx));
+	stmt_if->data.stmt_if.is_static     = is_static;
+	stmt_if->data.stmt_if.is_expression = is_expression;
+	stmt_if->data.stmt_if.test          = parse_expr(ctx);
 	if (!stmt_if->data.stmt_if.test) {
 		struct token *tok_err = tokens_consume(ctx->tokens);
 		report_error(
@@ -1026,9 +1031,28 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 			             "Expected statement, expression or block for the false result of the if test.");
 			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
 		}
+	} else if (is_expression) {
+		struct token *tok_err = tokens_peek(ctx->tokens);
+		report_error(EXPECTED_EXPR,
+		             tok_err,
+		             CARET_WORD,
+		             "Expected else branch for ternary if expression. Ternary if expression evaluates into value which must be known for both expression test results.");
+		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
 	}
 
-	if (!else_requires_explicit_block) {
+	if (is_expression) {
+		// Disable block for ternary if expressions.
+		struct ast *true_stmt  = stmt_if->data.stmt_if.true_stmt;
+		struct ast *false_stmt = stmt_if->data.stmt_if.false_stmt;
+		if (true_stmt && true_stmt->kind == AST_BLOCK) {
+			builder_msg(MSG_ERR, ERR_EXPECTED_EXPR, true_stmt->location, CARET_WORD, "Block cannot be used in ternary if expressions.");
+		}
+		if (false_stmt && false_stmt->kind == AST_BLOCK) {
+			builder_msg(MSG_ERR, ERR_EXPECTED_EXPR, false_stmt->location, CARET_WORD, "Block cannot be used in ternary if expressions.");
+		}
+	}
+
+	if (!else_requires_explicit_block && !is_expression) {
 		if (!parse_semicolon_rq(ctx)) {
 			struct token *tok_err = tokens_peek(ctx->tokens);
 			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
@@ -1256,6 +1280,8 @@ struct ast *parse_expr(struct context *ctx) {
 
 struct ast *_parse_expr(struct context *ctx, s32 p) {
 	zone();
+	const bool prev_is_inside_expression = ctx->is_inside_expression;
+	ctx->is_inside_expression = true;
 	struct ast *lhs = parse_expr_atom(ctx);
 	struct ast *tmp = NULL;
 	do {
@@ -1277,6 +1303,7 @@ struct ast *_parse_expr(struct context *ctx, s32 p) {
 		}
 		lhs = parse_expr_binary(ctx, lhs, rhs, op);
 	}
+	ctx->is_inside_expression = prev_is_inside_expression;
 	return_zone(lhs);
 }
 
@@ -1298,6 +1325,9 @@ struct ast *parse_expr_primary(struct context *ctx) {
 	case SYM_FN:
 		if ((expr = parse_expr_lit_fn(ctx))) break;
 		expr = parse_expr_lit_fn_group(ctx);
+		break;
+	case SYM_IF:
+		expr = parse_stmt_if(ctx, false);
 		break;
 	default:
 		break;
@@ -1488,6 +1518,9 @@ struct ast *parse_expr_lit_fn(struct context *ctx) {
 	struct token *tok_fn = tokens_peek(ctx->tokens);
 	struct ast   *fn     = ast_create_node(ctx->ast_arena, AST_EXPR_LIT_FN, tok_fn, scope_get(ctx));
 
+	const bool prev_is_inside_expression = ctx->is_inside_expression;
+	ctx->is_inside_expression = false;
+
 	// Create function scope for function signature.
 	scope_push(ctx,
 	           scope_safe_create(ctx->scopes_context, SCOPE_FN, scope_get(ctx), &tok_fn->location));
@@ -1533,6 +1566,8 @@ struct ast *parse_expr_lit_fn(struct context *ctx) {
 
 	// parse block (block is optional function body can be external)
 	fn->data.expr_fn.block = parse_block(ctx, SCOPE_FN_BODY);
+
+	ctx->is_inside_expression = prev_is_inside_expression;
 
 	scope_pop(ctx);
 	return_zone(fn);

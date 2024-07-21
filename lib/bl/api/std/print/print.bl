@@ -1,7 +1,7 @@
 // =================================================================================================
 // bl
 //
-// File:   print.bl 
+// File:   print.bl
 // Author: Martin Dorazil
 // Date:   3/8/19
 //
@@ -30,40 +30,40 @@
 #load "std/math.bl"
 
 //! # Print
-//! 
+//!
 //! `#import "std/print"`
-//! 
+//!
 //! Printing functions collection.
 
 /// Size of buffer used by `print` function, this is maximum text length which can be printed at once.
 PRINT_MAX_LENGTH :: 4096;
 
 /// Write string to the standard output (stdout). Format string can include format specifiers `%`
-/// which are replaced by corresponding argument value passed in `args`. Value-string conversion is 
+/// which are replaced by corresponding argument value passed in `args`. Value-string conversion is
 /// done automatically, we can pass values of any type as an arguments, even structures or arrays.
-/// 
+///
 /// The `print` function accepts C-like escape sequences as `\n`, `\t`, `\r`, etc.
-/// 
-/// Pointers to `Error` are dereferenced automatically; so the `print` function can print out errors 
+///
+/// Pointers to `Error` are dereferenced automatically; so the `print` function can print out errors
 /// directly.
-/// 
+///
 /// Count of printed bytes is returned.
-/// 
+///
 /// ### Example
 /// ```
 /// main :: fn () s32 {
 ///     print("Hello world!\n");
 ///     print("My name is '%'.\n", "Travis");
 ///     print("Number: %\n", 10);
-/// 
+///
 ///     Foo :: struct {
 ///         i: s32;
 ///         j: s32;
 ///     };
-/// 
+///
 ///     foo := Foo.{10, 20};
 ///     print("foo = '%'\n", foo);
-/// 
+///
 ///     return 0;
 /// }
 /// ```
@@ -85,13 +85,13 @@ eprint :: fn (format: string_view, args: ...) s32 {
 
 /// Write formatted input to the buffer. When passed buffer has not enough space to handle whole
 /// resulting string and terminal character, function will print just part tting into the buffer.
-/// 
-/// Returns count of characters written into buffer, this count does not include terminal character 
+///
+/// Returns count of characters written into buffer, this count does not include terminal character
 /// written at the end of the result string.
 ///
 /// !!! note
 ///     String written into the buffer is always zero terminated.
-/// 
+///
 /// See also [print](#print).
 bprint :: fn (buf: []u8, format: string_view, args: ...) s32 {
 	w :: _print_impl(buf, format, args);
@@ -107,7 +107,7 @@ bprint :: fn (buf: []u8, format: string_view, args: ...) s32 {
 ///
 /// !!! note
 ///     There is no need to explicitly release memory used by temporary string.
-/// 
+///
 /// !!! note
 ///     Created string is always zero terminated.
 ///
@@ -118,8 +118,8 @@ tprint :: fn (format: string_view, args: ...) string #inline {
 	return buf;
 };
 
-/// Write formatted input to the new heap-allocated string. 
-/// 
+/// Write formatted input to the new heap-allocated string.
+///
 /// !!! note
 ///     Use `std.str_delete` to free memory used by string.
 ///
@@ -133,7 +133,7 @@ sprint :: fn (format: string_view, args: ...) string {
 	return buf;
 }
 
-/// Structure to hold information about custom real print formatting. Use [fmt_real](#fmt_real) 
+/// Structure to hold information about custom real print formatting. Use [fmt_real](#fmt_real)
 /// function to create formatted printable value.
 FmtReal :: struct {
 	/// Count of trailing zeros. When this value is less than
@@ -143,7 +143,7 @@ FmtReal :: struct {
 	v: Any;
 }
 
-/// Create formatted printable object for real number. Created [FmtReal](#fmtreal) object is valid 
+/// Create formatted printable object for real number. Created [FmtReal](#fmtreal) object is valid
 fmt_real :: fn (v: Any, trailing: s8) FmtReal #inline {
 	if v.type_info.kind != TypeKind.REAL {
 		panic("Invalid format input, got % but expected is Real number!", v.type_info.kind);
@@ -164,30 +164,30 @@ FmtIntBase :: enum u8 {
 	HEX = 16;
 }
 
-/// Specify number printing format. Use [fmt_int](#fmt_int) helper function to create instance of 
+/// Specify number printing format. Use [fmt_int](#fmt_int) helper function to create instance of
 /// this type.
 FmtInt :: struct {
 	/// Numeric base.
 	base: FmtIntBase;
 	/// Prints prefix based on desired numeric base.
-	/// 
+	///
 	///   * `0b` for binary.
 	///   * `0` for octal.
 	///   * `0x` for hexadecimal.
-	/// 
+	///
 	print_prefix: bool;
+	fixed_digit_count: s32;
 	/// Printed value.
 	v: Any;
 }
 
-/// Create formatted printable object for number. Created [FmtInt](#fmtint) object is valid for 
+/// Create formatted printable object for number. Created [FmtInt](#fmtint) object is valid for
 /// direct printing.
-fmt_int :: fn (v: Any, base: FmtIntBase, print_prefix := true) FmtInt #inline {
+fmt_int :: fn (v: Any, base: FmtIntBase, print_prefix := true, fixed_digit_count := -1) FmtInt #inline {
 	if v.type_info.kind != TypeKind.INT {
 		panic("Invalid format input, got % but expected is Integer number!", v.type_info.kind);
 	}
-
-	return FmtInt.{base, print_prefix, v};
+	return .{base, print_prefix, fixed_digit_count, v};
 }
 
 /// Simple wrapper used for format `u8` value as character.
@@ -196,7 +196,7 @@ FmtChar :: struct {
 }
 
 /// Create formatter for `u8` number to be later printed as character.
-/// 
+///
 /// ### Example
 /// ```
 /// print("% = %\n", 'c', fmt_char('c'));
@@ -231,7 +231,7 @@ __print_impl :: fn (buf: *?T, format: string_view, args: []Any, cur: *s32) {
 			// print argument if there is one
 			if argi < args.len {
 				arguments :: args;
-				print_any(buf, cur, &arguments[argi]); 
+				print_any(buf, cur, &arguments[argi]);
 				argi += 1;
 			} else {
 				print_string(buf, cur, "(null)");
@@ -260,7 +260,7 @@ print_any :: fn (buf: *?T, cur: *s32, any: *Any) {
 			int := u64_from_u8_ptr(any.data, info.bit_count);
 			print_u64(buf, cur, int, FmtIntBase.DEC, 1);
 			return;
-		} 
+		}
 
 	} else if any.type_info.kind == TypeKind.REAL {
 		// Real
@@ -330,11 +330,12 @@ print_any :: fn (buf: *?T, cur: *s32, any: *Any) {
 			fmt :: cast(*FmtInt) any.data;
 			info := cast(*TypeInfoInt) fmt.v.type_info;
 			int := s64_from_u8_ptr(fmt.v.data, info.bit_count);
+			digits :: if fmt.fixed_digit_count < 1 then 1 else fmt.fixed_digit_count;
 			if int < 0 { // negative number
 				print_string(buf, cur, "-");
 				int = -int;
 			}
-			print_u64(buf, cur, auto int, fmt.base, 1, fmt.print_prefix);
+			print_u64(buf, cur, auto int, fmt.base, digits, fmt.print_prefix);
 			return;
 		} else if any.type_info == typeinfo(FmtChar) {
 			fmt :: cast(*FmtChar) any.data;
@@ -430,19 +431,19 @@ print_any :: fn (buf: *?T, cur: *s32, any: *Any) {
 	} else if any.type_info.kind == TypeKind.BOOL {
 		// Bool
 		b := @ cast(*bool) any.data;
-		if b { 
-			print_string(buf, cur, "true"); 
+		if b {
+			print_string(buf, cur, "true");
 			return;
-		} 
-		print_string(buf, cur, "false"); 
+		}
+		print_string(buf, cur, "false");
 		return;
 	} else if any.type_info.kind == TypeKind.ENUM {
-		// Enum 
+		// Enum
 		info := cast(*TypeInfoEnum) any.type_info;
 		info_base_type := cast(*TypeInfoInt) info.base_type;
 
-		value := s64_from_u8_ptr(any.data, info_base_type.bit_count); 
-		if info.is_flags && value > 0 { 
+		value := s64_from_u8_ptr(any.data, info_base_type.bit_count);
+		if info.is_flags && value > 0 {
 			is_first := true;
 			loop i := 0; i < info.variants.len; i += 1 {
 				variant_value :: info.variants[i].value;
@@ -482,7 +483,7 @@ print_any :: fn (buf: *?T, cur: *s32, any: *Any) {
 		// Fn
 		print_type(buf, cur, cast(*TypeInfo) any.data);
 		return;
-	} else { 
+	} else {
 		print("unknown %\n", @any.type_info);
 		print_string(buf, cur, "<unknown>");
 		return;
@@ -575,7 +576,7 @@ print_type :: fn (buf: *?T, cur: *s32, info: *TypeInfo) {
 	} else if info.kind == TypeKind.NULL {
 		print_string(buf, cur, "null");
 		return;
-	} 
+	}
 }
 
 print_string :: fn {
@@ -596,13 +597,13 @@ print_u64 :: fn (buf: *?T, cur: *s32, v: u64, base: FmtIntBase, digits: s32, pri
 	n := v;
 	switch base {
 		FmtIntBase.DEC;
-		FmtIntBase.BIN { 
+		FmtIntBase.BIN {
 			if print_prefix { print_string(buf, cur, "0b"); }
 		}
-		FmtIntBase.OCT { 
+		FmtIntBase.OCT {
 			if print_prefix { print_string(buf, cur, "0"); }
 		}
-		FmtIntBase.HEX { 
+		FmtIntBase.HEX {
 			if print_prefix { print_string(buf, cur, "0x"); }
 		}
 	}
@@ -625,11 +626,11 @@ print_f64 :: fn (buf: *?T, cur: *s32, v: f64, trailing: s32) {
 	ipart :: cast(u64) v;
 	fpart := v - cast(f64) ipart;
 	print_u64(buf, cur, ipart, FmtIntBase.DEC, 1);
-	if adjusted_trailing != 0 { 
+	if adjusted_trailing != 0 {
 		print_string(buf, cur, ".");
-		fpart = fpart * std.pow(10., auto adjusted_trailing); 
-		print_u64(buf, cur, cast(u64) std.ceil(fpart), FmtIntBase.DEC, adjusted_trailing); 
-	} 
+		fpart = fpart * std.pow(10., auto adjusted_trailing);
+		print_u64(buf, cur, cast(u64) std.ceil(fpart), FmtIntBase.DEC, adjusted_trailing);
+	}
 }
 
 s64_from_u8_ptr :: fn (ptr: *u8, bit_count: s32) s64 {
@@ -662,10 +663,10 @@ reverse :: fn (buf: *?T, start: s64, end: s64) #inline {
 	s := start;
 	e := end;
 	loop s < e {
-		temp :: (@buf)[s]; 
-		(@buf)[s] = (@buf)[e]; 
-		(@buf)[e] = temp; 
-		s += 1; 
-		e -= 1; 
+		temp :: (@buf)[s];
+		(@buf)[s] = (@buf)[e];
+		(@buf)[e] = temp;
+		s += 1;
+		e -= 1;
 	}
 }

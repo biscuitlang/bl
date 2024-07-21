@@ -3,24 +3,15 @@
 */
 
 main :: fn () s32 {
+	expr := false;
 
-	expr := true;
-	if expr then print("A\n") else print("B\n");
-	if get() == 10 then return 2;
+	a := 10;
+	b := 20;
 
-	if get() == 10 then {
-		print("Hello");
-	}
-
-
-	print("DONE!\n");
+	num_ptr : *s32 : if expr then &a else &b;
+	print("num = %\n", @num_ptr);
 	return 0;
 }
-
-get :: fn () s32 {
-	return 10;
-}
-
 
 /*
 enum_variants_to_string_list :: fn (TEnum: type #comptime) [enum_count(TEnum)]string_view #comptime {

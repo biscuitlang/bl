@@ -83,6 +83,32 @@ main :: fn () s32 {
 
 However, in such a situation it's better to use the *switch* statement.
 
+### Ternary If Operator
+
+Multiline conditional can be in some cases condensed to a single line expression. We can use ternary `if` expression for this. Unlike in C languge, there is no special operator for such expression in BL. We can just use the same syntax we already have using `if then` pattern. In case the `if` statement is used as an expression, the `else` branch is mandatory. We also cannot use block branches.
+
+```rust
+main :: fn () s32 {
+    value := 50;
+
+	number: s32;
+    // Conditional using standard if statement.
+    if value > 0 {
+        number = 10;
+    } else {
+        number = 20;
+    }
+
+    // Conditional using inline if statement.
+    if value > 0 then number = 10 else number = 20;
+
+    // Direct conditional initialization using ternary if expression.
+    number = if value > 0 then 10 else 20;
+
+    return 0;
+}
+```
+
 ## Switch
 
 A *switch* can compare one numeric value against multiple values and switch execution flow to matching case. The `default` case can be used for all other values we don't explicitly handle. While the expression after *switch* keyword is supposed to be a runtime value, the *case* values must be known in compile-time. Currently, the *switch* can be used only with *integer* types.

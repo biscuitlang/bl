@@ -20,6 +20,19 @@ ERROR_INVALID_HANDLE :: 6;
 ERROR_DIRECTORY :: 267;
 ERROR_BROKEN_PIPE :: 109;
 
+SYSTEMTIME :: struct {
+	wYear: WORD;
+	wMonth: WORD;
+	wDayOfWeek: WORD;
+	wDay: WORD;
+	wHour: WORD;
+	wMinute: WORD;
+	wSecond: WORD;
+	wMilliseconds: WORD;
+}
+
+PSYSTEMTIME, LPSYSTEMTIME :: *SYSTEMTIME;
+
 CP_UTF8 : u32 : 65001;
 WCHAR        :: *C.ushort;
 LPWSTR       :: *C.ushort;
@@ -1195,3 +1208,5 @@ OpenProcess :: fn (dwDesiredAccess: DWORD, bInheritHandle: BOOL, dwProcessId: DW
 
 PathCreateFromUrlA :: fn (pszUrl: PCSTR, pszPath: PSTR, pcchPath: *DWORD, dwFlags: DWORD) HRESULT #extern "PathCreateFromUrlA";
 UrlCreateFromPathA :: fn (pszPath: PCSTR, pszUrl: PSTR, pcchUrl: *DWORD, dwFlags: DWORD) HRESULT #extern "UrlCreateFromPathA";
+
+GetLocalTime :: fn (lpSystemTime: LPSYSTEMTIME) #extern "GetLocalTime";

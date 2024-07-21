@@ -476,7 +476,10 @@ static struct mir_instr *create_instr_member_ptr(struct context      *ctx,
                                                  struct ast          *member_ident,
                                                  struct scope_entry  *scope_entry,
                                                  enum builtin_id_kind builtin_id);
-static struct mir_instr *create_instr_phi(struct context *ctx, struct ast *node);
+// Note 2024-07-21: Phi instruction might depend on some condition (ternary if) so comptime test cannot be based only on
+// incomming values. Whole phi cannot be evaluated even in case we have comptime incomming values, but the
+// condition is runtime.
+static struct mir_instr *create_instr_phi(struct context *ctx, struct ast *node, bool is_comptime);
 static struct mir_instr *create_instr_call(struct context *ctx, struct ast *node, struct mir_instr *callee, mir_instrs_t *args, const bool is_comptime, const bool is_inside_recipe);
 static struct mir_instr *insert_instr_load(struct context *ctx, struct mir_instr *src);
 static struct mir_instr *insert_instr_cast(struct context *ctx, struct mir_instr *src, struct mir_type *to_type);
@@ -633,7 +636,7 @@ static void                    ast_unreachable(struct context *ctx, struct ast *
 static void                    ast_debugbreak(struct context *ctx, struct ast *debug_break);
 static void                    ast_defer_block(struct context *ctx, struct ast *block, bool whole_tree);
 static void                    ast_block(struct context *ctx, struct ast *block);
-static void                    ast_stmt_if(struct context *ctx, struct ast *stmt_if);
+static struct mir_instr       *ast_stmt_if(struct context *ctx, struct ast *stmt_if);
 static void                    ast_stmt_return(struct context *ctx, struct ast *ret);
 static void                    ast_stmt_defer(struct context *ctx, struct ast *defer);
 static void                    ast_stmt_loop(struct context *ctx, struct ast *loop);
@@ -1460,6 +1463,7 @@ static inline bool is_load_needed(const struct mir_instr *instr) {
 	case MIR_INSTR_COMPOUND:
 	case MIR_INSTR_SIZEOF:
 	case MIR_INSTR_DESIGNATOR:
+	case MIR_INSTR_PHI:
 		return false;
 
 	case MIR_INSTR_LOAD: {
@@ -3329,10 +3333,11 @@ struct mir_instr *append_instr_using(struct context *ctx, struct ast *node, stru
 	return &tmp->base;
 }
 
-struct mir_instr *create_instr_phi(struct context *ctx, struct ast *node) {
+struct mir_instr *create_instr_phi(struct context *ctx, struct ast *node, bool force_no_comptime) {
 	struct mir_instr_phi *tmp = create_instr(ctx, MIR_INSTR_PHI, node);
 	tmp->incoming_values      = arena_alloc(&ctx->assembly->arenas.sarr);
 	tmp->incoming_blocks      = arena_alloc(&ctx->assembly->arenas.sarr);
+	tmp->force_no_comptime    = force_no_comptime;
 	return &tmp->base;
 }
 
@@ -4447,7 +4452,7 @@ struct result analyze_instr_phi(struct context *ctx, struct mir_instr_phi *phi) 
 	phi->incoming_values        = new_values;
 	phi->base.value.type        = type;
 	phi->base.value.addr_mode   = MIR_VAM_RVALUE;
-	phi->base.value.is_comptime = is_comptime;
+	phi->base.value.is_comptime = is_comptime && !phi->force_no_comptime;
 	return_zone(PASS);
 }
 
@@ -5231,7 +5236,7 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 	}
 
 	const enum mir_instr_kind target_kind = member_ptr->target_ptr->kind;
-	const bool require_tmp = (target_kind == MIR_INSTR_CALL || target_kind == MIR_INSTR_CONST)&& !mir_is_pointer_type(member_ptr->target_ptr->value.type);
+	const bool                require_tmp = (target_kind == MIR_INSTR_CALL || target_kind == MIR_INSTR_CONST) && !mir_is_pointer_type(member_ptr->target_ptr->value.type);
 
 	// struct type
 	if (mir_is_composite_type(target_type)) {
@@ -9673,7 +9678,7 @@ void ast_debugbreak(struct context *ctx, struct ast *debug_break) {
 	append_instr_debugbreak(ctx, debug_break);
 }
 
-void ast_stmt_if(struct context *ctx, struct ast *stmt_if) {
+struct mir_instr *ast_stmt_if(struct context *ctx, struct ast *stmt_if) {
 	struct ast *ast_condition = stmt_if->data.stmt_if.test;
 	struct ast *ast_then      = stmt_if->data.stmt_if.true_stmt;
 	struct ast *ast_else      = stmt_if->data.stmt_if.false_stmt;
@@ -9681,53 +9686,72 @@ void ast_stmt_if(struct context *ctx, struct ast *stmt_if) {
 	struct mir_fn *fn = ast_current_fn(ctx);
 	bassert(fn);
 
-	const bool              is_static      = stmt_if->data.stmt_if.is_static;
-	struct mir_instr_block *tmp_block      = NULL;
-	struct mir_instr_block *then_block     = append_block(ctx, fn, cstr("if_then"));
-	struct mir_instr_block *continue_block = append_block(ctx, fn, cstr("if_continue"));
-	struct mir_instr       *cond           = ast(ctx, ast_condition);
+	struct mir_instr_phi *ternary_phi = NULL;
+	if (stmt_if->data.stmt_if.is_expression)
+		ternary_phi = (struct mir_instr_phi *)create_instr_phi(ctx, stmt_if, !stmt_if->data.stmt_if.is_static);
 
-	// Note: Else block is optional in this case i.e. if (true) { ... } expression does not have
-	// else block at all, so there is no need to generate one and 'conditional break' just
-	// breaks into the `continue` block. Skipping generation of else block also fixes issue with
-	// missing DI location of the last break emitted into the empty else block. Obviously there
-	// is no good source code position for something not existing in source code!
-	const bool              has_else_branch = ast_else;
+	const bool              is_static       = stmt_if->data.stmt_if.is_static;
+	struct mir_instr       *cond            = ast(ctx, ast_condition);
+	struct mir_instr_block *root_block      = ast_current_block(ctx);
+	struct mir_instr_block *then_block      = NULL;
 	struct mir_instr_block *else_block      = NULL;
-	if (has_else_branch) {
+	struct mir_instr_block *continue_block  = NULL;
+	struct mir_instr_block *last_then_block = NULL;
+	struct mir_instr_block *last_else_block = NULL;
+
+	{ // then block
+		then_block = append_block(ctx, fn, cstr("if_then"));
+		set_current_block(ctx, then_block);
+		struct mir_instr *maybe_then_expression = ast(ctx, ast_then);
+		last_then_block                         = ast_current_block(ctx);
+
+		if (ternary_phi) {
+			if (!maybe_then_expression) {
+				report_error(EXPECTED_EXPR, ast_then, "Expected expression.");
+			} else {
+				phi_add_income(ternary_phi, maybe_then_expression, last_then_block);
+			}
+		}
+	}
+
+	if (ast_else) { // else block
 		else_block = append_block(ctx, fn, cstr("if_else"));
-		append_instr_cond_br(ctx, stmt_if, cond, then_block, else_block, is_static);
-	} else {
-		append_instr_cond_br(ctx, stmt_if, cond, then_block, continue_block, is_static);
-	}
-
-	// then block
-	set_current_block(ctx, then_block);
-	ast(ctx, ast_then);
-	tmp_block = ast_current_block(ctx);
-	if (!get_block_terminator(tmp_block)) {
-		// block has not been terminated -> add terminator
-		struct ast *location_node = get_last_instruction_node(tmp_block);
-		append_instr_br(ctx, location_node, continue_block);
-	}
-
-	// else if
-	if (has_else_branch) {
-		bassert(else_block);
 		set_current_block(ctx, else_block);
-		ast(ctx, ast_else);
+		struct mir_instr *maybe_else_expression = ast(ctx, ast_else);
+		last_else_block                         = ast_current_block(ctx);
 
-		tmp_block = ast_current_block(ctx);
-		if (!is_block_terminated(tmp_block)) {
-			append_instr_br(ctx, get_last_instruction_node(tmp_block), continue_block);
-		}
-
-		if (!is_block_terminated(else_block)) {
-			set_current_block(ctx, else_block);
-			append_instr_br(ctx, get_last_instruction_node(else_block), continue_block);
+		if (ternary_phi) {
+			if (!maybe_else_expression) {
+				report_error(EXPECTED_EXPR, ast_then, "Expected expression.");
+			} else {
+				phi_add_income(ternary_phi, maybe_else_expression, last_else_block);
+			}
 		}
 	}
+
+	// continue block
+	continue_block = append_block(ctx, fn, cstr("if_continue"));
+
+	bassert(root_block && then_block);
+	set_current_block(ctx, root_block);
+	append_instr_cond_br(ctx, stmt_if, cond, then_block, else_block ? else_block : continue_block, is_static);
+
+	// Terminate all previous blocks
+	if (!is_block_terminated(last_then_block)) {
+		set_current_block(ctx, last_then_block);
+		append_instr_br(ctx, get_last_instruction_node(last_then_block), continue_block);
+	}
+
+	if (last_else_block && !is_block_terminated(last_else_block)) {
+		set_current_block(ctx, last_else_block);
+		append_instr_br(ctx, get_last_instruction_node(last_else_block), continue_block);
+	}
+
 	set_current_block(ctx, continue_block);
+	if (!ternary_phi) return NULL;
+
+	append_current_block(ctx, &ternary_phi->base);
+	return &ternary_phi->base;
 }
 
 void ast_stmt_loop(struct context *ctx, struct ast *loop) {
@@ -10453,7 +10477,7 @@ struct mir_instr *ast_expr_binop(struct context *ctx, struct ast *binop) {
 		if (!end_block) {
 			bassert(!phi);
 			end_block                      = create_block(ctx, cstr("end_block"));
-			phi                            = (struct mir_instr_phi *)create_instr_phi(ctx, binop);
+			phi                            = (struct mir_instr_phi *)create_instr_phi(ctx, binop, false);
 			ctx->ast.current_phi_end_block = end_block;
 			ctx->ast.current_phi           = phi;
 			append_end_block               = true;
@@ -11244,8 +11268,7 @@ struct mir_instr *ast(struct context *ctx, struct ast *node) {
 		ast_stmt_continue(ctx, node);
 		break;
 	case AST_STMT_IF:
-		ast_stmt_if(ctx, node);
-		break;
+		return ast_stmt_if(ctx, node);
 	case AST_STMT_SWITCH:
 		ast_stmt_switch(ctx, node);
 		break;

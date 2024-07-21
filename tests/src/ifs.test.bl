@@ -175,7 +175,7 @@ static_if_2 :: fn () #test {
 	}
 }
 
-optional_then :: fn () {
+optional_then :: fn () #test {
 	v := false;
 	expr := true;
 	if expr then {
@@ -184,7 +184,7 @@ optional_then :: fn () {
 	test_true(v);
 }
 
-optional_then_with_else :: fn () {
+optional_then_with_else :: fn () #test {
 	v := false;
 	expr := true;
 	if expr then {
@@ -195,16 +195,35 @@ optional_then_with_else :: fn () {
 	test_true(v);
 }
 
-inline_if :: fn () {
+inline_if :: fn () #test {
 	v := false;
 	expr := true;
 	if expr then v = true;
 	test_true(v);
 }
 
-inline_if_with_else_branch :: fn () {
+inline_if_with_else_branch :: fn () #test {
 	v := false;
 	expr := true;
 	if expr then v = true else v = false;
 	test_true(v);
 }
+
+ternary_simple :: fn () #test {
+	expr := true;
+	test_eq(if expr then 10 else 20, 10);
+	test_eq(if !expr then 10 else 20, 20);
+}
+
+ternary_simple2 :: fn () #test {
+	expr := true;
+	a := 10;
+	b := 20;
+	test_eq(if expr then &a else &b, &a);
+}
+
+ternary_nested :: fn () #test {
+	expr := true;
+	test_eq(if expr then (if !expr then 30 else 40) else 20, 40);
+}
+

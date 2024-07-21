@@ -172,6 +172,7 @@ struct ast_stmt_if {
 	struct ast *true_stmt;
 	struct ast *false_stmt;
 	bool        is_static;
+	bool        is_expression; // ternary
 };
 
 struct ast_stmt_switch {

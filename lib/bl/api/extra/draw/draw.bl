@@ -861,7 +861,7 @@ do_render :: fn () {
 	}
 
 	shader_bind_uniform(context.shader, MV, view_matrix);
-	shader_bind_uniform(context.shader, APPLY_GAMMA, ternary(apply_gamma_correction, 1, 0));
+	shader_bind_uniform(context.shader, APPLY_GAMMA, if apply_gamma_correction then 1 else 0);
 	if context.texture {
 		shader_bind_texture(context.shader, context.texture, DIFFUSE);
 	}
