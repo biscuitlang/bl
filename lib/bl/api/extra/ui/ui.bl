@@ -1639,7 +1639,7 @@ textbox_impl :: fn (rect: Rect, text: *string, flags := TextboxFlags.DEFAULT, _s
 			textbox.marker = position;
 		}
 	}
-	
+
 	textbox.marker = std.min(target_text.len, textbox.marker);
 
 	changed := false;
@@ -1977,11 +1977,10 @@ draw_textbox_cursor :: fn (text: string_view, rect: Rect, mask: glm.v4, style: *
 
 get_style :: fn {
 	fn () *Style {
-		if current_style {
-			return current_style;
-		}
+		if current_style then return current_style;
 		s :: &default_style;
-
+		current_style = s;
+		
 		edit_body :: if use_light_theme then WHITE else rgba(0x101010ff);
 
 		s.focus_color = if use_light_theme then rgba(0x99D9EAFF) else rgba(0x12678fff);
