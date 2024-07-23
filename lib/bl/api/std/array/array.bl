@@ -14,6 +14,9 @@
 //! {% include "../examples/dynamic_arrays.bl" %}
 //! ```
 
+ARRAY_ALLOC_BLOCK_SIZE : usize = 32;
+ARRAY_GROW_FACTOR      : f32   = 1.5f;
+
 // Not direcly used internally, when layout of this structure is changed, internal compiler
 // representation must be modified too.
 _Array :: struct {
@@ -67,8 +70,8 @@ array_push_all :: fn (_arr: *[..]?T, data: []T) {
 	if data.len < 1 { return; }
 	elem_size :: sizeof(T);
 	arr.len += data.len;
-	ensure_space(auto arr, elem_size, auto arr.len, alignof(T));
-	dest_ptr :: get_elem_ptr(auto arr, elem_size, arr.len - data.len);
+	_array_ensure_space(auto arr, elem_size, auto arr.len, alignof(T));
+	dest_ptr :: _array_get_elem_ptr(auto arr, elem_size, arr.len - data.len);
 	memcpy(dest_ptr, auto data.ptr, elem_size * auto data.len);
 }
 
@@ -79,7 +82,7 @@ array_pop :: fn (_arr: *[..]?T, out: *T = null) bool #inline {
 	// Eventually assert?
 	if arr.len == 0 { return false; }
 	if out {
-		elem :: get_elem_ptr(arr, sizeof(T), arr.len - 1);
+		elem :: _array_get_elem_ptr(arr, sizeof(T), arr.len - 1);
 		memcpy(auto out, elem, sizeof(T));
 	}
 	arr.len -= 1;
@@ -93,7 +96,7 @@ array_pop_first :: fn (_arr: *[..]?T, out: *T = null) bool #inline {
 	// Eventually assert?
 	if arr.len == 0 { return false; }
 	if out {
-		elem :: get_elem_ptr(arr, sizeof(T), 0);
+		elem :: _array_get_elem_ptr(arr, sizeof(T), 0);
 		memcpy(auto out, elem, sizeof(T));
 	}
 	array_erase_keep_order(_arr, 0);
@@ -106,7 +109,7 @@ array_reserve :: fn (_arr: *[..]?T, n: s64) #inline {
 	arr := cast(*_Array) _arr;
 	if n == 0 { return; }
 	if n < 0 { panic("Invalid array capacity!"); }
-	ensure_space(arr, sizeof(T), auto n, alignof(T));
+	_array_ensure_space(arr, sizeof(T), auto n, alignof(T));
 }
 
 array_resize :: fn (_arr: *[..]?T, n: s64) #inline {
@@ -126,8 +129,8 @@ array_erase :: fn (_arr: *[..]?T, i: s64) {
 	}
 	elem_size :: sizeof(T);
 	memcpy(
-		get_elem_ptr(arr, elem_size, i),
-		get_elem_ptr(arr, elem_size, arr.len - 1),
+		_array_get_elem_ptr(arr, elem_size, i),
+		_array_get_elem_ptr(arr, elem_size, arr.len - 1),
 		elem_size
 	);
 	arr.len -= 1;
@@ -144,7 +147,7 @@ array_erase_keep_order :: fn (_arr: *[..]?T, i: s64) {
 	}
 	elem_size :: sizeof(T);
 	size_to_move :: (arr.len - i - 1) * auto elem_size;
-	memmove(get_elem_ptr(arr, elem_size, i), get_elem_ptr(arr, elem_size, i + 1), auto size_to_move);
+	memmove(_array_get_elem_ptr(arr, elem_size, i), _array_get_elem_ptr(arr, elem_size, i + 1), auto size_to_move);
 	arr.len -= 1;
 }
 
@@ -181,8 +184,8 @@ array_insert :: fn (_arr: *[..]?T, before_index: s64, value: T) s64 {
 	array_push(_arr);
 	elem_size :: sizeof(T);
 	size_to_move :: (arr.len - before_index) * auto elem_size;
-	memmove(get_elem_ptr(arr, elem_size, before_index+1), get_elem_ptr(arr, elem_size, before_index), auto size_to_move);
-	dest_ptr :: get_elem_ptr(auto arr, elem_size, before_index);
+	memmove(_array_get_elem_ptr(arr, elem_size, before_index+1), _array_get_elem_ptr(arr, elem_size, before_index), auto size_to_move);
+	dest_ptr :: _array_get_elem_ptr(auto arr, elem_size, before_index);
 	memcpy(dest_ptr, auto &value, elem_size);
 	return before_index;
 }
@@ -199,27 +202,24 @@ array_allocated_bytes :: fn (_arr: *[..]?T) usize #inline {
 	return arr.allocated_elems;
 }
 
-#private
-ALLOC_BLOCK_SIZE : usize : 32;
-GROW_FACTOR      : f32   : 1.5f;
+// Mostly implementation private stuff, this is not private because it might be useful in some rare cases.
+// However it's preffered to use standard public api.
 
-get_elem_ptr :: fn (arr: *_Array, elem_size: usize, i: s64) *u8 #inline {
-	if i >= arr.len {
-		panic("Element index out of range, index is % but array size is %.", i, arr.len);
-	}
+_array_get_elem_ptr :: fn (arr: *_Array, elem_size: usize, i: s64) *u8 #inline {
+	if i >= arr.len then panic("Element index out of range, index is % but array size is %.", i, arr.len);
 	return ptr_shift_bytes(arr.ptr, i * cast(s64) elem_size);
-};
+}
 
-ensure_space :: fn (arr: *_Array, elem_size: usize, needed_elems: usize, alignement: usize) {
+_array_ensure_space :: fn (arr: *_Array, elem_size: usize, needed_elems: usize, alignement: usize) {
 	if needed_elems == 0                   { return; }
 	if arr.allocated_elems >= needed_elems { return; }
 
 	// Allocated larger block for later use.
 	extended_needed_elems := needed_elems;
 	if arr.allocated_elems == 0 {
-		extended_needed_elems = std.max(ALLOC_BLOCK_SIZE, extended_needed_elems);
+		extended_needed_elems = std.max(ARRAY_ALLOC_BLOCK_SIZE, extended_needed_elems);
 	} else {
-		extended_needed_elems = auto (GROW_FACTOR * auto extended_needed_elems);
+		extended_needed_elems = auto (ARRAY_GROW_FACTOR * auto extended_needed_elems);
 	}
 
 	assert(extended_needed_elems >= needed_elems);
@@ -230,7 +230,9 @@ ensure_space :: fn (arr: *_Array, elem_size: usize, needed_elems: usize, alignem
 
 	arr.ptr = mem;
 	arr.allocated_elems = extended_needed_elems;
-};
+}
+
+#private
 
 impl_push :: fn (arr: *[..]?T, v: T) *T #inline {
 	data      :: v;
@@ -243,6 +245,6 @@ impl_push :: fn (arr: *[..]?T, v: T) *T #inline {
 impl_push_empty :: fn (arr: *[..]?T) *T {
 	elem_size :: sizeof(T);
 	arr.len += 1;
-	ensure_space(auto arr, elem_size, auto arr.len, alignof(T));
-	return auto get_elem_ptr(auto arr, elem_size, arr.len - 1);
+	_array_ensure_space(auto arr, elem_size, auto arr.len, alignof(T));
+	return auto _array_get_elem_ptr(auto arr, elem_size, arr.len - 1);
 }
