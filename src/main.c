@@ -804,7 +804,7 @@ SKIP:
 
 	if (opt.target->kind != ASSEMBLY_BUILD_PIPELINE && !has_input_files) {
 		builder_error("No input files, use 'blc my-source-file.bl' or 'blc -build' in case the "
-		              "'build.bl' is present.");
+		              "'build.bl' is present. For more info type 'blc --help'.");
 		EXIT(EXIT_FAILURE);
 	}
 
