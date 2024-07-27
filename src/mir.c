@@ -9052,6 +9052,9 @@ void analyze_report_unresolved(struct context *ctx) {
 				}
 			} else {
 				report_error(UNKNOWN_SYMBOL, instr->node, "Unknown symbol '%.*s'.", sym_name.len, sym_name.ptr);
+				if (str_match(sym_name, builtin_ids[BUILTIN_ID_MAIN].str)) {
+					report_note(NULL, "Executable requires 'main' entry point function: \n\n\tmain :: fn () s32 {\n\t\treturn 0;\n\t}\n");
+				}
 			}
 			++reported;
 		}
