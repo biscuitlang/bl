@@ -9646,6 +9646,7 @@ struct mir_var *rtti_gen_fn_group(struct context *ctx, struct mir_type *type) {
 // Generate instructions for all ast nodes pushed into defer_stack in reverse order.
 void ast_defer_block(struct context *ctx, struct ast *block, bool whole_tree) {
 	bassert(ctx->ast.current_defer_stack_index >= 0);
+	bassert(block);
 	defer_stack_t *stack = &ctx->ast.defer_stack[ctx->ast.current_defer_stack_index];
 	struct ast    *defer;
 	for (usize i = sarrlenu(stack); i-- > 0;) {

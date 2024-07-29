@@ -209,6 +209,32 @@ inline_if_with_else_branch :: fn () #test {
 	test_true(v);
 }
 
+if_mixed_branches :: fn () #test {
+	v := 0;
+	expr := true;
+
+	if expr then   v = 1;
+	test_eq(v, 1);
+
+	if expr then { v = 2; }
+	test_eq(v, 2);
+
+	if expr      { v = 3; }
+	test_eq(v, 3);
+
+	if !expr then   v = 4     else   v = 5;
+	test_eq(v, 5);
+
+	if !expr then   v = 6     else { v = 7;  }
+	test_eq(v, 7);
+
+	if !expr then { v = 8;  } else { v = 9;  }
+	test_eq(v, 9);
+
+	if !expr      { v = 10; } else { v = 11; }
+	test_eq(v, 11);
+}
+
 ternary_simple :: fn () #test {
 	expr := true;
 	test_eq(if expr then 10 else 20, 10);

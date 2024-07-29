@@ -48,6 +48,10 @@
 #define decl_pop(ctx) arrpop((ctx)->decl_stack)
 #define decl_get(ctx) (arrlenu((ctx)->decl_stack) ? arrlast((ctx)->decl_stack) : NULL)
 
+#define block_push(ctx, block) arrput((ctx)->block_stack, block)
+#define block_pop(ctx) arrpop((ctx)->block_stack)
+#define block_get(ctx) (arrlenu((ctx)->block_stack) ? arrlast((ctx)->block_stack) : NULL)
+
 #define consume_till(tokens, ...)                                 \
 	{                                                             \
 		enum sym _[] = {__VA_ARGS__};                             \
@@ -78,6 +82,7 @@ struct context {
 	array(struct scope *) scope_stack;
 	array(struct ast *) decl_stack;
 	array(struct ast *) fn_type_stack;
+	array(struct ast *) block_stack;
 	bool          is_inside_loop;
 	bool          is_inside_expression;
 	struct scope *current_private_scope;
@@ -887,7 +892,7 @@ bool parse_semicolon_rq(struct context *ctx) {
 	if (!tok) {
 		tok = tokens_peek_prev(ctx->tokens);
 		report_error(MISSING_SEMICOLON, tok, CARET_AFTER, "Expected semicolon ';'.");
-		consume_till(ctx->tokens, SYM_IDENT, SYM_RBLOCK);
+		// consume_till(ctx->tokens, SYM_IDENT, SYM_RBLOCK); 2024-07-29 We don't want this everytime...
 		return false;
 	}
 	return true;
@@ -995,10 +1000,9 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 
 	struct token *tok_then = tokens_consume_if(ctx->tokens, SYM_THEN);
 
-	stmt_if->data.stmt_if.true_stmt         = parse_block(ctx, SCOPE_LEXICAL);
-	const bool else_requires_explicit_block = stmt_if->data.stmt_if.true_stmt;
-	if (!stmt_if->data.stmt_if.true_stmt && tok_then) stmt_if->data.stmt_if.true_stmt = parse_single_block_stmt_or_expr(ctx, NULL);
-	if (!stmt_if->data.stmt_if.true_stmt) {
+	struct ast *true_branch = parse_block(ctx, SCOPE_LEXICAL);
+	if (!true_branch && tok_then) true_branch = parse_single_block_stmt_or_expr(ctx, NULL);
+	if (!true_branch) {
 		struct token *tok_err = tokens_consume(ctx->tokens);
 		report_error(EXPECTED_STMT,
 		             tok_err,
@@ -1007,23 +1011,26 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
 	}
 
-	stmt_if->data.stmt_if.false_stmt = NULL;
-	if (tokens_consume_if(ctx->tokens, SYM_ELSE)) {
-		stmt_if->data.stmt_if.false_stmt = parse_stmt_if(ctx, is_static);
-		if (!stmt_if->data.stmt_if.false_stmt) stmt_if->data.stmt_if.false_stmt = parse_block(ctx, SCOPE_LEXICAL);
-		if (!stmt_if->data.stmt_if.false_stmt && else_requires_explicit_block) {
-			struct token *tok_err = tokens_consume(ctx->tokens);
-			report_error(EXPECTED_STMT,
-			             tok_err,
-			             CARET_WORD,
-			             "Expected explicit block for false result of the if test. "
-			             "The block is required in case the explicit block was used for the true branch of the if statement.");
-			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
-		}
+	bassert(true_branch);
 
-		if (!stmt_if->data.stmt_if.false_stmt)
-			stmt_if->data.stmt_if.false_stmt = parse_single_block_stmt_or_expr(ctx, NULL);
-		if (!stmt_if->data.stmt_if.false_stmt) {
+	// @Note 2024-07-29: Defer is disabled for now, this might complicate defered instruction stack when defer is conditional.
+	// We might improve this in future.
+	if (true_branch->kind == AST_STMT_DEFER) {
+		builder_msg(MSG_ERR,
+		            ERR_EXPECTED_EXPR,
+		            true_branch->location,
+		            CARET_WORD,
+		            "Defer statement is not allowed in inline if statements for now.");
+	}
+
+	stmt_if->data.stmt_if.true_stmt = true_branch;
+
+	struct ast *false_branch = NULL;
+	if (tokens_consume_if(ctx->tokens, SYM_ELSE)) {
+		false_branch = parse_stmt_if(ctx, is_static);
+		if (!false_branch) false_branch = parse_block(ctx, SCOPE_LEXICAL);
+		if (!false_branch) false_branch = parse_single_block_stmt_or_expr(ctx, NULL);
+		if (!false_branch) {
 			struct token *tok_err = tokens_consume(ctx->tokens);
 			report_error(EXPECTED_STMT,
 			             tok_err,
@@ -1031,7 +1038,22 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 			             "Expected statement, expression or block for the false result of the if test.");
 			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
 		}
+
+		bassert(false_branch);
+
+		// @Note 2024-07-29: Defer is disabled for now, this might complicate defered instruction stack when defer is conditional.
+		// We might improve this in future.
+		if (false_branch->kind == AST_STMT_DEFER) {
+			struct ast *expr = stmt_if->data.stmt_if.false_stmt;
+			builder_msg(MSG_ERR,
+			            ERR_EXPECTED_EXPR,
+			            expr->location,
+			            CARET_WORD,
+			            "Defer statement is not allowed in inline if statements for now.");
+		}
+
 	} else if (is_expression) {
+		// @Note 2024-07-29: Expression require else to be present!
 		struct token *tok_err = tokens_peek(ctx->tokens);
 		report_error(EXPECTED_EXPR,
 		             tok_err,
@@ -1040,25 +1062,24 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
 	}
 
+	stmt_if->data.stmt_if.false_stmt = false_branch;
+
 	if (is_expression) {
 		// Disable block for ternary if expressions.
-		struct ast *true_stmt  = stmt_if->data.stmt_if.true_stmt;
-		struct ast *false_stmt = stmt_if->data.stmt_if.false_stmt;
-		if (true_stmt && true_stmt->kind == AST_BLOCK) {
-			builder_msg(MSG_ERR, ERR_EXPECTED_EXPR, true_stmt->location, CARET_WORD, "Block cannot be used in ternary if expressions.");
+		bassert(true_branch);
+		if (true_branch->kind == AST_BLOCK) {
+			builder_msg(MSG_ERR, ERR_EXPECTED_EXPR, true_branch->location, CARET_WORD, "Block cannot be used in ternary if expressions.");
 		}
-		if (false_stmt && false_stmt->kind == AST_BLOCK) {
-			builder_msg(MSG_ERR, ERR_EXPECTED_EXPR, false_stmt->location, CARET_WORD, "Block cannot be used in ternary if expressions.");
-		}
-	}
-
-	if (!else_requires_explicit_block && !is_expression) {
-		if (!parse_semicolon_rq(ctx)) {
-			struct token *tok_err = tokens_peek(ctx->tokens);
-			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
+		if (false_branch && false_branch->kind == AST_BLOCK) {
+			builder_msg(MSG_ERR, ERR_EXPECTED_EXPR, false_branch->location, CARET_WORD, "Block cannot be used in ternary if expressions.");
 		}
 	}
 
+	if (is_expression) return_zone(stmt_if);
+	if (false_branch && (false_branch->kind == AST_BLOCK || false_branch->kind == AST_STMT_IF)) return_zone(stmt_if);
+	if (true_branch->kind == AST_BLOCK) return_zone(stmt_if);
+
+	parse_semicolon_rq(ctx);
 	return_zone(stmt_if);
 }
 
@@ -1281,9 +1302,9 @@ struct ast *parse_expr(struct context *ctx) {
 struct ast *_parse_expr(struct context *ctx, s32 p) {
 	zone();
 	const bool prev_is_inside_expression = ctx->is_inside_expression;
-	ctx->is_inside_expression = true;
-	struct ast *lhs = parse_expr_atom(ctx);
-	struct ast *tmp = NULL;
+	ctx->is_inside_expression            = true;
+	struct ast *lhs                      = parse_expr_atom(ctx);
+	struct ast *tmp                      = NULL;
 	do {
 		tmp = parse_expr_call(ctx, lhs);
 		if (!tmp) tmp = parse_expr_elem(ctx, lhs);
@@ -1519,7 +1540,7 @@ struct ast *parse_expr_lit_fn(struct context *ctx) {
 	struct ast   *fn     = ast_create_node(ctx->ast_arena, AST_EXPR_LIT_FN, tok_fn, scope_get(ctx));
 
 	const bool prev_is_inside_expression = ctx->is_inside_expression;
-	ctx->is_inside_expression = false;
+	ctx->is_inside_expression            = false;
 
 	// Create function scope for function signature.
 	scope_push(ctx,
@@ -2371,7 +2392,8 @@ struct ast *parse_single_block_stmt_or_expr(struct context *ctx, bool *out_requi
 	if (out_require_semicolon) *out_require_semicolon = false;
 
 NEXT:
-	switch (tokens_peek_sym(ctx->tokens)) {
+	const enum sym sym = tokens_peek_sym(ctx->tokens);
+	switch (sym) {
 	case SYM_SEMICOLON:
 		tok = tokens_consume(ctx->tokens);
 		report_warning(tok, CARET_WORD, "Extra semicolon can be removed ';'.");
@@ -2385,6 +2407,12 @@ NEXT:
 	case SYM_RETURN:
 		tmp = parse_stmt_return(ctx);
 		if (out_require_semicolon && AST_IS_OK(tmp)) *out_require_semicolon = true;
+		if (tmp->kind == AST_STMT_RETURN) {
+			struct ast *owner_block = block_get(ctx);
+			bassert(owner_block && owner_block->kind == AST_BLOCK);
+			tmp->data.stmt_return.owner_block  = owner_block;
+			owner_block->data.block.has_return = true;
+		}
 		break;
 	case SYM_USING:
 		tmp = parse_stmt_using(ctx);
@@ -2461,15 +2489,15 @@ struct ast *parse_block(struct context *ctx, enum scope_kind scope_kind) {
 
 	block->data.block.nodes = arena_alloc(ctx->sarr_arena);
 
+	block_push(ctx, block);
+
 	bool require_semicolon = false;
 	while ((tmp = parse_single_block_stmt_or_expr(ctx, &require_semicolon))) {
-		if (tmp->kind == AST_STMT_RETURN) {
-			block->data.block.has_return      = true;
-			tmp->data.stmt_return.owner_block = block;
-		}
-
 		sarrput(block->data.block.nodes, tmp);
-		if (require_semicolon) parse_semicolon_rq(ctx);
+		if (require_semicolon && !parse_semicolon_rq(ctx)) {
+			consume_till(ctx->tokens, SYM_RBLOCK, SYM_SEMICOLON);
+			tokens_consume_if(ctx->tokens, SYM_SEMICOLON);
+		}
 	}
 
 	struct token *tok = tokens_consume_if(ctx->tokens, SYM_RBLOCK);
@@ -2478,10 +2506,12 @@ struct ast *parse_block(struct context *ctx, enum scope_kind scope_kind) {
 		report_error(EXPECTED_BODY_END, tok, CARET_AFTER, "Expected end of block '}'.");
 		report_note(tok_begin, CARET_WORD, "Block starting here.");
 		if (scope_created) scope_pop(ctx);
+		block_pop(ctx);
 		return ast_create_node(ctx->ast_arena, AST_BAD, tok_begin, scope_get(ctx));
 	}
 
 	if (scope_created) scope_pop(ctx);
+	block_pop(ctx);
 	return block;
 }
 
@@ -2497,7 +2527,12 @@ NEXT:
 	if ((tmp = parse_decl(ctx))) {
 		if (AST_IS_OK(tmp)) {
 			struct ast *decl = tmp->data.decl_entity.value;
-			if (decl && rq_semicolon_after_decl_entity(decl)) parse_semicolon_rq(ctx);
+			if (decl && rq_semicolon_after_decl_entity(decl)) {
+				if (!parse_semicolon_rq(ctx)) {
+					consume_till(ctx->tokens, SYM_SEMICOLON, SYM_IDENT, SYM_HASH);
+					tokens_consume_if(ctx->tokens, SYM_SEMICOLON);
+				}
+			}
 			// setup global scope flag for declaration
 			tmp->data.decl_entity.is_global = true;
 			if (ctx->current_private_scope) tmp->data.decl.flags |= FLAG_PRIVATE;
@@ -2574,5 +2609,6 @@ void parser_run(struct assembly *assembly, struct unit *unit) {
 	arrfree(ctx.decl_stack);
 	arrfree(ctx.scope_stack);
 	arrfree(ctx.fn_type_stack);
+	arrfree(ctx.block_stack);
 	return_zone();
 }
