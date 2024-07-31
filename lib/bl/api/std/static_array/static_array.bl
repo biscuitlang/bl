@@ -4,7 +4,7 @@
 //!
 //! ### Example
 //!
-//! ```c
+//! ```bl
 //! {% include "../examples/static_array.bl" %}
 //! ```
 
@@ -12,7 +12,7 @@
 
 /// Create **Static Array** type.
 ///
-/// ```c
+/// ```bl
 /// StaticArray :: struct {
 ///     data[elem_count]TElem;
 ///     len: s64;

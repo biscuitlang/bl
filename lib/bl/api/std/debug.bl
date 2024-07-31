@@ -84,7 +84,7 @@ __assert_default :: fn (message: string_view, loc: *CodeLocation) {
 ///
 /// ### Example
 ///
-/// ```
+/// ```bl
 /// panic(); // abort without any messages
 /// panic(error); // abort with [Error](#error).
 /// panic("oops!"); // abort with message printed out.
@@ -153,7 +153,7 @@ __print_log_default :: fn (kind: PrintLogKind, file: string_view, line: s32, for
 ///
 /// ### Example
 ///
-/// ```
+/// ```bl
 /// measure_elapsed_ms_begin();
 /// defer measure_elapsed_ms_end("Name");
 /// ```

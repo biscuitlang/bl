@@ -39,7 +39,7 @@
 //! 
 //! The error state is represented by the following data structure:
 //!
-//! ```rust
+//! ```bl
 //! _Error :: struct {
 //!     msg: string_view;
 //!     code: s32;
@@ -50,7 +50,7 @@
 //! 
 //! ### Example
 //!
-//! ```c
+//! ```bl
 //! {% include "../examples/error_handling.bl" %}
 //! ```
 //! 
@@ -82,7 +82,7 @@ is_error :: fn (err: Error, code: s32) bool #inline {
 /// Error creating does not require any HEAP memory alocations.
 /// 
 /// **Overloads:**
-/// ```c
+/// ```bl
 /// fn (code: s32) Error #inline
 /// fn (format: string, args: ...) Error #inline
 /// fn (code: s32, format: string, args: ...) Error #inline

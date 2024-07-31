@@ -44,7 +44,7 @@ OpenFileMode :: enum #flags {
 ///
 /// ### Example
 ///
-/// ```rust
+/// ```bl
 /// {% include "../examples/open_file.bl" %}
 /// ```
 ///
@@ -167,7 +167,7 @@ remove_dir :: fn (dirpath: string_view) Error #inline {
 ///
 /// **Overloads:**
 ///
-/// ```c
+/// ```bl
 /// fn (dirpath: string_view, remove_root := true) Error #inline
 /// fn (dirpath: string_view, remove_root: bool, filter: *fn(info: *FileVisitInfo, ctx: *?T) bool, ctx: *T = null) Error
 /// ```
@@ -219,14 +219,14 @@ VisitOpt :: struct {
 ///
 /// **Overloads:**
 ///
-/// ```c
+/// ```bl
 /// fn (dirpath: string_view, opt: VisitOpt, ctx: *?T, visitor: *fn(info: *FileVisitInfo, ctx: *T) Error) Error #inline
 /// fn (dirpath: string_view, opt: VisitOpt, visitor: *fn(info: *FileVisitInfo) Error) Error #inline
 /// ```
 ///
 /// ### Example
 ///
-/// ```c
+/// ```bl
 /// {% include "../examples/visit_files.bl" %}
 /// ```
 visit_files :: fn {

@@ -9,7 +9,7 @@
 //!
 //! ### Example
 //!
-//! ```c
+//! ```bl
 //! {% include "../examples/streams.bl" %}
 //! ```
 

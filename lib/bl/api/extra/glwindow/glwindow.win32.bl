@@ -17,7 +17,7 @@
 //!
 //! ### Example
 //!
-//! ```c
+//! ```bl
 //! #import "extra/glwindow"
 //!
 //! main :: fn () s32 {

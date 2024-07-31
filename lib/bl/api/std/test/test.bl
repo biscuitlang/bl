@@ -43,7 +43,7 @@
 
 /// ### Overloads
 ///
-/// ```
+/// ```bl
 /// fn (got: string_view, expected: string_view, loc := #call_location)
 /// fn (got: string, expected: string_view, loc := #call_location)
 /// fn (got: string_view, expected: string, loc := #call_location)
@@ -101,7 +101,7 @@ test_eq :: fn {
 
 /// ### Overloads
 /// 
-/// ```
+/// ```bl
 /// fn (got: string, not_expected: string, loc := #call_location)
 /// fn (got: string, expected: string_view, loc := #call_location)
 /// fn (got: string_view, expected: string, loc := #call_location)
@@ -246,7 +246,7 @@ test_is_error :: fn (got_err: Error, expected_code: s32, loc := #call_location) 
 /// 
 /// ### Example
 ///     
-/// ```
+/// ```bl
 /// #load "std/test.bl"
 /// 
 /// my_test :: fn () #test {

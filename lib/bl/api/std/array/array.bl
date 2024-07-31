@@ -10,7 +10,7 @@
 //!
 //! ### Example
 //!
-//! ```c
+//! ```bl
 //! {% include "../examples/dynamic_arrays.bl" %}
 //! ```
 

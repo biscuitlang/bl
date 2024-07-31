@@ -1,6 +1,6 @@
 //! # Memory
 //! 
-//! ```
+//! ```bl
 //! #load "std/memory.bl"
 //! ```
 //! 
@@ -58,7 +58,7 @@ default_allocator :: Allocator.{ handler = &default_allocator_handler };
 ///
 /// ### Example
 ///
-/// ```
+/// ```bl
 /// main :: fn () s32 {
 ///     // Release allocated memory at the end of the scope.
 ///     defer temporary_release();
@@ -294,7 +294,7 @@ zeromem :: fn (destination: *u8, size: usize) *u8 {
 ///
 /// ### Example
 /// 
-/// ```
+/// ```bl
 /// foo :: zeroinit(array_push(&my_array));
 /// ```
 zeroinit :: fn (ptr: *?T) *T #inline {
@@ -345,7 +345,7 @@ align_ptr_up :: fn (p: *u8, alignment: usize) (p: *u8, adjustment: usize)
 ///
 /// ### Example
 /// 
-/// ```
+/// ```bl
 /// main :: fn () s32 {
 ///     // Allocate slice of 10 numbers
 ///     sl: []s32;
@@ -386,7 +386,7 @@ alloc_slice :: fn (slice: *[]?T, n: s64, zero_initialized := true, allocator: *A
 /// 
 /// Indexing rules:
 ///
-/// ```
+/// ```bl
 /// start >= 0
 /// start < slice.len
 /// end >= 0

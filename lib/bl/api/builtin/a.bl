@@ -35,7 +35,7 @@
 //! Compiler builtins are automatically loaded into every assembly.
 //!
 //! ## Current running platform
-//! ```c
+//! ```bl
 //! Platform :: enum s32 {
 //!     UNKNOWN;
 //!     WINDOWS;
@@ -47,7 +47,7 @@
 //! ```
 //!
 //! ## Current running architecture
-//! ```c
+//! ```bl
 //! Arch :: enum s32 {
 //!     UNKNOWN;
 //!     X86_64;
@@ -59,7 +59,7 @@
 //! ```
 //!
 //! ## Current running environment
-//! ```c
+//! ```bl
 //! Env :: enum s32 {
 //!     UNKNOWN;
 //!     MSVC;
@@ -69,8 +69,9 @@
 //!
 //! ENV :: <SET_BY_COMPILER>;
 //! ```
+//!
 //! ## Compiler version
-//! ```c
+//! ```bl
 //! BLC_VER_MAJOR : s32 : <SET_BY_COMPILER>;
 //! BLC_VER_MINOR : s32 : <SET_BY_COMPILER>;
 //! BLC_VER_PATCH : s32 : <SET_BY_COMPILER>;
@@ -232,7 +233,7 @@ TypeInfoStructMember :: struct #compiler {
 	/// User defined member tag can be used to store any custom user data up to 8 bytes into the type
 	/// info structure when structure member is defined.
 	///
-	/// ```
+	/// ```bl
 	/// Foo :: struct {
 	///     i: s32 #tag 123;
 	///     j: s32 #tag 321;
@@ -282,7 +283,7 @@ TestCase :: struct #compiler {
 /// Type of source code location used by `#call_location` directive.
 ///
 /// ### Example
-/// ```
+/// ```bl
 /// foo :: fn (loc: *CodeLocation = #call_location) {
 ///     print("%\n", @loc);
 /// }

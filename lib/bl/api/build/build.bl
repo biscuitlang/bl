@@ -37,7 +37,7 @@
 //! compilation steps, target input and output can be specified here.
 //!
 //! Example of minimal build.bl:
-//! ```
+//! ```bl
 //! build :: fn () #build_entry {
 //!     // create new executable target
 //!     exe :: add_executable("MyProgram");
@@ -69,7 +69,7 @@
 //! [add_executable](#add_executable) function to specify your target. There are several options
 //! related to target, described later  in this documentation.
 //!
-//! ```
+//! ```bl
 //! exe :: add_executable("MyProgram");
 //! ```
 //!
@@ -79,7 +79,7 @@
 //! all files you want to use, general `load` and `import` will do so automatically. Only `main` or
 //! entry files must be included.
 //!
-//! ```
+//! ```bl
 //! add_unit(exe, "main.bl");
 //! ```
 //!
@@ -89,12 +89,12 @@
 //! executables). Use [set_output_dir](#set_output_dir) function to specify this directory, current
 //! directory is used by default.
 //!
-//! ```
+//! ```bl
 //! set_output_dir(exe, "bin");
 //! ```
 //!
 //! ### Compile target
-//! ```
+//! ```bl
 //! compile(exe);
 //! ```
 //!
@@ -285,7 +285,7 @@ AssertMode :: enum s32 {
 /// Assemblies are compiled after `build_entry` function execution in order they are added.
 ///
 /// ### Example
-/// ```
+/// ```bl
 /// build :: fn () #build_entry {
 ///     exe :: add_executable("MyProgram");
 ///     add_unit(exe, "src/main.bl");
@@ -362,7 +362,7 @@ add_lib_path :: fn (target: *Target, path: string_view) {
 /// * On Windows name will be extended only by '.dll' extension.
 ///
 /// ### Example
-/// ```
+/// ```bl
 /// build :: fn () #build_entry {
 ///     exe :: add_executable("MyGame");
 ///     add_unit(exe, "src/main.bl");

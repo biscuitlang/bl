@@ -1,6 +1,6 @@
 //! # Async Job System
 //!
-//! ```
+//! ```bl
 //! #import "std/async"
 //! ```
 //!

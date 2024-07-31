@@ -36,7 +36,7 @@
 //! The `draw` API is based on switching the global context of rendering primitives (rectangles). In example
 //! to draw bunch of colored rectangles we must set the propper shader first:
 //!
-//! ```c
+//! ```bl
 //! using draw;
 //! using glm;
 //! set_shader_color(); // Prepare renderer for rendering of colored rectangles.

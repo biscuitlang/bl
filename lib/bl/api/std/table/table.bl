@@ -26,7 +26,7 @@
 //!
 //! ### Example
 //!
-//! ```c
+//! ```bl
 //! {% include "../examples/table.bl" %}
 //! ```
 //!
@@ -37,7 +37,7 @@
 
 /// Create a new **Table** type. The `TKey` must be a number, string or pointer type.
 ///
-/// ```c
+/// ```bl
 /// Table :: struct {
 ///     keys: [..]TKey;
 ///     values: [..]TValue;
@@ -95,7 +95,7 @@ tbl_typeof_value :: fn (TTable: type #comptime) type #comptime {
 /// mode and panic is invoked in case of collision.
 ///
 /// **Overloads:**
-/// ```c
+/// ```bl
 /// fn (tbl: *?T, key: tbl_typeof_key(T), value: tbl_typeof_value(T)) *tbl_typeof_value(T) #inline
 /// fn (tbl: *?T, key: tbl_typeof_key(T)) *tbl_typeof_value(T) #inline
 /// ```

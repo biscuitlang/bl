@@ -18,7 +18,7 @@
 //!
 //! ### Example
 //!
-//! ```c
+//! ```bl
 //! {% include "../examples/bucket_array.bl" %}
 //! ```
 //!
@@ -29,7 +29,7 @@
 
 /// Create a new **BucketArray** type based on `TElem` element type.
 ///
-/// ```c
+/// ```bl
 /// BucketArray :: struct {
 ///     len: s64;
 /// }
@@ -47,7 +47,7 @@ BucketArray :: fn (TElem: type #comptime) type #comptime {
 
 /// Create a new **BucketArrayIterator** type based of `TArr` bucket array type.
 ///
-/// ```c
+/// ```bl
 /// BucketArrayIterator :: struct {
 ///     value: TElem;
 /// }
@@ -91,7 +91,7 @@ bucket_array_terminate :: fn (arr: *?TArr) {
 /// returned element pointer points to un-initialized memory.
 ///
 /// **Overloads:**
-/// ```c
+/// ```bl
 /// fn (arr: *?TArr, value: bucket_array_typeof_elem(TArr)) *bucket_array_typeof_elem(TArr)
 /// fn (arr: *?TArr) *bucket_array_typeof_elem(TArr)
 /// ```

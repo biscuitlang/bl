@@ -53,7 +53,7 @@
 //!
 //! ### Example
 //!
-//! ```c
+//! ```bl
 //! {% include "../examples/debug_allocator.bl" %}
 //! ```
 //!
