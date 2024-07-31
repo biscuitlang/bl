@@ -35,7 +35,7 @@
 
 #define INDENTATION_CHARS 4
 
-#define CODE_BLOCK_BEGIN(stream) fprintf(stream, "\n```c\n")
+#define CODE_BLOCK_BEGIN(stream) fprintf(stream, "\n```bl\n")
 #define CODE_BLOCK_END(stream) fprintf(stream, "\n```\n\n")
 #define CODE_INDENTED(stream, indentation)                               \
 	if (indentation) {                                                   \

@@ -15,7 +15,7 @@ TODO
 //!
 //! Builtin UTF-8 encoded dynamic string container.
 //!
-//! ```
+//! ```bl
 //! string :: struct {
 //!     len: s64;
 //!     ptr: *u8;
@@ -43,7 +43,7 @@ TODO
 /// zero terminated.
 ///
 /// **Overloads:**
-/// ```c
+/// ```bl
 /// fn (allocator: *Allocator = null) string
 /// fn (size: s64, allocator: *Allocator = null) string
 /// fn (v: string_view, allocator: *Allocator = null) string
@@ -136,7 +136,7 @@ str_concat :: fn (v: *string, args: ...) string {
 ///
 /// **hint**: Use this function in case you need create only temporary string i.e. file path.
 ///
-/// ```
+/// ```bl
 /// VERSION :: "1.0.0";
 ///
 /// path := std.str_new();
@@ -324,7 +324,7 @@ strtof64 :: fn (str: string_view, count := -1) (f64, Error) {
 ///
 /// ### Example
 ///
-/// ```c
+/// ```bl
 /// main :: fn () s32 {
 ///     lhs: string_view;
 ///     rhs: string_view;
@@ -371,7 +371,7 @@ str_split_by_last :: fn (str: string_view, delimiter: u8, lhs: *string_view, rhs
 ///
 /// ### Example
 ///
-/// ```
+/// ```bl
 /// main :: fn () s32 {
 ///     lhs: string_view;
 ///     rhs: string_view;
@@ -407,7 +407,7 @@ str_split_at_index :: fn (str: string_view, index: s32, lhs: *string_view = null
 ///
 /// ### Example
 ///
-/// ```
+/// ```bl
 /// main :: fn () s32 {
 ///     lhs: string_view;
 ///     rhs: string_view;
@@ -446,7 +446,7 @@ str_split_by_first :: fn (str: string_view, delimiter: u8, lhs: *string_view, rh
 /// Overloaded function inserting one character or other string at desired position.
 ///
 /// **Overloads:**
-/// ```c
+/// ```bl
 /// fn (str: *string, index: s32, v: u8) bool #inline
 /// fn (str: *string, index: s32, v: string_view) bool
 /// ```
@@ -500,14 +500,14 @@ str_split_by :: fn (str: string_view, delimiter: u8, allocator: *Allocator = nul
 /// callback returns `false` parsing is stopped.
 ///
 /// **Overloads:**
-/// ```c
+/// ```bl
 /// fn (str: string_view, delimiter: u8, ctx: *?T, visitor: *fn(token: string_view, ctx: *T) bool)
 /// fn (str: string_view, delimiter: u8, visitor: *fn(token: string_view) bool)
 /// ```
 ///
 /// ### Example
 ///
-/// ```c
+/// ```bl
 /// main :: fn () s32 {
 ///     using std;
 ///     path := "/home/travis/develop/foo";
