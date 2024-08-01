@@ -45,7 +45,7 @@ OpenFileMode :: enum #flags {
 /// ### Example
 ///
 /// ```bl
-/// {% include "../examples/open_file.bl" %}
+/// @@@examples/open_file.bl
 /// ```
 ///
 open_file :: fn (filepath: string_view, mode: OpenFileMode = OpenFileMode.READ) (FileStream, Error) #inline {
@@ -227,7 +227,7 @@ VisitOpt :: struct {
 /// ### Example
 ///
 /// ```bl
-/// {% include "../examples/visit_files.bl" %}
+/// @@@examples/visit_files.bl
 /// ```
 visit_files :: fn {
 	fn (dirpath: string_view, opt: VisitOpt, ctx: *?T, visitor: *fn(info: *FileVisitInfo, ctx: *T) Error) Error #inline {

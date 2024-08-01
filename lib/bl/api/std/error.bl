@@ -51,7 +51,7 @@
 //! ### Example
 //!
 //! ```bl
-//! {% include "../examples/error_handling.bl" %}
+//! @@@examples/error_handling.bl
 //! ```
 //! 
 //! As already mentioned, the [defer](/book/control_flow/#defer) statement may be helpful in situations

@@ -5,7 +5,7 @@
 //! ### Example
 //!
 //! ```bl
-//! {% include "../examples/static_array.bl" %}
+//! @@@examples/static_array.bl
 //! ```
 
 #scope std

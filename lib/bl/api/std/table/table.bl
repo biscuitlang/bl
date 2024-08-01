@@ -27,7 +27,7 @@
 //! ### Example
 //!
 //! ```bl
-//! {% include "../examples/table.bl" %}
+//! @@@examples/table.bl
 //! ```
 //!
 

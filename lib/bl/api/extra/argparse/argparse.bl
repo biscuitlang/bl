@@ -7,7 +7,7 @@
 //! ### Example
 //!
 //! ```bl
-//! {% include "../examples/argparse.bl" %}
+//! @@@examples/argparse.bl
 //! ```
 //!
 //! ### Possible application output.

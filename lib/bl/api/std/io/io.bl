@@ -10,7 +10,7 @@
 //! ### Example
 //!
 //! ```bl
-//! {% include "../examples/streams.bl" %}
+//! @@@examples/streams.bl
 //! ```
 
 #scope std

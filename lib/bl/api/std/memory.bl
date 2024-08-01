@@ -1,15 +1,15 @@
 //! # Memory
-//! 
+//!
 //! ```bl
 //! #load "std/memory.bl"
 //! ```
-//! 
+//!
 //! Toolset for manipulation with the system memory.
 //!
 //! ## Memory allocator
 //!
-//! Memory allocators are used across the entire program to manage allocated memory resources used 
-//! in runtime. Since memory allocation can be an expensive operation in some cases, it's good to 
+//! Memory allocators are used across the entire program to manage allocated memory resources used
+//! in runtime. Since memory allocation can be an expensive operation in some cases, it's good to
 //! provide an explicit API, giving information enough to fix bugs, memory leaks and performance
 //! issues.
 //!
@@ -28,7 +28,7 @@ DEFAULT_ALIGNMENT : usize : alignof(f64);
 /// Default memory allocator using libc malloc internally.
 ///
 /// ### Supported Operation
-/// 
+///
 ///     - [x] Allocate
 ///     - [x] Reallocate
 ///     - [x] Free
@@ -119,7 +119,7 @@ Allocator :: struct {
 /// Allocate memory using specified `preferred_allocator`. In case the `preferred_allocator` is null, default application context
 /// allocator is used.
 ///
-/// Returns pointer to the newly allocated memory capable to handle `size` bytes, or fails with `Error` in case the 
+/// Returns pointer to the newly allocated memory capable to handle `size` bytes, or fails with `Error` in case the
 /// allocation is not possible.
 ///
 /// The allocation `size` must be at least 1 byte and the optional `alignment` must be value of power of two. Use `alignof`
@@ -136,13 +136,13 @@ alloc :: fn (size: usize, alignment := DEFAULT_ALIGNMENT, preferred_allocator: *
 	return mem, err;
 }
 
-/// Reallocate previously allocated memory using the `preferred_allocator`. In case the `preferred_allocator` is null, 
+/// Reallocate previously allocated memory using the `preferred_allocator`. In case the `preferred_allocator` is null,
 /// default application context allocator is used.
 ///
-/// Behavior depends on allocator being used. Usually when the previous allocation pointer `ptr` is specified, the 
-/// implementation should try to resize already allocated block of memory to the requested `size`. In case resize is not 
-/// possible, or is not supported by the allocator, new memory block is allocated to handle `size` of bytes, and data from the 
-/// previous block are copied (memory area with size equal the lesser of the new and the old allocation sizes) into the newly 
+/// Behavior depends on allocator being used. Usually when the previous allocation pointer `ptr` is specified, the
+/// implementation should try to resize already allocated block of memory to the requested `size`. In case resize is not
+/// possible, or is not supported by the allocator, new memory block is allocated to handle `size` of bytes, and data from the
+/// previous block are copied (memory area with size equal the lesser of the new and the old allocation sizes) into the newly
 /// allocated block. The previous allocated block is freed.
 ///
 /// The allocation `size` must be at least 1 byte and the optional `alignment` must be value of power of two. Use `alignof`
@@ -173,10 +173,10 @@ new :: fn (T: type #comptime, noinit := false, preferred_allocator: *Allocator =
 	if !noinit {
 		zeromem(mem, sizeof(T));
 	}
-	return auto mem, OK; 
+	return auto mem, OK;
 }
 
-/// Allocates new slice of 'element_count' elements of 'TElement' type. 
+/// Allocates new slice of 'element_count' elements of 'TElement' type.
 ///
 /// Newly allocated memory block is zero initialized by default unless the `noinit` is `true`.
 ///
@@ -196,7 +196,7 @@ new_slice :: fn (TElement: type #comptime, element_count: s64, noinit := false, 
 	return slice, OK;
 }
 
-/// Free memory previously allocated by specific `preferred_allocator`. In case the `preferred_allocator` is null, 
+/// Free memory previously allocated by specific `preferred_allocator`. In case the `preferred_allocator` is null,
 /// the default application context allocator is used. The `ptr` can be null.
 free :: fn (ptr: *u8, preferred_allocator: *Allocator = null, loc := #call_location) #inline {
 	allocator := preferred_allocator;
@@ -227,7 +227,7 @@ reset_allocator :: fn (allocator: *Allocator, loc := #call_location) #inline {
 }
 
 /// Invoke the release operation on the `allocator`. If the operation is supported, the allocator should release all resources and free
-/// all internally allocated memory. 
+/// all internally allocated memory.
 release_allocator :: fn (allocator: *Allocator, loc := #call_location) #inline {
 	assert(allocator.handler);
 	allocator.handler(allocator, AllocOp.RELEASE, null, 0, 0, loc.file, loc.line);
@@ -271,7 +271,7 @@ memmove :: fn (destination: *u8, source: *u8, size: usize) *u8 {
 	return destination;
 }
 
-/// Zero out `destination` memory of `size` and return the original `destination` pointer. 
+/// Zero out `destination` memory of `size` and return the original `destination` pointer.
 /// This function is internally optimized to zero the `destination` memory in 64 bit blocks if possible.
 zeromem :: fn (destination: *u8, size: usize) *u8 {
 	ptr := destination;
@@ -293,7 +293,7 @@ zeromem :: fn (destination: *u8, size: usize) *u8 {
 /// "inline chaining".
 ///
 /// ### Example
-/// 
+///
 /// ```bl
 /// foo :: zeroinit(array_push(&my_array));
 /// ```
@@ -319,7 +319,7 @@ is_aligned :: fn (ptr: *?T, alignment: usize) bool #inline {
 	return cast(usize)ptr % alignment == 0;
 }
 
-/// Align pointer `p` to `alignment` and return adjusted pointer and number of bytes needed for 
+/// Align pointer `p` to `alignment` and return adjusted pointer and number of bytes needed for
 /// adjustment.
 ///
 /// !!! warning
@@ -344,18 +344,18 @@ align_ptr_up :: fn (p: *u8, alignment: usize) (p: *u8, adjustment: usize)
 /// Allocated memory must be released by [free_slice](#free_slice) call.
 ///
 /// ### Example
-/// 
+///
 /// ```bl
 /// main :: fn () s32 {
 ///     // Allocate slice of 10 numbers
 ///     sl: []s32;
 ///     alloc_slice(&sl, 10);
-/// 
+///
 ///     loop i := 0; i < sl.len; i += 1 {
 ///         sl[i] = i;
 ///     }
-/// 
-///     // release memory allocated by init
+///
+///     // Release allocated memory
 ///     free_slice(&sl);
 ///     return 0;
 /// }
@@ -383,7 +383,7 @@ alloc_slice :: fn (slice: *[]?T, n: s64, zero_initialized := true, allocator: *A
 /// Create slice subset defined as range `<start-index, end-index)`. Notice that `end` index
 /// is excluded from range, so ``slice_range(other, 0, other.len)`` is valid and returns
 /// new slice pointing to the same data as `other` slice, and with same size.
-/// 
+///
 /// Indexing rules:
 ///
 /// ```bl
@@ -396,7 +396,7 @@ alloc_slice :: fn (slice: *[]?T, n: s64, zero_initialized := true, allocator: *A
 /// !!! warning
 ///     Function cause panic in case combination of `start` and `end` is out of `slice` range.
 slice_range :: fn (slice: []?T, start: s64, end: s64 = -1) []T #inline {
-	e := end; 
+	e := end;
 	if e < 0 { e = slice.len; }
 	len :: e - start;
 	if len < 0 || len > slice.len || start < 0 || start >= slice.len {
@@ -405,7 +405,7 @@ slice_range :: fn (slice: []?T, start: s64, end: s64 = -1) []T #inline {
 	return []T.{len, auto ptr_shift_bytes(slice.ptr, start * cast(s64) sizeof(T))};
 }
 
-/// Reduce allocated memory in application context temporary allocator storage, but keeps biggest allocated chunk for 
+/// Reduce allocated memory in application context temporary allocator storage, but keeps biggest allocated chunk for
 /// the later use.
 ///
 /// !!! warning
@@ -435,7 +435,7 @@ ptr_shift_bytes :: fn (ptr: *?T, bytes: s64) *T #inline {
 
 /// Calculates pointer difference `a` - `b`.
 ptr_diff :: fn (a: *?T1, b: *?T2) s64 #inline {
-	return (cast(s64) a) - (cast(s64) b); 
+	return (cast(s64) a) - (cast(s64) b);
 }
 
 #private
@@ -480,7 +480,7 @@ default_allocator_handler :: fn (
 			C.free(ptr);
 }
 		}
-		
+
 		RESET, RELEASE {
 			panic("Unsupported operation: %.", operation);
 		}

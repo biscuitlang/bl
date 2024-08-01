@@ -54,7 +54,7 @@
 //! ### Example
 //!
 //! ```bl
-//! {% include "../examples/debug_allocator.bl" %}
+//! @@@examples/debug_allocator.bl
 //! ```
 //!
 //! ```text

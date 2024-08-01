@@ -19,7 +19,7 @@
 //! ### Example
 //!
 //! ```bl
-//! {% include "../examples/bucket_array.bl" %}
+//! @@@examples/bucket_array.bl
 //! ```
 //!
 //! !!! note

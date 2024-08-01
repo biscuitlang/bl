@@ -50,7 +50,7 @@ PRINT_MAX_LENGTH :: 4096;
 /// Count of printed bytes is returned.
 ///
 /// ### Example
-/// ```
+/// ```bl
 /// main :: fn () s32 {
 ///     print("Hello world!\n");
 ///     print("My name is '%'.\n", "Travis");
