@@ -1,0 +1,269 @@
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+body, html {
+	height: 100%;
+	font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Liberation Sans,Helvetica Neue,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji;
+	background-color: black;
+	color: whitesmoke;
+    scroll-behavior: smooth;
+}
+
+.container {
+	display: flex;
+	height: 100vh;
+    max-width: 1400px;
+    margin: auto;
+}
+
+.column {
+	padding: 20px;
+	overflow-y: auto;
+	border-right: 1px solid #202020;
+}
+
+.column:last-child {
+	border-right: none;
+}
+
+h1 {
+	margin-bottom: 10px;
+    padding-top: 10px;
+    color: #F8E43C;
+}
+
+h2 {
+    margin-bottom: 5px;
+    margin-top: 20px;
+}
+
+h3 {
+    margin-bottom: 5px;
+    margin-top: 15px;
+}
+
+p {
+	line-height: 1.4;
+	padding-bottom: 10px;
+}
+
+ul {
+    margin: 10px;
+	padding-left: 10px;
+}
+
+a {
+    color: #F8E43C;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+code {
+    color: #CCC;
+    font-size: 120%;
+}
+
+pre code {
+    font-size: 100%;
+	white-space: pre-wrap;
+    background-color: #0C1924;
+    border: 1px solid #1C3A54;
+    border-radius: 4px;
+    padding: 10px;
+    display: block;
+    margin: 10px;
+	margin-left: 0px;
+    color: #CCC;
+    tab-size: 4;
+}
+
+table {
+    border: 1px solid #ddd;
+    width: 100%;
+    border-radius: 4px;
+	margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+td, th {
+    padding: 8px;
+}
+
+tr:nth-child(even) {
+    background-color: #161616;
+}
+
+th {
+    padding-top: 4px;
+    padding-bottom: 4px;
+    text-align: left;
+    background-color: #525252;
+}
+
+.syntax-keyword {
+    color: #FFF200;
+}
+
+.syntax-comment {
+    color: #00FF80;
+}
+
+.syntax-directive {
+    color: #9B9B9B;
+}
+
+.hint-todo {
+	background-color: #377E47;
+	display: block;
+    padding: 10px;
+    border: 1px solid #429655;
+    border-radius: 4px;
+}
+
+.hint-note {
+    background-color: #525252;
+    display: block;
+    padding: 10px;
+    border: 1px solid #6B6B6B;
+    border-radius: 4px;
+}
+
+.hint-warning {
+    background-color: #8F8E30;
+    display: block;
+    padding: 10px;
+    border: 1px solid #A8A738;
+    border-radius: 4px;
+}
+
+.hint-important {
+    background-color: #880015;
+    display: block;
+    padding: 10px;
+    border: 1px solid #BD001D;
+    border-radius: 4px;
+}
+
+.logo {
+    width: 100%;
+    height: 180px;
+    position:relative;
+}
+
+.logo img {
+    width: 100%;
+    height: 100%;
+}
+
+.version {
+    background-color: #377E47;
+    display: block;
+    border: 1px solid #6EBD46;
+    border-radius: 4px;
+    width: 64px;
+    text-align: center;
+    position:absolute;
+    bottom:25px;
+    right:0;
+    font-family: monospace;
+}
+
+::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+}
+
+::-webkit-scrollbar-track {
+    background: black;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #303030;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #F8E43C;
+}
+
+#column1 {
+    width: 20%;
+}
+
+#column2 {
+    width: 60%;
+}
+
+#column3 {
+    width: 20%;
+}
+
+#column3 a {
+    font-size: 80%;
+}
+
+#column1 ul {
+    padding-left: 20%;
+}
+
+#logo {
+    width: 100%;
+}
+
+#menu-top-level {
+    list-style-type: none;
+    margin: 0px;
+}
+
+#menu-top-level a {
+    color: whitesmoke;
+}
+
+#menu-top-level-item {
+    padding-top: 10px;
+    font-size: 120%;
+}
+
+#bl-search-results, #bl-search-default-results {
+    list-style-type: none;
+    padding: 0px;
+}
+
+#bl-search-results li {
+    display: block;
+    padding: 4px;
+}
+
+#bl-search-results a {
+    color: whitesmoke;
+}
+
+#bl-search-results li:nth-child(even) {
+    background-color: #161616;
+}
+
+#bl-search {
+    display: flex;
+    flex-direction: row;
+    margin: auto;
+    width: 100%;
+    height: 2em;
+    border: 1px solid #303030;
+    border-radius: 4px;
+    background-color: black;
+    color: white;
+    padding: 6px;
+    -webkit-transition: 0.5s;
+    transition: 0.5s;
+    outline: none;
+}
+
+#bl-search:focus {
+    border: 1px solid #F8E43C;
+}

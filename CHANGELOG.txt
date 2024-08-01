@@ -21,6 +21,7 @@ Fix member access directly on call result.
 Fix group initialization of multiple variables at once in global scope.
 Add support for x86_64-unknown-linux-gnu target architecture triple.
 Add untyped compound expressions.
+Add new documentation web generator.
 Reworked thread pool.
 
 0.10.0 - PRE-RELEASE

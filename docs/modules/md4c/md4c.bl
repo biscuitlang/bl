@@ -1,0 +1,129 @@
+// Generated file, do not edit unless you know what you are doing!
+
+MD_FLAG_COLLAPSEWHITESPACE          : u32 : 0x0001;  /* In MD_TEXT_NORMAL, collapse non-trivial whitespace into single ' ' */
+MD_FLAG_PERMISSIVEATXHEADERS        : u32 : 0x0002;  /* Do not require space in ATX headers ( ###header ) */
+MD_FLAG_PERMISSIVEURLAUTOLINKS      : u32 : 0x0004;  /* Recognize URLs as autolinks even without '<', '>' */
+MD_FLAG_PERMISSIVEEMAILAUTOLINKS    : u32 : 0x0008;  /* Recognize e-mails as autolinks even without '<', '>' and 'mailto:' */
+MD_FLAG_NOINDENTEDCODEBLOCKS        : u32 : 0x0010;  /* Disable indented code blocks. (Only fenced code works.) */
+MD_FLAG_NOHTMLBLOCKS                : u32 : 0x0020;  /* Disable raw HTML blocks. */
+MD_FLAG_NOHTMLSPANS                 : u32 : 0x0040;  /* Disable raw HTML (inline). */
+MD_FLAG_TABLES                      : u32 : 0x0100;  /* Enable tables extension. */
+MD_FLAG_STRIKETHROUGH               : u32 : 0x0200;  /* Enable strikethrough extension. */
+MD_FLAG_PERMISSIVEWWWAUTOLINKS      : u32 : 0x0400;  /* Enable WWW autolinks (even without any scheme prefix, if they begin with 'www.') */
+MD_FLAG_TASKLISTS                   : u32 : 0x0800;  /* Enable task list extension. */
+MD_FLAG_LATEXMATHSPANS              : u32 : 0x1000;  /* Enable $ and $$ containing LaTeX equations. */
+MD_FLAG_WIKILINKS                   : u32 : 0x2000;  /* Enable wiki links extension. */
+MD_FLAG_UNDERLINE                   : u32 : 0x4000;  /* Enable underline extension (and disables '_' for normal emphasis). */
+MD_FLAG_HARD_SOFT_BREAKS            : u32 : 0x8000;  /* Force all soft breaks to act as hard breaks. */
+
+MD_CHAR :: C.char;
+MD_SIZE :: C.uint;
+MD_OFFSET :: C.uint;
+MD_BLOCKTYPE :: enum s32 {
+    MD_BLOCK_DOC = 0x0;
+    MD_BLOCK_QUOTE = 0x1;
+    MD_BLOCK_UL = 0x2;
+    MD_BLOCK_OL = 0x3;
+    MD_BLOCK_LI = 0x4;
+    MD_BLOCK_HR = 0x5;
+    MD_BLOCK_H = 0x6;
+    MD_BLOCK_CODE = 0x7;
+    MD_BLOCK_HTML = 0x8;
+    MD_BLOCK_P = 0x9;
+    MD_BLOCK_TABLE = 0xa;
+    MD_BLOCK_THEAD = 0xb;
+    MD_BLOCK_TBODY = 0xc;
+    MD_BLOCK_TR = 0xd;
+    MD_BLOCK_TH = 0xe;
+    MD_BLOCK_TD = 0xf;
+}
+MD_SPANTYPE :: enum s32 {
+    MD_SPAN_EM = 0x0;
+    MD_SPAN_STRONG = 0x1;
+    MD_SPAN_A = 0x2;
+    MD_SPAN_IMG = 0x3;
+    MD_SPAN_CODE = 0x4;
+    MD_SPAN_DEL = 0x5;
+    MD_SPAN_LATEXMATH = 0x6;
+    MD_SPAN_LATEXMATH_DISPLAY = 0x7;
+    MD_SPAN_WIKILINK = 0x8;
+    MD_SPAN_U = 0x9;
+}
+MD_TEXTTYPE :: enum s32 {
+    MD_TEXT_NORMAL = 0x0;
+    MD_TEXT_NULLCHAR = 0x1;
+    MD_TEXT_BR = 0x2;
+    MD_TEXT_SOFTBR = 0x3;
+    MD_TEXT_ENTITY = 0x4;
+    MD_TEXT_CODE = 0x5;
+    MD_TEXT_HTML = 0x6;
+    MD_TEXT_LATEXMATH = 0x7;
+}
+MD_ALIGN :: enum s32 {
+    MD_ALIGN_DEFAULT = 0x0;
+    MD_ALIGN_LEFT = 0x1;
+    MD_ALIGN_CENTER = 0x2;
+    MD_ALIGN_RIGHT = 0x3;
+}
+MD_ATTRIBUTE :: struct {
+    text: *MD_CHAR;
+    size: MD_SIZE;
+    substr_types: *MD_TEXTTYPE;
+    substr_offsets: *MD_OFFSET;
+}
+MD_BLOCK_UL_DETAIL :: struct {
+    is_tight: C.int;
+    mark: MD_CHAR;
+}
+MD_BLOCK_OL_DETAIL :: struct {
+    start: C.uint;
+    is_tight: C.int;
+    mark_delimiter: MD_CHAR;
+}
+MD_BLOCK_LI_DETAIL :: struct {
+    is_task: C.int;
+    task_mark: MD_CHAR;
+    task_mark_offset: MD_OFFSET;
+}
+MD_BLOCK_H_DETAIL :: struct {
+    level: C.uint;
+}
+MD_BLOCK_CODE_DETAIL :: struct {
+    info: MD_ATTRIBUTE;
+    lang: MD_ATTRIBUTE;
+    fence_char: MD_CHAR;
+}
+MD_BLOCK_TABLE_DETAIL :: struct {
+    col_count: C.uint;
+    head_row_count: C.uint;
+	body_row_count: C.uint;
+}
+MD_BLOCK_TD_DETAIL :: struct {
+    align: MD_ALIGN;
+}
+MD_SPAN_A_DETAIL :: struct {
+    href: MD_ATTRIBUTE;
+    title: MD_ATTRIBUTE;
+    is_autolink: C.int;
+}
+MD_SPAN_IMG_DETAIL :: struct {
+    src: MD_ATTRIBUTE;
+    title: MD_ATTRIBUTE;
+}
+MD_SPAN_WIKILINK :: struct {
+    target: MD_ATTRIBUTE;
+}
+MD_SPAN_WIKILINK_DETAIL :: MD_SPAN_WIKILINK;
+MD_PARSER :: struct {
+    abi_version: C.uint;
+    flags: C.uint;
+    enter_block: *fn (MD_BLOCKTYPE, *C.void_ptr, *C.void_ptr) C.int;
+    leave_block: *fn (MD_BLOCKTYPE, *C.void_ptr, *C.void_ptr) C.int;
+    enter_span: *fn (MD_SPANTYPE, *C.void_ptr, *C.void_ptr) C.int;
+    leave_span: *fn (MD_SPANTYPE, *C.void_ptr, *C.void_ptr) C.int;
+    text: *fn (MD_TEXTTYPE, *MD_CHAR, MD_SIZE, *C.void_ptr) C.int;
+    debug_log: *fn (*C.char, *C.void_ptr);
+    syntax: *fn ();
+}
+MD_RENDERER :: MD_PARSER;
+md_parse :: fn (text: *MD_CHAR, size: MD_SIZE, parser: *MD_PARSER, userdata: *C.void_ptr) C.int #extern;

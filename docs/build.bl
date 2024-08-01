@@ -1,0 +1,6 @@
+build :: fn () #build_entry {
+	target :: add_executable("docs");
+	set_module_dir(target, "modules", ModuleImportPolicy.SYSTEM);
+	add_unit(target, "docs.bl");
+	compile(target);
+}

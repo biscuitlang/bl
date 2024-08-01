@@ -1,4 +1,6 @@
-.DS_Store
-modules/
-site/
-mkdocs.yml
+src/modules
+side/*.html
+side/search.json
+*.exe
+*.obj
+*.pdb

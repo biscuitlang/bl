@@ -1,0 +1,6 @@
+version: 1
+src: "md4c.bl"
+
+x86_64-pc-windows-msvc:
+  linker_lib_path: "win32"
+  linker_opt: "md4c.lib"
