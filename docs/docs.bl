@@ -213,7 +213,7 @@ generate_module_documentation :: fn () Error {
 	err_cmd :: cmd("blc -doc --doc-out-dir=\"%\" %", module_dir, src_files);
 	if err_cmd then return err_cmd;
 	runtime :: measure_elapsed_ms_end("-");
-	print_info("API documentation generated in %s.\n", root_dir, fmt_real(runtime / 1000., 3));
+	print_info("API documentation generated in %s.\n", fmt_real(runtime / 1000., 3));
 	return OK;
 }
 
