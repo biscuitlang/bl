@@ -2392,8 +2392,7 @@ struct ast *parse_single_block_stmt_or_expr(struct context *ctx, bool *out_requi
 	if (out_require_semicolon) *out_require_semicolon = false;
 
 NEXT:
-	const enum sym sym = tokens_peek_sym(ctx->tokens);
-	switch (sym) {
+	switch (tokens_peek_sym(ctx->tokens)) {
 	case SYM_SEMICOLON:
 		tok = tokens_consume(ctx->tokens);
 		report_warning(tok, CARET_WORD, "Extra semicolon can be removed ';'.");
