@@ -55,9 +55,7 @@
 #	define BL_PLATFORM_WIN 0
 #	define BL_PLATFORM_MACOS 0
 #	define BL_PLATFORM_LINUX 1
-#	define BL_EXPORT
-#elif __CYGWIN__
-#	error "Unknown platform"
+#	define BL_EXPORT __attribute__((used))
 #else
 #	error "Unknown platform"
 #endif
