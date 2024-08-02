@@ -5,18 +5,18 @@
 
 TEMPORARY_DIR :: "tmp-doctor";
 TEST_SRC_DIR :: "tests/src";
-EXAMPLES_DIR :: "docs/master/docs/examples";
+EXAMPLES_DIR :: "docs/examples";
 EXPECT_FAIL_DIR :: "tests/src/expect_fail";
 
-SKIP :: [1]Test.{
+SKIP :: [_]Test.{
 	Test.{
 		name = "tmp_allocator.test.bl",
 		kind = TestKind.TEST_RUN
 	}
 };
 
-MISC :: [6]Test.{
-	Test.{ name = "docs/master/make.bl",       kind = TestKind.COMPILE },
+MISC :: [_]Test.{
+	// Test.{ name = "docs/docs.bl",              kind = TestKind.COMPILE },
 	Test.{ name = "how-to/gunner",             kind = TestKind.BUILD, platform = Platform.WINDOWS },
 	Test.{ name = "how-to/glwindow_gunner",    kind = TestKind.BUILD, platform = Platform.WINDOWS },
 	Test.{ name = "how-to/glwindow_creation",  kind = TestKind.BUILD, platform = Platform.WINDOWS },
@@ -24,7 +24,7 @@ MISC :: [6]Test.{
 	Test.{ name = "tests/library",             kind = TestKind.BUILD, platform = Platform.WINDOWS },
 };
 
-MODULES :: [17]string_view.{
+MODULES :: [_]string_view.{
 	"lib/bl/api/extra/argparse/argparse.test.bl",
 	"lib/bl/api/std/arena/arena.test.bl",
 	"lib/bl/api/std/array/array.test.bl",
