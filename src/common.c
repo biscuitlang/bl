@@ -982,7 +982,7 @@ const char *read_config(struct config       *config,
                         const char          *default_value) {
 	bassert(config && target && path);
 	str_buf_t fullpath = get_tmp_str();
-	char      triple_str[128];
+	char      triple_str[TRIPLE_MAX_LEN];
 	target_triple_to_string(&target->triple, triple_str, static_arrlenu(triple_str));
 	str_buf_append_fmt(&fullpath, "/{s}/{s}", triple_str, path);
 	const char *result = confreads(config, str_to_c(fullpath), default_value);

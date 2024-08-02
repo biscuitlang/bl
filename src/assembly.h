@@ -36,6 +36,8 @@
 #include <dyncall.h>
 #include <dynload.h>
 
+#define TRIPLE_MAX_LEN 128
+
 struct builder;
 struct builder_options;
 

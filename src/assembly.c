@@ -298,6 +298,9 @@ typedef struct {
 	struct assembly *assembly;
 	struct token    *import_from;
 	const char      *modulepath;
+	s32              is_supported_for_current_target;
+
+	char target_triple_str[TRIPLE_MAX_LEN];
 } import_elem_context_t;
 
 static void import_source(import_elem_context_t *ctx, const char *srcfile) {
@@ -325,6 +328,10 @@ static void import_lib_path(import_elem_context_t *ctx, const char *dirpath) {
 	put_tmp_str(path);
 }
 
+static void validate_module_target(import_elem_context_t *ctx, const char *triple_str) {
+	if (strcmp(ctx->target_triple_str, triple_str) == 0) ++ctx->is_supported_for_current_target;
+}
+
 static void import_link(import_elem_context_t *ctx, const char *lib) {
 	assembly_add_native_lib_safe(ctx->assembly, lib, NULL, false);
 }
@@ -339,6 +346,9 @@ static bool import_module(struct assembly *assembly,
                           struct token    *import_from) {
 	zone();
 	import_elem_context_t ctx = {assembly, import_from, modulepath};
+
+	// @Performance 2024-08-02: We might want to cache this???
+	target_triple_to_string(&assembly->target->triple, ctx.target_triple_str, static_arrlenu(ctx.target_triple_str));
 
 	const s32 version = get_module_version(config);
 	builder_log("Import module '%s' version %d.", modulepath, version);
@@ -355,6 +365,27 @@ static bool import_module(struct assembly *assembly,
 	               (process_tokens_fn_t)&import_lib_path);
 	process_tokens(
 	    &ctx, confreads(config, "/link", ""), ENVPATH_SEPARATOR, (process_tokens_fn_t)&import_link);
+
+	// This is optional configuration entry, this way we might limit supported platforms of this module. In case the
+	// entry is missing from the config file, module is supposed to run anywhere.
+	// Another option might be check presence of platform specific entries, but we might have modules requiring some
+	// platform specific configuration only on some platforms, but still be fully functional on others...
+	if (process_tokens(
+	        &ctx, confreads(config, "/supported", ""), ",", (process_tokens_fn_t)&validate_module_target)) {
+
+		if (!ctx.is_supported_for_current_target) {
+			builder_msg(MSG_ERR,
+			            ERR_UNSUPPORTED_TARGET,
+			            TOKEN_OPTIONAL_LOCATION(ctx.import_from),
+			            CARET_WORD,
+			            "Module is not supported for compilation target platform triple '%s'. "
+			            "The module explicitly specifies supported platforms in 'supported' module configuration section. "
+			            "Module directory might contain information about how to compile module dependencies for your target. "
+			            "Module imported from '%s'.",
+			            ctx.target_triple_str,
+			            modulepath);
+		}
+	}
 
 	// Platform specific
 	assembly_append_linker_options_safe(assembly,
@@ -503,7 +534,7 @@ void target_set_module_dir(struct target *target, const char *dir, enum module_i
 }
 
 bool target_is_triple_valid(struct target_triple *triple) {
-	char triple_str[128];
+	char triple_str[TRIPLE_MAX_LEN];
 	target_triple_to_string(triple, triple_str, static_arrlenu(triple_str));
 	bool   is_valid = false;
 	char **list     = builder_get_supported_targets();

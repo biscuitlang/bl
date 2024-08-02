@@ -2158,7 +2158,7 @@ To import the `thread` module use the *root* directory path:
 #import "path/to/module/thread"
 ```
 
-See also [Module Import Policy](/modules/build/#moduleimportpolicy).
+See also [Module Import Policy](modules_build.html#ModuleImportPolicy).
 
 !!! note
     Modules will be redesigned in the future to support the full set of features required by the build system. The long-term plan is to have the module configuration written directly in BL.
@@ -2172,6 +2172,7 @@ The configuration file entries may be *global* or *platform-specific*, see the f
 The *global* options are applied to the module on all target platforms.
 
 - `version: <N>` - Module version number used during import to distinguish various versions of the same module, see also `ModuleImportPolicy` for more information.
+- `supported: "[triple,...]"` - Optional list of target triples supported by module separated by comma. When module depends on some platform specific libraries (which are supposed to be bundled with the module), we might allow this module only on platforms we've provided the precompiled binaries for. Error is generated when module is used on target not included in this list.
 
 ### Global or Platform-Specific Options
 
@@ -2199,6 +2200,11 @@ x86_64-pc-linux-gnu:
   linker_opt: "-lc -lm" # link these only on linux
 ```
 
+## Additional Module Assets
+
+- Unit tests implementation should be in `module-name.test.bl` file.
+- Additional information should be in `README.txt` file, we might provide instruction how to compile module dependencies if there are any.
+- Bundled platform specific libraries usually in folders with target triple names.
 
 # Libraries
 

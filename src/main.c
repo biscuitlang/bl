@@ -54,7 +54,7 @@ static bool generate_conf(void) {
 	if (!target_init_default_triple(&triple)) {
 		return false;
 	}
-	char triple_str[128];
+	char triple_str[TRIPLE_MAX_LEN];
 	target_triple_to_string(&triple, triple_str, static_arrlenu(triple_str));
 	blog("Triple: %s", triple_str);
 	str_buf_t filepath = get_tmp_str();
@@ -296,10 +296,9 @@ void print_where_is_config(FILE *stream) {
 void print_host_triple(FILE *stream) {
 	struct target_triple triple;
 	if (target_init_default_triple(&triple)) {
-		char triple_str[128];
+		char triple_str[TRIPLE_MAX_LEN];
 		target_triple_to_string(&triple, triple_str, static_arrlenu(triple_str));
 		fprintf(stream, "%s", triple_str);
-		bfree(triple_str);
 	}
 }
 
