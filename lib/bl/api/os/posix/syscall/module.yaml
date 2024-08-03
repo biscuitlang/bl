@@ -1,0 +1,9 @@
+version: 20240803
+supported: "x86_64-pc-linux-gnu, x86_64-unknown-linux-gnu"
+src: "syscall.bl"
+
+x86_64-pc-linux-gnu:
+  src: "x86_64-linux-gnu/syscall.bl"
+
+x86_64-unknown-linux-gnu:
+  src: "x86_64-linux-gnu/syscall.bl"
