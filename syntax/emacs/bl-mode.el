@@ -25,10 +25,10 @@
   (list
    ;; Keywords
    `(,(regexp-opt
-       '("loop" "if" "switch" "continue" "else" "defer" "struct" "enum" "union" "fn" "return" "cast" "auto" "default" "using" "break" "unreachable") 'symbols) . font-lock-keyword-face)
+       '("loop" "if" "switch" "continue" "else" "defer" "struct" "enum" "union" "fn" "return" "cast" "auto" "default" "using" "break" "unreachable" "then") 'symbols) . font-lock-keyword-face)
    ;; Preprocessor
    `(,(regexp-opt
-       '("#load" "#link" "#call_location" "#extern" "#compiler" "#private" "#inline" "#noinline" "#file" "#line" "#base" "#entry" "#build_entry" "#if" "#tag" "#noinit" "#intrinsic" "#test" "#import" "#export" "#scope" "#thread_local" "#flags" "#maybe_unused" "#comptime" "#obsolete") 'symbols) . font-lock-preprocessor-face)
+       '("#load" "#link" "#call_location" "#extern" "#compiler" "#private" "#inline" "#noinline" "#file" "#line" "#base" "#entry" "#build_entry" "#if" "#tag" "#noinit" "#intrinsic" "#test" "#import" "#export" "#scope" "#thread_local" "#flags" "#maybe_unused" "#comptime" "#obsolete" "#enable_if") 'symbols) . font-lock-preprocessor-face)
    ;; Builtin functions
    `(,(regexp-opt
        '("sizeof" "typeof" "alignof" "typeinfo" "typekind" "typeid" "panic" "assert" "static_assert" "debugbreak") 'symbols) . font-lock-builtin-face)

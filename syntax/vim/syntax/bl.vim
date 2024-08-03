@@ -11,6 +11,7 @@ syntax keyword blEnum enum
 syntax keyword blFn fn 
 
 syntax keyword blIf if
+syntax keyword blThen then
 syntax keyword blElse else
 syntax keyword blFor loop
 syntax keyword blBreak break 
@@ -73,6 +74,7 @@ highlight link blDynamicFunction Function
 
 highlight link blMacro Macro
 highlight link blIf Conditional
+highlight link blThen Conditional
 highlight link blSwitch Conditional
 highlight link blElse Conditional
 highlight link blFor Repeat
