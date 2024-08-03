@@ -937,12 +937,12 @@ void color_print(FILE *stream, s32 color, const char *format, ...) {
 		c = "\x1b[36m";
 		break;
 	default:
-		c = "\x1b[0m";
+		c = "";
 	}
 
-	fprintf(stream, "%s", c);
+	if (color != BL_NO_COLOR) fprintf(stream, "%s", c);
 	vfprintf(stream, format, args);
-	fprintf(stream, "\x1b[0m");
+	if (color != BL_NO_COLOR) fprintf(stream, "\x1b[0m");
 #endif
 	va_end(args);
 }

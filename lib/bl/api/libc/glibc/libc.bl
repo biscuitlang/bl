@@ -1,8 +1,10 @@
+#import "os/posix/syscall"
+
 #scope C
 
-STDIN  :: 0;
-STDOUT :: 1;
-STDERR :: 2;
+STDIN  : fd_t : 0;
+STDOUT : fd_t : 1;
+STDERR : fd_t : 2;
 
 RAND_MAX :: 0x7fffffff;
 
@@ -33,17 +35,41 @@ blksize_t :: long;
 blkcnt_t :: long;
 time_t :: long;
 syscall_ulong_t :: ulong;
+pid_t :: s32;
+fd_t :: s32;
 
-SIGHUP  :: 1;
+pollfd :: struct {
+	fd: int;
+	events: short;
+	revents: short;
+}
+
+nfds_t :: ulonglong;
+
 SIGINT  :: 2;
-SIGQUIT :: 3; 
-SIGILL  :: 4; 
-SIGTRAP :: 5;
+SIGILL  :: 4;
 SIGABRT :: 6;
+SIGFPE  :: 8;
+SIGSEGV :: 11;
+SIGTERM :: 15;
+SIGHUP  :: 1;
+SIGQUIT :: 3;
+SIGTRAP :: 5;
+SIGKILL :: 9;
+SIGPIPE :: 13;
+SIGALRM :: 14;
 
 SEEK_SET :: 0;
 SEEK_CUR :: 1;
 SEEK_END :: 2;
+
+POLLIN  : short : 0x001;
+POLLPRI : short : 0x002;
+POLLOUT : short : 0x004;
+
+POLLERR  : short : 0x008;
+POLLHUP  : short : 0x010;
+POLLNVAL : short : 0x020;
 
 signal :: fn (signum: int, handler: *fn (v: int)) *fn (v: int) #extern "signal";
 raise :: fn (sig: int) int #extern "raise";
@@ -98,13 +124,30 @@ fseek :: fn (stream: void_ptr, offset: long, whence: int) int #extern "fseek";
 lseek64 :: fn (fd: int, offset: longlong, whence: longlong) longlong #extern "lseek64";
 backtrace :: fn (array: *void_ptr, size: int) int #extern "backtrace";
 backtrace_symbols :: fn (array: *void_ptr, size: int) **char #extern "backtrace_symbols";
+fork :: fn () pid_t #extern "fork";
+pipe :: fn (p: *int /* pointer to 2 element array */) int #extern "pipe";
+dup :: fn (oldfd: C.int) int #extern "dup";
+dup2 :: fn (oldfd: C.int, newfd: C.int) int #extern "dup2";
+execv :: fn (file: *char, args: **char) int #extern "execv";
+
+ioctl :: fn (fd: fd_t, request: s32, arg: s64) s32 #inline {
+	return auto syscall(SYS_ioctl, fd, request, arg);
+}
+
+poll :: fn (fds: *pollfd, nfds: nfds_t, timeout: int) int #inline {
+	return auto syscall(SYS_poll, auto fds, auto nfds, auto timeout);
+}
+
+kill :: fn (pid: pid_t, sig: s32) s32 #inline {
+	return auto syscall(SYS_kill, auto pid, auto sig);
+}
 
 DIR :: u8;
 dirent_t :: struct {
-	d_ino: ulong; 
-	d_off: long; 
+	d_ino: ulong;
+	d_off: long;
 	d_reclen: ushort;
-	d_type: uchar; 
+	d_type: uchar;
 	d_name: [256]char;
 }
 
@@ -153,18 +196,18 @@ S_IRWXO :: S_IRWXG >> 3;
 __S_IFMT   : uint : 0xf000;
 __S_IFDIR  : uint : 0x4000;
 __S_IFCHR  : uint : 0x2000;
-__S_IFBLK  : uint : 0x6000;	
+__S_IFBLK  : uint : 0x6000;
 __S_IFREG  : uint : 0x8000;
 __S_IFIFO  : uint : 0x1000;
 __S_IFLNK  : uint : 0xA000;
 __S_IFSOCK : uint : 0xC000;
 
 S_ISDIR :: fn (mode: uint) bool #inline {
-	return (mode & __S_IFMT) == __S_IFDIR;    
+	return (mode & __S_IFMT) == __S_IFDIR;
 }
 
 S_ISREG :: fn (mode: uint) bool #inline {
-	return (mode & __S_IFMT) == __S_IFREG;    
+	return (mode & __S_IFMT) == __S_IFREG;
 }
 
 
@@ -328,6 +371,8 @@ ENAVAIL :: 119;
 EISNAM :: 120;
 EREMOTEIO :: 121;
 EDQUOT :: 122;
+
+FIONREAD :: 0x541B;
 
 #private
 stat_v :: fn (ver: int, path: *char, buf: *stat_t) int #extern "__xstat64";
