@@ -1,5 +1,4 @@
 src/modules
-side/search.json
 *.exe
 *.obj
 *.pdb
