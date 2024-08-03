@@ -28,6 +28,7 @@ jobs:
         cp -r lib dist
         cp -r bin dist
         cp -r syntax dist
+        cp -r docs/side dist/docs
         cp CHANGELOG.txt dist
         cp LEGAL dist
         cp LICENSE dist
@@ -37,75 +38,67 @@ jobs:
         name: windows-artifacts
         path: dist
 
-  # macos:
-  #   runs-on: macOS-latest
-  #   steps:
-  #   - uses: actions/checkout@v2
-  #   - name: Download LLVM
-  #     run: |
-  #       brew install llvm
-  #       echo "/usr/local/opt/llvm/bin" >> $GITHUB_PATH
-  #       TMP_PATH=$(xcrun --show-sdk-path)/user/include
-  #       echo "CPATH=$TMP_PATH" >> $GITHUB_ENV
-  #   - name: Setup
-  #     run: |
-  #       cmake . -DCMAKE_BUILD_TYPE=Release 
-  #   - name: Compile
-  #     run: cmake --build . --config Release
-  #   - name: Configure
-  #     run: |
-  #       ./bin/bl-config -f
-  #   - name: Compile tools 
-  #     run: cmake --build . --config Release --target Utils
-  #   - name: Run tests
-  #     run: ./bin/blc -rs doctor.bl -d
-  #   - name: Prepare package
-  #     run: |
-  #       mkdir dist 
-  #       cp -r lib dist
-  #       cp -r bin dist
-  #       cp -r syntax dist
-  #       cp -r examples dist
-  #       cp CHANGELOG.txt dist
-  #       cp LEGAL dist
-  #       cp LICENSE dist 
-  #       cp README.md dist 
-  #   - uses: actions/upload-artifact@v1
-  #     with:
-  #       name: macos_artifacts
-  #       path: dist
+ macos:
+   runs-on: macOS-13
+   steps:
+   - uses: actions/checkout@v2
+   - name: Download LLVM
+     run: |
+       brew install llvm@16
+       echo "/usr/local/opt/llvm/bin" >> $GITHUB_PATH
+       TMP_PATH=$(xcrun --show-sdk-path)/user/include
+       echo "CPATH=$TMP_PATH" >> $GITHUB_ENV
+   - name: Setup
+     run: |
+       cmake . -DCMAKE_BUILD_TYPE=Release 
+   - name: Compile
+     run: cmake --build . --config Release
+   - name: Run tests
+     run: ./bin/blc -run doctor.bl
+   - name: Prepare package
+     run: |
+       mkdir dist 
+       cp -r lib dist
+       cp -r bin dist
+       cp -r syntax dist
+       cp -r docs/side dist/docs
+       cp CHANGELOG.txt dist
+       cp LEGAL dist
+       cp LICENSE dist 
+       cp README.md dist 
+   - uses: actions/upload-artifact@v1
+     with:
+       name: macos_artifacts
+       path: dist
 
-  # linux:
-  #   runs-on: ubuntu-20.04
-  #   steps:
-  #   - uses: actions/checkout@v2
-  #   - name: Download LLVM
-  #     run: |
-  #       sudo apt install llvm-10-dev
-  #   - name: Setup
-  #     run: |
-  #       cmake . -DCMAKE_BUILD_TYPE=Release 
-  #   - name: Compile
-  #     run: cmake --build . --config Release
-  #   - name: Configure
-  #     run: |
-  #       ./bin/bl-config -f
-  #   - name: Compile tools 
-  #     run: cmake --build . --config Release --target Utils
-  #   - name: Run tests
-  #     run: ./bin/blc -rs doctor.bl -d
-  #   - name: Prepare package
-  #     run: |
-  #       mkdir dist 
-  #       cp -r lib dist
-  #       cp -r bin dist
-  #       cp -r syntax dist
-  #       cp -r examples dist
-  #       cp CHANGELOG.txt dist
-  #       cp LEGAL dist
-  #       cp LICENSE dist 
-  #       cp README.md dist 
-  #   - uses: actions/upload-artifact@v1
-  #     with:
-  #       name: linux_artifacts
-  #       path: dist
+ linux:
+   runs-on: ubuntu-latest
+   steps:
+   - uses: actions/checkout@v2
+    - name: Download LLVM
+      run: |
+        wget https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh 16
+    - name: Setup
+      run: |
+        cmake . -DCMAKE_BUILD_TYPE=Release
+    - name: Compile
+      run: cmake --build . --config Release
+    - name: Run tests
+      run: ./bin/blc -run doctor.bl
+   - name: Prepare package
+     run: |
+       mkdir dist 
+       cp -r lib dist
+       cp -r bin dist
+       cp -r syntax dist
+       cp -r docs/side dist/docs
+       cp CHANGELOG.txt dist
+       cp LEGAL dist
+       cp LICENSE dist 
+       cp README.md dist 
+   - uses: actions/upload-artifact@v1
+     with:
+       name: linux_artifacts
+       path: dist
