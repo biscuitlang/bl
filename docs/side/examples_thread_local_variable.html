@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="Thread-Local-Variables">Thread Local Variables</h1>
+<p>Compile using <code>blc my-file-name.bl</code> and run <code>./out</code>.</p>
+
+<pre><code><span class="syntax-directive">#import</span> "std/thread"
+
+COUNT :: 50;
+counter: s32 <span class="syntax-directive">#thread_local</span>;
+
+main :: <span class="syntax-keyword">fn</span> () s32 <span class="syntax-keyword">{</span>
+	print("Start thread!!!\n");
+	<span class="syntax-keyword">defer</span> print("Threads joined!!!\n");
+	t1 :: std.thread_create(&first);
+	t2 :: std.thread_create(&second);
+	std.thread_join(t1);
+	std.thread_join(t2);
+	
+	<span class="syntax-keyword">assert</span>(counter == 0);
+	<span class="syntax-keyword">return</span> 0;
+<span class="syntax-keyword">}</span>
+
+first :: <span class="syntax-keyword">fn</span> (args: *u8) s32 <span class="syntax-keyword">{</span>
+	<span class="syntax-keyword">loop</span> i := 0; i &lt; COUNT; i += 1 <span class="syntax-keyword">{</span>
+		counter += 1;
+		os_sleep_ms(5);
+	<span class="syntax-keyword">}</span>
+	<span class="syntax-keyword">assert</span>(counter == COUNT);
+	<span class="syntax-keyword">return</span> 0;
+<span class="syntax-keyword">}</span>
+
+second :: <span class="syntax-keyword">fn</span> (args: *u8) s32 <span class="syntax-keyword">{</span>
+	<span class="syntax-keyword">loop</span> i := 0; i &lt; COUNT; i += 1 <span class="syntax-keyword">{</span>
+		counter += 1;
+		os_sleep_ms(10);
+	<span class="syntax-keyword">}</span>
+	<span class="syntax-keyword">assert</span>(counter == COUNT);
+	<span class="syntax-keyword">return</span> 0;
+<span class="syntax-keyword">}</span>
+
+</code></pre>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#Thread-Local-Variables">Thread Local Variables</a></li>
+</ul>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="Input/Ouput">Input/Ouput</h1>
+<p><code>#import "std/io"</code></p>
+<p>Input and output is handled by generic stream interface containing callbacks for read, write and
+seek operations. The stream itself can contain any data needed (i.e. memory buffer, handle to file,
+etc.), generic functionality is handled via virtual table containing pointers to the implementation
+of all needed (supported) stream API functions.</p>
+<h3 id="Example">Example</h3>
+
+<pre><code><span class="syntax-directive">#import</span> "std/io"
+
+<span class="syntax-comment">// Custom stream implementation based on std.Stream.</span>
+MyStream :: <span class="syntax-keyword">struct</span> <span class="syntax-directive">#base</span> std.Stream <span class="syntax-keyword">{</span>
+	<span class="syntax-comment">// Preallocated static buffer.</span>
+	buffer: [64]u8;
+	<span class="syntax-comment">// Current position in the buffer array.</span>
+	position: s64;
+<span class="syntax-keyword">}</span>
+
+<span class="syntax-comment">// Virtual table of the stream setting up stream API functions. Our implementation</span>
+<span class="syntax-comment">// does not support seeking, so the seek function is null.</span>
+MY_STRAM_VTABLE :: std.StreamVTable.<span class="syntax-keyword">{</span>
+	read  = <span class="syntax-keyword">auto</span> &my_read,
+	write = <span class="syntax-keyword">auto</span> &my_write
+<span class="syntax-keyword">}</span>;
+
+<span class="syntax-comment">// Actual read function implementation.</span>
+my_read :: <span class="syntax-keyword">fn</span> (stream: *MyStream, dest: *u8, bytes_to_read: s64) (s64, Error) <span class="syntax-keyword">{</span>
+	<span class="syntax-keyword">using</span> std;
+	size := min(stream.position, bytes_to_read);
+	stream.position -= size;
+	<span class="syntax-keyword">if</span> stream.position &lt; 0 <span class="syntax-keyword">{</span>
+		size -= stream.position;
+		stream.position = 0;
+	<span class="syntax-keyword">}</span>
+	<span class="syntax-keyword">if</span> size &gt; 0 <span class="syntax-keyword">{</span>
+		memcpy(dest, &stream.buffer[stream.position], <span class="syntax-keyword">auto</span> size);
+	<span class="syntax-keyword">}</span>
+	<span class="syntax-keyword">return</span> size, OK;
+<span class="syntax-keyword">}</span>
+
+<span class="syntax-comment">// Actual write function implementation.</span>
+my_write :: <span class="syntax-keyword">fn</span> (stream: *MyStream, src: *u8, bytes_to_write: s64) (s64, Error) <span class="syntax-keyword">{</span>
+	size :: std.min(stream.buffer.len - stream.position, bytes_to_write);
+	<span class="syntax-keyword">if</span> size &gt; 0 <span class="syntax-keyword">{</span>
+		<span class="syntax-comment">// size may be zero even in case the buffer is full.</span>
+		memcpy(&stream.buffer[stream.position], src, <span class="syntax-keyword">auto</span> size);
+		stream.position += size;
+	<span class="syntax-keyword">}</span>
+	<span class="syntax-keyword">return</span> size, OK;
+<span class="syntax-keyword">}</span>
+
+init_stream :: <span class="syntax-keyword">fn</span> (stream: *MyStream) <span class="syntax-keyword">{</span>
+	stream.vtable = &MY_STRAM_VTABLE;
+	stream.position = 0;
+<span class="syntax-keyword">}</span>
+
+main :: <span class="syntax-keyword">fn</span> () s32 <span class="syntax-keyword">{</span>
+	<span class="syntax-keyword">using</span> std;
+
+	stream: MyStream <span class="syntax-directive">#noinit</span>;
+	init_stream(&stream);
+
+	<span class="syntax-comment">// Use of the IO API.</span>
+	write_string(&stream, "Hello");
+	write_string(&stream, "World");
+
+	str := str_new();
+	<span class="syntax-keyword">defer</span> str_delete(&str);
+
+	read_string(&stream, &str);
+
+	print("%\n", str);
+	<span class="syntax-keyword">return</span> 0;
+<span class="syntax-keyword">}</span>
+
+</code></pre>
+<h2 id="std.Stream">std.Stream</h2>
+
+<pre><code>Stream :: struct {
+    vtable: *StreamVTable;
+}
+</code></pre>
+<p><em>File: io.bl</em></p>
+<h2 id="std.StreamVTable">std.StreamVTable</h2>
+
+<pre><code>StreamVTable :: struct {
+    read: *fn (stream: *Stream, dest: *u8, bytes_to_write: s64) (bytes_read: s64, err: Error);
+    write: *fn (stream: *Stream, src: *u8, bytes_to_read: s64) (bytes: s64, err: Error);
+    seek: *fn (stream: *Stream, locator: StreamLocator, offset: s64) (position: s64, err: Error);
+    flush: *fn (stream: *Stream) Error;
+}
+</code></pre>
+<p><em>File: io.bl</em></p>
+<h2 id="std.StreamLocator">std.StreamLocator</h2>
+
+<pre><code>StreamLocator :: enum {
+    CURRENT;
+    BEGIN;
+    END;
+}
+</code></pre>
+<p>Stream seek offset locator.</p>
+<p><em>File: io.bl</em></p>
+<h2 id="std.write">std.write</h2>
+
+<pre><code>write :: fn (stream: *Stream, src: *u8, bytes_to_write: s64) (_0: s64, _1: Error) #inline
+</code></pre>
+<p>Write <code>bytes_to_write</code> count of bytes from the <code>str</code> into the stream. Returns
+count of actually written bytes or an error.</p>
+<p><em>File: io.bl</em></p>
+<h2 id="std.write_data">std.write_data</h2>
+
+<pre><code>write_data :: fn (stream: *Stream, data: []u8, bytes_to_write :: S64_MAX) (_0: s64, _1: Error) #inline
+</code></pre>
+<p>Write the data slice into the stream, the <code>bytes_to_write</code> can be specified to limit count
+of written bytes. Returns count of actually written bytes or an error.</p>
+<p><em>File: io.bl</em></p>
+<h2 id="std.write_string">std.write_string</h2>
+
+<pre><code>write_string :: fn (stream: *Stream, str: string_view, bytes_to_write :: S64_MAX) (_0: s64, _1: Error) #inline
+</code></pre>
+<p>Write the data string into the stream, the <code>bytes_to_write</code> can be specified to limit count
+of written bytes. Returns count of actually written bytes or an error.</p>
+<p><em>File: io.bl</em></p>
+<h2 id="std.write_all">std.write_all</h2>
+
+<pre><code>write_all :: fn (stream: *Stream, src: *u8, bytes_to_write: s64) Error
+</code></pre>
+<p><em>File: io.bl</em></p>
+<h2 id="std.write_value">std.write_value</h2>
+
+<pre><code>write_value :: fn (stream: *Stream, v: *?T) Error #inline
+</code></pre>
+<p><em>File: io.bl</em></p>
+<h2 id="std.read">std.read</h2>
+
+<pre><code>read :: fn (stream: *Stream, dest: *u8, bytes_to_read: s64) (_0: s64, _1: Error) #inline
+</code></pre>
+<p>Read <code>bytes_to_read</code> count of bytes from the stream into <code>dest</code> memory. Returns count of actually
+read bytes or an error.</p>
+<p><em>File: io.bl</em></p>
+<h2 id="std.read_data">std.read_data</h2>
+
+<pre><code>read_data :: fn (stream: *Stream, dest: *[..]u8, bytes_to_read : s64: S64_MAX, buffer_size :: 512) Error
+</code></pre>
+<p>Read <code>bytes_to_read</code> count of bytes from the stream into <code>dest</code> dynamic array. Internal buffer size may
+be customized by <code>buffer_size</code> argument.
+Return an error in case reading failed.</p>
+<p><em>File: io.bl</em></p>
+<h2 id="std.read_string">std.read_string</h2>
+
+<pre><code>read_string :: fn (stream: *Stream, dest: *string, bytes_to_read : s64: S64_MAX, buffer_size :: 512) Error
+</code></pre>
+<p>Read <code>bytes_to_read</code> count of bytes from the stream into <code>dest</code>. Internal buffer size may be
+customized by <code>buffer_size</code> argument.
+Return and error in case reading failed.</p>
+<p><em>File: io.bl</em></p>
+<h2 id="std.read_all">std.read_all</h2>
+
+<pre><code>read_all :: fn (stream: *Stream, dest: *u8, bytes_to_read: s64, buffer_size :: 512) Error
+</code></pre>
+<p><em>File: io.bl</em></p>
+<h2 id="std.read_value">std.read_value</h2>
+
+<pre><code>read_value :: fn (stream: *Stream, v: *?T) Error #inline
+</code></pre>
+<p><em>File: io.bl</em></p>
+<h2 id="std.seek">std.seek</h2>
+
+<pre><code>seek :: fn (stream: *Stream, locator :: StreamLocator.CURRENT, offset : s64: 0) (position: s64, err: Error)
+</code></pre>
+<p>Set the stream pointer position to the <code>offset</code> value relative to the stream <code>locator</code>. Returns
+the pointer position or an error.</p>
+<p><em>File: io.bl</em></p>
+<h2 id="std.flush">std.flush</h2>
+
+<pre><code>flush :: fn (stream: *Stream) Error
+</code></pre>
+<p>Flush all buffered stream data.</p>
+<p><em>File: io.bl</em></p>
+<h2 id="std.copy_stream">std.copy_stream</h2>
+
+<pre><code>copy_stream :: fn (dest: *Stream, src: *Stream, buffer_size :: 512) Error
+</code></pre>
+<p>Copy the whole content from current position in stream <code>src</code> to the stream <code>dest</code> (starting at current position in <code>dest</code>).
+If copying was successful, <code>src</code> stream position should points to the <code>src</code> stream end otherwise error is returned.</p>
+<p><em>File: io.bl</em></p>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#Input/Ouput">Input/Ouput</a></li>
+<ul>
+<li><a href="#std.Stream">std.Stream</a></li>
+<li><a href="#std.StreamVTable">std.StreamVTable</a></li>
+<li><a href="#std.StreamLocator">std.StreamLocator</a></li>
+<li><a href="#std.write">std.write</a></li>
+<li><a href="#std.write_data">std.write_data</a></li>
+<li><a href="#std.write_string">std.write_string</a></li>
+<li><a href="#std.write_all">std.write_all</a></li>
+<li><a href="#std.write_value">std.write_value</a></li>
+<li><a href="#std.read">std.read</a></li>
+<li><a href="#std.read_data">std.read_data</a></li>
+<li><a href="#std.read_string">std.read_string</a></li>
+<li><a href="#std.read_all">std.read_all</a></li>
+<li><a href="#std.read_value">std.read_value</a></li>
+<li><a href="#std.seek">std.seek</a></li>
+<li><a href="#std.flush">std.flush</a></li>
+<li><a href="#std.copy_stream">std.copy_stream</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

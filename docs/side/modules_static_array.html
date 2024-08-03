@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="Static-Array">Static Array</h1>
+<p>Simple API over static array buffer allocated on stack.</p>
+<h3 id="Example">Example</h3>
+
+<pre><code><span class="syntax-directive">#import</span> "std/static_array"
+
+main :: <span class="syntax-keyword">fn</span> () s32 <span class="syntax-keyword">{</span>
+	<span class="syntax-keyword">using</span> std;
+
+	arr: StaticArray(s32, 10);
+	<span class="syntax-keyword">loop</span> i := 0; i &lt; 10; i += 1 <span class="syntax-keyword">{</span>
+		sarray_push(&arr, i);
+	<span class="syntax-keyword">}</span>
+
+	sarray_erase(&arr, 1);
+	sarray_erase(&arr, 4);
+
+	<span class="syntax-keyword">loop</span> i := 0; i &lt; arr.len; i += 1 <span class="syntax-keyword">{</span>
+		print("%\n", arr.data[i]);
+	<span class="syntax-keyword">}</span>
+	<span class="syntax-keyword">return</span> 0;
+<span class="syntax-keyword">}</span>
+
+</code></pre>
+<h2 id="std.StaticArray">std.StaticArray</h2>
+
+<pre><code>StaticArray :: fn (TElem: type, elem_count: s64) type
+</code></pre>
+<p>Create <b>Static Array</b> type.</p>
+
+<pre><code>StaticArray :: <span class="syntax-keyword">struct</span> <span class="syntax-keyword">{</span>
+    data[elem_count]TElem;
+    len: s64;
+<span class="syntax-keyword">}</span>
+</code></pre>
+<p><em>File: static_array.bl</em></p>
+<h2 id="std.sarray_push">std.sarray_push</h2>
+
+<pre><code>sarray_push :: fn { 
+    impl_push_empty; 
+    impl_push; 
+}
+</code></pre>
+<p>Push element at the end of the array and returns its address.</p>
+<p><span class="hint-warning"><b>Warning:</b>
+Asserts in case there is not enough space left in the storage.</span></p>
+<p><em>File: static_array.bl</em></p>
+<h2 id="std.sarray_pop">std.sarray_pop</h2>
+
+<pre><code>sarray_pop :: fn (arr: *?TArr, out : *: null) bool #inline
+</code></pre>
+<p>Pops the last element of the array into <code>out</code> destination and returns <code>true</code>
+otherwise returns <code>false</code> and value of <code>out</code> stays unchanged.</p>
+<p><em>File: static_array.bl</em></p>
+<h2 id="std.sarray_erase">std.sarray_erase</h2>
+
+<pre><code>sarray_erase :: fn (arr: *?TArr, i: s64) 
+</code></pre>
+<p>Errase element at the index <code>i</code>. The index value must be valid in range <code>0 &lt;= i &lt; len</code>.</p>
+<p><em>File: static_array.bl</em></p>
+<h2 id="std.sarray_clear">std.sarray_clear</h2>
+
+<pre><code>sarray_clear :: fn (arr: *?TArr)  #inline
+</code></pre>
+<p>Clear the array.</p>
+<p><em>File: static_array.bl</em></p>
+<h2 id="std.sarray_get_slice">std.sarray_get_slice</h2>
+
+<pre><code>sarray_get_slice :: fn (arr: *?TArr) [] #inline
+</code></pre>
+<p>Get the content of static array as an slice.</p>
+<p><em>File: static_array.bl</em></p>
+<h2 id="std.sarray_typeof_elem">std.sarray_typeof_elem</h2>
+
+<pre><code>sarray_typeof_elem :: fn (TArr: type) type
+</code></pre>
+<p>Return type of the element.</p>
+<p><em>File: static_array.bl</em></p>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#Static-Array">Static Array</a></li>
+<ul>
+<li><a href="#std.StaticArray">std.StaticArray</a></li>
+<li><a href="#std.sarray_push">std.sarray_push</a></li>
+<li><a href="#std.sarray_pop">std.sarray_pop</a></li>
+<li><a href="#std.sarray_erase">std.sarray_erase</a></li>
+<li><a href="#std.sarray_clear">std.sarray_clear</a></li>
+<li><a href="#std.sarray_get_slice">std.sarray_get_slice</a></li>
+<li><a href="#std.sarray_typeof_elem">std.sarray_typeof_elem</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

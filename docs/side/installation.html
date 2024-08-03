@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="Installation">Installation</h1>
+<p>Currently only installation from the source code is possible.</p>
+<p><b>Important:</b> The compiler and language are not production ready yet, you might miss some fundamental features. Also it's recommented to use <code>CMAKE_INSTALL_PREFIX</code> to set installation directory (e.g. <code>-DCMAKE_INSTALL_PREFIX=C:\Develop\bl</code>).</p>
+<p><b>Supported targets:</b></p>
+<ul>
+<li><code>x86_64-pc-windows-msvc</code></li>
+<li><code>x86_64-pc-linux-gnu</code></li>
+<li><code>x86_64-unknown-linux-gnu</code></li>
+<li><code>x86_64-apple-darwin</code></li>
+<li><code>arm64-apple-darwin</code> (experimental)</li>
+</ul>
+<h2 id="Windows">Windows</h2>
+<ul>
+<li>Install <a href="https://git-scm.com">git</a></li>
+<li>Install <a href="https://cmake.org">CMake</a></li>
+<li>Install Visual Studio 2022 or <a href="https://visualstudio.microsoft.com/visual-cpp-build-tools">MS Build Tools</a> with C/C++ support</li>
+<li>Download and compile</li>
+</ul>
+
+<pre><code>git clone https://github.com/travisdoor/bl.git
+cd bl
+mkdir build
+cd build
+cmake .. -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="install/directory"
+cmake --build . --config Release --target install
+</code></pre>
+<ul>
+<li>Compiler will be installed into <code>CMAKE_INSTALL_PREFIX</code> directory.</li>
+<li>Add <code>bin</code> directory to the system <code>PATH</code>.</li>
+</ul>
+<p><b>In Powershell:</b></p>
+
+<pre><code>[Environment]::SetEnvironmentVariable(
+   "Path",
+   [Environment]::GetEnvironmentVariable("Path", "User") + ";install\directory\bin",
+   "User"
+)
+</code></pre>
+<h2 id="Ubuntu">Ubuntu</h2>
+<ul>
+<li>Install needed tools</li>
+</ul>
+
+<pre><code>apt-get install git cmake build-essential llvm-16-dev
+</code></pre>
+<ul>
+<li>In case your distribution does not provide LLVM-16 you can alternatively use following script</li>
+</ul>
+
+<pre><code>mkdir llvm-16
+cd llvm-16
+wget https://apt.llvm.org/llvm.sh
+chmod +x llvm.sh
+sudo ./llvm.sh 16
+</code></pre>
+<ul>
+<li>Download and compile</li>
+</ul>
+<p>Note that in case the <code>CMAKE_INSTALL_PREFIX</code> is not specified, <code>/urs/local</code> will be used as default.</p>
+
+<pre><code>git clone https://github.com/travisdoor/bl.git
+cd bl
+mkdir build
+cd build
+cmake .. -DCMAKE_INSTALL_PREFIX="install/directory"
+make install
+</code></pre>
+<ul>
+<li>Add <code>bin</code> directory to the system <code>PATH</code>. Not needed in case install directory is <code>/usr/local</code>.</li>
+</ul>
+
+<pre><code>export PATH=$PATH:/install/directory/bin
+</code></pre>
+<h2 id="Fedora">Fedora</h2>
+<ul>
+<li>Install needed tools</li>
+</ul>
+
+<pre><code>dnf copr enable -y @fedora-llvm-team/llvm-snapshots
+dnf install git cmake gcc g++ zlib-devel llvm16-devel
+</code></pre>
+<ul>
+<li>Download and compile</li>
+</ul>
+<p>Note that in case the <code>CMAKE_INSTALL_PREFIX</code> is not specified, <code>/urs/local</code> will be used as default.</p>
+
+<pre><code>git clone https://github.com/travisdoor/bl.git
+cd bl
+mkdir build
+cd build
+cmake .. -DCMAKE_INSTALL_PREFIX="install/directory"
+make install
+</code></pre>
+<ul>
+<li>Add <code>bin</code> directory to the system <code>PATH</code>. Not needed in case install directory is <code>/usr/local</code>.</li>
+</ul>
+
+<pre><code>export PATH=$PATH:/install/directory/bin
+</code></pre>
+<h2 id="macOS">macOS</h2>
+<ul>
+<li>Install command line tools <code>xcode-select --install</code>.</li>
+<li>Install other needed tools using <a href="https://brew.sh">brew</a> <code>brew install git cmake llvm@16</code>.</li>
+<li>Download and compile</li>
+</ul>
+
+<pre><code>git clone https://github.com/travisdoor/bl.git
+cd bl
+mkdir build
+cd build
+cmake .. -DCMAKE_INSTALL_PREFIX="install/directory"
+make install
+</code></pre>
+<ul>
+<li>Add <code>bin</code> directory to the system <code>PATH</code>.</li>
+</ul>
+
+<pre><code>export PATH=$PATH:/install/directory/bin
+</code></pre>
+<p><span class="hint-warning"><b>Warning:</b>
+ARM support is experimental.</span></p>
+<h2 id="Configuration">Configuration</h2>
+<p>Default configuration file <code>install/directory/etc/bl.yaml</code> is created automatically. You can use <code>blc --where-is-config</code> to get full path to the default config file. To generate new one use <code>blc --configure</code> (the old one will be kept as a backup).</p>
+<p><b>Example Windows config file:</b></p>
+
+<pre><code># Automatically generated configuration file used by 'blc' compiler.
+# To generate new one use 'blc --configure' command.
+
+# Compiler version, this should match the executable version 'blc --version'.
+version: "0.11.0"
+
+# Main API directory containing all modules and source files. This option is mandatory.
+lib_dir: "C:/Develop/bl/lib/bl/api"
+
+# Current default environment configuration.
+x86_64-pc-windows-msvc:
+    # Platform operating system preload file (relative to 'lib_dir').
+    preload_file: "os/_windows.bl"
+    # Optional path to the linker executable, 'lld' linker is used by default on some platforms.
+    linker_executable: ""
+    # Linker flags and options used to produce executable binaries.
+    linker_opt_exec: "/NOLOGO /ENTRY:__os_start /SUBSYSTEM:CONSOLE /INCREMENTAL:NO /MACHINE:x64"
+    # Linker flags and options used to produce shared libraries.
+    linker_opt_shared: "/NOLOGO /INCREMENTAL:NO /MACHINE:x64 /DLL"
+    # File system location where linker should lookup for dependencies.
+    linker_lib_path: "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.22000.0/ucrt/x64;C:/Program Files (x86)/Windows Kits/10/Lib/10.0.22000.0/um/x64;C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.32.31326//lib/x64"
+</code></pre>
+<h2 id="Unit-Tests">Unit Tests</h2>
+<p>To run compiler unit tests use:</p>
+
+<pre><code>cd path/to/git/root/directory
+blc -run doctor.bl
+</code></pre>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#Installation">Installation</a></li>
+<ul>
+<li><a href="#Windows">Windows</a></li>
+<li><a href="#Ubuntu">Ubuntu</a></li>
+<li><a href="#Fedora">Fedora</a></li>
+<li><a href="#macOS">macOS</a></li>
+<li><a href="#Configuration">Configuration</a></li>
+<li><a href="#Unit-Tests">Unit Tests</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

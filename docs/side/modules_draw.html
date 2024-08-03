@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="Draw">Draw</h1>
+<p><code>#import "extra/draw"</code></p>
+<p>Collection of simple 2D primitive rendering functions. Internally the module uses OpenGL core
+profile for rendering and is supposed to be used for simple games or quick prototyping.</p>
+<p>The <code>draw</code> module is not supposed to be an OpenGL replacement, if you want to do some advanced
+rendering, use OpenGL directly.</p>
+<h2 id="Features">Features</h2>
+<ul>
+<li>Rendering of colored 2D rectangles with rotation.</li>
+<li>Rendering of textured 2D rectangles with rotation.</li>
+<li>Text rendering.</li>
+<li>PNG texture loading using <code>png</code> module.</li>
+<li>TTF font loading using <code>freetype2</code> module.</li>
+</ul>
+<h2 id="Notes">Notes</h2>
+<ul>
+<li>Module does not handle window creation and system events. Use i.e. <code>glfw</code> to do it.</li>
+<li>The module is not feature-complete and still under development, all missing/required functionality
+should be implemented in the future; current implementation is mainly used to demonstrate the language
+capabilities.</li>
+</ul>
+<h2 id="General-desing">General desing</h2>
+<p>The <code>draw</code> API is based on switching the global context of rendering primitives (rectangles). In example
+to draw bunch of colored rectangles we must set the propper shader first:</p>
+
+<pre><code><span class="syntax-keyword">using</span> draw;
+<span class="syntax-keyword">using</span> glm;
+set_shader_color(); <span class="syntax-comment">// Prepare renderer for rendering of colored rectangles.</span>
+
+rect(10.f, 10.f, 100.f, 100.f, v4.<span class="syntax-keyword">{</span> 1.f, 0.f, 0.f, 1.f <span class="syntax-keyword">}</span>);
+rect(200.f, 10.f, 100.f, 100.f, v4.<span class="syntax-keyword">{</span> 0.f, 1.f, 0.f, 1.f <span class="syntax-keyword">}</span>);
+rect(400.f, 10.f, 100.f, 100.f, v4.<span class="syntax-keyword">{</span> 0.f, 0.f, 1.f, 1.f <span class="syntax-keyword">}</span>);
+</code></pre>
+<p>Internally each call to <code>rect</code> just appends the geometry caches; actual rendering is done when currenty
+used shader is changed or <a href="#drawflush">flush</a> is called explicitly. This approach reduces count of required draw
+calls a bit.</p>
+<p>See the <a href="https://github.com/travisdoor/bl/tree/master/how-to/gunner">example</a>.</p>
+<h2 id="draw.init">draw.init</h2>
+
+<pre><code>init :: fn (viewport_width: s32, viewport_height: s32, initialize_opengl :: true) Error
+</code></pre>
+<p>Draw library initialization must be called once before the module is used. The <code>viewport_width</code> and
+<code>viewport_height</code> defines the viewport size in current opengl context. These values are usually the
+same as the window size.</p>
+<p>The <a href="#drawterminate">terminate</a> must be called when draw module is not needed anymore.</p>
+<p>The current OpenGL context must be aready set, the minimal required OpenGL version is 3.3 "Core Profile". You can use
+i.e. <code>glfw</code> or similar tool to create window and propper OpenGL context.</p>
+<p>The <code>gl_init</code> function is called internally.</p>
+<p><span class="hint-note"><b>Note:</b>
+Window resizing is not supported right now.</span></p>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.set_viewport_size">draw.set_viewport_size</h2>
+
+<pre><code>set_viewport_size :: fn (viewport_width: s32, viewport_height: s32) 
+</code></pre>
+<p>Set the size of the viewport, this is done automatically in the <code>init</code> function call, however this one
+can be used e.g. in case of the window resize.</p>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.toggle_gamma_correction">draw.toggle_gamma_correction</h2>
+
+<pre><code>toggle_gamma_correction :: fn (v: bool)  #inline
+</code></pre>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.terminate">draw.terminate</h2>
+
+<pre><code>terminate :: fn (terminate_opengl :: true) 
+</code></pre>
+<p>Release all resources used by the module. This should be called when the module is not needed anymore.</p>
+<p>The <code>gl_terminate</code> function is called internally.</p>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.clear_color">draw.clear_color</h2>
+
+<pre><code>clear_color :: fn (color :: glm.v4_zero)  #inline
+</code></pre>
+<p>Fill the current frame buffer with <code>color</code>. This is usually called each frame.</p>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.set_shader_color">draw.set_shader_color</h2>
+
+<pre><code>set_shader_color :: fn ()  #inline
+</code></pre>
+<p>Prepare renderer for rendering colored rectangles. Each rectangle can use different color. This method
+is supposed to be called before <a href="#drawrect">rect</a> or <a href="#drawrect_centered">rect_centered</a>.</p>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.set_shader_texture">draw.set_shader_texture</h2>
+
+<pre><code>set_shader_texture :: fn (texture: *Texture)  #inline
+</code></pre>
+<p>Prepare renderer for rendering textured rectangles. This method is supposed to be called before
+<a href="#drawrect">rect</a> or <a href="#drawrect_centered">rect_centered</a> (all rectangles will use the same texture).</p>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.set_shader_font">draw.set_shader_font</h2>
+
+<pre><code>set_shader_font :: fn (font: *Font)  #inline
+</code></pre>
+<p>Prepare the renderer for rendering of a text.</p>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.rect">draw.rect</h2>
+
+<pre><code>rect :: fn { 
+    fn (position_x: f32, position_y: f32, width: f32, height: f32, color :: glm.v4_one) ; 
+    fn (position_x: f32, position_y: f32, width: f32, height: f32, colors: []glm.v4) ; 
+} #inline
+</code></pre>
+<p>Draw a single colored rectangle or texture into the frame buffer.</p>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.rect_centered">draw.rect_centered</h2>
+
+<pre><code>rect_centered :: fn (center_x: f32, center_y: f32, width: f32, height: f32, color :: glm.v4_one)  #inline
+</code></pre>
+<p>Draw a single colored rectangle or texture into the frame buffer.</p>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.rect_rounded">draw.rect_rounded</h2>
+
+<pre><code>rect_rounded :: fn (position_x: f32, position_y: f32, width: f32, height: f32, r: f32, inner_color :: glm.v4_one, outer_color :: glm.v4_one)  #inline
+</code></pre>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.rect_centered_rotated">draw.rect_centered_rotated</h2>
+
+<pre><code>rect_centered_rotated :: fn (center_x: f32, center_y: f32, width: f32, height: f32, angle_in_radians: f32, color :: glm.v4_one)  #inline
+</code></pre>
+<p>Draw a single colored rectangle or texture with rotation into the frame buffer.</p>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.text">draw.text</h2>
+
+<pre><code>text :: fn (position_x: f32, position_y: f32, text: string_view, text_color : glm.v4: glm.v4_one)  #inline
+</code></pre>
+<p>Draw text into the frame buffer.</p>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.code">draw.code</h2>
+
+<pre><code>code :: fn (position_x: f32, position_y: f32, code: string_view, character_color_indices: []u8, color_table: []glm.v4)  #inline
+</code></pre>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.flush">draw.flush</h2>
+
+<pre><code>flush :: fn ()  #inline
+</code></pre>
+<p>Immediately render all cached stuff into the frame buffer.</p>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.TextureFormat">draw.TextureFormat</h2>
+
+<pre><code>TextureFormat :: enum u8 {
+    RED = 1;
+    RGB = 3;
+    RGBA = 4;
+}
+</code></pre>
+<p>Texture channel distribution format.</p>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.Texture">draw.Texture</h2>
+
+<pre><code>Texture :: struct {
+    format: TextureFormat;
+    bit_depth: u8;
+    width: u32;
+    height: u32;
+    handle: GLuint;
+}
+</code></pre>
+<p>Texture representation in <code>draw</code> module.</p>
+<h3 id="Members">Members</h3>
+<ul>
+<li><code>format</code> - Texture channel distribution format.</li>
+<li><code>bit_depth</code> - Bit depth of each channel.</li>
+<li><code>width</code> - Texture image width.</li>
+<li><code>height</code> - Texture image height.</li>
+</ul>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.texture_init">draw.texture_init</h2>
+
+<pre><code>texture_init :: fn (texture: *Texture, directory: string_view, filename: string_view) Error
+</code></pre>
+<p>Load <code>png</code> texture from the <code>directory/filename</code>.</p>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.texture_terminate">draw.texture_terminate</h2>
+
+<pre><code>texture_terminate :: fn (texture: *Texture) 
+</code></pre>
+<p>Release texture data.</p>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.png_load_from_file">draw.png_load_from_file</h2>
+
+<pre><code>png_load_from_file :: fn (filepath: string_view, out_data: **u8, out_width: *u32, out_height: *u32, out_bit_depth: *u8, out_format: *TextureFormat) Error
+</code></pre>
+<p>Loads <code>png</code> image from <code>filepath</code> into <code>out_data</code>. The <code>out_data</code> shoud be released by <code>free</code> call on caller side.</p>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.png_load_from_memory">draw.png_load_from_memory</h2>
+
+<pre><code>png_load_from_memory :: fn (data: []u8, out_data: **u8, out_width: *u32, out_height: *u32, out_bit_depth: *u8, out_format: *TextureFormat) Error
+</code></pre>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.png_load_from_stream">draw.png_load_from_stream</h2>
+
+<pre><code>png_load_from_stream :: fn (stream: *std.Stream, out_data: **u8, out_width: *u32, out_height: *u32, out_bit_depth: *u8, out_format: *TextureFormat) Error
+</code></pre>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.Font">draw.Font</h2>
+
+<pre><code>Font :: struct {
+    char_table: ;
+    atlas: Texture;
+    size: f32;
+    height: f32;
+    base_offset_y: f32;
+    tab_size: s32;
+}
+</code></pre>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.GlyphInfo">draw.GlyphInfo</h2>
+
+<pre><code>GlyphInfo :: struct {
+    advance_x: f32;
+    advance_y: f32;
+    width: f32;
+    height: f32;
+    left: f32;
+    top: f32;
+    atlas_u_offset: f32;
+    atlas_v_offset: f32;
+}
+</code></pre>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.font_default_char_set">draw.font_default_char_set</h2>
+
+<pre><code>font_default_char_set :: fn () []u32 #inline
+</code></pre>
+<p>Returns default ASCII character table.</p>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.font_generate_char_set">draw.font_generate_char_set</h2>
+
+<pre><code>font_generate_char_set :: fn (chars: string_view, out_set: *[..]u32) 
+</code></pre>
+<p>Generate new character table based on input <code>chars</code>.</p>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.font_init_at_size">draw.font_init_at_size</h2>
+
+<pre><code>font_init_at_size :: fn (font: *Font, directory: string_view, filename: string_view, size: s32, char_set :: ) Error
+</code></pre>
+<p>Initialize new <code>font</code> from the 'TTF' file at <code>directory/filename</code> at required <code>size</code>. Custom <code>char_set</code> can be specified in case
+we need to render some non-ascii unicode characters. Each loaded font must be terminated by <a href="#drawfont_terminate">font_terminate</a>.</p>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.font_init_at_size_from_memory">draw.font_init_at_size_from_memory</h2>
+
+<pre><code>font_init_at_size_from_memory :: fn (font: *Font, file_data: []u8, size: s32, char_set :: ) Error
+</code></pre>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.font_terminate">draw.font_terminate</h2>
+
+<pre><code>font_terminate :: fn (font: *Font) 
+</code></pre>
+<p>Terminate loaded font.</p>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.font_set_tab_size">draw.font_set_tab_size</h2>
+
+<pre><code>font_set_tab_size :: fn (font: *Font, space_count: s32) 
+</code></pre>
+<p>Set size of a tab character as <code>space_count</code> count of spaces.</p>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.text_size">draw.text_size</h2>
+
+<pre><code>text_size :: fn (text: string_view, font: *Font, _len :: -1) (width: f32, height: f32)
+</code></pre>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.get_character_count_to_fit">draw.get_character_count_to_fit</h2>
+
+<pre><code>get_character_count_to_fit :: fn (text: string_view, font: *Font, fit_to: f32, split_by_words :: false) s32
+</code></pre>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.split_text_to_fit">draw.split_text_to_fit</h2>
+
+<pre><code>split_text_to_fit :: fn (text: string_view, font: *Font, fit_to: f32, split_by_words :: false) (left: string_view, right: string_view)
+</code></pre>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.set_scissor">draw.set_scissor</h2>
+
+<pre><code>set_scissor :: fn (position_x: f32, position_y: f32, width: f32, height: f32) 
+</code></pre>
+<p><em>File: draw.bl</em></p>
+<h2 id="draw.clear_scissor">draw.clear_scissor</h2>
+
+<pre><code>clear_scissor :: fn () 
+</code></pre>
+<p><em>File: draw.bl</em></p>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#Draw">Draw</a></li>
+<ul>
+<li><a href="#Features">Features</a></li>
+<li><a href="#Notes">Notes</a></li>
+<li><a href="#General-desing">General desing</a></li>
+<li><a href="#draw.init">draw.init</a></li>
+<li><a href="#draw.set_viewport_size">draw.set_viewport_size</a></li>
+<li><a href="#draw.toggle_gamma_correction">draw.toggle_gamma_correction</a></li>
+<li><a href="#draw.terminate">draw.terminate</a></li>
+<li><a href="#draw.clear_color">draw.clear_color</a></li>
+<li><a href="#draw.set_shader_color">draw.set_shader_color</a></li>
+<li><a href="#draw.set_shader_texture">draw.set_shader_texture</a></li>
+<li><a href="#draw.set_shader_font">draw.set_shader_font</a></li>
+<li><a href="#draw.rect">draw.rect</a></li>
+<li><a href="#draw.rect_centered">draw.rect_centered</a></li>
+<li><a href="#draw.rect_rounded">draw.rect_rounded</a></li>
+<li><a href="#draw.rect_centered_rotated">draw.rect_centered_rotated</a></li>
+<li><a href="#draw.text">draw.text</a></li>
+<li><a href="#draw.code">draw.code</a></li>
+<li><a href="#draw.flush">draw.flush</a></li>
+<li><a href="#draw.TextureFormat">draw.TextureFormat</a></li>
+<li><a href="#draw.Texture">draw.Texture</a></li>
+<li><a href="#draw.texture_init">draw.texture_init</a></li>
+<li><a href="#draw.texture_terminate">draw.texture_terminate</a></li>
+<li><a href="#draw.png_load_from_file">draw.png_load_from_file</a></li>
+<li><a href="#draw.png_load_from_memory">draw.png_load_from_memory</a></li>
+<li><a href="#draw.png_load_from_stream">draw.png_load_from_stream</a></li>
+<li><a href="#draw.Font">draw.Font</a></li>
+<li><a href="#draw.GlyphInfo">draw.GlyphInfo</a></li>
+<li><a href="#draw.font_default_char_set">draw.font_default_char_set</a></li>
+<li><a href="#draw.font_generate_char_set">draw.font_generate_char_set</a></li>
+<li><a href="#draw.font_init_at_size">draw.font_init_at_size</a></li>
+<li><a href="#draw.font_init_at_size_from_memory">draw.font_init_at_size_from_memory</a></li>
+<li><a href="#draw.font_terminate">draw.font_terminate</a></li>
+<li><a href="#draw.font_set_tab_size">draw.font_set_tab_size</a></li>
+<li><a href="#draw.text_size">draw.text_size</a></li>
+<li><a href="#draw.get_character_count_to_fit">draw.get_character_count_to_fit</a></li>
+<li><a href="#draw.split_text_to_fit">draw.split_text_to_fit</a></li>
+<li><a href="#draw.set_scissor">draw.set_scissor</a></li>
+<li><a href="#draw.clear_scissor">draw.clear_scissor</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

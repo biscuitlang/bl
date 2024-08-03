@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="GLWindow">GLWindow</h1>
+<p><code>#import "extra/glwindow"</code></p>
+<p><span class="hint-warning"><b>Warning:</b>
+This module is currently available only on Windows as experimental.</span></p>
+<p>Set of tools to handle creation of the operating system native window with OpenGL context and handling of user inputs.</p>
+<p>The window creation does not cover OpenGL initialization, since its API must be loaded dynamically in runtime, thus the <code>gl_init</code> must
+be called after a window is successfully created (the propper context is set) and before any rendering.</p>
+<h3 id="Example">Example</h3>
+
+<pre><code><span class="syntax-directive">#import</span> "extra/glwindow"
+
+main :: <span class="syntax-keyword">fn</span> () s32 <span class="syntax-keyword">{</span>
+    <span class="syntax-comment">// Initialize the glwindow module first.</span>
+    glwindow.init();
+    <span class="syntax-comment">// And don't forget to terminate it at the end.</span>
+    <span class="syntax-keyword">defer</span> glwindow.terminate();
+
+    <span class="syntax-comment">// Create default instance of window options and override some values.</span>
+    opt := glwindow.make_default_create_window_options();
+
+    <span class="syntax-comment">// Text shown in the window title.</span>
+    opt.title  = "My Window";
+
+    <span class="syntax-comment">// Window resolution</span>
+    opt.width  = 1024;
+    opt.height = 768;
+
+    <span class="syntax-comment">// Uncommnet this to enable fullscreen mode.</span>
+    <span class="syntax-comment">//opt.fullscreen = true;</span>
+
+    <span class="syntax-comment">// Create new window using our options and handle all possible errors.</span>
+    window, window_err :: glwindow.create_window(&opt);
+    <span class="syntax-keyword">if</span> window_err <span class="syntax-keyword">{</span>
+        <span class="syntax-comment">// Kill the app on error.</span>
+        <span class="syntax-keyword">panic</span>(window_err);
+    <span class="syntax-keyword">}</span>
+    <span class="syntax-comment">// Destroy the window at the end of the scope.</span>
+    <span class="syntax-keyword">defer</span> glwindow.destroy_window(window);
+
+    <span class="syntax-comment">// Make the window's GL context the current one.</span>
+    glwindow.set_window_context_current(window);
+
+    gl_init();
+    <span class="syntax-keyword">defer</span> gl_terminate();
+
+    <span class="syntax-comment">// The "game loop" is looping until the should_quit is false.</span>
+    should_quit := false;
+    <span class="syntax-keyword">loop</span> !should_quit <span class="syntax-keyword">{</span>
+        <span class="syntax-comment">// Poll all pending window events.</span>
+        glwindow.poll_window_events();
+
+        <span class="syntax-comment">// Process user input events here.</span>
+        <span class="syntax-keyword">loop</span> i := 0; i &lt; glwindow.frame_events.len; i += 1 <span class="syntax-keyword">{</span>
+            event :: &glwindow.frame_events[i];
+            <span class="syntax-keyword">using</span> glwindow.EventKind;
+            <span class="syntax-keyword">switch</span> event.kind <span class="syntax-keyword">{</span>
+                QUIT <span class="syntax-keyword">{</span> should_quit = true; <span class="syntax-keyword">}</span>
+                <span class="syntax-keyword">default</span>;
+            <span class="syntax-keyword">}</span>
+        <span class="syntax-keyword">}</span>
+
+        <span class="syntax-comment">// Draw one frame.</span>
+        gl.ClearColor(1.f, 0.f, 0.f, 1.f);
+        gl.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        <span class="syntax-comment">// Don't forget to swap gl buffers at the end of the frame.</span>
+        glwindow.swap_buffers(window);
+    <span class="syntax-keyword">}</span>
+
+    print("DONE\n");
+    <span class="syntax-keyword">return</span> 0;
+<span class="syntax-keyword">}</span>
+</code></pre>
+<h2 id="glwindow.Window">glwindow.Window</h2>
+
+<pre><code>Window :: win32.HWND
+</code></pre>
+<p><em>File: glwindow.win32.bl</em></p>
+<h2 id="glwindow.EventKind">glwindow.EventKind</h2>
+
+<pre><code>EventKind :: enum {
+    QUIT;
+    MOUSE_LB_DOWN;
+    MOUSE_LB_UP;
+    MOUSE_MB_DOWN;
+    MOUSE_MB_UP;
+    MOUSE_RB_DOWN;
+    MOUSE_RB_UP;
+    MOUSE_MOVE;
+    KEY_PRESS;
+    KEY_RELEASE;
+}
+</code></pre>
+<p><em>File: glwindow.win32.bl</em></p>
+<h2 id="glwindow.KeyCode">glwindow.KeyCode</h2>
+
+<pre><code>KeyCode :: enum u32 {
+    LBUTTON = 1;
+    RBUTTON = 2;
+    CANCEL = 3;
+    BACK = 8;
+    TAB = 9;
+    CLEAR = 12;
+    RETURN = 13;
+    SHIFT = 16;
+    CONTROL = 17;
+    MENU = 18;
+    PAUSE = 19;
+    CAPITAL = 20;
+    KANA = 21;
+    HANGEUL = 21;
+    HANGUL = 21;
+    IME_ON = 22;
+    JUNJA = 23;
+    FINAL = 24;
+    HANJA = 25;
+    KANJI = 25;
+    IME_OFF = 26;
+    ESCAPE = 27;
+    CONVERT = 28;
+    NONCONVERT = 29;
+    ACCEPT = 30;
+    MODECHANGE = 31;
+    SPACE = 32;
+    PRIOR = 33;
+    NEXT = 34;
+    END = 35;
+    HOME = 36;
+    LEFT = 37;
+    UP = 38;
+    RIGHT = 39;
+    DOWN = 40;
+    SELECT = 41;
+    PRINT = 42;
+    EXECUTE = 43;
+    SNAPSHOT = 44;
+    INSERT = 45;
+    DELETE = 46;
+    HELP = 47;
+    LWIN = 91;
+    RWIN = 92;
+    APPS = 93;
+    SLEEP = 95;
+    NUMPAD0 = 96;
+    NUMPAD1 = 97;
+    NUMPAD2 = 98;
+    NUMPAD3 = 99;
+    NUMPAD4 = 100;
+    NUMPAD5 = 101;
+    NUMPAD6 = 102;
+    NUMPAD7 = 103;
+    NUMPAD8 = 104;
+    NUMPAD9 = 105;
+    MULTIPLY = 106;
+    ADD = 107;
+    SEPARATOR = 108;
+    SUBTRACT = 109;
+    DECIMAL = 110;
+    DIVIDE = 111;
+    F1 = 112;
+    F2 = 113;
+    F3 = 114;
+    F4 = 115;
+    F5 = 116;
+    F6 = 117;
+    F7 = 118;
+    F8 = 119;
+    F9 = 120;
+    F10 = 121;
+    F11 = 122;
+    F12 = 123;
+    F13 = 124;
+    F14 = 125;
+    F15 = 126;
+    F16 = 127;
+    F17 = 128;
+    F18 = 129;
+    F19 = 130;
+    F20 = 131;
+    F21 = 132;
+    F22 = 133;
+    F23 = 134;
+    F24 = 135;
+    NUMBER_0 = 48;
+    NUMBER_1 = 49;
+    NUMBER_2 = 50;
+    NUMBER_3 = 51;
+    NUMBER_4 = 52;
+    NUMBER_5 = 53;
+    NUMBER_6 = 54;
+    NUMBER_7 = 55;
+    NUMBER_8 = 56;
+    NUMBER_9 = 57;
+    A = 65;
+    B = 66;
+    C = 67;
+    D = 68;
+    E = 69;
+    F = 70;
+    G = 71;
+    H = 72;
+    I = 73;
+    J = 74;
+    K = 75;
+    L = 76;
+    M = 77;
+    N = 78;
+    O = 79;
+    P = 80;
+    Q = 81;
+    R = 82;
+    S = 83;
+    T = 84;
+    U = 85;
+    V = 86;
+    W = 87;
+    X = 88;
+    Y = 89;
+    Z = 90;
+}
+</code></pre>
+<p><em>File: glwindow.win32.bl</em></p>
+<h2 id="glwindow.Event">glwindow.Event</h2>
+
+<pre><code>Event :: struct {
+    kind: EventKind;
+    sender: Window;
+    data: union {
+        mouse_move: struct {
+            x: s32;
+            y: s32;
+        };
+        key_code: KeyCode;
+    };
+}
+</code></pre>
+<p>General window event representation.</p>
+<h3 id="Members">Members</h3>
+<ul>
+<li><code>kind</code> - Window event <a href="#draweventkind">kind</a>.</li>
+<li><code>sender</code> - Window which recieved this event.</li>
+<li><code>x</code> - Related to MOUSE_MOVE event.</li>
+<li><code>key_code</code> - Related to KEY_* events.</li>
+</ul>
+<p><em>File: glwindow.win32.bl</em></p>
+<h2 id="glwindow.frame_events">glwindow.frame_events</h2>
+
+<pre><code>frame_events : [..]Event = 
+</code></pre>
+<p>Array of all collected window events in the current frame, this array is updated by calling <a href="#glwindowpoll_window_events">poll_window_events</a>.</p>
+<p><em>File: glwindow.win32.bl</em></p>
+<h2 id="glwindow.init">glwindow.init</h2>
+
+<pre><code>init :: fn () 
+</code></pre>
+<p>Initialize module internals.</p>
+<p><em>File: glwindow.win32.bl</em></p>
+<h2 id="glwindow.terminate">glwindow.terminate</h2>
+
+<pre><code>terminate :: fn () 
+</code></pre>
+<p>Release all module internals.</p>
+<p><em>File: glwindow.win32.bl</em></p>
+<h2 id="glwindow.CreateWindowOptions">glwindow.CreateWindowOptions</h2>
+
+<pre><code>CreateWindowOptions :: struct {
+    title: string_view;
+    width: s32;
+    height: s32;
+    position_x: s32;
+    position_y: s32;
+    gl_major_version: s32;
+    gl_minor_version: s32;
+    vsync: bool;
+    fullscreen: bool;
+}
+</code></pre>
+<p>Window initialization options. Use <a href="#glwindowmake_default_create_window_options">make_default_create_window_options</a> to
+create default options.</p>
+<h3 id="Members">Members</h3>
+<ul>
+<li><code>title</code> - Window title text shown in the title bar.</li>
+<li><code>width</code> - Window width in pixels. (Must be greater than 0.)</li>
+<li><code>height</code> - Window height in pixels. (Must be greater than 0.)</li>
+<li><code>position_x</code> - Window initial X position in pixels.</li>
+<li><code>position_y</code> - Window initial Y position in pixels.</li>
+<li><code>gl_major_version</code> - Required OpenGL major version.</li>
+<li><code>gl_minor_version</code> - Required OpenGL minor version.</li>
+<li><code>vsync</code> - Enable VSync.</li>
+<li><code>fullscreen</code> - Enable fullscreen mode.</li>
+</ul>
+<p><em>File: glwindow.win32.bl</em></p>
+<h2 id="glwindow.make_default_create_window_options">glwindow.make_default_create_window_options</h2>
+
+<pre><code>make_default_create_window_options :: fn () CreateWindowOptions #inline
+</code></pre>
+<p>Creates instance of default <a href="#drawcreatewindowoptions">CreateWindowOptions</a></p>
+<p><em>File: glwindow.win32.bl</em></p>
+<h2 id="glwindow.create_window">glwindow.create_window</h2>
+
+<pre><code>create_window :: fn (options: *CreateWindowOptions) (window: Window, error: Error)
+</code></pre>
+<p>Create a new instance of window with OpenGL buffer initialized; the OpenGL API initialization must be handled
+explicitly on caller side with <code>gl_init</code> and <code>gl_terminate</code>.</p>
+<p><em>File: glwindow.win32.bl</em></p>
+<h2 id="glwindow.destroy_window">glwindow.destroy_window</h2>
+
+<pre><code>destroy_window :: fn (window: Window) 
+</code></pre>
+<p>Destroy window created by <a href="#drawcreate_window">create_window</a>.</p>
+<p><em>File: glwindow.win32.bl</em></p>
+<h2 id="glwindow.set_window_context_current">glwindow.set_window_context_current</h2>
+
+<pre><code>set_window_context_current :: fn (window: Window) Error
+</code></pre>
+<p>Set the OpenGL window context as current used context. This must be called before OpenGL is initialized.</p>
+<p><em>File: glwindow.win32.bl</em></p>
+<h2 id="glwindow.swap_buffers">glwindow.swap_buffers</h2>
+
+<pre><code>swap_buffers :: fn (window: Window)  #inline
+</code></pre>
+<p>Swaps current buffers (presents changes to the window's OpenGL viewport).</p>
+<p><em>File: glwindow.win32.bl</em></p>
+<h2 id="glwindow.poll_window_events">glwindow.poll_window_events</h2>
+
+<pre><code>poll_window_events :: fn () 
+</code></pre>
+<p>Poll all window events and update <a href="#glwindowframe_events">frame_events</a> array.</p>
+<p><em>File: glwindow.win32.bl</em></p>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#GLWindow">GLWindow</a></li>
+<ul>
+<li><a href="#glwindow.Window">glwindow.Window</a></li>
+<li><a href="#glwindow.EventKind">glwindow.EventKind</a></li>
+<li><a href="#glwindow.KeyCode">glwindow.KeyCode</a></li>
+<li><a href="#glwindow.Event">glwindow.Event</a></li>
+<li><a href="#glwindow.frame_events">glwindow.frame_events</a></li>
+<li><a href="#glwindow.init">glwindow.init</a></li>
+<li><a href="#glwindow.terminate">glwindow.terminate</a></li>
+<li><a href="#glwindow.CreateWindowOptions">glwindow.CreateWindowOptions</a></li>
+<li><a href="#glwindow.make_default_create_window_options">glwindow.make_default_create_window_options</a></li>
+<li><a href="#glwindow.create_window">glwindow.create_window</a></li>
+<li><a href="#glwindow.destroy_window">glwindow.destroy_window</a></li>
+<li><a href="#glwindow.set_window_context_current">glwindow.set_window_context_current</a></li>
+<li><a href="#glwindow.swap_buffers">glwindow.swap_buffers</a></li>
+<li><a href="#glwindow.poll_window_events">glwindow.poll_window_events</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="Arena-Allocator">Arena Allocator</h1>
+<p><code>#import "std/arena"</code></p>
+<p>Simple arena allocator is memory storage operating on internally pre-allocated memory block. Arena can be used
+to store any arbitrary data. One of the reasons why to use Arena allocator is reduction of memory allocation
+overhead; the memory resource is acquired only once (on <a href="#arena_make">arena_make</a> or <a href="#arena_resize">arena_resize</a>
+call).</p>
+<p>Size of the allocated memory block is fixed, that means calling <code>alloc</code> in case there is not enough space in the
+arena ends up with an error. However arena can be resizes by <a href="#arena_resize">arena_resize</a> if needed (all previously
+memory allocated using arena becomes invalid).</p>
+<h3 id="Supported-Operations">Supported Operations</h3>
+
+<pre><code>- [x] Allocate
+- [-] Reallocate (Cause an error.)
+- [-] Free
+- [x] Release
+- [x] Reset
+</code></pre>
+<ul>
+<li><a href="/modules/memory/#reset_allocator">reset_allocator</a> can be used to reset arena to the initial state (but keep preallocated memory).</li>
+<li><a href="/modules/memory/#release_allocator">release_allocator</a> should be called to release all resources used by arena.</li>
+</ul>
+<h2 id="std.ARENA_ALIGNMENT">std.ARENA_ALIGNMENT</h2>
+
+<pre><code>ARENA_ALIGNMENT :: DEFAULT_ALIGNMENT
+</code></pre>
+<p>Alignment of each arena allocation. This value should be large enough to properly align all possible data, we also
+can use this value to precisely predict required arena size in advance.</p>
+<p><em>File: arena.bl</em></p>
+<h2 id="std.ArenaAllocator">std.ArenaAllocator</h2>
+
+<pre><code>ArenaAllocator :: struct {
+    allocator: *Allocator;
+    mem: *u8;
+    top: *u8;
+    space: usize;
+    allocated: usize;
+}
+</code></pre>
+<p>The Arena Allocator type.</p>
+<h3 id="Members">Members</h3>
+<ul>
+<li><code>space</code> - Space left in arena.</li>
+<li><code>allocated</code> - Total bytes allocated by arena (size of pre-allocated chunk).</li>
+</ul>
+<p><em>File: arena.bl</em></p>
+<h2 id="std.arena_make">std.arena_make</h2>
+
+<pre><code>arena_make :: fn (size : usize: 0, allocator : *Allocator: null) ArenaAllocator #inline
+</code></pre>
+<p>Make new arena instance. In case the <code>size</code> is not 0, the arena memory chunk is preallocated right away to
+<code>size</code> bytes. The <code>allocator</code> is used to preallocate memory chunk in case it's specified, otherwise default
+allocator set in application context is used.</p>
+<p>Call <a href="/modules/memory/#release_allocator">release_allocator</a> to release all resources used by arena if it's not needed
+anymore.</p>
+<p><em>File: arena.bl</em></p>
+<h2 id="std.arena_resize">std.arena_resize</h2>
+
+<pre><code>arena_resize :: fn (a: *ArenaAllocator, size: usize) Error
+</code></pre>
+<p>Resize & reset arena. Previously allocated memory block is kept for later use, however all memory acquired from this
+arena becomes invalid (arena is set to an empty state).</p>
+<p><em>File: arena.bl</em></p>
+<h2 id="std.arena_required_additional_space">std.arena_required_additional_space</h2>
+
+<pre><code>arena_required_additional_space :: fn (count_of_allocations: s32) usize #inline
+</code></pre>
+<p>This helper function might be used to precisely calculate additional space required by arena to store <code>count_of_allocations</code>
+elements in advance.</p>
+<p><em>File: arena.bl</em></p>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#Arena-Allocator">Arena Allocator</a></li>
+<ul>
+<li><a href="#std.ARENA_ALIGNMENT">std.ARENA_ALIGNMENT</a></li>
+<li><a href="#std.ArenaAllocator">std.ArenaAllocator</a></li>
+<li><a href="#std.arena_make">std.arena_make</a></li>
+<li><a href="#std.arena_resize">std.arena_resize</a></li>
+<li><a href="#std.arena_required_additional_space">std.arena_required_additional_space</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

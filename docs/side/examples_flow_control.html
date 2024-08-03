@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="Flow-Control">Flow Control</h1>
+<p>Compile using <code>blc my-file-name.bl</code> and run <code>./out</code>.</p>
+
+<pre><code>main :: <span class="syntax-keyword">fn</span> () s32 <span class="syntax-keyword">{</span>
+	<span class="syntax-comment">// Declare bool variable and set it to true.</span>
+	should_print := true;
+
+	<span class="syntax-comment">// Use of the if statement to create two execution branches.</span>
+	<span class="syntax-keyword">if</span> should_print <span class="syntax-keyword">{</span>
+		<span class="syntax-comment">// This will be called when 'should_print' is true.</span>
+		print("This will be printed!\n");
+	<span class="syntax-keyword">}</span> <span class="syntax-keyword">else</span> <span class="syntax-keyword">{</span>
+		<span class="syntax-comment">// Optional else block.</span>
+	<span class="syntax-keyword">}</span>
+
+
+	<span class="syntax-comment">// We need some counter to count loop iterations.</span>
+	i := 0;
+	<span class="syntax-keyword">loop</span> <span class="syntax-keyword">{</span> <span class="syntax-comment">// Execute block in loop.</span>
+		<span class="syntax-comment">// Compare value of i to 10 and break the loop when this</span>
+		<span class="syntax-comment">// condition is true. We stay in this loop forever without</span>
+		<span class="syntax-comment">// break call.</span>
+		<span class="syntax-keyword">if</span> i == 10 <span class="syntax-keyword">{</span> <span class="syntax-keyword">break</span>; <span class="syntax-keyword">}</span>
+
+		print("Hello!\n"); 
+		
+		<span class="syntax-comment">// Increase value of i by one.</span>
+		i += 1;
+	<span class="syntax-keyword">}</span>
+
+
+
+	<span class="syntax-comment">// Check break condition directly by loop statement. </span>
+	j := 0;
+	<span class="syntax-keyword">loop</span> j &lt; 10 <span class="syntax-keyword">{</span> <span class="syntax-comment">// Continue looping when j is less than 10.</span>
+		print("j = %\n", j);  <span class="syntax-comment">// Use % delimiter to print value of j.</span>
+		j += 1;
+	<span class="syntax-keyword">}</span>
+
+
+
+	<span class="syntax-comment">// And finally...</span>
+	<span class="syntax-keyword">loop</span> k := 0; k &lt; 10; k += 1 <span class="syntax-keyword">{</span> 
+		print("k = %\n", k);  
+	<span class="syntax-keyword">}</span>
+
+
+	<span class="syntax-keyword">return</span> 0;
+<span class="syntax-keyword">}</span>
+
+</code></pre>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#Flow-Control">Flow Control</a></li>
+</ul>
+</div>
+</div>
+</body>
+</html>

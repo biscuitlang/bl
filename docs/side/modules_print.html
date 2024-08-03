@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="Print">Print</h1>
+<p><code>#import "std/print"</code></p>
+<p>Printing functions collection.</p>
+<h2 id="PRINT_MAX_LENGTH">PRINT_MAX_LENGTH</h2>
+
+<pre><code>PRINT_MAX_LENGTH :: 4096
+</code></pre>
+<p>Size of buffer used by <code>print</code> function, this is maximum text length which can be printed at once.</p>
+<p><em>File: print.bl</em></p>
+<h2 id="print">print</h2>
+
+<pre><code>print :: fn (format: string_view, args: ...) s32
+</code></pre>
+<p>Write string to the standard output (stdout). Format string can include format specifiers <code>%</code>
+which are replaced by corresponding argument value passed in <code>args</code>. Value-string conversion is
+done automatically, we can pass values of any type as an arguments, even structures or arrays.</p>
+<p>The <code>print</code> function accepts C-like escape sequences as <code>\n</code>, <code>\t</code>, <code>\r</code>, etc.</p>
+<p>Pointers to <code>Error</code> are dereferenced automatically; so the <code>print</code> function can print out errors
+directly.</p>
+<p>Count of printed bytes is returned.</p>
+<h3 id="Example">Example</h3>
+
+<pre><code>main :: <span class="syntax-keyword">fn</span> () s32 <span class="syntax-keyword">{</span>
+    print("Hello world!\n");
+    print("My name is '%'.\n", "Travis");
+    print("Number: %\n", 10);
+
+    Foo :: <span class="syntax-keyword">struct</span> <span class="syntax-keyword">{</span>
+        i: s32;
+        j: s32;
+    <span class="syntax-keyword">}</span>;
+
+    foo := Foo.<span class="syntax-keyword">{</span>10, 20<span class="syntax-keyword">}</span>;
+    print("foo = '%'\n", foo);
+
+    <span class="syntax-keyword">return</span> 0;
+<span class="syntax-keyword">}</span>
+</code></pre>
+<p><em>File: print.bl</em></p>
+<h2 id="eprint">eprint</h2>
+
+<pre><code>eprint :: fn (format: string_view, args: ...) s32
+</code></pre>
+<p>Write string to the error output (stderr).
+See also <a href="#print">print</a>.</p>
+<p><em>File: print.bl</em></p>
+<h2 id="bprint">bprint</h2>
+
+<pre><code>bprint :: fn (buf: []u8, format: string_view, args: ...) s32
+</code></pre>
+<p>Write formatted input to the buffer. When passed buffer has not enough space to handle whole
+resulting string and terminal character, function will print just part tting into the buffer.</p>
+<p>Returns count of characters written into buffer, this count does not include terminal character
+written at the end of the result string.</p>
+<p><span class="hint-note"><b>Note:</b>
+String written into the buffer is always zero terminated.</span></p>
+<p>See also <a href="#print">print</a>.</p>
+<p><em>File: print.bl</em></p>
+<h2 id="tprint">tprint</h2>
+
+<pre><code>tprint :: fn (format: string_view, args: ...) string #inline
+</code></pre>
+<p>Write formatted input to the new string using <code>application_context.temporary_allocator</code>.</p>
+<p><span class="hint-note"><b>Note:</b>
+There is no need to explicitly release memory used by temporary string.</span></p>
+<p><span class="hint-note"><b>Note:</b>
+Created string is always zero terminated.</span></p>
+<p>See also <a href="#print">print</a>.</p>
+<p><em>File: print.bl</em></p>
+<h2 id="sprint">sprint</h2>
+
+<pre><code>sprint :: fn (format: string_view, args: ...) string
+</code></pre>
+<p>Write formatted input to the new heap-allocated string.</p>
+<p><span class="hint-note"><b>Note:</b>
+Use <code>std.str_delete</code> to free memory used by string.</span></p>
+<p><span class="hint-note"><b>Note:</b>
+Created string is always zero terminated.</span></p>
+<p>See also <a href="#print">print</a>.</p>
+<p><em>File: print.bl</em></p>
+<h2 id="FmtReal">FmtReal</h2>
+
+<pre><code>FmtReal :: struct {
+    trailing: s8;
+    v: Any;
+}
+</code></pre>
+<p>Structure to hold information about custom real print formatting. Use <a href="#fmt_real">fmt_real</a>
+function to create formatted printable value.</p>
+<h3 id="Members">Members</h3>
+<ul>
+<li><p><code>trailing</code> - Count of trailing zeros. When this value is less than
+zero, default (6) trailing will be used.</p>
+</li>
+<li><p><code>v</code> - Value.</p>
+</li>
+</ul>
+<p><em>File: print.bl</em></p>
+<h2 id="fmt_real">fmt_real</h2>
+
+<pre><code>fmt_real :: fn (v: Any, trailing: s8) FmtReal #inline
+</code></pre>
+<p>Create formatted printable object for real number. Created <a href="#fmtreal">FmtReal</a> object is valid</p>
+<p><em>File: print.bl</em></p>
+<h2 id="FmtIntBase">FmtIntBase</h2>
+
+<pre><code>FmtIntBase :: enum u8 {
+    BIN = 2;
+    OCT = 8;
+    DEC = 10;
+    HEX = 16;
+}
+</code></pre>
+<p>Number base used for formatted printing.</p>
+<h3 id="Variants">Variants</h3>
+<ul>
+<li><code>BIN</code> - Format as binary number.</li>
+<li><code>OCT</code> - Format as octal number.</li>
+<li><code>DEC</code> - Format as decimal number.</li>
+<li><code>HEX</code> - Format as haxadecimal number.</li>
+</ul>
+<p><em>File: print.bl</em></p>
+<h2 id="FmtInt">FmtInt</h2>
+
+<pre><code>FmtInt :: struct {
+    base: FmtIntBase;
+    print_prefix: bool;
+    fixed_digit_count: s32;
+    v: Any;
+}
+</code></pre>
+<p>Specify number printing format. Use <a href="#fmt_int">fmt_int</a> helper function to create instance of
+this type.</p>
+<h3 id="Members">Members</h3>
+<ul>
+<li><p><code>base</code> - Numeric base.</p>
+</li>
+<li><p><code>print_prefix</code> - Prints prefix based on desired numeric base.</p>
+<ul>
+<li><code>0b</code> for binary.</li>
+<li><code>0</code> for octal.</li>
+<li><code>0x</code> for hexadecimal.</li>
+</ul>
+</li>
+<li><p><code>v</code> - Printed value.</p>
+</li>
+</ul>
+<p><em>File: print.bl</em></p>
+<h2 id="fmt_int">fmt_int</h2>
+
+<pre><code>fmt_int :: fn (v: Any, base: FmtIntBase, print_prefix :: true, fixed_digit_count :: -1) FmtInt #inline
+</code></pre>
+<p>Create formatted printable object for number. Created <a href="#fmtint">FmtInt</a> object is valid for
+direct printing.</p>
+<p><em>File: print.bl</em></p>
+<h2 id="FmtChar">FmtChar</h2>
+
+<pre><code>FmtChar :: struct {
+    v: u8;
+}
+</code></pre>
+<p>Simple wrapper used for format <code>u8</code> value as character.</p>
+<p><em>File: print.bl</em></p>
+<h2 id="fmt_char">fmt_char</h2>
+
+<pre><code>fmt_char :: fn (v: u8) FmtChar #inline
+</code></pre>
+<p>Create formatter for <code>u8</code> number to be later printed as character.</p>
+<h3 id="Example">Example</h3>
+
+<pre><code>print("% = %\n", 'c', fmt_char('c'));
+</code></pre>
+<p><em>File: print.bl</em></p>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#Print">Print</a></li>
+<ul>
+<li><a href="#PRINT_MAX_LENGTH">PRINT_MAX_LENGTH</a></li>
+<li><a href="#print">print</a></li>
+<li><a href="#eprint">eprint</a></li>
+<li><a href="#bprint">bprint</a></li>
+<li><a href="#tprint">tprint</a></li>
+<li><a href="#sprint">sprint</a></li>
+<li><a href="#FmtReal">FmtReal</a></li>
+<li><a href="#fmt_real">fmt_real</a></li>
+<li><a href="#FmtIntBase">FmtIntBase</a></li>
+<li><a href="#FmtInt">FmtInt</a></li>
+<li><a href="#fmt_int">fmt_int</a></li>
+<li><a href="#FmtChar">FmtChar</a></li>
+<li><a href="#fmt_char">fmt_char</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

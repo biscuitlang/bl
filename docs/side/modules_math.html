@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="Math">Math</h1>
+<p><code>#load "std/math.bl"</code></p>
+<h2 id="std.PI">std.PI</h2>
+
+<pre><code>PI :: 3.141593
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.TWO_PI">std.TWO_PI</h2>
+
+<pre><code>TWO_PI :: 6.283185
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.HALF_PI">std.HALF_PI</h2>
+
+<pre><code>HALF_PI :: 1.570796
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.F32_PI">std.F32_PI</h2>
+
+<pre><code>F32_PI :: 
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.F32_TWO_PI">std.F32_TWO_PI</h2>
+
+<pre><code>F32_TWO_PI :: 
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.F32_HALF_PI">std.F32_HALF_PI</h2>
+
+<pre><code>F32_HALF_PI :: 
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.F32_EPSILON">std.F32_EPSILON</h2>
+
+<pre><code>F32_EPSILON :: 0.000010
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.F64_EPSILON">std.F64_EPSILON</h2>
+
+<pre><code>F64_EPSILON :: 0.000010
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.S8_MIN">std.S8_MIN</h2>
+
+<pre><code>S8_MIN : s8 : -128
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.S8_MAX">std.S8_MAX</h2>
+
+<pre><code>S8_MAX : s8 : 127
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.S16_MIN">std.S16_MIN</h2>
+
+<pre><code>S16_MIN : s16 : -32768
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.S16_MAX">std.S16_MAX</h2>
+
+<pre><code>S16_MAX : s16 : 32767
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.S32_MIN">std.S32_MIN</h2>
+
+<pre><code>S32_MIN : s32 : -2147483648
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.S32_MAX">std.S32_MAX</h2>
+
+<pre><code>S32_MAX : s32 : 2147483647
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.S64_MIN">std.S64_MIN</h2>
+
+<pre><code>S64_MIN : s64 : -9223372036854775808
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.S64_MAX">std.S64_MAX</h2>
+
+<pre><code>S64_MAX : s64 : 9223372036854775807
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.U8_MIN">std.U8_MIN</h2>
+
+<pre><code>U8_MIN : u8 : 0
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.U8_MAX">std.U8_MAX</h2>
+
+<pre><code>U8_MAX : u8 : 255
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.U16_MIN">std.U16_MIN</h2>
+
+<pre><code>U16_MIN : u16 : 0
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.U16_MAX">std.U16_MAX</h2>
+
+<pre><code>U16_MAX : u16 : 65535
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.U32_MIN">std.U32_MIN</h2>
+
+<pre><code>U32_MIN : u32 : 0
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.U32_MAX">std.U32_MAX</h2>
+
+<pre><code>U32_MAX : u32 : 4294967295
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.U64_MIN">std.U64_MIN</h2>
+
+<pre><code>U64_MIN : u64 : 0
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.U64_MAX">std.U64_MAX</h2>
+
+<pre><code>U64_MAX : u64 : 18446744073709551615
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.nan">std.nan</h2>
+
+<pre><code>nan :: fn (T: type) T
+</code></pre>
+<p>Returns NaN for given type <code>T</code>.</p>
+<p><em>File: math.bl</em></p>
+<h2 id="std.inf">std.inf</h2>
+
+<pre><code>inf :: fn (T: type) T
+</code></pre>
+<p>Returns positive infinity value for given type <code>T</code>.</p>
+<p><em>File: math.bl</em></p>
+<h2 id="std.is_nan">std.is_nan</h2>
+
+<pre><code>is_nan :: fn (n: ?T) bool #inline
+</code></pre>
+<p>Returns <code>true</code> in case the input real number is NaN (i.e. result of operation 0./0.).</p>
+<p><em>File: math.bl</em></p>
+<h2 id="std.is_inf">std.is_inf</h2>
+
+<pre><code>is_inf :: fn (n: ?T) bool #inline
+</code></pre>
+<p>Returns <code>true</code> in case the input real number is positive infinity number (i.e. result of operation 1./0.).</p>
+<p><em>File: math.bl</em></p>
+<h2 id="std.is_ninf">std.is_ninf</h2>
+
+<pre><code>is_ninf :: fn (n: ?T) bool #inline
+</code></pre>
+<p>Returns <code>true</code> in case the input real number is negative infinity number (i.e. result of operation -1./0.).</p>
+<p><em>File: math.bl</em></p>
+<h2 id="std.sin">std.sin</h2>
+
+<pre><code>sin :: fn { 
+    f32_sin; 
+    f64_sin; 
+}
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.cos">std.cos</h2>
+
+<pre><code>cos :: fn { 
+    f32_cos; 
+    f64_cos; 
+}
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.floor">std.floor</h2>
+
+<pre><code>floor :: fn { 
+    f32_floor; 
+    f64_floor; 
+}
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.round">std.round</h2>
+
+<pre><code>round :: fn { 
+    f32_round; 
+    f64_round; 
+}
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.pow">std.pow</h2>
+
+<pre><code>pow :: fn { 
+    f32_pow; 
+    f64_pow; 
+}
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.log">std.log</h2>
+
+<pre><code>log :: fn { 
+    f32_log; 
+    f64_log; 
+}
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.log2">std.log2</h2>
+
+<pre><code>log2 :: fn { 
+    f32_log2; 
+    f64_log2; 
+}
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.log10">std.log10</h2>
+
+<pre><code>log10 :: fn { 
+    f32_log10; 
+    f64_log10; 
+}
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.sqrt">std.sqrt</h2>
+
+<pre><code>sqrt :: fn { 
+    f32_sqrt; 
+    f64_sqrt; 
+}
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.ceil">std.ceil</h2>
+
+<pre><code>ceil :: fn { 
+    f32_ceil; 
+    f64_ceil; 
+}
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.trunc">std.trunc</h2>
+
+<pre><code>trunc :: fn { 
+    f32_trunc; 
+    f64_trunc; 
+}
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.atan2">std.atan2</h2>
+
+<pre><code>atan2 :: fn { 
+    C.atan2f; 
+    C.atan2; 
+}
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.copysign">std.copysign</h2>
+
+<pre><code>copysign :: fn { 
+    C.copysignf; 
+    C.copysign; 
+}
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.asin">std.asin</h2>
+
+<pre><code>asin :: fn { 
+    C.asinf; 
+    C.asin; 
+}
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.acos">std.acos</h2>
+
+<pre><code>acos :: fn { 
+    C.acosf; 
+    C.acos; 
+}
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.tan">std.tan</h2>
+
+<pre><code>tan :: fn { 
+    C.tanf; 
+    C.tan; 
+}
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.atan">std.atan</h2>
+
+<pre><code>atan :: fn { 
+    C.atanf; 
+    C.atan; 
+}
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.fmod">std.fmod</h2>
+
+<pre><code>fmod :: fn { 
+    fn (x: f32, y: f32) f32; 
+    fn (x: f64, y: f64) f64; 
+}
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.abs">std.abs</h2>
+
+<pre><code>abs :: fn { 
+    f32_abs; 
+    f64_abs; 
+    s64_abs; 
+}
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.compare">std.compare</h2>
+
+<pre><code>compare :: fn { 
+    f32_compare; 
+    f64_compare; 
+}
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.degtorad">std.degtorad</h2>
+
+<pre><code>degtorad :: fn { 
+    f32_degtorad; 
+    f64_degtorad; 
+}
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.radtodeg">std.radtodeg</h2>
+
+<pre><code>radtodeg :: fn { 
+    f32_radtodeg; 
+    f64_radtodeg; 
+}
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.max">std.max</h2>
+
+<pre><code>max :: fn (a: ?T, b: T) T #inline
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.min">std.min</h2>
+
+<pre><code>min :: fn (a: ?T, b: T) T #inline
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.lerp">std.lerp</h2>
+
+<pre><code>lerp :: fn (a: ?T, b: T, fraction: T) T #inline
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.smooth_step">std.smooth_step</h2>
+
+<pre><code>smooth_step :: fn (a: ?T, b: T, fraction: T) T #inline
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.clamp">std.clamp</h2>
+
+<pre><code>clamp :: fn (v: ?T, minimum: T, maximum: T) T
+</code></pre>
+<p><em>File: math.bl</em></p>
+<h2 id="std.map">std.map</h2>
+
+<pre><code>map :: fn (value: ?T, min1: T, max1: T, min2: T, max2: T) T #inline
+</code></pre>
+<p><em>File: math.bl</em></p>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#Math">Math</a></li>
+<ul>
+<li><a href="#std.PI">std.PI</a></li>
+<li><a href="#std.TWO_PI">std.TWO_PI</a></li>
+<li><a href="#std.HALF_PI">std.HALF_PI</a></li>
+<li><a href="#std.F32_PI">std.F32_PI</a></li>
+<li><a href="#std.F32_TWO_PI">std.F32_TWO_PI</a></li>
+<li><a href="#std.F32_HALF_PI">std.F32_HALF_PI</a></li>
+<li><a href="#std.F32_EPSILON">std.F32_EPSILON</a></li>
+<li><a href="#std.F64_EPSILON">std.F64_EPSILON</a></li>
+<li><a href="#std.S8_MIN">std.S8_MIN</a></li>
+<li><a href="#std.S8_MAX">std.S8_MAX</a></li>
+<li><a href="#std.S16_MIN">std.S16_MIN</a></li>
+<li><a href="#std.S16_MAX">std.S16_MAX</a></li>
+<li><a href="#std.S32_MIN">std.S32_MIN</a></li>
+<li><a href="#std.S32_MAX">std.S32_MAX</a></li>
+<li><a href="#std.S64_MIN">std.S64_MIN</a></li>
+<li><a href="#std.S64_MAX">std.S64_MAX</a></li>
+<li><a href="#std.U8_MIN">std.U8_MIN</a></li>
+<li><a href="#std.U8_MAX">std.U8_MAX</a></li>
+<li><a href="#std.U16_MIN">std.U16_MIN</a></li>
+<li><a href="#std.U16_MAX">std.U16_MAX</a></li>
+<li><a href="#std.U32_MIN">std.U32_MIN</a></li>
+<li><a href="#std.U32_MAX">std.U32_MAX</a></li>
+<li><a href="#std.U64_MIN">std.U64_MIN</a></li>
+<li><a href="#std.U64_MAX">std.U64_MAX</a></li>
+<li><a href="#std.nan">std.nan</a></li>
+<li><a href="#std.inf">std.inf</a></li>
+<li><a href="#std.is_nan">std.is_nan</a></li>
+<li><a href="#std.is_inf">std.is_inf</a></li>
+<li><a href="#std.is_ninf">std.is_ninf</a></li>
+<li><a href="#std.sin">std.sin</a></li>
+<li><a href="#std.cos">std.cos</a></li>
+<li><a href="#std.floor">std.floor</a></li>
+<li><a href="#std.round">std.round</a></li>
+<li><a href="#std.pow">std.pow</a></li>
+<li><a href="#std.log">std.log</a></li>
+<li><a href="#std.log2">std.log2</a></li>
+<li><a href="#std.log10">std.log10</a></li>
+<li><a href="#std.sqrt">std.sqrt</a></li>
+<li><a href="#std.ceil">std.ceil</a></li>
+<li><a href="#std.trunc">std.trunc</a></li>
+<li><a href="#std.atan2">std.atan2</a></li>
+<li><a href="#std.copysign">std.copysign</a></li>
+<li><a href="#std.asin">std.asin</a></li>
+<li><a href="#std.acos">std.acos</a></li>
+<li><a href="#std.tan">std.tan</a></li>
+<li><a href="#std.atan">std.atan</a></li>
+<li><a href="#std.fmod">std.fmod</a></li>
+<li><a href="#std.abs">std.abs</a></li>
+<li><a href="#std.compare">std.compare</a></li>
+<li><a href="#std.degtorad">std.degtorad</a></li>
+<li><a href="#std.radtodeg">std.radtodeg</a></li>
+<li><a href="#std.max">std.max</a></li>
+<li><a href="#std.min">std.min</a></li>
+<li><a href="#std.lerp">std.lerp</a></li>
+<li><a href="#std.smooth_step">std.smooth_step</a></li>
+<li><a href="#std.clamp">std.clamp</a></li>
+<li><a href="#std.map">std.map</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

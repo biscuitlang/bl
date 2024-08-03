@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="Array">Array</h1>
+<p><code>#import "std/array"</code></p>
+<p>Compiler builtin dynamic array is automatically growing memory storage allocated on heap. The
+array allocated memory block groves over time when we push new values to the array. It's
+guaranteed that all pushed elements are stored in single continuous block of memory. When there
+is no space reminding in currently allocated block, new one is allocated and all already pushed
+data are copied from old block to the new one.</p>
+<h3 id="Example">Example</h3>
+
+<pre><code>
+</code></pre>
+<h2 id="ARRAY_ALLOC_BLOCK_SIZE">ARRAY_ALLOC_BLOCK_SIZE</h2>
+
+<pre><code>ARRAY_ALLOC_BLOCK_SIZE : usize = 32
+</code></pre>
+<p><em>File: array.bl</em></p>
+<h2 id="ARRAY_GROW_FACTOR">ARRAY_GROW_FACTOR</h2>
+
+<pre><code>ARRAY_GROW_FACTOR : f32 = 1.500000
+</code></pre>
+<p><em>File: array.bl</em></p>
+<h2 id="array_init">array_init</h2>
+
+<pre><code>array_init :: fn (_arr: *[..]?T, n : s64: 0, allocator : *Allocator: null)  #inline
+</code></pre>
+<p>Sets dynamic array to default state. If array contains already allocated memory <code>array_terminate</code>
+must be called first.</p>
+<p>Initial capacity can be specified by <code>n</code> (count of elements). If <code>n</code> is greater than 0, needed
+memory is preallocated using specified <code>allocator</code>; otherwise no allocation is done.</p>
+<p>It's usually enough to rely on default implicit initialization in case we don't need specify
+custom allocator or preallocate storage to specified <code>n</code> of entries.</p>
+<p><em>File: array.bl</em></p>
+<h2 id="array_terminate">array_terminate</h2>
+
+<pre><code>array_terminate :: fn (_arr: *[..]?T)  #inline
+</code></pre>
+<p>Release memory allocated by dynamic array. This function is supposed to be called when dynamic
+array is no longer needed. Passed dynamic array is set to default state also.</p>
+<p><em>File: array.bl</em></p>
+<h2 id="array_push">array_push</h2>
+
+<pre><code>array_push :: fn { 
+    impl_push_empty; 
+    impl_push; 
+}
+</code></pre>
+<p>Append new value at the dynamic array end. New heap allocation is done here only in cases when
+there is not enough memory allocated to store all values.
+Returns pointer to the new appended element.</p>
+<p><span class="hint-note"><b>Note:</b>
+When there is no element to push provided, function will just allocate memory for
+a new empty element without any initialization.</span></p>
+<p><em>File: array.bl</em></p>
+<h2 id="array_push_all">array_push_all</h2>
+
+<pre><code>array_push_all :: fn (_arr: *[..]?T, data: []T) 
+</code></pre>
+<p>Append all <code>data</code> at the dynamic array end. New heap allocation is done here only in cases when
+there is not enough memory allocated to store all values.
+Does nothing when <code>data.len &lt; 1</code>.</p>
+<p><em>File: array.bl</em></p>
+<h2 id="array_pop">array_pop</h2>
+
+<pre><code>array_pop :: fn (_arr: *[..]?T, out : *T: null) bool #inline
+</code></pre>
+<p>Duplicate the last array element into <code>out</code> argument (if not null) and reduce the array length by
+one. Returns <code>true</code> in case the element was erased.</p>
+<p><em>File: array.bl</em></p>
+<h2 id="array_pop_first">array_pop_first</h2>
+
+<pre><code>array_pop_first :: fn (_arr: *[..]?T, out : *T: null) bool #inline
+</code></pre>
+<p>Duplicate first array element into <code>out</code> location (if not null) and shift all other elements by
+one slot left (the ordeing is kept). Returns <code>true</code> in case the element was erased.</p>
+<p><em>File: array.bl</em></p>
+<h2 id="array_reserve">array_reserve</h2>
+
+<pre><code>array_reserve :: fn (_arr: *[..]?T, n: s64)  #inline
+</code></pre>
+<p>Reserve heap memory for <code>n</code> elements in array. Does nothing in case the already allocated block is
+large enough to hold <code>n</code> elements, the allocated memory block might be bigger then requested size.</p>
+<p><em>File: array.bl</em></p>
+<h2 id="array_resize">array_resize</h2>
+
+<pre><code>array_resize :: fn (_arr: *[..]?T, n: s64)  #inline
+</code></pre>
+<p><em>File: array.bl</em></p>
+<h2 id="array_erase">array_erase</h2>
+
+<pre><code>array_erase :: fn (_arr: *[..]?T, i: s64) 
+</code></pre>
+<p>Erase element on index <code>i</code>. Call to this function can cause reordering of an dynamic array.
+Allocated memory is kept even if we erase entire dynamic array. Function invoke panic in case
+of index overflow.</p>
+<p><em>File: array.bl</em></p>
+<h2 id="array_erase_keep_order">array_erase_keep_order</h2>
+
+<pre><code>array_erase_keep_order :: fn (_arr: *[..]?T, i: s64) 
+</code></pre>
+<p>Erase element on index <code>i</code> and move all following elements left. This might be slow in case the array is
+large.</p>
+<p><em>File: array.bl</em></p>
+<h2 id="array_erase_value">array_erase_value</h2>
+
+<pre><code>array_erase_value :: fn (arr: *[..]?T, v: T) bool
+</code></pre>
+<p>Erase element of the value <code>v</code> and return <code>true</code> in case element was erased. Note this might be expensive
+since all elements in array might be visited in the worst case.</p>
+<p><em>File: array.bl</em></p>
+<h2 id="array_insert">array_insert</h2>
+
+<pre><code>array_insert :: fn (_arr: *[..]?T, before_index: s64, value: T) s64
+</code></pre>
+<p>Insert a new element into the array before position <code>before_index</code> and return index of the new
+inserted element. All elements after the new one are moved in the memory by one slot.</p>
+<p>Value of <code>before_index</code> must be in range &lt;0, arr.len&gt;. Inserting at <code>before_index</code> = 0 basically
+adds a new element at the array begin; insering at <code>before_index</code> = arr.len is the same as
+<code>array_push</code>.</p>
+<p>Order of already existing elements is preserved.</p>
+<p><em>File: array.bl</em></p>
+<h2 id="array_clear">array_clear</h2>
+
+<pre><code>array_clear :: fn (_arr: *[..]?T)  #inline
+</code></pre>
+<p>Erase all elements in dynamic array but keep allocated memory.</p>
+<p><em>File: array.bl</em></p>
+<h2 id="array_allocated_bytes">array_allocated_bytes</h2>
+
+<pre><code>array_allocated_bytes :: fn (_arr: *[..]?T) usize #inline
+</code></pre>
+<p><em>File: array.bl</em></p>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#Array">Array</a></li>
+<ul>
+<li><a href="#ARRAY_ALLOC_BLOCK_SIZE">ARRAY_ALLOC_BLOCK_SIZE</a></li>
+<li><a href="#ARRAY_GROW_FACTOR">ARRAY_GROW_FACTOR</a></li>
+<li><a href="#array_init">array_init</a></li>
+<li><a href="#array_terminate">array_terminate</a></li>
+<li><a href="#array_push">array_push</a></li>
+<li><a href="#array_push_all">array_push_all</a></li>
+<li><a href="#array_pop">array_pop</a></li>
+<li><a href="#array_pop_first">array_pop_first</a></li>
+<li><a href="#array_reserve">array_reserve</a></li>
+<li><a href="#array_resize">array_resize</a></li>
+<li><a href="#array_erase">array_erase</a></li>
+<li><a href="#array_erase_keep_order">array_erase_keep_order</a></li>
+<li><a href="#array_erase_value">array_erase_value</a></li>
+<li><a href="#array_insert">array_insert</a></li>
+<li><a href="#array_clear">array_clear</a></li>
+<li><a href="#array_allocated_bytes">array_allocated_bytes</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

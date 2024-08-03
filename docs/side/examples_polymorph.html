@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="Polymorph-Functions">Polymorph Functions</h1>
+<p>Compile using <code>blc my-file-name.bl</code> and run <code>./out</code>.</p>
+
+<pre><code><span class="syntax-comment">// =================================================================================================</span>
+<span class="syntax-comment">// Polymorphic (Generic/Templated) Functions</span>
+<span class="syntax-comment">// =================================================================================================</span>
+
+<span class="syntax-comment">/*
+	Use 'blc --no-warning -run polymorph.bl' to execute this file.
+ */</span>/
+
+<span class="syntax-directive">#import</span> "std/array"
+
+intro :: <span class="syntax-keyword">fn</span> () <span class="syntax-keyword">{</span>
+	<span class="syntax-comment">// Consider the following example; we need simple 'compare' function to perform comparison of two </span>
+	<span class="syntax-comment">// values.</span>
+	compare :: <span class="syntax-keyword">fn</span> (a: s32, b: s32) bool <span class="syntax-keyword">{</span>
+		<span class="syntax-keyword">return</span> a == b;
+	<span class="syntax-keyword">}</span>;
+
+	<span class="syntax-comment">// Now we can call this function with any numbers.</span>
+	a1: s32 = 10;
+	b1: s32 = 20;
+	result1 := compare(a1, b1);
+	print("compare(%, %) = %\n", a1, b1, result1);
+
+	<span class="syntax-comment">// This is great, but what if we want to do the same with floating point values?</span>
+	a2: f32 = 10.f;
+	b2: f32 = 20.f;
+	<span class="syntax-comment">// result2 := compare(a, b); // This wont compile, the function expects 's32' not 'f32' numbers.</span>
+
+	<span class="syntax-comment">// In this case we can write another 'compare' function taking 'f32' numbers instead of 's32'</span>
+	<span class="syntax-comment">// or we can use polymorphic function in this case and let the compiler do all work.</span>
+	compare_poly :: <span class="syntax-keyword">fn</span> (a: ?T, b: T) bool <span class="syntax-keyword">{</span>
+		<span class="syntax-keyword">return</span> a == b;
+	<span class="syntax-keyword">}</span>;
+
+	<span class="syntax-comment">// This function does not exist until it's used somewhere, we can think about it as if it was</span>
+	<span class="syntax-comment">// a recipe for 'compare' function. Type '?T' (it can be any other name '?TValue', '?TKey' etc) is</span>
+	<span class="syntax-comment">// replaced with the actual type used for the argument 'a' when the function is called. The </span>
+	<span class="syntax-comment">// question mark before the type name 'T' here is important, it means basically that 'T' can</span>
+	<span class="syntax-comment">// be replaced. However, all other 'T' in the argument list are just references to the actual</span>
+	<span class="syntax-comment">// replaced type used for 'a' argument.</span>
+	<span class="syntax-comment">// So if type of 'a' argument is 's32', the type of 'b' is 's32' also.</span>
+
+	<span class="syntax-comment">// Use of the function.</span>
+	a3: s32 = 10;
+	b3: s32 = 20;
+	result3 := compare_poly(a3, b3);
+	print("compare_poly(%, %) = %\n", a3, b3, result3);
+
+	<span class="syntax-comment">// Since the type of 'b' is dependent on the type of 'a' argument, the following code would </span>
+	<span class="syntax-comment">// not compile.</span>
+	a4: s32 = 10;
+	b4: f32 = 20.f; <span class="syntax-comment">// using floating point number</span>
+	<span class="syntax-comment">// result4 := compare_poly(a4, b4); // Compiler error </span>
+
+	<span class="syntax-comment">/* 
+
+		polymorph.bl:47:29: error(0035): No implicit cast for type 'f32' and 's32'.
+		   46 |     b4: f32 = 20.f; // using floating point number
+		&gt;  47 |     result4 := compare_poly(a4, b4); // Compiler error
+			  |                                 ^^
+		   48 | } 
+
+	 */</span>/
+
+	<span class="syntax-comment">// But we call call the same function with different value types now. </span>
+	a5: f32 = 10.f;
+	b5: f32 = 20.f;
+	result5 := compare_poly(a5, b5);
+	print("compare_poly(%, %) = %\n", a5, b5, result5);
+
+	<span class="syntax-comment">// One important thing to know is that we have internally two 'compare_poly' functions generated</span>
+	<span class="syntax-comment">// by the compiler. One for 's32' and one for 'f32' types. When we call 'compare_poly' again with</span>
+	<span class="syntax-comment">// 'f32' values, compiler will try to reuse already existing function if possible (same for</span>
+	<span class="syntax-comment">// 's32').</span>
+	
+	<span class="syntax-comment">// What if we call the 'compare_poly' function with arguments which cannot be compared by '=='</span>
+	<span class="syntax-comment">// operator? </span>
+	
+	a6: string_view = "hello";
+	b6: string_view = "world";
+	<span class="syntax-comment">// result6 := compare_poly(a6, b6); // Compiler error</span>
+
+	<span class="syntax-comment">/*
+
+		polymorph.bl:30:18: error(0035): Invalid operation for string_view type.
+		   29 |     compare_poly :: fn (a: ?T, b: T) bool {                                 
+		&gt;  30 |         return a == b;                                                      
+			  |                  ^^                                                         
+		   31 |     };                                                                      
+																							
+		polymorph.bl:29:5: In polymorph of function with substitution: T = string_view;
+		   28 |     // or we can use polymorphic function in this case and let the compiler do all work.                                                                        
+		&gt;  29 |     compare_poly :: fn (a: ?T, b: T) bool {                                 
+			  |     ^^^^^^^^^^^^                                                            
+		   30 |         return a == b;                                                      
+																							
+		polymorph.bl:79:16: First called here:                                              
+		   78 |     b6: string_view = "world";
+		&gt;  79 |     result6 := compare_poly(a6, b6);                                        
+			  |                ^^^^^^^^^^^^                                                 
+		   80 | }                                                                           
+
+	 */</span>/
+	
+	<span class="syntax-comment">// We can handle such situations quite easily, see the next section.</span>
+<span class="syntax-keyword">}</span>
+
+specialization :: <span class="syntax-keyword">fn</span> () <span class="syntax-keyword">{</span>
+	<span class="syntax-comment">// Remember that we have separate implementation of our function for every type internally.</span>
+	<span class="syntax-comment">// Keeping this in mind, we can create specialization for some types if needed. So how to make</span>
+	<span class="syntax-comment">// out 'compare' function to work even with strings?</span>
+
+	compare_poly :: <span class="syntax-keyword">fn</span> (a: ?T, b: T) bool <span class="syntax-keyword">{</span>
+		are_the_same := false;
+		<span class="syntax-comment">// #if is evaluated in compile-time and only one of the branches is actually "inserted" into</span>
+		<span class="syntax-comment">// the code based on the condition.</span>
+		<span class="syntax-comment">// One important think here to know is that the condition value must be known in compile-time,</span>
+		<span class="syntax-comment">// in this case the compiler knows that 'T' has been already replaced and does not change in</span>
+		<span class="syntax-comment">// the function-type specialization.</span>
+		<span class="syntax-directive">#if</span> T == string_view <span class="syntax-keyword">{</span>
+			<span class="syntax-comment">// Do this when 'T' is 'string_view'.</span>
+			are_the_same = std.str_match(a, b);
+		<span class="syntax-keyword">}</span> <span class="syntax-keyword">else</span> <span class="syntax-keyword">{</span>
+			<span class="syntax-comment">// Do this for all other types. </span>
+			are_the_same = a == b;
+		<span class="syntax-keyword">}</span>
+		<span class="syntax-keyword">return</span> are_the_same;
+	<span class="syntax-keyword">}</span>;
+
+
+	a1: s32 = 10;
+	b1: s32 = 10;
+
+	<span class="syntax-comment">// The function is called with integers so the second branch is used when the function</span>
+	<span class="syntax-comment">// implementation is generated.</span>
+	result1 := compare_poly(a1, b1);
+	print("compare_poly(%, %) = %\n", a1, b1, result1);
+  
+
+	<span class="syntax-comment">// The same but now with strings.</span>
+	a2: string_view = "hello";
+	b2: string_view = "hello";
+
+	<span class="syntax-comment">// The function is called with strings so the first branch is used when the function</span>
+	<span class="syntax-comment">// implementation is generated.</span>
+	result2 := compare_poly(a2, b2);
+	print("compare_poly(%, %) = %\n", a2, b2, result2);
+
+
+	<span class="syntax-comment">// So now we can call the "same" function with numbers and integers, but what if we call it with</span>
+	<span class="syntax-comment">// structure type?</span>
+
+	Data :: <span class="syntax-keyword">struct</span> <span class="syntax-keyword">{</span>
+		a: s32;
+		b: bool;
+	<span class="syntax-keyword">}</span>;
+	
+	a3: Data;
+	b3: Data;
+	<span class="syntax-comment">// result3 := compare_poly(a3, b3); // Compiler error</span>
+
+	<span class="syntax-comment">/*
+
+		polymorph.bl:123:30: error(0035): Invalid operation for Data type.
+		   122 |             // Do this for all other types.
+		&gt;  123 |             are_the_same = a == b;
+			   |                              ^^
+		   124 |         }
+
+		polymorph.bl:111:5: In polymorph of function with substitution: T = Data;
+		   110 |
+		&gt;  111 |     compare_poly :: fn (a: ?T, b: T) bool {
+			   |     ^^^^^^^^^^^^
+		   112 |         are_the_same := false;
+
+		polymorph.bl:158:16: First called here:
+		   157 |     b3: Data;
+		&gt;  158 |     result3 := compare_poly(a3, b3);
+			   |                ^^^^^^^^^^^^
+		   159 | }
+
+	 */</span>/
+
+	<span class="syntax-comment">// Yes, again the '==' operator is not valid for our 'Data' type. We can consider this as</span>
+	<span class="syntax-comment">// mistake in our program and introduce some meaningful error report.</span>
+	
+	compare_poly_safe :: <span class="syntax-keyword">fn</span> (a: ?T, b: T) bool <span class="syntax-keyword">{</span>
+		are_the_same := false;
+		<span class="syntax-directive">#if</span> T == string_view <span class="syntax-keyword">{</span>
+			are_the_same = std.str_match(a, b);
+		<span class="syntax-keyword">}</span> <span class="syntax-keyword">else</span> <span class="syntax-keyword">{</span>
+			is_number :: T == s32 || T == f32;
+			<span class="syntax-directive">#if</span> is_number <span class="syntax-keyword">{</span>
+				are_the_same = a == b;
+			<span class="syntax-keyword">}</span> <span class="syntax-keyword">else</span> <span class="syntax-keyword">{</span>
+				<span class="syntax-keyword">compiler_error</span>("The compare_poly_safe function works only with numbers and strings!");
+			<span class="syntax-keyword">}</span>
+		<span class="syntax-keyword">}</span>
+		<span class="syntax-keyword">return</span> are_the_same;
+	<span class="syntax-keyword">}</span>;
+
+	<span class="syntax-comment">// Let's try it again:</span>
+
+	a4: Data;
+	b4: Data;
+	<span class="syntax-comment">// result4 := compare_poly_safe(a4, b4); // Compiler error</span>
+
+	<span class="syntax-comment">/*
+
+		polymorph.bl:194:18: error(0084): The compare_poly_safe function works only with numbers and strings!
+		   193 |             } else {
+		&gt;  194 |                 compiler_error("The compare_poly_safe function works only with numbers and strings!");
+			   |                  ^^^^^
+		   195 |             }
+
+		polymorph.bl:185:5: In polymorph of function with substitution: T = Data;
+		   184 |
+		&gt;  185 |     compare_poly_safe :: fn (a: ?T, b: T) bool {
+			   |     ^^^^^^^^^^^^^^^^^
+		   186 |         are_the_same := false;
+
+		polymorph.bl:204:16: First called here:
+		   203 |     b4: Data;
+		&gt;  204 |     result4 := compare_poly_safe(a4, b4); // Compiler error
+			   |                ^^^^^^^^^^^^^^^^^
+		   205 | }
+
+	 */</span>/
+<span class="syntax-keyword">}</span>
+
+function_interface_matching :: <span class="syntax-keyword">fn</span> () <span class="syntax-keyword">{</span>
+	<span class="syntax-comment">// The polymorph type matching can follow type patterns in function declaration. Consider the</span>
+	<span class="syntax-comment">// following example:</span>
+
+	push_anything :: <span class="syntax-keyword">fn</span> (array: *[..]?T, value: T) <span class="syntax-keyword">{</span>
+		array_push(array, value);
+	<span class="syntax-keyword">}</span>;
+
+	<span class="syntax-comment">// Such a function accept only pointers to dynamic arrays '*[..]' containing any type '?T'.</span>
+
+	numbers: [..]s32;
+	strings: [..]string_view;
+	
+	<span class="syntax-comment">// Cleanup at the end of the scope.</span>
+	<span class="syntax-keyword">defer</span> array_terminate(&numbers);
+	<span class="syntax-keyword">defer</span> array_terminate(&strings);
+
+	push_anything(&numbers, 10);
+	push_anything(&strings, "hello");
+	print("%\n", numbers);
+	print("%\n", strings);
+
+	<span class="syntax-comment">// Now the 'array' argument must be pointer to any dynamic array every time and value type must</span>
+	<span class="syntax-comment">// be the same as the array element type.</span>
+
+	<span class="syntax-comment">// push_anything(numbers, 10); // Compiler error.</span>
+
+	<span class="syntax-comment">/*
+
+		polymorph.bl:235:33: error(0081): Cannot deduce polymorph function argument type 'T'. Expected is '*[..]T' but call-side argument type is '[..]s32'.
+		   234 |
+		&gt;  235 |     push_anything :: fn (array: *[..]?T, value: T) {
+			   |                                 ^
+		   236 |         array_push(array, value);
+
+		polymorph.bl:256:19: Called from here.
+		   255 |
+		&gt;  256 |     push_anything(numbers, 10); // Compiler error.
+			   |                   ^^^^^^^^
+		   257 | }
+
+	 */</span>/
+
+	<span class="syntax-comment">// push_anything(&numbers, "hello"); // Compiler error.</span>
+
+	<span class="syntax-comment">/*
+
+		polymorph.bl:274:31: error(0035): No implicit cast for type 'string_view' and 's32'.
+		   273 |
+		&gt;  274 |     push_anything(&numbers, "hello"); // Compiler error.
+			   |                              ^^^^^
+		   275 | }
+
+	 */</span>/
+<span class="syntax-keyword">}</span>
+
+function_interface_matching_with_sub_types :: <span class="syntax-keyword">fn</span> () <span class="syntax-keyword">{</span>
+	<span class="syntax-comment">// One really cool feature of BL is possibility to access "sub-types"; take a look at following</span>
+	<span class="syntax-comment">// example showing naive implementation of hash table:</span>
+
+	Table :: <span class="syntax-keyword">struct</span> <span class="syntax-keyword">{</span>
+		keys: [..]s32;
+		values: [..]string_view;
+	<span class="syntax-keyword">}</span>;
+
+	<span class="syntax-comment">// In general we can do following to get type of any structure member:</span>
+
+	TypeOfKeys :: Table.keys;
+	TypeOfValues :: Table.values;
+	print("TypeOfKeys = %\n", TypeOfKeys);
+	print("TypeOfValues = %\n", TypeOfValues);
+
+	<span class="syntax-comment">// Or go even more deeper.</span>
+	TypeOfKey :: @Table.keys.ptr; <span class="syntax-comment">// use @ to convert *T to T </span>
+	print("TypeOfKey = %\n", TypeOfKey);
+
+	<span class="syntax-comment">// There is probably no need to use this feature like this, but it can be really useful in</span>
+	<span class="syntax-comment">// polymorph functions.</span>
+	
+	<span class="syntax-comment">// The following function can insert values into our table:</span>
+	insert :: <span class="syntax-keyword">fn</span> (table: *?T, key: @T.keys.ptr, value: @T.values.ptr) <span class="syntax-keyword">{</span>
+		array_push(&table.keys, key);
+		array_push(&table.values, value);
+	<span class="syntax-keyword">}</span>;
+
+	<span class="syntax-comment">// And we also want to lookup our values in the table...</span>
+	get :: <span class="syntax-keyword">fn</span> (table: *?T, key: @T.keys.ptr) @T.values.ptr <span class="syntax-keyword">{</span>
+		default_value: @T.values.ptr; <span class="syntax-comment">// zero initialized by default</span>
+		<span class="syntax-keyword">loop</span> i := 0; i &lt; table.keys.len; i += 1 <span class="syntax-keyword">{</span>
+			<span class="syntax-keyword">if</span> table.keys[i] == key <span class="syntax-keyword">{</span>
+				<span class="syntax-keyword">return</span> table.values[i];
+			<span class="syntax-keyword">}</span>
+		<span class="syntax-keyword">}</span>
+		<span class="syntax-keyword">return</span> default_value;
+	<span class="syntax-keyword">}</span>;
+
+	table: Table;
+	insert(&table, 10, "hello");
+	insert(&table, 20, "world");
+
+	v1 := get(&table, 10);
+	v2 := get(&table, 20);
+	print("v1 = %\n", v1);
+	print("v2 = %\n", v2);
+
+	<span class="syntax-comment">// But wait! Why we should use polymorphic functions like this if type of table is always</span>
+	<span class="syntax-comment">// 'Table'?</span>
+
+	<span class="syntax-comment">// Because we can do this:</span>
+
+	AnotherTable :: <span class="syntax-keyword">struct</span> <span class="syntax-keyword">{</span>
+		keys: [..]u64;
+		values: [..]bool;
+	<span class="syntax-keyword">}</span>;
+	
+	another_table: AnotherTable;
+	insert(&another_table, 10, true);
+	insert(&another_table, 20, false);
+
+	v3 := get(&another_table, 10);
+	v4 := get(&another_table, 20);
+	print("v3 = %\n", v3);
+	print("v4 = %\n", v4);
+
+	<span class="syntax-comment">// This is just one step from 'generic' hash table, because we can generate the type of the</span>
+	<span class="syntax-comment">// table in compile-time based on some inputs. This is not really part of this demo, but type of</span>
+	<span class="syntax-comment">// the table can be generated by compile-time function:</span>
+
+	GenericTable :: <span class="syntax-keyword">fn</span> (TKey: type <span class="syntax-directive">#comptime</span>, TValue: type <span class="syntax-directive">#comptime</span>) type <span class="syntax-directive">#comptime</span> <span class="syntax-keyword">{</span>
+		<span class="syntax-comment">// Return new type.</span>
+		<span class="syntax-keyword">return</span> <span class="syntax-keyword">struct</span> <span class="syntax-keyword">{</span>
+			keys: [..]TKey;
+			values: [..]TValue;
+		<span class="syntax-keyword">}</span>;
+	<span class="syntax-keyword">}</span>;
+
+	generic_table: GenericTable(s32, string_view);
+	<span class="syntax-comment">// The function 'GenericTable' is called during compilation and it's result is used as constant; in</span>
+	<span class="syntax-comment">// this case it's type of out table.</span>
+
+	<span class="syntax-comment">// And we can still use the same functions to modify the table.</span>
+	insert(&generic_table, 10, "hello");
+	insert(&generic_table, 20, "world");
+
+	v5 := get(&generic_table, 10);
+	v6 := get(&generic_table, 20);
+	print("v5 = %\n", v5);
+	print("v6 = %\n", v6);
+<span class="syntax-keyword">}</span>
+
+main :: <span class="syntax-keyword">fn</span> () s32 <span class="syntax-keyword">{</span>
+	intro();
+	specialization();
+	function_interface_matching(); 
+	function_interface_matching_with_sub_types(); 
+	<span class="syntax-keyword">return</span> 0;
+<span class="syntax-keyword">}</span>
+
+
+</code></pre>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#Polymorph-Functions">Polymorph Functions</a></li>
+</ul>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="Biscuit-Language">Biscuit Language</h1>
+<p>The Biscuit Language (BL) is simple imperative programming language using LLVM backend implemented
+in C. Language syntax and all it's features are still in development and not ready for 'real' use
+yet. Biscuit is designed to be simple, fast and explicit.</p>
+<ul>
+<li>Simple small language.</li>
+<li>Manual memory management.</li>
+<li>ABI compatibility with C libraries.</li>
+<li>Game development oriented.</li>
+<li>Compilation to native binary.</li>
+<li>Integrated interpreter.</li>
+<li>Offer testing tools out of the box.</li>
+<li>Rich type info in runtime.</li>
+<li>Debugging in gdb, lldb and Visual Studio.</li>
+</ul>
+<h2 id="Master-(0.11.0)">Master (0.11.0)</h2>
+<p>The latest unstable version of the compiler.</p>
+<ul>
+<li><a href="https://github.com/travisdoor/bl">Github Page</a></li>
+</ul>
+<h3 id="Changelog">Changelog</h3>
+
+<pre><code>Add 'then' keyword and inline if statements.
+Add --dirty-mode compiler flag.
+Add SIMD implementation for some hot code paths (Windows only).
+Add automatic static array element count using [_]s32 syntax for compound initializers.
+Add builder configuration api for build pipelines.
+Add dlib VM runtime support.
+Add fmod and trunc math functions.
+Add support for x86_64-unknown-linux-gnu target architecture triple.
+Add ternary if expression.
+Add untyped compound expressions.
+Fix group initialization of multiple variables at once in global scope.
+Fix invalid position of vargs generated before call causing stack problem in VM execution.
+Fix member access directly on call result.
+Fix reports of unused symbols declared after usage in local scopes.
+Fix rpmalloc missing terminations for threads causing deadlocks sometimes.
+Fix unary not operator precedence.
+Fix unroll on global variables.
+Improved documentation generator (added more value expressions).
+RPMalloc used for the compiler.
+Reduced amount of types generated internally by the compiler (use cache).
+Reworked thread pool.
+Rewrite string handling inside the compiler.
+</code></pre>
+<h2 id="Release-(0.10.0)">Release (0.10.0)</h2>
+<p>The latest release compiler version documentation can be found <a href="versions/0.10.0/">here</a>.</p>
+<h2 id="Older-Versions">Older Versions</h2>
+<ul>
+<li><a href="versions/0.9.0/">0.9.0</a></li>
+<li><a href="versions/0.8.0/">0.8.0</a></li>
+<li><a href="versions/0.7.2/">0.7.2</a></li>
+<li><a href="versions/0.7.1/">0.7.1</a></li>
+<li><a href="versions/0.7.0/">0.7.0</a></li>
+<li><a href="versions/0.6.0/">0.6.0</a></li>
+</ul>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#Biscuit-Language">Biscuit Language</a></li>
+<ul>
+<li><a href="#Master-(0.11.0)">Master (0.11.0)</a></li>
+<li><a href="#Release-(0.10.0)">Release (0.10.0)</a></li>
+<li><a href="#Older-Versions">Older Versions</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

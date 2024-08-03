@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="png.bl">png.bl</h1>
+<h2 id="png.uint_16">png.uint_16</h2>
+
+<pre><code>uint_16 :: u16
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.int_16">png.int_16</h2>
+
+<pre><code>int_16 :: s16
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.uint_32">png.uint_32</h2>
+
+<pre><code>uint_32 :: u32
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.byte">png.byte</h2>
+
+<pre><code>byte :: u8
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.bytep">png.bytep</h2>
+
+<pre><code>bytep :: *byte
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.bytepp">png.bytepp</h2>
+
+<pre><code>bytepp :: *bytep
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.size_t">png.size_t</h2>
+
+<pre><code>size_t :: usize
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.structp">png.structp</h2>
+
+<pre><code>structp :: *u8
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.const_structp">png.const_structp</h2>
+
+<pre><code>const_structp :: structp
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.const_charp">png.const_charp</h2>
+
+<pre><code>const_charp :: *u8
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.voidp">png.voidp</h2>
+
+<pre><code>voidp :: *u8
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.structpp">png.structpp</h2>
+
+<pre><code>structpp :: *structp
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.info">png.info</h2>
+
+<pre><code>info :: u8
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.infop">png.infop</h2>
+
+<pre><code>infop :: *info
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.infopp">png.infopp</h2>
+
+<pre><code>infopp :: *infop
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.const_infop">png.const_infop</h2>
+
+<pre><code>const_infop :: infop
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.error_ptr">png.error_ptr</h2>
+
+<pre><code>error_ptr :: *fn (_1: structp, _2: const_charp) 
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.rw_ptr">png.rw_ptr</h2>
+
+<pre><code>rw_ptr :: *fn (_1: structp, _2: bytep, _3: size_t) 
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.LIBPNG_VER_STRING">png.LIBPNG_VER_STRING</h2>
+
+<pre><code>LIBPNG_VER_STRING :: "1.6.37"
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.COLOR_MASK_PALETTE">png.COLOR_MASK_PALETTE</h2>
+
+<pre><code>COLOR_MASK_PALETTE :: 1
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.COLOR_MASK_COLOR">png.COLOR_MASK_COLOR</h2>
+
+<pre><code>COLOR_MASK_COLOR :: 2
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.COLOR_MASK_ALPHA">png.COLOR_MASK_ALPHA</h2>
+
+<pre><code>COLOR_MASK_ALPHA :: 4
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.COLOR_TYPE_GRAY">png.COLOR_TYPE_GRAY</h2>
+
+<pre><code>COLOR_TYPE_GRAY :: 0
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.COLOR_TYPE_PALETTE">png.COLOR_TYPE_PALETTE</h2>
+
+<pre><code>COLOR_TYPE_PALETTE :: 
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.COLOR_TYPE_RGB">png.COLOR_TYPE_RGB</h2>
+
+<pre><code>COLOR_TYPE_RGB :: COLOR_MASK_COLOR
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.COLOR_TYPE_RGB_ALPHA">png.COLOR_TYPE_RGB_ALPHA</h2>
+
+<pre><code>COLOR_TYPE_RGB_ALPHA :: 
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.COLOR_TYPE_GRAY_ALPHA">png.COLOR_TYPE_GRAY_ALPHA</h2>
+
+<pre><code>COLOR_TYPE_GRAY_ALPHA :: COLOR_MASK_ALPHA
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.COLOR_TYPE_RGBA">png.COLOR_TYPE_RGBA</h2>
+
+<pre><code>COLOR_TYPE_RGBA :: COLOR_TYPE_RGB_ALPHA
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.COLOR_TYPE_GA">png.COLOR_TYPE_GA</h2>
+
+<pre><code>COLOR_TYPE_GA :: COLOR_TYPE_GRAY_ALPHA
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.sig_cmp">png.sig_cmp</h2>
+
+<pre><code>sig_cmp :: fn (sig: bytep, start: size_t, num_to_check: size_t) s32 #extern
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.create_read_struct">png.create_read_struct</h2>
+
+<pre><code>create_read_struct :: fn (user_ver: const_charp, errorptr: voidp, error_fn: error_ptr, warn_fn: error_ptr) structp #extern
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.destroy_read_struct">png.destroy_read_struct</h2>
+
+<pre><code>destroy_read_struct :: fn (ptr_ptr: structpp, info_ptr_ptr: infopp, end_info_ptr_ptr: infopp)  #extern
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.create_info_struct">png.create_info_struct</h2>
+
+<pre><code>create_info_struct :: fn (ptr: structp) infop #extern
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.set_sig_bytes">png.set_sig_bytes</h2>
+
+<pre><code>set_sig_bytes :: fn (ptr: structp, num_bytes: s32)  #extern
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.read_info">png.read_info</h2>
+
+<pre><code>read_info :: fn (ptr: structp, info_ptr: infop)  #extern
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.set_read_fn">png.set_read_fn</h2>
+
+<pre><code>set_read_fn :: fn (ptr: structp, io_ptr: voidp, read_data_fn: rw_ptr)  #extern
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.get_io_ptr">png.get_io_ptr</h2>
+
+<pre><code>get_io_ptr :: fn (ptr: structp) voidp #extern
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.get_IHDR">png.get_IHDR</h2>
+
+<pre><code>get_IHDR :: fn (ptr: structp, info_ptr: infop, width: *uint_32, height: *uint_32, bit_depth: *s32, color_type: *s32, interlace_method: *s32, compression_method: *s32, filter_method: *s32) uint_32 #extern
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.read_update_info">png.read_update_info</h2>
+
+<pre><code>read_update_info :: fn (ptr: structp, info_ptr: infop)  #extern
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.get_rowbytes">png.get_rowbytes</h2>
+
+<pre><code>get_rowbytes :: fn (ptr: const_structp, info_ptr: const_infop) size_t #extern
+</code></pre>
+<p><em>File: png.bl</em></p>
+<h2 id="png.read_image">png.read_image</h2>
+
+<pre><code>read_image :: fn (ptr: structp, image: bytepp)  #extern
+</code></pre>
+<p><em>File: png.bl</em></p>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#png.bl">png.bl</a></li>
+<ul>
+<li><a href="#png.uint_16">png.uint_16</a></li>
+<li><a href="#png.int_16">png.int_16</a></li>
+<li><a href="#png.uint_32">png.uint_32</a></li>
+<li><a href="#png.byte">png.byte</a></li>
+<li><a href="#png.bytep">png.bytep</a></li>
+<li><a href="#png.bytepp">png.bytepp</a></li>
+<li><a href="#png.size_t">png.size_t</a></li>
+<li><a href="#png.structp">png.structp</a></li>
+<li><a href="#png.const_structp">png.const_structp</a></li>
+<li><a href="#png.const_charp">png.const_charp</a></li>
+<li><a href="#png.voidp">png.voidp</a></li>
+<li><a href="#png.structpp">png.structpp</a></li>
+<li><a href="#png.info">png.info</a></li>
+<li><a href="#png.infop">png.infop</a></li>
+<li><a href="#png.infopp">png.infopp</a></li>
+<li><a href="#png.const_infop">png.const_infop</a></li>
+<li><a href="#png.error_ptr">png.error_ptr</a></li>
+<li><a href="#png.rw_ptr">png.rw_ptr</a></li>
+<li><a href="#png.LIBPNG_VER_STRING">png.LIBPNG_VER_STRING</a></li>
+<li><a href="#png.COLOR_MASK_PALETTE">png.COLOR_MASK_PALETTE</a></li>
+<li><a href="#png.COLOR_MASK_COLOR">png.COLOR_MASK_COLOR</a></li>
+<li><a href="#png.COLOR_MASK_ALPHA">png.COLOR_MASK_ALPHA</a></li>
+<li><a href="#png.COLOR_TYPE_GRAY">png.COLOR_TYPE_GRAY</a></li>
+<li><a href="#png.COLOR_TYPE_PALETTE">png.COLOR_TYPE_PALETTE</a></li>
+<li><a href="#png.COLOR_TYPE_RGB">png.COLOR_TYPE_RGB</a></li>
+<li><a href="#png.COLOR_TYPE_RGB_ALPHA">png.COLOR_TYPE_RGB_ALPHA</a></li>
+<li><a href="#png.COLOR_TYPE_GRAY_ALPHA">png.COLOR_TYPE_GRAY_ALPHA</a></li>
+<li><a href="#png.COLOR_TYPE_RGBA">png.COLOR_TYPE_RGBA</a></li>
+<li><a href="#png.COLOR_TYPE_GA">png.COLOR_TYPE_GA</a></li>
+<li><a href="#png.sig_cmp">png.sig_cmp</a></li>
+<li><a href="#png.create_read_struct">png.create_read_struct</a></li>
+<li><a href="#png.destroy_read_struct">png.destroy_read_struct</a></li>
+<li><a href="#png.create_info_struct">png.create_info_struct</a></li>
+<li><a href="#png.set_sig_bytes">png.set_sig_bytes</a></li>
+<li><a href="#png.read_info">png.read_info</a></li>
+<li><a href="#png.set_read_fn">png.set_read_fn</a></li>
+<li><a href="#png.get_io_ptr">png.get_io_ptr</a></li>
+<li><a href="#png.get_IHDR">png.get_IHDR</a></li>
+<li><a href="#png.read_update_info">png.read_update_info</a></li>
+<li><a href="#png.get_rowbytes">png.get_rowbytes</a></li>
+<li><a href="#png.read_image">png.read_image</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

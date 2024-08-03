@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="Builtin">Builtin</h1>
+<p>Compiler builtins are automatically loaded into every assembly.</p>
+<h2 id="Current-running-platform">Current running platform</h2>
+
+<pre><code>Platform :: <span class="syntax-keyword">enum</span> s32 <span class="syntax-keyword">{</span>
+    UNKNOWN;
+    WINDOWS;
+    DARWIN;
+    LINUX;
+<span class="syntax-keyword">}</span>
+
+PLATFORM :: &lt;SET_BY_COMPILER&gt;;
+</code></pre>
+<h2 id="Current-running-architecture">Current running architecture</h2>
+
+<pre><code>Arch :: <span class="syntax-keyword">enum</span> s32 <span class="syntax-keyword">{</span>
+    UNKNOWN;
+    X86_64;
+    AARCH64;
+    ARM64;
+<span class="syntax-keyword">}</span>
+
+ARCH :: &lt;SET_BY_COMPILER&gt;;
+</code></pre>
+<h2 id="Current-running-environment">Current running environment</h2>
+
+<pre><code>Env :: <span class="syntax-keyword">enum</span> s32 <span class="syntax-keyword">{</span>
+    UNKNOWN;
+    MSVC;
+    GNU;
+    MUSL;
+<span class="syntax-keyword">}</span>
+
+ENV :: &lt;SET_BY_COMPILER&gt;;
+</code></pre>
+<h2 id="Compiler-version">Compiler version</h2>
+
+<pre><code>BLC_VER_MAJOR : s32 : &lt;SET_BY_COMPILER&gt;;
+BLC_VER_MINOR : s32 : &lt;SET_BY_COMPILER&gt;;
+BLC_VER_PATCH : s32 : &lt;SET_BY_COMPILER&gt;;
+</code></pre>
+<h2 id="string_view">string_view</h2>
+
+<pre><code>string_view :: []u8
+</code></pre>
+<p>Builtin string slice.</p>
+<p><em>File: a.bl</em></p>
+<h2 id="TypeKind">TypeKind</h2>
+
+<pre><code>TypeKind :: enum {
+    TYPE = 1;
+    VOID = 2;
+    INT = 3;
+    REAL = 4;
+    FN = 5;
+    PTR = 6;
+    BOOL = 7;
+    ARRAY = 8;
+    STRUCT = 9;
+    ENUM = 10;
+    NULL = 11;
+    STRING = 12;
+    FN_GROUP = 16;
+}
+</code></pre>
+<p>TypeKind describes kind of BL type returned in <code>TypeInfo</code> structure. This value can be used for
+safe casting.</p>
+<h3 id="Variants">Variants</h3>
+<ul>
+<li><code>TYPE</code> - Base type of all types in type system.</li>
+<li><code>VOID</code> - Void type. (Implicitly used for functions without return value)</li>
+<li><code>INT</code> - Any integer type: <code>s8</code>, <code>s16</code>, <code>s32</code>, <code>s64</code>, <code>u8</code>, <code>u16</code>, <code>u32</code>, <code>u64</code>, <code>usize</code>.</li>
+<li><code>REAL</code> - Any real type: <code>f32</code>, <code>f64</code>.</li>
+<li><code>FN</code> - Function type.</li>
+<li><code>PTR</code> - Pointer type.</li>
+<li><code>BOOL</code> - Boolean type.</li>
+<li><code>ARRAY</code> - Array type.</li>
+<li><code>STRUCT</code> - Structure type.</li>
+<li><code>ENUM</code> - Enumerator type.</li>
+<li><code>NULL</code> - Null-value type.</li>
+<li><code>STRING</code> - String type. @Cleanup: remove this!</li>
+<li><code>FN_GROUP</code> - Function group type.</li>
+</ul>
+<p><em>File: a.bl</em></p>
+<h2 id="TypeInfo">TypeInfo</h2>
+
+<pre><code>TypeInfo :: struct {
+    kind: TypeKind;
+    size_bytes: usize;
+    alignment: usize;
+}
+</code></pre>
+<p>Base <code>TypeInfo</code> structure returned by <code>typeinfo</code> operator. This structure pointer can be casted to
+child type to get more descriptive information about the type.</p>
+<h3 id="Members">Members</h3>
+<ul>
+<li><code>kind</code> - Type info kind.</li>
+<li><code>size_bytes</code> - Size of type in bytes.</li>
+<li><code>alignment</code> - Alignment of type.</li>
+</ul>
+<p><em>File: a.bl</em></p>
+<h2 id="TypeInfoInt">TypeInfoInt</h2>
+
+<pre><code>TypeInfoInt :: struct {
+    bit_count: s32;
+    is_signed: bool;
+}
+</code></pre>
+<p>Detailed information about integer types: <code>s8</code>, <code>s16</code>, <code>s32</code>, <code>s64</code>, <code>u8</code>, <code>u16</code>, <code>u32</code>, <code>u64</code>, <code>usize</code>.</p>
+<h3 id="Members">Members</h3>
+<ul>
+<li><code>bit_count</code> - Size of type in bits.</li>
+<li><code>is_signed</code> - True when type is signed integer type.</li>
+</ul>
+<p><em>File: a.bl</em></p>
+<h2 id="TypeInfoReal">TypeInfoReal</h2>
+
+<pre><code>TypeInfoReal :: struct {
+    bit_count: s32;
+}
+</code></pre>
+<p>Detailed information about real types: <code>f32</code>, <code>f64</code>.</p>
+<h3 id="Members">Members</h3>
+<ul>
+<li><code>bit_count</code> - Size of type in bits.</li>
+</ul>
+<p><em>File: a.bl</em></p>
+<h2 id="TypeInfoFn">TypeInfoFn</h2>
+
+<pre><code>TypeInfoFn :: struct {
+    args: []TypeInfoFnArg;
+    ret_type: *TypeInfo;
+    is_vargs: bool;
+}
+</code></pre>
+<p>Detailed information about function types.</p>
+<h3 id="Members">Members</h3>
+<ul>
+<li><code>args</code> - Slice of argument type infos.</li>
+<li><code>ret_type</code> - Return type info.</li>
+<li><code>is_vargs</code> - True when function has variable argument list.</li>
+</ul>
+<p><em>File: a.bl</em></p>
+<h2 id="TypeInfoFnGroup">TypeInfoFnGroup</h2>
+
+<pre><code>TypeInfoFnGroup :: struct {
+    variants: []*TypeInfoFn;
+}
+</code></pre>
+<p>Detailed information about function group and contained possible overloads.</p>
+<h3 id="Members">Members</h3>
+<ul>
+<li><code>variants</code> - Group content.</li>
+</ul>
+<p><em>File: a.bl</em></p>
+<h2 id="TypeInfoPtr">TypeInfoPtr</h2>
+
+<pre><code>TypeInfoPtr :: struct {
+    pointee_type: *TypeInfo;
+}
+</code></pre>
+<p>Detailed information about pointer types.</p>
+<h3 id="Members">Members</h3>
+<ul>
+<li><code>pointee_type</code> - Underlaying pointed type info.</li>
+</ul>
+<p><em>File: a.bl</em></p>
+<h2 id="TypeInfoArray">TypeInfoArray</h2>
+
+<pre><code>TypeInfoArray :: struct {
+    name: string_view;
+    elem_type: *TypeInfo;
+    len: s64;
+}
+</code></pre>
+<p>Detailed information about array types.</p>
+<h3 id="Members">Members</h3>
+<ul>
+<li><code>name</code> - Array name.</li>
+<li><code>elem_type</code> - Array element type info.</li>
+<li><code>len</code> - Array element count.</li>
+</ul>
+<p><em>File: a.bl</em></p>
+<h2 id="TypeInfoStruct">TypeInfoStruct</h2>
+
+<pre><code>TypeInfoStruct :: struct {
+    name: string_view;
+    members: []TypeInfoStructMember;
+    is_slice: bool;
+    is_union: bool;
+    is_dynamic_array: bool;
+}
+</code></pre>
+<p>Detailed information about structure types.</p>
+<h3 id="Members">Members</h3>
+<ul>
+<li><code>name</code> - Structure type name.</li>
+<li><code>members</code> - Slice of structure member infos.</li>
+<li><code>is_slice</code> - True when structure is slice.</li>
+<li><code>is_union</code> - True when structure is union.</li>
+<li><code>is_dynamic_array</code> - True when structure is dynamic array.</li>
+</ul>
+<p><em>File: a.bl</em></p>
+<h2 id="TypeInfoEnum">TypeInfoEnum</h2>
+
+<pre><code>TypeInfoEnum :: struct {
+    name: string_view;
+    base_type: *TypeInfo;
+    variants: []TypeInfoEnumVariant;
+    is_flags: bool;
+}
+</code></pre>
+<p>Detailed information about enumerator types.</p>
+<h3 id="Members">Members</h3>
+<ul>
+<li><code>name</code> - Enumerator type name.</li>
+<li><code>base_type</code> - Base type info.</li>
+<li><code>variants</code> - Slice of all enumerator variants.</li>
+<li><code>is_flags</code> - True when enumerator was defined with #flags directive.</li>
+</ul>
+<p><em>File: a.bl</em></p>
+<h2 id="TypeInfoVoid">TypeInfoVoid</h2>
+
+<pre><code>TypeInfoVoid :: struct {
+}
+</code></pre>
+<p>Placeholder for information about <code>void</code> type.</p>
+<p><em>File: a.bl</em></p>
+<h2 id="TypeInfoNull">TypeInfoNull</h2>
+
+<pre><code>TypeInfoNull :: struct {
+}
+</code></pre>
+<p>Placeholder for information about <code>null</code> type.</p>
+<p><em>File: a.bl</em></p>
+<h2 id="TypeInfoString">TypeInfoString</h2>
+
+<pre><code>TypeInfoString :: struct {
+}
+</code></pre>
+<p>Placeholder for information about <code>string</code> type.</p>
+<p><em>File: a.bl</em></p>
+<h2 id="TypeInfoType">TypeInfoType</h2>
+
+<pre><code>TypeInfoType :: struct {
+}
+</code></pre>
+<p>Placeholder for information about <code>type</code> type.</p>
+<p><em>File: a.bl</em></p>
+<h2 id="TypeInfoBool">TypeInfoBool</h2>
+
+<pre><code>TypeInfoBool :: struct {
+}
+</code></pre>
+<p>Placeholder for information about <code>bool</code> type.</p>
+<p><em>File: a.bl</em></p>
+<h2 id="TypeInfoStructMember">TypeInfoStructMember</h2>
+
+<pre><code>TypeInfoStructMember :: struct {
+    name: string_view;
+    base_type: *TypeInfo;
+    offset_bytes: s32;
+    index: s32;
+    tag: u64;
+    is_base: bool;
+}
+</code></pre>
+<p>Detailed information about structure member.</p>
+<h3 id="Members">Members</h3>
+<ul>
+<li><code>name</code> - Member type name.</li>
+<li><code>base_type</code> - Member type info.</li>
+<li><code>offset_bytes</code> - Byte-offset of member inside structure ABI.</li>
+<li><code>index</code> - Order in structure.</li>
+<li><code>tag</code> - User defined member tag can be used to store any custom user data up to 8 bytes into the type
+info structure when structure member is defined.</li>
+</ul>
+
+<pre><code>Foo :: <span class="syntax-keyword">struct</span> <span class="syntax-keyword">{</span>
+    i: s32 <span class="syntax-directive">#tag</span> 123;
+    j: s32 <span class="syntax-directive">#tag</span> 321;
+<span class="syntax-keyword">}</span>;
+</code></pre>
+<ul>
+<li><code>is_base</code> - True when member is inherrited base of the parent structure type.</li>
+</ul>
+<p><em>File: a.bl</em></p>
+<h2 id="TypeInfoEnumVariant">TypeInfoEnumVariant</h2>
+
+<pre><code>TypeInfoEnumVariant :: struct {
+    name: string_view;
+    value: s64;
+}
+</code></pre>
+<p>Detailed information about enumerator variant.</p>
+<h3 id="Members">Members</h3>
+<ul>
+<li><code>name</code> - Member type name.</li>
+<li><code>value</code> - Variant value.</li>
+</ul>
+<p><em>File: a.bl</em></p>
+<h2 id="TypeInfoFnArg">TypeInfoFnArg</h2>
+
+<pre><code>TypeInfoFnArg :: struct {
+    name: string_view;
+    base_type: *TypeInfo;
+}
+</code></pre>
+<p>Detailed information about function's argument.</p>
+<h3 id="Members">Members</h3>
+<ul>
+<li><code>name</code> - Member type name.</li>
+<li><code>base_type</code> - Argument type info.</li>
+</ul>
+<p><em>File: a.bl</em></p>
+<h2 id="Any">Any</h2>
+
+<pre><code>Any :: struct {
+    type_info: *TypeInfo;
+    data: *u8;
+}
+</code></pre>
+<p>Any type is special builtin type used for passing value of "any" type as function argument.</p>
+<h3 id="Members">Members</h3>
+<ul>
+<li><code>type_info</code> - Type info associated to data type.</li>
+<li><code>data</code> - Data pointer. (not owner!)</li>
+</ul>
+<p><em>File: a.bl</em></p>
+<h2 id="TestCase">TestCase</h2>
+
+<pre><code>TestCase :: struct {
+    func: *fn () ;
+    name: string_view;
+    file: string_view;
+    line: s32;
+}
+</code></pre>
+<p>Type of test case record found during compilation.</p>
+<h3 id="Members">Members</h3>
+<ul>
+<li><code>func</code> - Pointer to test case function.</li>
+<li><code>name</code> - Name of the test case.</li>
+<li><code>file</code> - File where the test case is declared.</li>
+<li><code>line</code> - Line in the file where the test case is declared.</li>
+</ul>
+<p><em>File: a.bl</em></p>
+<h2 id="CodeLocation">CodeLocation</h2>
+
+<pre><code>CodeLocation :: struct {
+    file: string_view;
+    line: s32;
+    function: string_view;
+    hash: u32;
+}
+</code></pre>
+<p>Type of source code location used by <code>#call_location</code> directive.</p>
+<h3 id="Example">Example</h3>
+
+<pre><code>foo :: <span class="syntax-keyword">fn</span> (loc: *CodeLocation = <span class="syntax-directive">#call_location</span>) <span class="syntax-keyword">{</span>
+    print("%\n", @loc);
+<span class="syntax-keyword">}</span>
+
+main :: <span class="syntax-keyword">fn</span> () s32 <span class="syntax-keyword">{</span>
+    foo();
+    <span class="syntax-keyword">return</span> 0;
+<span class="syntax-keyword">}</span>
+</code></pre>
+<h3 id="Members">Members</h3>
+<ul>
+<li><code>file</code> - Full source file path.</li>
+<li><code>line</code> - Line in the source file.</li>
+<li><code>function</code> - Name of the function.</li>
+<li><code>hash</code> - File and line combination hash.</li>
+</ul>
+<p><em>File: a.bl</em></p>
+<h2 id="PrintLogFn">PrintLogFn</h2>
+
+<pre><code>PrintLogFn :: *fn (kind: PrintLogKind, file: string_view, line: s32, format: string_view, args: ...) 
+</code></pre>
+<p>Type of print log function.</p>
+<h3 id="Arguments">Arguments</h3>
+<ul>
+<li><code>kind</code> Kind of report message.</li>
+<li><code>format</code> Format string.</li>
+<li><code>args</code> Additional arguments.</li>
+<li><code>file</code> Call side filename.</li>
+<li><code>line</code> Call side line in source file.</li>
+</ul>
+<p><em>File: a.bl</em></p>
+<h2 id="AbortFn">AbortFn</h2>
+
+<pre><code>AbortFn :: *fn () 
+</code></pre>
+<p><em>File: a.bl</em></p>
+<h2 id="AssertFn">AssertFn</h2>
+
+<pre><code>AssertFn :: *fn (message: string_view, loc: *CodeLocation) 
+</code></pre>
+<p><em>File: a.bl</em></p>
+<h2 id="Context">Context</h2>
+
+<pre><code>Context :: struct {
+    print_log_fn: PrintLogFn;
+    abort_fn: AbortFn;
+    assert_fn: AssertFn;
+    allocator: *Allocator;
+    temporary_allocator: *Allocator;
+    _assert_handled: bool;
+}
+</code></pre>
+<p>Global application context. This structure provides possibility to override common operations done on the compiler
+internal level or on the user code level.</p>
+<h3 id="Members">Members</h3>
+<ul>
+<li><code>print_log_fn</code> - Print log callback.</li>
+<li><code>abort_fn</code> - Abort handler callback.</li>
+<li><code>assert_fn</code> - Assert handler callback.</li>
+<li><code>allocator</code> - Global memory allocator used across the application.</li>
+<li><code>temporary_allocator</code> - Global temporary allocator. This allocator is implicitly used i.e. by <code>tprint</code> function. The default implementation
+is thread save (be careful replacing this allocator with a custom implementation, it may be called from other
+threads depending on use case).</li>
+</ul>
+<p><em>File: a.bl</em></p>
+<h2 id="application_context">application_context</h2>
+
+<pre><code>application_context := 
+</code></pre>
+<p>Default application context. Implicit context is compiler internal global variable
+containing basic context for the whole assembly. This variable is mutable and can
+be modified by user code. For example we can replace default memory allocator
+with custom one, this will affect all memory allocations made after.</p>
+<p><em>File: a.bl</em></p>
+<h2 id="command_line_arguments">command_line_arguments</h2>
+
+<pre><code>command_line_arguments : []string_view = 
+</code></pre>
+<p>Contains all arguments passed from command line. First argument is executable name.</p>
+<p><em>File: a.bl</em></p>
+<h2 id="enum_count">enum_count</h2>
+
+<pre><code>enum_count :: fn (T: type) s64
+</code></pre>
+<p>Compile-time helper function resolving count of enumerator variants, passed type 'T' must be an
+enumerator type (checked by assert).</p>
+<p><em>File: a.bl</em></p>
+<h2 id="enum_variant_name">enum_variant_name</h2>
+
+<pre><code>enum_variant_name :: fn (T: type, index: s64) string_view #inline
+</code></pre>
+<p><em>File: a.bl</em></p>
+<h2 id="is_number">is_number</h2>
+
+<pre><code>is_number :: fn (T: type) bool
+</code></pre>
+<p>Returns <code>true</code> if the <code>T</code> type is an integer type.</p>
+<p><em>File: a.bl</em></p>
+<h2 id="is_real">is_real</h2>
+
+<pre><code>is_real :: fn (T: type) bool
+</code></pre>
+<p>Returns <code>true</code> if the <code>T</code> type is an floating point number type.</p>
+<p><em>File: a.bl</em></p>
+<h2 id="is_real_or_number">is_real_or_number</h2>
+
+<pre><code>is_real_or_number :: fn (T: type) bool
+</code></pre>
+<p>Returns <code>true</code> if the <code>T</code> type is an integer or floating point number type (f32 or f64).</p>
+<p><em>File: a.bl</em></p>
+<h2 id="is_signed_number">is_signed_number</h2>
+
+<pre><code>is_signed_number :: fn (T: type) bool
+</code></pre>
+<p>Returns true if the <code>T</code> type is a signed integer type.</p>
+<p><em>File: a.bl</em></p>
+<h2 id="is_pointer">is_pointer</h2>
+
+<pre><code>is_pointer :: fn (T: type) bool
+</code></pre>
+<p>Returns true if the <code>T</code> type is a pointer type.</p>
+<p><em>File: a.bl</em></p>
+<h2 id="is_function">is_function</h2>
+
+<pre><code>is_function :: fn (T: type) bool
+</code></pre>
+<p>Returns true if the <code>T</code> type is a function type.</p>
+<p><em>File: a.bl</em></p>
+<h2 id="is_struct">is_struct</h2>
+
+<pre><code>is_struct :: fn (T: type) bool
+</code></pre>
+<p>Returns true if the <code>T</code> type is a struct type.</p>
+<p><em>File: a.bl</em></p>
+<h2 id="typeid">typeid</h2>
+
+<pre><code>typeid :: fn (v: type) u64
+</code></pre>
+<p>Returns unique type identificator in compile-time.</p>
+<p><em>File: a.bl</em></p>
+<h2 id="is_enum">is_enum</h2>
+
+<pre><code>is_enum :: fn (T: type) bool
+</code></pre>
+<p>Returns <code>true</code> if the <code>T</code> type is an enumerator type.</p>
+<p><em>File: a.bl</em></p>
+<h2 id="number_type">number_type</h2>
+
+<pre><code>number_type :: fn (size_bytes: usize, is_signed: bool) type
+</code></pre>
+<p>Returns signed or unsigned builtin number type of the requested size.
+The <code>size_bytes</code> must be 1, 2, 4 or 8 Bytes.</p>
+<p><em>File: a.bl</em></p>
+<h2 id="has_member">has_member</h2>
+
+<pre><code>has_member :: fn (TStruct: type, member_name: string_view) bool
+</code></pre>
+<p>Check in compile-time whether structure type <code>TStruct</code> contains member called <code>member_name</code>.</p>
+<p><em>File: a.bl</em></p>
+<h2 id="has_member2">has_member2</h2>
+
+<pre><code>has_member2 :: fn (TStruct: type, member_name: string_view) bool
+</code></pre>
+<p><em>File: a.bl</em></p>
+<h2 id="struct_count">struct_count</h2>
+
+<pre><code>struct_count :: fn (TStruct: type) s32
+</code></pre>
+<p><em>File: a.bl</em></p>
+<h2 id="member_offset_bytes">member_offset_bytes</h2>
+
+<pre><code>member_offset_bytes :: fn (TStruct: type, path: string_view) s64
+</code></pre>
+<p>Calculate offset of member ad <code>path</code> starting from <code>TStruct</code> root. Each member in the pash is supposed to
+be separated by '/'.</p>
+<h3 id="Example">Example</h3>
+
+<pre><code>number
+foo/number
+foo/bar/number
+</code></pre>
+<p><em>File: a.bl</em></p>
+<h2 id="member_offset_bytes2">member_offset_bytes2</h2>
+
+<pre><code>member_offset_bytes2 :: fn (type_info: *TypeInfoStruct, path: string_view) s64
+</code></pre>
+<p><em>File: a.bl</em></p>
+<h2 id="member_ptr">member_ptr</h2>
+
+<pre><code>member_ptr :: fn { 
+    fn (base_ptr: *u8, member: *TypeInfoStructMember) *u8; 
+    fn (TMember: type, base_ptr: *?T, member_name: string_view) *TMember; 
+} #inline
+</code></pre>
+<p><em>File: a.bl</em></p>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#Builtin">Builtin</a></li>
+<ul>
+<li><a href="#Current-running-platform">Current running platform</a></li>
+<li><a href="#Current-running-architecture">Current running architecture</a></li>
+<li><a href="#Current-running-environment">Current running environment</a></li>
+<li><a href="#Compiler-version">Compiler version</a></li>
+<li><a href="#string_view">string_view</a></li>
+<li><a href="#TypeKind">TypeKind</a></li>
+<li><a href="#TypeInfo">TypeInfo</a></li>
+<li><a href="#TypeInfoInt">TypeInfoInt</a></li>
+<li><a href="#TypeInfoReal">TypeInfoReal</a></li>
+<li><a href="#TypeInfoFn">TypeInfoFn</a></li>
+<li><a href="#TypeInfoFnGroup">TypeInfoFnGroup</a></li>
+<li><a href="#TypeInfoPtr">TypeInfoPtr</a></li>
+<li><a href="#TypeInfoArray">TypeInfoArray</a></li>
+<li><a href="#TypeInfoStruct">TypeInfoStruct</a></li>
+<li><a href="#TypeInfoEnum">TypeInfoEnum</a></li>
+<li><a href="#TypeInfoVoid">TypeInfoVoid</a></li>
+<li><a href="#TypeInfoNull">TypeInfoNull</a></li>
+<li><a href="#TypeInfoString">TypeInfoString</a></li>
+<li><a href="#TypeInfoType">TypeInfoType</a></li>
+<li><a href="#TypeInfoBool">TypeInfoBool</a></li>
+<li><a href="#TypeInfoStructMember">TypeInfoStructMember</a></li>
+<li><a href="#TypeInfoEnumVariant">TypeInfoEnumVariant</a></li>
+<li><a href="#TypeInfoFnArg">TypeInfoFnArg</a></li>
+<li><a href="#Any">Any</a></li>
+<li><a href="#TestCase">TestCase</a></li>
+<li><a href="#CodeLocation">CodeLocation</a></li>
+<li><a href="#PrintLogFn">PrintLogFn</a></li>
+<li><a href="#AbortFn">AbortFn</a></li>
+<li><a href="#AssertFn">AssertFn</a></li>
+<li><a href="#Context">Context</a></li>
+<li><a href="#application_context">application_context</a></li>
+<li><a href="#command_line_arguments">command_line_arguments</a></li>
+<li><a href="#enum_count">enum_count</a></li>
+<li><a href="#enum_variant_name">enum_variant_name</a></li>
+<li><a href="#is_number">is_number</a></li>
+<li><a href="#is_real">is_real</a></li>
+<li><a href="#is_real_or_number">is_real_or_number</a></li>
+<li><a href="#is_signed_number">is_signed_number</a></li>
+<li><a href="#is_pointer">is_pointer</a></li>
+<li><a href="#is_function">is_function</a></li>
+<li><a href="#is_struct">is_struct</a></li>
+<li><a href="#typeid">typeid</a></li>
+<li><a href="#is_enum">is_enum</a></li>
+<li><a href="#number_type">number_type</a></li>
+<li><a href="#has_member">has_member</a></li>
+<li><a href="#has_member2">has_member2</a></li>
+<li><a href="#struct_count">struct_count</a></li>
+<li><a href="#member_offset_bytes">member_offset_bytes</a></li>
+<li><a href="#member_offset_bytes2">member_offset_bytes2</a></li>
+<li><a href="#member_ptr">member_ptr</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="Bucket-Array">Bucket Array</h1>
+<p>Bucket Array is generic, dynamically allocated array storing elements of the same type into heap
+preallocated memory blocks called "buckets". Compared to regular dynamic arrays, the elements allocated
+in buckets are stable (the address of each element does not change when array grows).</p>
+<p>Internally each bucket contains 64 slots to hold inserted elements, when new element is pushed into
+the array, the first free slot is used; in case there are no free slots in the bucket, the new one is
+allocated.</p>
+<p>Elements can be also erased from the bucket array, the corresponding slot is just marked as free
+slot and reused later. No reordering is done when element is erased.</p>
+<p>Clearing of the bucket array keeps all already allocated buckets for the later use.</p>
+<p>Since not all elements inside the bucket array are not allocated in continuous memory block,
+special API is provided for iteration over the array.</p>
+<h3 id="Example">Example</h3>
+
+<pre><code><span class="syntax-directive">#import</span> "std/bucket_array"
+
+Entity :: <span class="syntax-keyword">struct</span> <span class="syntax-keyword">{</span>
+	id: s32;
+	name: string_view;
+	health: s32;
+<span class="syntax-keyword">}</span>
+
+main :: <span class="syntax-keyword">fn</span> () s32 <span class="syntax-keyword">{</span>
+	<span class="syntax-keyword">using</span> std;
+	arr: BucketArray(Entity);
+	<span class="syntax-comment">// Release all allocated memory</span>
+	<span class="syntax-keyword">defer</span> bucket_array_terminate(&arr);
+
+	<span class="syntax-keyword">loop</span> i := 0; i &lt; 10; i += 1 <span class="syntax-keyword">{</span>
+		<span class="syntax-comment">// Get the adress of the newly pushed entity element.</span>
+		entity_ptr := bucket_array_push(&arr);
+		<span class="syntax-comment">// Initialize with some dummy values.</span>
+		entity_ptr.id = i;
+		entity_ptr.name = "Martin";
+		entity_ptr.health = i * 2;
+	<span class="syntax-keyword">}</span>
+
+	<span class="syntax-comment">// Iterate over all entities</span>
+	<span class="syntax-keyword">loop</span> it := bucket_array_begin(&arr); it; it = bucket_array_iter_next(&arr, it) <span class="syntax-keyword">{</span>
+		print("%\n", it.value);
+	<span class="syntax-keyword">}</span>
+
+	<span class="syntax-keyword">return</span> 0;
+<span class="syntax-keyword">}</span>
+
+</code></pre>
+<p><span class="hint-note"><b>Note:</b>
+Organizing data into buckets leads to less allocations, faster free and better memory locality.</span></p>
+<h2 id="std.BucketArray">std.BucketArray</h2>
+
+<pre><code>BucketArray :: fn (TElem: type) type
+</code></pre>
+<p>Create a new <b>BucketArray</b> type based on <code>TElem</code> element type.</p>
+
+<pre><code>BucketArray :: <span class="syntax-keyword">struct</span> <span class="syntax-keyword">{</span>
+    len: s64;
+<span class="syntax-keyword">}</span>
+</code></pre>
+<p><em>File: bucket_array.bl</em></p>
+<h2 id="std.BucketArrayIterator">std.BucketArrayIterator</h2>
+
+<pre><code>BucketArrayIterator :: fn (TArr: type) type
+</code></pre>
+<p>Create a new <b>BucketArrayIterator</b> type based of <code>TArr</code> bucket array type.</p>
+
+<pre><code>BucketArrayIterator :: <span class="syntax-keyword">struct</span> <span class="syntax-keyword">{</span>
+    value: TElem;
+<span class="syntax-keyword">}</span>
+</code></pre>
+<p><em>File: bucket_array.bl</em></p>
+<h2 id="std.bucket_array_init">std.bucket_array_init</h2>
+
+<pre><code>bucket_array_init :: fn (arr: *?TArr, expected_size: s32, allocator : *Allocator: null) 
+</code></pre>
+<p>Initialize the <code>arr</code> bucket array. It's not necessary to call this method in case the <code>arr</code> is
+already zero-initialized. The <code>expected_size</code> can be used to preallocate memory for <code>expected_size</code>
+elements in advance.
+Memory preallocation is performed using <code>allocator</code>.</p>
+<p><em>File: bucket_array.bl</em></p>
+<h2 id="std.bucket_array_terminate">std.bucket_array_terminate</h2>
+
+<pre><code>bucket_array_terminate :: fn (arr: *?TArr) 
+</code></pre>
+<p>Release all memory resources used by the <code>arr</code> and set the <code>arr</code> instance to the default state.</p>
+<p><em>File: bucket_array.bl</em></p>
+<h2 id="std.bucket_array_push">std.bucket_array_push</h2>
+
+<pre><code>bucket_array_push :: fn { 
+    impl_push_empty; 
+    impl_push; 
+}
+</code></pre>
+<p>Push a new element <code>value</code> at the end of <code>arr</code> or into any available free slot in preallocated
+buckets. Returns pointer to the pushed element. In case the <code>value</code> is not explicitly specified
+returned element pointer points to un-initialized memory.</p>
+<p><b>Overloads:</b></p>
+
+<pre><code><span class="syntax-keyword">fn</span> (arr: *?TArr, value: bucket_array_typeof_elem(TArr)) *bucket_array_typeof_elem(TArr)
+<span class="syntax-keyword">fn</span> (arr: *?TArr) *bucket_array_typeof_elem(TArr)
+</code></pre>
+<p><span class="hint-note"><b>Note:</b>
+New memory is allocated only in case there is no free slot left in the preallocated buckets.</span></p>
+<p><em>File: bucket_array.bl</em></p>
+<h2 id="std.bucket_array_erase">std.bucket_array_erase</h2>
+
+<pre><code>bucket_array_erase :: fn (arr: *?TArr, value: *) 
+</code></pre>
+<p>Erase previously pushed value from the <code>arr</code>, and asserts in case the value was already erased.
+Memory for erased value stays allocated and can be used later for new values.</p>
+<p><em>File: bucket_array.bl</em></p>
+<h2 id="std.bucket_array_begin">std.bucket_array_begin</h2>
+
+<pre><code>bucket_array_begin :: fn (arr: *?TArr) *
+</code></pre>
+<p>Returns bucket array iterator pointing to the first element in the bucket array or <code>null</code> if
+the array is empty.</p>
+<p><em>File: bucket_array.bl</em></p>
+<h2 id="std.bucket_array_iter_next">std.bucket_array_iter_next</h2>
+
+<pre><code>bucket_array_iter_next :: fn (arr: *?TArr, iter: *) *
+</code></pre>
+<p>Returns bucket array iterator pointing to the next element in the <code>arr</code> or <code>null</code> if there is
+no next element in the array (we reached the end).</p>
+<p><em>File: bucket_array.bl</em></p>
+<h2 id="std.bucket_array_clear">std.bucket_array_clear</h2>
+
+<pre><code>bucket_array_clear :: fn (arr: *?TArr) 
+</code></pre>
+<p>Clears the bucket array but keeps the allocated memory for later use.</p>
+<p><em>File: bucket_array.bl</em></p>
+<h2 id="std.bucket_array_typeof_elem">std.bucket_array_typeof_elem</h2>
+
+<pre><code>bucket_array_typeof_elem :: fn (TArr: type) type
+</code></pre>
+<p>Returns type of the value stored in <code>TArr</code> type.</p>
+<p><em>File: bucket_array.bl</em></p>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#Bucket-Array">Bucket Array</a></li>
+<ul>
+<li><a href="#std.BucketArray">std.BucketArray</a></li>
+<li><a href="#std.BucketArrayIterator">std.BucketArrayIterator</a></li>
+<li><a href="#std.bucket_array_init">std.bucket_array_init</a></li>
+<li><a href="#std.bucket_array_terminate">std.bucket_array_terminate</a></li>
+<li><a href="#std.bucket_array_push">std.bucket_array_push</a></li>
+<li><a href="#std.bucket_array_erase">std.bucket_array_erase</a></li>
+<li><a href="#std.bucket_array_begin">std.bucket_array_begin</a></li>
+<li><a href="#std.bucket_array_iter_next">std.bucket_array_iter_next</a></li>
+<li><a href="#std.bucket_array_clear">std.bucket_array_clear</a></li>
+<li><a href="#std.bucket_array_typeof_elem">std.bucket_array_typeof_elem</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

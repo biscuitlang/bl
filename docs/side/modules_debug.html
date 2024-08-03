@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="Debug">Debug</h1>
+<p><code>#load "std/debug.bl"</code></p>
+<p>Set of common debugging tools.</p>
+<h2 id="print_log">print_log</h2>
+
+<pre><code>print_log :: fn (format: string_view, args: ...)  #inline
+</code></pre>
+<p>Print debug log using current application_context <code>print_log_fn</code> function.</p>
+<p><em>File: debug.bl</em></p>
+<h2 id="print_info">print_info</h2>
+
+<pre><code>print_info :: fn (format: string_view, args: ...)  #inline
+</code></pre>
+<p>Print debug info using current application_context <code>print_log_fn</code> function.</p>
+<p><em>File: debug.bl</em></p>
+<h2 id="print_warn">print_warn</h2>
+
+<pre><code>print_warn :: fn (format: string_view, args: ...)  #inline
+</code></pre>
+<p>Print debug warning using current application_context <code>print_log_fn</code> function.</p>
+<p><em>File: debug.bl</em></p>
+<h2 id="print_err">print_err</h2>
+
+<pre><code>print_err :: fn { 
+    print_err_e; 
+    print_err_msg; 
+}
+</code></pre>
+<p>Print debug error using current application_context.print_log_fn function.</p>
+<p><em>File: debug.bl</em></p>
+<h2 id="assert">assert</h2>
+
+<pre><code>assert :: fn (condition: bool, message :: "", loc :: #call_location) 
+</code></pre>
+<p>Invoke assert handler from the application context in case the <code>condition</code> is <code>false</code>.</p>
+<p><span class="hint-important"><b>Important:</b>
+All calls to the assert function are removed from release builds by default.</span></p>
+<p><span class="hint-warning"><b>Warning:</b>
+There is no argument validation in case the assert call is removed from compilation.</span></p>
+<p><em>File: debug.bl</em></p>
+<h2 id="static_assert">static_assert</h2>
+
+<pre><code>static_assert :: fn (expr: bool) 
+</code></pre>
+<p>Assertion check evaluated in compile time.</p>
+<p><em>File: debug.bl</em></p>
+<h2 id="panic">panic</h2>
+
+<pre><code>panic :: fn { 
+    panic_empty; 
+    panic_error; 
+    panic_msg; 
+}
+</code></pre>
+<p>Abort execution and eventually print panic message if there is one specified. First passed
+argument in 'args' will act like format string and can be eventually followed by any additional
+values required.</p>
+<h3 id="Example">Example</h3>
+
+<pre><code><span class="syntax-keyword">panic</span>(); <span class="syntax-comment">// abort without any messages</span>
+<span class="syntax-keyword">panic</span>(error); <span class="syntax-comment">// abort with [Error](#error).</span>
+<span class="syntax-keyword">panic</span>("oops!"); <span class="syntax-comment">// abort with message printed out.</span>
+<span class="syntax-keyword">panic</span>("Failed with error: %", errn); <span class="syntax-comment">// first argument passed acts like formatting string</span>
+</code></pre>
+<p><em>File: debug.bl</em></p>
+<h2 id="PrintLogKind">PrintLogKind</h2>
+
+<pre><code>PrintLogKind :: enum u8 {
+    MESSAGE;
+    INFO;
+    WARNING;
+    ERROR;
+    ASSERT;
+    PANIC;
+}
+</code></pre>
+<p>Kinds of log messages.</p>
+<h3 id="Variants">Variants</h3>
+<ul>
+<li><code>MESSAGE</code> - Debug log message.</li>
+<li><code>INFO</code> - Informative log message.</li>
+<li><code>WARNING</code> - Warning log message.</li>
+<li><code>ERROR</code> - Error log message.</li>
+<li><code>ASSERT</code> - Assert log message.</li>
+<li><code>PANIC</code> - Panic log message.</li>
+</ul>
+<p><em>File: debug.bl</em></p>
+<h2 id="print_backtrace">print_backtrace</h2>
+
+<pre><code>print_backtrace :: fn (skip_frames :: 0)  #inline
+</code></pre>
+<p>Print current stack trace into stdout. Does nothing in release modes (stack trace information is
+available only when the debug info is in place).</p>
+<p><em>File: debug.bl</em></p>
+<h2 id="measure_elapsed_ms_begin">measure_elapsed_ms_begin</h2>
+
+<pre><code>measure_elapsed_ms_begin :: fn ()  #inline
+</code></pre>
+<p>Start measure elapsed milliseconds in the current scope. This function call will push the current
+time into the thread-local queue. Measurement must be ended by <a href="#measure_elapsed_ms_end">measure_elapsed_ms_end</a> call.</p>
+<h3 id="Example">Example</h3>
+
+<pre><code>measure_elapsed_ms_begin();
+<span class="syntax-keyword">defer</span> measure_elapsed_ms_end("Name");
+</code></pre>
+<p><span class="hint-warning"><b>Warning:</b>
+Every <code>measure_elapsed_ms_begin</code> must have corresponding
+<a href="#measure_elapsed_ms_end">measure_elapsed_ms_end</a> call.</span></p>
+<p><em>File: debug.bl</em></p>
+<h2 id="measure_elapsed_ms_end">measure_elapsed_ms_end</h2>
+
+<pre><code>measure_elapsed_ms_end :: fn (_name : string_view: "", loc :: #call_location) f64 #inline
+</code></pre>
+<p>Pop the last start time from the runtime measurement queue and log the result time difference when
+the name is not '-'. The name may be empty, in such case parent function name is used implicitly for
+debug log.</p>
+<p>Returns time difference between the current time and last start time.</p>
+<p><em>File: debug.bl</em></p>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#Debug">Debug</a></li>
+<ul>
+<li><a href="#print_log">print_log</a></li>
+<li><a href="#print_info">print_info</a></li>
+<li><a href="#print_warn">print_warn</a></li>
+<li><a href="#print_err">print_err</a></li>
+<li><a href="#assert">assert</a></li>
+<li><a href="#static_assert">static_assert</a></li>
+<li><a href="#panic">panic</a></li>
+<li><a href="#PrintLogKind">PrintLogKind</a></li>
+<li><a href="#print_backtrace">print_backtrace</a></li>
+<li><a href="#measure_elapsed_ms_begin">measure_elapsed_ms_begin</a></li>
+<li><a href="#measure_elapsed_ms_end">measure_elapsed_ms_end</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="Thread-synchronization">Thread synchronization</h1>
+<p><code>#import "std/sync"</code></p>
+<p>Multiplatform implementation of various thread synchronization tools.</p>
+<p><span class="hint-todo"><b>TODO:</b>
+Improve documentation.</span></p>
+<h2 id="std.Mutex">std.Mutex</h2>
+
+<pre><code>Mutex :: _sync_impl.Mutex
+</code></pre>
+<p>Mutex type.</p>
+<p><em>File: sync.bl</em></p>
+<h2 id="std.Condition">std.Condition</h2>
+
+<pre><code>Condition :: _sync_impl.Condition
+</code></pre>
+<p><em>File: sync.bl</em></p>
+<h2 id="std.Semaphore">std.Semaphore</h2>
+
+<pre><code>Semaphore :: struct {
+    mutex: Mutex;
+    cond: Condition;
+    value: u32;
+}
+</code></pre>
+<p><em>File: sync.bl</em></p>
+<h2 id="std.mutex_init">std.mutex_init</h2>
+
+<pre><code>mutex_init :: fn (mutex: *Mutex) Error #inline
+</code></pre>
+<p>Initialize mutex. Call <a href="#mutex_terminate">mutex_terminate</a> when mutex is no longer needed.</p>
+<p><em>File: sync.bl</em></p>
+<h2 id="std.mutex_terminate">std.mutex_terminate</h2>
+
+<pre><code>mutex_terminate :: fn (mutex: *Mutex) Error #inline
+</code></pre>
+<p>Terminate mutex.</p>
+<p><em>File: sync.bl</em></p>
+<h2 id="std.mutex_lock">std.mutex_lock</h2>
+
+<pre><code>mutex_lock :: fn (mutex: *Mutex) Error #inline
+</code></pre>
+<p>Lock mutex and enter critical section.</p>
+<p><em>File: sync.bl</em></p>
+<h2 id="std.mutex_try_lock">std.mutex_try_lock</h2>
+
+<pre><code>mutex_try_lock :: fn (mutex: *Mutex) (_0: bool, _1: Error) #inline
+</code></pre>
+<p>Try to lock the <code>mutex</code>. Returns <code>true</code> in case the mutex was locked or <code>false</code> if <code>mutex</code>
+is already locked or en error occurred.</p>
+<p><em>File: sync.bl</em></p>
+<h2 id="std.mutex_unlock">std.mutex_unlock</h2>
+
+<pre><code>mutex_unlock :: fn (mutex: *Mutex) Error #inline
+</code></pre>
+<p>Unlock previously locked mutex and leave critical section.</p>
+<p><em>File: sync.bl</em></p>
+<h2 id="std.semaphore_init">std.semaphore_init</h2>
+
+<pre><code>semaphore_init :: fn (sem: *Semaphore, v : u32: 0) Error #inline
+</code></pre>
+<p>Initialize <code>semaphore</code> object with <code>value</code>.</p>
+<p><em>File: sync.bl</em></p>
+<h2 id="std.semaphore_terminate">std.semaphore_terminate</h2>
+
+<pre><code>semaphore_terminate :: fn (sem: *Semaphore) Error #inline
+</code></pre>
+<p>Terminate <code>semaphore</code> object.</p>
+<p><em>File: sync.bl</em></p>
+<h2 id="std.semaphore_wait">std.semaphore_wait</h2>
+
+<pre><code>semaphore_wait :: fn (sem: *Semaphore) Error #inline
+</code></pre>
+<p><em>File: sync.bl</em></p>
+<h2 id="std.semaphore_post">std.semaphore_post</h2>
+
+<pre><code>semaphore_post :: fn (sem: *Semaphore) Error #inline
+</code></pre>
+<p><em>File: sync.bl</em></p>
+<h2 id="std.condition_init">std.condition_init</h2>
+
+<pre><code>condition_init :: fn (condition: *Condition) Error #inline
+</code></pre>
+<p><em>File: sync.bl</em></p>
+<h2 id="std.condition_terminate">std.condition_terminate</h2>
+
+<pre><code>condition_terminate :: fn (_: *Condition) Error #inline
+</code></pre>
+<p><em>File: sync.bl</em></p>
+<h2 id="std.condition_wait">std.condition_wait</h2>
+
+<pre><code>condition_wait :: fn (condition: *Condition, mutex: *Mutex) Error #inline
+</code></pre>
+<p><em>File: sync.bl</em></p>
+<h2 id="std.condition_signal">std.condition_signal</h2>
+
+<pre><code>condition_signal :: fn (condition: *Condition) Error #inline
+</code></pre>
+<p><em>File: sync.bl</em></p>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#Thread-synchronization">Thread synchronization</a></li>
+<ul>
+<li><a href="#std.Mutex">std.Mutex</a></li>
+<li><a href="#std.Condition">std.Condition</a></li>
+<li><a href="#std.Semaphore">std.Semaphore</a></li>
+<li><a href="#std.mutex_init">std.mutex_init</a></li>
+<li><a href="#std.mutex_terminate">std.mutex_terminate</a></li>
+<li><a href="#std.mutex_lock">std.mutex_lock</a></li>
+<li><a href="#std.mutex_try_lock">std.mutex_try_lock</a></li>
+<li><a href="#std.mutex_unlock">std.mutex_unlock</a></li>
+<li><a href="#std.semaphore_init">std.semaphore_init</a></li>
+<li><a href="#std.semaphore_terminate">std.semaphore_terminate</a></li>
+<li><a href="#std.semaphore_wait">std.semaphore_wait</a></li>
+<li><a href="#std.semaphore_post">std.semaphore_post</a></li>
+<li><a href="#std.condition_init">std.condition_init</a></li>
+<li><a href="#std.condition_terminate">std.condition_terminate</a></li>
+<li><a href="#std.condition_wait">std.condition_wait</a></li>
+<li><a href="#std.condition_signal">std.condition_signal</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

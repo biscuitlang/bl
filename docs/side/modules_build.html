@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="Build-System">Build System</h1>
+<p><code>#load "build/build.bl"</code></p>
+<p>Compiler integrated build pipeline. Build pipline can be used to manage whole project compilation
+process directly in BL. All you need is to create the build file called <code>build.bl</code> and specify the
+<code>build_entry</code> function inside. When <code>-b</code> flag is used without need of specifying any files, the
+compiler will lookup <code>build.bl</code> file in the current directory and execute it in compile time. All
+compilation steps, target input and output can be specified here.</p>
+<p>Example of minimal build.bl:</p>
+
+<pre><code>build :: <span class="syntax-keyword">fn</span> () <span class="syntax-directive">#build_entry</span> <span class="syntax-keyword">{</span>
+    <span class="syntax-comment">// create new executable target</span>
+    exe :: add_executable("MyProgram");
+
+    <span class="syntax-comment">// add 'main.bl' file into the target 'exe'</span>
+    add_unit(exe, "main.bl");
+
+    <span class="syntax-comment">// Start compilation</span>
+    compile(exe);
+<span class="syntax-keyword">}</span>
+</code></pre>
+<p>Start build pipeline using our build.bl file:</p>
+
+<pre><code>$ blc -build
+</code></pre>
+<p>Compiler will automatically use build.bl file as build script and execute build function in compile time.
+SDK file build/build.bl containing compiler API for build pipeline manipulation is loaded implicitly.</p>
+<p><b>warning</b>: Build API is available only in compile-time.</p>
+<h2 id="Basics">Basics</h2>
+<h3 id="Create-new-executable-target">Create new executable target</h3>
+<p>Target is a single build target defined as consisting of build Units representing source files
+needed for compilation. It`s basically a target compiled into an executable or binary file. Use
+<a href="#add_executable">add_executable</a> function to specify your target. There are several options
+related to target, described later  in this documentation.</p>
+
+<pre><code>exe :: add_executable("MyProgram");
+</code></pre>
+<h3 id="Add-file-into-target">Add file into target</h3>
+<p>Use <a href="#add_unit">add_unit</a> function to add source files into the target. There is no need to add
+all files you want to use, general <code>load</code> and <code>import</code> will do so automatically. Only <code>main</code> or
+entry files must be included.</p>
+
+<pre><code>add_unit(exe, "main.bl");
+</code></pre>
+<h3 id="Specify-output-directory">Specify output directory</h3>
+<p>Output directory is a directory where all compiler-produced files will be written (i.e. native
+executables). Use <a href="#set_output_dir">set_output_dir</a> function to specify this directory, current
+directory is used by default.</p>
+
+<pre><code>set_output_dir(exe, "bin");
+</code></pre>
+<h3 id="Compile-target">Compile target</h3>
+
+<pre><code>compile(exe);
+</code></pre>
+<h3 id="Command-line-argumets">Command line argumets</h3>
+<p>All argumets passed after <code>-build</code> compiler flag are automatically forwarded into
+<code>command_line_arguments</code> global variable.</p>
+<h2 id="BuilderOptions">BuilderOptions</h2>
+
+<pre><code>BuilderOptions :: struct {
+    verbose: bool;
+    no_color: bool;
+    silent: bool;
+    no_jobs: bool;
+    no_warning: bool;
+    full_path_reports: bool;
+    no_usage_check: bool;
+    stats: bool;
+    enable_experimental_targets: bool;
+    do_cleanup_when_done: bool;
+    error_limit: s32;
+    _doc_out_dir: *C.char;
+}
+</code></pre>
+<p>Global builder options.</p>
+<h3 id="Members">Members</h3>
+<ul>
+<li><p><code>verbose</code> - Toggle verbose mode. (Off by default.)</p>
+</li>
+<li><p><code>no_color</code> - Toggle coloring the terminal output. (Off by default.)</p>
+</li>
+<li><p><code>silent</code> - Silent mode reduces amount of stuff printed to the standard output to minimum. (Off by default.)</p>
+</li>
+<li><p><code>no_jobs</code> - Toggle multithreading. (On by default.)</p>
+</li>
+<li><p><code>no_warning</code> - Disable all compiler warnings. (Off by default.)</p>
+</li>
+<li><p><code>full_path_reports</code> - Use full (absolute) paths in compiler reports. (Off by default.)</p>
+</li>
+<li><p><code>no_usage_check</code> - Toggle check of unused symbols. (Off by default.)</p>
+</li>
+<li><p><code>stats</code> - Toggle printing of some compilation statistics. (Off by default.)</p>
+</li>
+<li><p><code>enable_experimental_targets</code> - Toggle experimantal targets. (Off by default.)</p>
+</li>
+<li><p><code>do_cleanup_when_done</code> - Release memory after compilation. When compiler is executed as a single-shot application (start -&gt; compile -&gt; end)
+all the time, we can leave releasing of allocated memory to the operating system to get some compilation speed boost.
+(Off by default.)</p>
+</li>
+<li><p><code>error_limit</code> - Maximum count of error reported by the compiler.</p>
+</li>
+</ul>
+<p><em>File: build.bl</em></p>
+<h2 id="get_builder_options">get_builder_options</h2>
+
+<pre><code>get_builder_options :: fn () BuilderOptions
+</code></pre>
+<p>Returns copy of current builder options. These are by default initializad from command line
+arguments passed to the compiler.</p>
+<p><em>File: build.bl</em></p>
+<h2 id="set_builder_options">set_builder_options</h2>
+
+<pre><code>set_builder_options :: fn (opt: BuilderOptions) 
+</code></pre>
+<p>Overrides current builder options previously set from the command line or by calling this function.</p>
+<p><em>File: build.bl</em></p>
+<h2 id="Target">Target</h2>
+
+<pre><code>Target :: struct {
+    kind: TargetKind;
+    build_mode: BuildMode;
+    debug_info_kind: DebugInfo;
+    register_split: bool;
+    verify_llvm: bool;
+    run_tests: bool;
+    tests_minimal_output: bool;
+    no_api: bool;
+    copy_dependencies: bool;
+    run: bool;
+    print_tokens: bool;
+    print_ast: bool;
+    emit_llvm: bool;
+    emit_asm: bool;
+    emit_mir: bool;
+    no_bin: bool;
+    no_llvm: bool;
+    no_analyze: bool;
+    x64: bool;
+    assert_mode: AssertMode;
+    syntax_only: bool;
+    vmdbg_enabled: bool;
+    vmdbg_break_on: s32;
+    enable_experimental_targets: bool;
+    triple: TargetTriple;
+}
+</code></pre>
+<p>Target is representation of whole program workspace, it's a consist of Units, every unit
+represents one source file.</p>
+<h3 id="Members">Members</h3>
+<ul>
+<li><code>kind</code> - See :ref:<code>TargetKind</code>.</li>
+<li><code>build_mode</code> - Specify build mode of the target. See <a href="#buildmode">BuildMode</a></li>
+<li><code>debug_info_kind</code> - Specify debug information format used for target in debug mode. See <a href="#debuginfo">DebugInfo</a>.</li>
+<li><code>register_split</code> - Enable split of function arguments and return value into registers.</li>
+<li><code>verify_llvm</code> - Verify LLVM module.</li>
+<li><code>run_tests</code> - Execute compile time tests.</li>
+<li><code>tests_minimal_output</code> - Reduce compile-time tests output (remove results section).</li>
+<li><code>no_api</code> - Disable default API import.</li>
+<li><code>copy_dependencies</code> - Copy all known dependencies into output folder.</li>
+<li><code>run</code> - Execute main function in compile time.</li>
+<li><code>print_tokens</code> - Print out lexer output.</li>
+<li><code>print_ast</code> - Print out AST.</li>
+<li><code>emit_llvm</code> - Emit LLVM IR code into file.</li>
+<li><code>emit_asm</code> - Emit asm code into file.</li>
+<li><code>emit_mir</code> - Emit MIR code into file.</li>
+<li><code>no_bin</code> - Disable generation of native binary.</li>
+<li><code>no_llvm</code> - Disable LLVM backend.</li>
+<li><code>no_analyze</code> - Disable analyze pass of code generation.</li>
+<li><code>x64</code> - Experimental x64 backend for debug only.</li>
+<li><code>assert_mode</code> - See :ref:<code>AssertMode</code>.</li>
+<li><code>syntax_only</code> - Check only code syntax.</li>
+<li><code>vmdbg_enabled</code> - Enable virtual machine debugger.</li>
+<li><code>vmdbg_break_on</code> - Specify MIR instruction ID to break on if virtual machine debugger is attached.</li>
+<li><code>enable_experimental_targets</code> - Enable experimental build targets.</li>
+<li><code>triple</code> - Target triple according to LLVM.</li>
+</ul>
+<p><em>File: build.bl</em></p>
+<h2 id="TargetKind">TargetKind</h2>
+
+<pre><code>TargetKind :: enum {
+    EXECUTABLE = 0;
+    SHARED_LIBRARY = 1;
+}
+</code></pre>
+<p>Specification of compiler output binary kind.</p>
+<p><em>File: build.bl</em></p>
+<h2 id="TargetArch">TargetArch</h2>
+
+<pre><code>TargetArch :: enum s32 {
+    UNKNOWN = 0;
+    X86_64 = 1;
+    AARCH64 = 2;
+    ARM64 = 3;
+}
+</code></pre>
+<p><em>File: build.bl</em></p>
+<h2 id="TargetVendor">TargetVendor</h2>
+
+<pre><code>TargetVendor :: enum s32 {
+    UNKNOWN = 0;
+    PC = 1;
+    APPLE = 2;
+}
+</code></pre>
+<p><em>File: build.bl</em></p>
+<h2 id="TargetSystem">TargetSystem</h2>
+
+<pre><code>TargetSystem :: enum s32 {
+    UNKNOWN = 0;
+    WINDOWS = 1;
+    DARWIN = 2;
+    LINUX = 3;
+}
+</code></pre>
+<p><em>File: build.bl</em></p>
+<h2 id="TargetEnvironment">TargetEnvironment</h2>
+
+<pre><code>TargetEnvironment :: enum s32 {
+    UNKNOWN = 0;
+    MSVC = 1;
+    GNU = 2;
+    MUSL = 3;
+}
+</code></pre>
+<p><em>File: build.bl</em></p>
+<h2 id="TargetTriple">TargetTriple</h2>
+
+<pre><code>TargetTriple :: struct {
+    arch: TargetArch;
+    vendor: TargetVendor;
+    os: TargetSystem;
+    env: TargetEnvironment;
+}
+</code></pre>
+<p><em>File: build.bl</em></p>
+<h2 id="BuildMode">BuildMode</h2>
+
+<pre><code>BuildMode :: enum s32 {
+    DEBUG = 0;
+    RELEASE_FAST = 1;
+    RELEASE_SMALL = 2;
+    RELEASE_WITH_DEBUG_INFO = 3;
+}
+</code></pre>
+<p>Specify target build mode. Every <a href="#target">Target</a> can be compiled with various configuration
+options. The <code>BuildMode</code> can specify which set of options compiler should use.</p>
+<h3 id="Variants">Variants</h3>
+<ul>
+<li><p><code>DEBUG</code> - Generates debug symbols and produce binary without any optimizations. <code>IS_DEBUG</code> global variable is
+set to <code>true</code> in this mode. (<code>false</code> in all other modes)</p>
+</li>
+<li><p><code>RELEASE_FAST</code> - Fast release mode; no debug symbols are produced, all possible optimizations
+are applied to produce binary as fast as possible.
+The <code>assert</code> is disabled unless <code>Target.assert_mode</code> is <code>ALWAYS_ENABLED</code>.</p>
+</li>
+<li><p><code>RELEASE_SMALL</code> - Small release mode; no debug symbols are produced, optimizations are applied
+to produce binary reasonably fast and as small as possible.
+The <code>assert</code> is disabled unless <code>Target.assert_mode</code> is <code>ALWAYS_ENABLED</code>.</p>
+</li>
+<li><p><code>RELEASE_WITH_DEBUG_INFO</code> - Small release mode; with debug symbols produced, optimizations are applied
+to produce binary reasonably fast and as small as possible.
+The <code>assert</code> is disabled unless <code>Target.assert_mode</code> is <code>ALWAYS_ENABLED</code>.</p>
+</li>
+</ul>
+<p><em>File: build.bl</em></p>
+<h2 id="DebugInfo">DebugInfo</h2>
+
+<pre><code>DebugInfo :: enum s32 {
+    DWARF = 0;
+    CODE_VIEW = 1;
+}
+</code></pre>
+<p>Debug information format.</p>
+<p><em>File: build.bl</em></p>
+<h2 id="AssertMode">AssertMode</h2>
+
+<pre><code>AssertMode :: enum s32 {
+    DEFAULT = 0;
+    ALWAYS_ENABLED = 1;
+    ALWAYS_DISABLED = 2;
+}
+</code></pre>
+<p>Specification of <code>assert</code> mode used for <code>Target</code>.</p>
+<h3 id="Variants">Variants</h3>
+<ul>
+<li><p><code>DEFAULT</code> - By default compiler emits  all assertions in <a href="#buildmode">BuildMode</a>. Debug and skips all
+assertions in all optimized release modes.</p>
+</li>
+<li><p><code>ALWAYS_ENABLED</code> - Force-enable assertion in all build modes.</p>
+</li>
+<li><p><code>ALWAYS_DISABLED</code> - Force-disable assertion in all build modes.</p>
+</li>
+</ul>
+<p><em>File: build.bl</em></p>
+<h2 id="add_executable">add_executable</h2>
+
+<pre><code>add_executable :: fn (name: string_view) *Target
+</code></pre>
+<p>Add new executable target into the current compilation queue. Target with specified name is
+compiled into binary or it can be just executed in compile-time without any output created.
+Assemblies are compiled after <code>build_entry</code> function execution in order they are added.</p>
+<h3 id="Example">Example</h3>
+
+<pre><code>build :: <span class="syntax-keyword">fn</span> () <span class="syntax-directive">#build_entry</span> <span class="syntax-keyword">{</span>
+    exe :: add_executable("MyProgram");
+    add_unit(exe, "src/main.bl");
+
+    mode :: get_build_mode(exe);
+    <span class="syntax-keyword">switch</span> mode <span class="syntax-keyword">{</span>
+        BuildMode.DEBUG <span class="syntax-keyword">{</span>
+            set_output_dir(exe, "build/debug");
+        <span class="syntax-keyword">}</span>
+
+        BuildMode.RELEASE_SMALL,
+        BuildMode.RELEASE_FAST <span class="syntax-keyword">{</span>
+            set_output_dir(exe, "build/release");
+        <span class="syntax-keyword">}</span>
+    <span class="syntax-keyword">}</span>
+    compile(exe);
+<span class="syntax-keyword">}</span>
+</code></pre>
+<p><em>File: build.bl</em></p>
+<h2 id="add_library">add_library</h2>
+
+<pre><code>add_library :: fn (name: string_view) *Target
+</code></pre>
+<p>Add new shared library target target into the current compilation queue.</p>
+<p><em>File: build.bl</em></p>
+<h2 id="add_unit">add_unit</h2>
+
+<pre><code>add_unit :: fn (target: *Target, filepath: string_view) 
+</code></pre>
+<p>Add new source file into the <code>target</code>. Function does nothing when <code>filepath</code> is already present
+in the <code>target</code> assembly.</p>
+<p><em>File: build.bl</em></p>
+<h2 id="compile">compile</h2>
+
+<pre><code>compile :: fn (target: *Target) Error
+</code></pre>
+<p>Start compilation of the <code>target</code> assembly and return <code>ok</code> or <code>error</code> in case compilation failed.</p>
+<p><em>File: build.bl</em></p>
+<h2 id="compile_all">compile_all</h2>
+
+<pre><code>compile_all :: fn () Error
+</code></pre>
+<p>Compile all created targets one by one in order they were created. See also <a href="#compile">compile</a>.
+All targets are released after the compilation is done.</p>
+<p><em>File: build.bl</em></p>
+<h2 id="add_lib_path">add_lib_path</h2>
+
+<pre><code>add_lib_path :: fn (target: *Target, path: string_view) 
+</code></pre>
+<p>Add path for linker library lookup.</p>
+<p><em>File: build.bl</em></p>
+<h2 id="link_library">link_library</h2>
+
+<pre><code>link_library :: fn (target: *Target, name: string_view) 
+</code></pre>
+<p>Add system library. Only name is required (without extension and prefix). Compiler will lookup
+for this library in working directory, system <code>PATH</code> and <code>LINKER_LIB_PATH</code> variable specified
+in <code>bl.conf</code> file. Linked library can be used also during compile-time execution, in such case
+all needed symbols are loaded in compile-time.</p>
+<p>In general there is no need to link libraries manually, all needed dependencies should be
+handled by module import mechanism, however there is still an option do it manually.</p>
+<p>Library name platform specific rules:</p>
+<ul>
+<li>On Linux name will be extended by 'lib' prefix and '.so' extension.</li>
+<li>On MacOS name will be extended by 'lib' prefix and '.dylib' extension.</li>
+<li>On Windows name will be extended only by '.dll' extension.</li>
+</ul>
+<h3 id="Example">Example</h3>
+
+<pre><code>build :: <span class="syntax-keyword">fn</span> () <span class="syntax-directive">#build_entry</span> <span class="syntax-keyword">{</span>
+    exe :: add_executable("MyGame");
+    add_unit(exe, "src/main.bl");
+
+    <span class="syntax-keyword">switch</span> PLATFORM <span class="syntax-keyword">{</span>
+        Platform.WINDOWS <span class="syntax-keyword">{</span> target_windows(exe); <span class="syntax-keyword">}</span>
+        <span class="syntax-keyword">default</span>          <span class="syntax-keyword">{</span> <span class="syntax-keyword">panic</span>("Unknown build target!"); <span class="syntax-keyword">}</span>
+    <span class="syntax-keyword">}</span>
+    compile(exe);
+<span class="syntax-keyword">}</span>
+
+target_windows :: <span class="syntax-keyword">fn</span> (exe: *Target) <span class="syntax-keyword">{</span>
+    link_library(exe, "freetype");
+    link_library(exe, "zlib");
+    link_library(exe, "png");
+<span class="syntax-keyword">}</span>
+</code></pre>
+<p><em>File: build.bl</em></p>
+<h2 id="append_linker_options">append_linker_options</h2>
+
+<pre><code>append_linker_options :: fn (target: *Target, option: string_view) 
+</code></pre>
+<p>Appends raw string data directly to linker command. Passed option is added without any
+processing and compatibility validation.</p>
+<p><em>File: build.bl</em></p>
+<h2 id="set_output_dir">set_output_dir</h2>
+
+<pre><code>set_output_dir :: fn (target: *Target, dir: string_view) 
+</code></pre>
+<p>Set build output directory. This is directory where all output files will be written. For
+example different output directory can be set for any build mode.</p>
+<p>Directory path <code>dir</code>. This can contain non-existing directories separated by <code>/</code>, compiler will
+create all missing directories in passed path.</p>
+<p>Specified directory will be used also for build temporary files.</p>
+<p><em>File: build.bl</em></p>
+<h2 id="get_output_dir">get_output_dir</h2>
+
+<pre><code>get_output_dir :: fn (target: *Target) string_view
+</code></pre>
+<p>Get output directory specified by <a href="#set_output_dir">set_output_dir</a> or empty string.</p>
+<p><em>File: build.bl</em></p>
+<h2 id="ModuleImportPolicy">ModuleImportPolicy</h2>
+
+<pre><code>ModuleImportPolicy :: enum s32 {
+    SYSTEM = 0;
+    BUNDLE = 1;
+    BUNDLE_LATEST = 2;
+}
+</code></pre>
+<p>Specify import module policy in <a href="#set_module_dir">set_module_dir</a> function call. Module
+dependencies of any target can be treated in different ways depending on use case and needs of
+programmer. Sometimes program stability and maintainability is more important than use of
+latest versions of modules. These flags can specify how local modules should be updated.</p>
+<h3 id="Variants">Variants</h3>
+<ul>
+<li><p><code>SYSTEM</code> - Use system modules but prefer local ones in module directory. This option disables any
+copying and version check. Local module directory can contain custom project related
+modules you don't want to expose to the whole system. This is the <b>default</b> option.</p>
+</li>
+<li><p><code>BUNDLE</code> - Bundle only missing modules from system into the local module folder and ignore if there is
+newer version available. Individual module updates can be done by renaming old one and
+re-run compilation. Custom modules (not coming from main API folder are kept untouched.)</p>
+</li>
+<li><p><code>BUNDLE_LATEST</code> - Bundle all missing modules from system into the local module folder and update old ones
+also. Custom modules (not coming from main API folder are kept untouched.) Compiler will
+create <code>.bak</code> backup directory for every module before any updates.</p>
+</li>
+</ul>
+<p><em>File: build.bl</em></p>
+<h2 id="set_module_dir">set_module_dir</h2>
+
+<pre><code>set_module_dir :: fn (target: *Target, dir: string_view, policy :: ModuleImportPolicy.SYSTEM) 
+</code></pre>
+<p>Sets module directory <code>dir</code> for <code>target</code>. All imported modules will be copied into this
+directory according to chosen <a href="#moduleimportpolicy">ModuleImportPolicy</a>. Module policy is set
+to <code>SYSTEM</code> by default even if this function has not been called.</p>
+<p><em>File: build.bl</em></p>
+<h2 id="get_module_dir">get_module_dir</h2>
+
+<pre><code>get_module_dir :: fn (target: *Target) string_view
+</code></pre>
+<p>Get module directory specified by <a href="#set_module_dir">set_module_dir</a> or default one.</p>
+<p><em>File: build.bl</em></p>
+<h2 id="get_module_import_policy">get_module_import_policy</h2>
+
+<pre><code>get_module_import_policy :: fn (target: *Target) ModuleImportPolicy
+</code></pre>
+<p>Get module import policy specified by <a href="#set_module_dir">set_module_dir</a> or default one.</p>
+<p><em>File: build.bl</em></p>
+<h2 id="get_default_triple">get_default_triple</h2>
+
+<pre><code>get_default_triple :: fn () TargetTriple
+</code></pre>
+<p>Returns target triple of the current host machine.</p>
+<p><em>File: build.bl</em></p>
+<h2 id="triple_to_string">triple_to_string</h2>
+
+<pre><code>triple_to_string :: fn (triple: TargetTriple) string_view
+</code></pre>
+<p>Converts target triple to string.</p>
+<p><span class="hint-note"><b>Note:</b>
+The result string is allocated using current temporary allocator.</span></p>
+<p><em>File: build.bl</em></p>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#Build-System">Build System</a></li>
+<ul>
+<li><a href="#Basics">Basics</a></li>
+<li><a href="#BuilderOptions">BuilderOptions</a></li>
+<li><a href="#get_builder_options">get_builder_options</a></li>
+<li><a href="#set_builder_options">set_builder_options</a></li>
+<li><a href="#Target">Target</a></li>
+<li><a href="#TargetKind">TargetKind</a></li>
+<li><a href="#TargetArch">TargetArch</a></li>
+<li><a href="#TargetVendor">TargetVendor</a></li>
+<li><a href="#TargetSystem">TargetSystem</a></li>
+<li><a href="#TargetEnvironment">TargetEnvironment</a></li>
+<li><a href="#TargetTriple">TargetTriple</a></li>
+<li><a href="#BuildMode">BuildMode</a></li>
+<li><a href="#DebugInfo">DebugInfo</a></li>
+<li><a href="#AssertMode">AssertMode</a></li>
+<li><a href="#add_executable">add_executable</a></li>
+<li><a href="#add_library">add_library</a></li>
+<li><a href="#add_unit">add_unit</a></li>
+<li><a href="#compile">compile</a></li>
+<li><a href="#compile_all">compile_all</a></li>
+<li><a href="#add_lib_path">add_lib_path</a></li>
+<li><a href="#link_library">link_library</a></li>
+<li><a href="#append_linker_options">append_linker_options</a></li>
+<li><a href="#set_output_dir">set_output_dir</a></li>
+<li><a href="#get_output_dir">get_output_dir</a></li>
+<li><a href="#ModuleImportPolicy">ModuleImportPolicy</a></li>
+<li><a href="#set_module_dir">set_module_dir</a></li>
+<li><a href="#get_module_dir">get_module_dir</a></li>
+<li><a href="#get_module_import_policy">get_module_import_policy</a></li>
+<li><a href="#get_default_triple">get_default_triple</a></li>
+<li><a href="#triple_to_string">triple_to_string</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

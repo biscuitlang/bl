@@ -1,0 +1,2677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="glfw3.bl">glfw3.bl</h1>
+<h2 id="glfw.VERSION_MAJOR">glfw.VERSION_MAJOR</h2>
+
+<pre><code>VERSION_MAJOR :: 3
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.VERSION_MINOR">glfw.VERSION_MINOR</h2>
+
+<pre><code>VERSION_MINOR :: 3
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.VERSION_REVISION">glfw.VERSION_REVISION</h2>
+
+<pre><code>VERSION_REVISION :: 0
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.TRUE">glfw.TRUE</h2>
+
+<pre><code>TRUE :: 1
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.FALSE">glfw.FALSE</h2>
+
+<pre><code>FALSE :: 0
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.RELEASE">glfw.RELEASE</h2>
+
+<pre><code>RELEASE :: 0
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.PRESS">glfw.PRESS</h2>
+
+<pre><code>PRESS :: 1
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.REPEAT">glfw.REPEAT</h2>
+
+<pre><code>REPEAT :: 2
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.HAT_CENTERED">glfw.HAT_CENTERED</h2>
+
+<pre><code>HAT_CENTERED :: 0
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.HAT_UP">glfw.HAT_UP</h2>
+
+<pre><code>HAT_UP :: 1
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.HAT_RIGHT">glfw.HAT_RIGHT</h2>
+
+<pre><code>HAT_RIGHT :: 2
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.HAT_DOWN">glfw.HAT_DOWN</h2>
+
+<pre><code>HAT_DOWN :: 4
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.HAT_LEFT">glfw.HAT_LEFT</h2>
+
+<pre><code>HAT_LEFT :: 8
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.HAT_RIGHT_UP">glfw.HAT_RIGHT_UP</h2>
+
+<pre><code>HAT_RIGHT_UP :: 
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.HAT_RIGHT_DOWN">glfw.HAT_RIGHT_DOWN</h2>
+
+<pre><code>HAT_RIGHT_DOWN :: 
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.HAT_LEFT_UP">glfw.HAT_LEFT_UP</h2>
+
+<pre><code>HAT_LEFT_UP :: 
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.HAT_LEFT_DOWN">glfw.HAT_LEFT_DOWN</h2>
+
+<pre><code>HAT_LEFT_DOWN :: 
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_UNKNOWN">glfw.KEY_UNKNOWN</h2>
+
+<pre><code>KEY_UNKNOWN :: -1
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_SPACE">glfw.KEY_SPACE</h2>
+
+<pre><code>KEY_SPACE :: 32
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_APOSTROPHE">glfw.KEY_APOSTROPHE</h2>
+
+<pre><code>KEY_APOSTROPHE :: 39
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_COMMA">glfw.KEY_COMMA</h2>
+
+<pre><code>KEY_COMMA :: 44
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_MINUS">glfw.KEY_MINUS</h2>
+
+<pre><code>KEY_MINUS :: 45
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_PERIOD">glfw.KEY_PERIOD</h2>
+
+<pre><code>KEY_PERIOD :: 46
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_SLASH">glfw.KEY_SLASH</h2>
+
+<pre><code>KEY_SLASH :: 47
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_0">glfw.KEY_0</h2>
+
+<pre><code>KEY_0 :: 48
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_1">glfw.KEY_1</h2>
+
+<pre><code>KEY_1 :: 49
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_2">glfw.KEY_2</h2>
+
+<pre><code>KEY_2 :: 50
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_3">glfw.KEY_3</h2>
+
+<pre><code>KEY_3 :: 51
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_4">glfw.KEY_4</h2>
+
+<pre><code>KEY_4 :: 52
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_5">glfw.KEY_5</h2>
+
+<pre><code>KEY_5 :: 53
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_6">glfw.KEY_6</h2>
+
+<pre><code>KEY_6 :: 54
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_7">glfw.KEY_7</h2>
+
+<pre><code>KEY_7 :: 55
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_8">glfw.KEY_8</h2>
+
+<pre><code>KEY_8 :: 56
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_9">glfw.KEY_9</h2>
+
+<pre><code>KEY_9 :: 57
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_SEMICOLON">glfw.KEY_SEMICOLON</h2>
+
+<pre><code>KEY_SEMICOLON :: 59
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_EQUAL">glfw.KEY_EQUAL</h2>
+
+<pre><code>KEY_EQUAL :: 61
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_A">glfw.KEY_A</h2>
+
+<pre><code>KEY_A :: 65
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_B">glfw.KEY_B</h2>
+
+<pre><code>KEY_B :: 66
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_C">glfw.KEY_C</h2>
+
+<pre><code>KEY_C :: 67
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_D">glfw.KEY_D</h2>
+
+<pre><code>KEY_D :: 68
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_E">glfw.KEY_E</h2>
+
+<pre><code>KEY_E :: 69
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_F">glfw.KEY_F</h2>
+
+<pre><code>KEY_F :: 70
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_G">glfw.KEY_G</h2>
+
+<pre><code>KEY_G :: 71
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_H">glfw.KEY_H</h2>
+
+<pre><code>KEY_H :: 72
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_I">glfw.KEY_I</h2>
+
+<pre><code>KEY_I :: 73
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_J">glfw.KEY_J</h2>
+
+<pre><code>KEY_J :: 74
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_K">glfw.KEY_K</h2>
+
+<pre><code>KEY_K :: 75
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_L">glfw.KEY_L</h2>
+
+<pre><code>KEY_L :: 76
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_M">glfw.KEY_M</h2>
+
+<pre><code>KEY_M :: 77
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_N">glfw.KEY_N</h2>
+
+<pre><code>KEY_N :: 78
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_O">glfw.KEY_O</h2>
+
+<pre><code>KEY_O :: 79
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_P">glfw.KEY_P</h2>
+
+<pre><code>KEY_P :: 80
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_Q">glfw.KEY_Q</h2>
+
+<pre><code>KEY_Q :: 81
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_R">glfw.KEY_R</h2>
+
+<pre><code>KEY_R :: 82
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_S">glfw.KEY_S</h2>
+
+<pre><code>KEY_S :: 83
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_T">glfw.KEY_T</h2>
+
+<pre><code>KEY_T :: 84
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_U">glfw.KEY_U</h2>
+
+<pre><code>KEY_U :: 85
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_V">glfw.KEY_V</h2>
+
+<pre><code>KEY_V :: 86
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_W">glfw.KEY_W</h2>
+
+<pre><code>KEY_W :: 87
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_X">glfw.KEY_X</h2>
+
+<pre><code>KEY_X :: 88
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_Y">glfw.KEY_Y</h2>
+
+<pre><code>KEY_Y :: 89
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_Z">glfw.KEY_Z</h2>
+
+<pre><code>KEY_Z :: 90
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_LEFT_BRACKET">glfw.KEY_LEFT_BRACKET</h2>
+
+<pre><code>KEY_LEFT_BRACKET :: 91
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_BACKSLASH">glfw.KEY_BACKSLASH</h2>
+
+<pre><code>KEY_BACKSLASH :: 92
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_RIGHT_BRACKET">glfw.KEY_RIGHT_BRACKET</h2>
+
+<pre><code>KEY_RIGHT_BRACKET :: 93
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_GRAVE_ACCENT">glfw.KEY_GRAVE_ACCENT</h2>
+
+<pre><code>KEY_GRAVE_ACCENT :: 96
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_WORLD_1">glfw.KEY_WORLD_1</h2>
+
+<pre><code>KEY_WORLD_1 :: 161
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_WORLD_2">glfw.KEY_WORLD_2</h2>
+
+<pre><code>KEY_WORLD_2 :: 162
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_ESCAPE">glfw.KEY_ESCAPE</h2>
+
+<pre><code>KEY_ESCAPE :: 256
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_ENTER">glfw.KEY_ENTER</h2>
+
+<pre><code>KEY_ENTER :: 257
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_TAB">glfw.KEY_TAB</h2>
+
+<pre><code>KEY_TAB :: 258
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_BACKSPACE">glfw.KEY_BACKSPACE</h2>
+
+<pre><code>KEY_BACKSPACE :: 259
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_INSERT">glfw.KEY_INSERT</h2>
+
+<pre><code>KEY_INSERT :: 260
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_DELETE">glfw.KEY_DELETE</h2>
+
+<pre><code>KEY_DELETE :: 261
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_RIGHT">glfw.KEY_RIGHT</h2>
+
+<pre><code>KEY_RIGHT :: 262
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_LEFT">glfw.KEY_LEFT</h2>
+
+<pre><code>KEY_LEFT :: 263
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_DOWN">glfw.KEY_DOWN</h2>
+
+<pre><code>KEY_DOWN :: 264
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_UP">glfw.KEY_UP</h2>
+
+<pre><code>KEY_UP :: 265
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_PAGE_UP">glfw.KEY_PAGE_UP</h2>
+
+<pre><code>KEY_PAGE_UP :: 266
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_PAGE_DOWN">glfw.KEY_PAGE_DOWN</h2>
+
+<pre><code>KEY_PAGE_DOWN :: 267
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_HOME">glfw.KEY_HOME</h2>
+
+<pre><code>KEY_HOME :: 268
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_END">glfw.KEY_END</h2>
+
+<pre><code>KEY_END :: 269
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_CAPS_LOCK">glfw.KEY_CAPS_LOCK</h2>
+
+<pre><code>KEY_CAPS_LOCK :: 280
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_SCROLL_LOCK">glfw.KEY_SCROLL_LOCK</h2>
+
+<pre><code>KEY_SCROLL_LOCK :: 281
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_NUM_LOCK">glfw.KEY_NUM_LOCK</h2>
+
+<pre><code>KEY_NUM_LOCK :: 282
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_PRINT_SCREEN">glfw.KEY_PRINT_SCREEN</h2>
+
+<pre><code>KEY_PRINT_SCREEN :: 283
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_PAUSE">glfw.KEY_PAUSE</h2>
+
+<pre><code>KEY_PAUSE :: 284
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_F1">glfw.KEY_F1</h2>
+
+<pre><code>KEY_F1 :: 290
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_F2">glfw.KEY_F2</h2>
+
+<pre><code>KEY_F2 :: 291
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_F3">glfw.KEY_F3</h2>
+
+<pre><code>KEY_F3 :: 292
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_F4">glfw.KEY_F4</h2>
+
+<pre><code>KEY_F4 :: 293
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_F5">glfw.KEY_F5</h2>
+
+<pre><code>KEY_F5 :: 294
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_F6">glfw.KEY_F6</h2>
+
+<pre><code>KEY_F6 :: 295
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_F7">glfw.KEY_F7</h2>
+
+<pre><code>KEY_F7 :: 296
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_F8">glfw.KEY_F8</h2>
+
+<pre><code>KEY_F8 :: 297
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_F9">glfw.KEY_F9</h2>
+
+<pre><code>KEY_F9 :: 298
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_F10">glfw.KEY_F10</h2>
+
+<pre><code>KEY_F10 :: 299
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_F11">glfw.KEY_F11</h2>
+
+<pre><code>KEY_F11 :: 300
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_F12">glfw.KEY_F12</h2>
+
+<pre><code>KEY_F12 :: 301
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_F13">glfw.KEY_F13</h2>
+
+<pre><code>KEY_F13 :: 302
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_F14">glfw.KEY_F14</h2>
+
+<pre><code>KEY_F14 :: 303
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_F15">glfw.KEY_F15</h2>
+
+<pre><code>KEY_F15 :: 304
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_F16">glfw.KEY_F16</h2>
+
+<pre><code>KEY_F16 :: 305
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_F17">glfw.KEY_F17</h2>
+
+<pre><code>KEY_F17 :: 306
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_F18">glfw.KEY_F18</h2>
+
+<pre><code>KEY_F18 :: 307
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_F19">glfw.KEY_F19</h2>
+
+<pre><code>KEY_F19 :: 308
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_F20">glfw.KEY_F20</h2>
+
+<pre><code>KEY_F20 :: 309
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_F21">glfw.KEY_F21</h2>
+
+<pre><code>KEY_F21 :: 310
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_F22">glfw.KEY_F22</h2>
+
+<pre><code>KEY_F22 :: 311
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_F23">glfw.KEY_F23</h2>
+
+<pre><code>KEY_F23 :: 312
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_F24">glfw.KEY_F24</h2>
+
+<pre><code>KEY_F24 :: 313
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_F25">glfw.KEY_F25</h2>
+
+<pre><code>KEY_F25 :: 314
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_KP_0">glfw.KEY_KP_0</h2>
+
+<pre><code>KEY_KP_0 :: 320
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_KP_1">glfw.KEY_KP_1</h2>
+
+<pre><code>KEY_KP_1 :: 321
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_KP_2">glfw.KEY_KP_2</h2>
+
+<pre><code>KEY_KP_2 :: 322
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_KP_3">glfw.KEY_KP_3</h2>
+
+<pre><code>KEY_KP_3 :: 323
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_KP_4">glfw.KEY_KP_4</h2>
+
+<pre><code>KEY_KP_4 :: 324
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_KP_5">glfw.KEY_KP_5</h2>
+
+<pre><code>KEY_KP_5 :: 325
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_KP_6">glfw.KEY_KP_6</h2>
+
+<pre><code>KEY_KP_6 :: 326
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_KP_7">glfw.KEY_KP_7</h2>
+
+<pre><code>KEY_KP_7 :: 327
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_KP_8">glfw.KEY_KP_8</h2>
+
+<pre><code>KEY_KP_8 :: 328
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_KP_9">glfw.KEY_KP_9</h2>
+
+<pre><code>KEY_KP_9 :: 329
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_KP_DECIMAL">glfw.KEY_KP_DECIMAL</h2>
+
+<pre><code>KEY_KP_DECIMAL :: 330
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_KP_DIVIDE">glfw.KEY_KP_DIVIDE</h2>
+
+<pre><code>KEY_KP_DIVIDE :: 331
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_KP_MULTIPLY">glfw.KEY_KP_MULTIPLY</h2>
+
+<pre><code>KEY_KP_MULTIPLY :: 332
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_KP_SUBTRACT">glfw.KEY_KP_SUBTRACT</h2>
+
+<pre><code>KEY_KP_SUBTRACT :: 333
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_KP_ADD">glfw.KEY_KP_ADD</h2>
+
+<pre><code>KEY_KP_ADD :: 334
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_KP_ENTER">glfw.KEY_KP_ENTER</h2>
+
+<pre><code>KEY_KP_ENTER :: 335
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_KP_EQUAL">glfw.KEY_KP_EQUAL</h2>
+
+<pre><code>KEY_KP_EQUAL :: 336
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_LEFT_SHIFT">glfw.KEY_LEFT_SHIFT</h2>
+
+<pre><code>KEY_LEFT_SHIFT :: 340
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_LEFT_CONTROL">glfw.KEY_LEFT_CONTROL</h2>
+
+<pre><code>KEY_LEFT_CONTROL :: 341
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_LEFT_ALT">glfw.KEY_LEFT_ALT</h2>
+
+<pre><code>KEY_LEFT_ALT :: 342
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_LEFT_SUPER">glfw.KEY_LEFT_SUPER</h2>
+
+<pre><code>KEY_LEFT_SUPER :: 343
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_RIGHT_SHIFT">glfw.KEY_RIGHT_SHIFT</h2>
+
+<pre><code>KEY_RIGHT_SHIFT :: 344
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_RIGHT_CONTROL">glfw.KEY_RIGHT_CONTROL</h2>
+
+<pre><code>KEY_RIGHT_CONTROL :: 345
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_RIGHT_ALT">glfw.KEY_RIGHT_ALT</h2>
+
+<pre><code>KEY_RIGHT_ALT :: 346
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_RIGHT_SUPER">glfw.KEY_RIGHT_SUPER</h2>
+
+<pre><code>KEY_RIGHT_SUPER :: 347
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_MENU">glfw.KEY_MENU</h2>
+
+<pre><code>KEY_MENU :: 348
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KEY_LAST">glfw.KEY_LAST</h2>
+
+<pre><code>KEY_LAST :: KEY_MENU
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.MOD_SHIFT">glfw.MOD_SHIFT</h2>
+
+<pre><code>MOD_SHIFT :: 1
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.MOD_CONTROL">glfw.MOD_CONTROL</h2>
+
+<pre><code>MOD_CONTROL :: 2
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.MOD_ALT">glfw.MOD_ALT</h2>
+
+<pre><code>MOD_ALT :: 4
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.MOD_SUPER">glfw.MOD_SUPER</h2>
+
+<pre><code>MOD_SUPER :: 8
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.MOD_CAPS_LOCK">glfw.MOD_CAPS_LOCK</h2>
+
+<pre><code>MOD_CAPS_LOCK :: 16
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.MOD_NUM_LOCK">glfw.MOD_NUM_LOCK</h2>
+
+<pre><code>MOD_NUM_LOCK :: 32
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.MOUSE_BUTTON_1">glfw.MOUSE_BUTTON_1</h2>
+
+<pre><code>MOUSE_BUTTON_1 :: 0
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.MOUSE_BUTTON_2">glfw.MOUSE_BUTTON_2</h2>
+
+<pre><code>MOUSE_BUTTON_2 :: 1
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.MOUSE_BUTTON_3">glfw.MOUSE_BUTTON_3</h2>
+
+<pre><code>MOUSE_BUTTON_3 :: 2
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.MOUSE_BUTTON_4">glfw.MOUSE_BUTTON_4</h2>
+
+<pre><code>MOUSE_BUTTON_4 :: 3
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.MOUSE_BUTTON_5">glfw.MOUSE_BUTTON_5</h2>
+
+<pre><code>MOUSE_BUTTON_5 :: 4
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.MOUSE_BUTTON_6">glfw.MOUSE_BUTTON_6</h2>
+
+<pre><code>MOUSE_BUTTON_6 :: 5
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.MOUSE_BUTTON_7">glfw.MOUSE_BUTTON_7</h2>
+
+<pre><code>MOUSE_BUTTON_7 :: 6
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.MOUSE_BUTTON_8">glfw.MOUSE_BUTTON_8</h2>
+
+<pre><code>MOUSE_BUTTON_8 :: 7
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.MOUSE_BUTTON_LAST">glfw.MOUSE_BUTTON_LAST</h2>
+
+<pre><code>MOUSE_BUTTON_LAST :: MOUSE_BUTTON_8
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.MOUSE_BUTTON_LEFT">glfw.MOUSE_BUTTON_LEFT</h2>
+
+<pre><code>MOUSE_BUTTON_LEFT :: MOUSE_BUTTON_1
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.MOUSE_BUTTON_RIGHT">glfw.MOUSE_BUTTON_RIGHT</h2>
+
+<pre><code>MOUSE_BUTTON_RIGHT :: MOUSE_BUTTON_2
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.MOUSE_BUTTON_MIDDLE">glfw.MOUSE_BUTTON_MIDDLE</h2>
+
+<pre><code>MOUSE_BUTTON_MIDDLE :: MOUSE_BUTTON_3
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.JOYSTICK_1">glfw.JOYSTICK_1</h2>
+
+<pre><code>JOYSTICK_1 :: 0
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.JOYSTICK_2">glfw.JOYSTICK_2</h2>
+
+<pre><code>JOYSTICK_2 :: 1
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.JOYSTICK_3">glfw.JOYSTICK_3</h2>
+
+<pre><code>JOYSTICK_3 :: 2
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.JOYSTICK_4">glfw.JOYSTICK_4</h2>
+
+<pre><code>JOYSTICK_4 :: 3
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.JOYSTICK_5">glfw.JOYSTICK_5</h2>
+
+<pre><code>JOYSTICK_5 :: 4
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.JOYSTICK_6">glfw.JOYSTICK_6</h2>
+
+<pre><code>JOYSTICK_6 :: 5
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.JOYSTICK_7">glfw.JOYSTICK_7</h2>
+
+<pre><code>JOYSTICK_7 :: 6
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.JOYSTICK_8">glfw.JOYSTICK_8</h2>
+
+<pre><code>JOYSTICK_8 :: 7
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.JOYSTICK_9">glfw.JOYSTICK_9</h2>
+
+<pre><code>JOYSTICK_9 :: 8
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.JOYSTICK_10">glfw.JOYSTICK_10</h2>
+
+<pre><code>JOYSTICK_10 :: 9
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.JOYSTICK_11">glfw.JOYSTICK_11</h2>
+
+<pre><code>JOYSTICK_11 :: 10
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.JOYSTICK_12">glfw.JOYSTICK_12</h2>
+
+<pre><code>JOYSTICK_12 :: 11
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.JOYSTICK_13">glfw.JOYSTICK_13</h2>
+
+<pre><code>JOYSTICK_13 :: 12
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.JOYSTICK_14">glfw.JOYSTICK_14</h2>
+
+<pre><code>JOYSTICK_14 :: 13
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.JOYSTICK_15">glfw.JOYSTICK_15</h2>
+
+<pre><code>JOYSTICK_15 :: 14
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.JOYSTICK_16">glfw.JOYSTICK_16</h2>
+
+<pre><code>JOYSTICK_16 :: 15
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.JOYSTICK_LAST">glfw.JOYSTICK_LAST</h2>
+
+<pre><code>JOYSTICK_LAST :: JOYSTICK_16
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GAMEPAD_BUTTON_A">glfw.GAMEPAD_BUTTON_A</h2>
+
+<pre><code>GAMEPAD_BUTTON_A :: 0
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GAMEPAD_BUTTON_B">glfw.GAMEPAD_BUTTON_B</h2>
+
+<pre><code>GAMEPAD_BUTTON_B :: 1
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GAMEPAD_BUTTON_X">glfw.GAMEPAD_BUTTON_X</h2>
+
+<pre><code>GAMEPAD_BUTTON_X :: 2
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GAMEPAD_BUTTON_Y">glfw.GAMEPAD_BUTTON_Y</h2>
+
+<pre><code>GAMEPAD_BUTTON_Y :: 3
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GAMEPAD_BUTTON_LEFT_BUMPER">glfw.GAMEPAD_BUTTON_LEFT_BUMPER</h2>
+
+<pre><code>GAMEPAD_BUTTON_LEFT_BUMPER :: 4
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GAMEPAD_BUTTON_RIGHT_BUMPER">glfw.GAMEPAD_BUTTON_RIGHT_BUMPER</h2>
+
+<pre><code>GAMEPAD_BUTTON_RIGHT_BUMPER :: 5
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GAMEPAD_BUTTON_BACK">glfw.GAMEPAD_BUTTON_BACK</h2>
+
+<pre><code>GAMEPAD_BUTTON_BACK :: 6
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GAMEPAD_BUTTON_START">glfw.GAMEPAD_BUTTON_START</h2>
+
+<pre><code>GAMEPAD_BUTTON_START :: 7
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GAMEPAD_BUTTON_GUIDE">glfw.GAMEPAD_BUTTON_GUIDE</h2>
+
+<pre><code>GAMEPAD_BUTTON_GUIDE :: 8
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GAMEPAD_BUTTON_LEFT_THUMB">glfw.GAMEPAD_BUTTON_LEFT_THUMB</h2>
+
+<pre><code>GAMEPAD_BUTTON_LEFT_THUMB :: 9
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GAMEPAD_BUTTON_RIGHT_THUMB">glfw.GAMEPAD_BUTTON_RIGHT_THUMB</h2>
+
+<pre><code>GAMEPAD_BUTTON_RIGHT_THUMB :: 10
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GAMEPAD_BUTTON_DPAD_UP">glfw.GAMEPAD_BUTTON_DPAD_UP</h2>
+
+<pre><code>GAMEPAD_BUTTON_DPAD_UP :: 11
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GAMEPAD_BUTTON_DPAD_RIGHT">glfw.GAMEPAD_BUTTON_DPAD_RIGHT</h2>
+
+<pre><code>GAMEPAD_BUTTON_DPAD_RIGHT :: 12
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GAMEPAD_BUTTON_DPAD_DOWN">glfw.GAMEPAD_BUTTON_DPAD_DOWN</h2>
+
+<pre><code>GAMEPAD_BUTTON_DPAD_DOWN :: 13
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GAMEPAD_BUTTON_DPAD_LEFT">glfw.GAMEPAD_BUTTON_DPAD_LEFT</h2>
+
+<pre><code>GAMEPAD_BUTTON_DPAD_LEFT :: 14
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GAMEPAD_BUTTON_LAST">glfw.GAMEPAD_BUTTON_LAST</h2>
+
+<pre><code>GAMEPAD_BUTTON_LAST :: GAMEPAD_BUTTON_DPAD_LEFT
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GAMEPAD_BUTTON_CROSS">glfw.GAMEPAD_BUTTON_CROSS</h2>
+
+<pre><code>GAMEPAD_BUTTON_CROSS :: GAMEPAD_BUTTON_A
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GAMEPAD_BUTTON_CIRCLE">glfw.GAMEPAD_BUTTON_CIRCLE</h2>
+
+<pre><code>GAMEPAD_BUTTON_CIRCLE :: GAMEPAD_BUTTON_B
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GAMEPAD_BUTTON_SQUARE">glfw.GAMEPAD_BUTTON_SQUARE</h2>
+
+<pre><code>GAMEPAD_BUTTON_SQUARE :: GAMEPAD_BUTTON_X
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GAMEPAD_BUTTON_TRIANGLE">glfw.GAMEPAD_BUTTON_TRIANGLE</h2>
+
+<pre><code>GAMEPAD_BUTTON_TRIANGLE :: GAMEPAD_BUTTON_Y
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GAMEPAD_AXIS_LEFT_X">glfw.GAMEPAD_AXIS_LEFT_X</h2>
+
+<pre><code>GAMEPAD_AXIS_LEFT_X :: 0
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GAMEPAD_AXIS_LEFT_Y">glfw.GAMEPAD_AXIS_LEFT_Y</h2>
+
+<pre><code>GAMEPAD_AXIS_LEFT_Y :: 1
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GAMEPAD_AXIS_RIGHT_X">glfw.GAMEPAD_AXIS_RIGHT_X</h2>
+
+<pre><code>GAMEPAD_AXIS_RIGHT_X :: 2
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GAMEPAD_AXIS_RIGHT_Y">glfw.GAMEPAD_AXIS_RIGHT_Y</h2>
+
+<pre><code>GAMEPAD_AXIS_RIGHT_Y :: 3
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GAMEPAD_AXIS_LEFT_TRIGGER">glfw.GAMEPAD_AXIS_LEFT_TRIGGER</h2>
+
+<pre><code>GAMEPAD_AXIS_LEFT_TRIGGER :: 4
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GAMEPAD_AXIS_RIGHT_TRIGGER">glfw.GAMEPAD_AXIS_RIGHT_TRIGGER</h2>
+
+<pre><code>GAMEPAD_AXIS_RIGHT_TRIGGER :: 5
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GAMEPAD_AXIS_LAST">glfw.GAMEPAD_AXIS_LAST</h2>
+
+<pre><code>GAMEPAD_AXIS_LAST :: GAMEPAD_AXIS_RIGHT_TRIGGER
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.NO_ERROR">glfw.NO_ERROR</h2>
+
+<pre><code>NO_ERROR :: 0
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.NOT_INITIALIZED">glfw.NOT_INITIALIZED</h2>
+
+<pre><code>NOT_INITIALIZED :: 65537
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.NO_CURRENT_CONTEXT">glfw.NO_CURRENT_CONTEXT</h2>
+
+<pre><code>NO_CURRENT_CONTEXT :: 65538
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.INVALID_ENUM">glfw.INVALID_ENUM</h2>
+
+<pre><code>INVALID_ENUM :: 65539
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.INVALID_VALUE">glfw.INVALID_VALUE</h2>
+
+<pre><code>INVALID_VALUE :: 65540
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.OUT_OF_MEMORY">glfw.OUT_OF_MEMORY</h2>
+
+<pre><code>OUT_OF_MEMORY :: 65541
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.API_UNAVAILABLE">glfw.API_UNAVAILABLE</h2>
+
+<pre><code>API_UNAVAILABLE :: 65542
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.VERSION_UNAVAILABLE">glfw.VERSION_UNAVAILABLE</h2>
+
+<pre><code>VERSION_UNAVAILABLE :: 65543
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.PLATFORM_ERROR">glfw.PLATFORM_ERROR</h2>
+
+<pre><code>PLATFORM_ERROR :: 65544
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.FORMAT_UNAVAILABLE">glfw.FORMAT_UNAVAILABLE</h2>
+
+<pre><code>FORMAT_UNAVAILABLE :: 65545
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.NO_WINDOW_CONTEXT">glfw.NO_WINDOW_CONTEXT</h2>
+
+<pre><code>NO_WINDOW_CONTEXT :: 65546
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.FOCUSED">glfw.FOCUSED</h2>
+
+<pre><code>FOCUSED :: 131073
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.ICONIFIED">glfw.ICONIFIED</h2>
+
+<pre><code>ICONIFIED :: 131074
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.RESIZABLE">glfw.RESIZABLE</h2>
+
+<pre><code>RESIZABLE :: 131075
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.VISIBLE">glfw.VISIBLE</h2>
+
+<pre><code>VISIBLE :: 131076
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.DECORATED">glfw.DECORATED</h2>
+
+<pre><code>DECORATED :: 131077
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.AUTO_ICONIFY">glfw.AUTO_ICONIFY</h2>
+
+<pre><code>AUTO_ICONIFY :: 131078
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.FLOATING">glfw.FLOATING</h2>
+
+<pre><code>FLOATING :: 131079
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.MAXIMIZED">glfw.MAXIMIZED</h2>
+
+<pre><code>MAXIMIZED :: 131080
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.CENTER_CURSOR">glfw.CENTER_CURSOR</h2>
+
+<pre><code>CENTER_CURSOR :: 131081
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.TRANSPARENT_FRAMEBUFFER">glfw.TRANSPARENT_FRAMEBUFFER</h2>
+
+<pre><code>TRANSPARENT_FRAMEBUFFER :: 131082
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.HOVERED">glfw.HOVERED</h2>
+
+<pre><code>HOVERED :: 131083
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.FOCUS_ON_SHOW">glfw.FOCUS_ON_SHOW</h2>
+
+<pre><code>FOCUS_ON_SHOW :: 131084
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.RED_BITS">glfw.RED_BITS</h2>
+
+<pre><code>RED_BITS :: 135169
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GREEN_BITS">glfw.GREEN_BITS</h2>
+
+<pre><code>GREEN_BITS :: 135170
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.BLUE_BITS">glfw.BLUE_BITS</h2>
+
+<pre><code>BLUE_BITS :: 135171
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.ALPHA_BITS">glfw.ALPHA_BITS</h2>
+
+<pre><code>ALPHA_BITS :: 135172
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.DEPTH_BITS">glfw.DEPTH_BITS</h2>
+
+<pre><code>DEPTH_BITS :: 135173
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.STENCIL_BITS">glfw.STENCIL_BITS</h2>
+
+<pre><code>STENCIL_BITS :: 135174
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.ACCUM_RED_BITS">glfw.ACCUM_RED_BITS</h2>
+
+<pre><code>ACCUM_RED_BITS :: 135175
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.ACCUM_GREEN_BITS">glfw.ACCUM_GREEN_BITS</h2>
+
+<pre><code>ACCUM_GREEN_BITS :: 135176
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.ACCUM_BLUE_BITS">glfw.ACCUM_BLUE_BITS</h2>
+
+<pre><code>ACCUM_BLUE_BITS :: 135177
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.ACCUM_ALPHA_BITS">glfw.ACCUM_ALPHA_BITS</h2>
+
+<pre><code>ACCUM_ALPHA_BITS :: 135178
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.AUX_BUFFERS">glfw.AUX_BUFFERS</h2>
+
+<pre><code>AUX_BUFFERS :: 135179
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.STEREO">glfw.STEREO</h2>
+
+<pre><code>STEREO :: 135180
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SAMPLES">glfw.SAMPLES</h2>
+
+<pre><code>SAMPLES :: 135181
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SRGB_CAPABLE">glfw.SRGB_CAPABLE</h2>
+
+<pre><code>SRGB_CAPABLE :: 135182
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.REFRESH_RATE">glfw.REFRESH_RATE</h2>
+
+<pre><code>REFRESH_RATE :: 135183
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.DOUBLEBUFFER">glfw.DOUBLEBUFFER</h2>
+
+<pre><code>DOUBLEBUFFER :: 135184
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.CLIENT_API">glfw.CLIENT_API</h2>
+
+<pre><code>CLIENT_API :: 139265
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.CONTEXT_VERSION_MAJOR">glfw.CONTEXT_VERSION_MAJOR</h2>
+
+<pre><code>CONTEXT_VERSION_MAJOR :: 139266
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.CONTEXT_VERSION_MINOR">glfw.CONTEXT_VERSION_MINOR</h2>
+
+<pre><code>CONTEXT_VERSION_MINOR :: 139267
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.CONTEXT_REVISION">glfw.CONTEXT_REVISION</h2>
+
+<pre><code>CONTEXT_REVISION :: 139268
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.CONTEXT_ROBUSTNESS">glfw.CONTEXT_ROBUSTNESS</h2>
+
+<pre><code>CONTEXT_ROBUSTNESS :: 139269
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.OPENGL_FORWARD_COMPAT">glfw.OPENGL_FORWARD_COMPAT</h2>
+
+<pre><code>OPENGL_FORWARD_COMPAT :: 139270
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.OPENGL_DEBUG_CONTEXT">glfw.OPENGL_DEBUG_CONTEXT</h2>
+
+<pre><code>OPENGL_DEBUG_CONTEXT :: 139271
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.OPENGL_PROFILE">glfw.OPENGL_PROFILE</h2>
+
+<pre><code>OPENGL_PROFILE :: 139272
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.CONTEXT_RELEASE_BEHAVIOR">glfw.CONTEXT_RELEASE_BEHAVIOR</h2>
+
+<pre><code>CONTEXT_RELEASE_BEHAVIOR :: 139273
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.CONTEXT_NO_ERROR">glfw.CONTEXT_NO_ERROR</h2>
+
+<pre><code>CONTEXT_NO_ERROR :: 139274
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.CONTEXT_CREATION_API">glfw.CONTEXT_CREATION_API</h2>
+
+<pre><code>CONTEXT_CREATION_API :: 139275
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SCALE_TO_MONITOR">glfw.SCALE_TO_MONITOR</h2>
+
+<pre><code>SCALE_TO_MONITOR :: 139276
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.COCOA_RETINA_FRAMEBUFFER">glfw.COCOA_RETINA_FRAMEBUFFER</h2>
+
+<pre><code>COCOA_RETINA_FRAMEBUFFER :: 143361
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.COCOA_FRAME_NAME">glfw.COCOA_FRAME_NAME</h2>
+
+<pre><code>COCOA_FRAME_NAME :: 143362
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.COCOA_GRAPHICS_SWITCHING">glfw.COCOA_GRAPHICS_SWITCHING</h2>
+
+<pre><code>COCOA_GRAPHICS_SWITCHING :: 143363
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.X11_CLASS_NAME">glfw.X11_CLASS_NAME</h2>
+
+<pre><code>X11_CLASS_NAME :: 147457
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.X11_INSTANCE_NAME">glfw.X11_INSTANCE_NAME</h2>
+
+<pre><code>X11_INSTANCE_NAME :: 147458
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.NO_API">glfw.NO_API</h2>
+
+<pre><code>NO_API :: 0
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.OPENGL_API">glfw.OPENGL_API</h2>
+
+<pre><code>OPENGL_API :: 196609
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.OPENGL_ES_API">glfw.OPENGL_ES_API</h2>
+
+<pre><code>OPENGL_ES_API :: 196610
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.NO_ROBUSTNESS">glfw.NO_ROBUSTNESS</h2>
+
+<pre><code>NO_ROBUSTNESS :: 0
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.NO_RESET_NOTIFICATION">glfw.NO_RESET_NOTIFICATION</h2>
+
+<pre><code>NO_RESET_NOTIFICATION :: 200705
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.LOSE_CONTEXT_ON_RESET">glfw.LOSE_CONTEXT_ON_RESET</h2>
+
+<pre><code>LOSE_CONTEXT_ON_RESET :: 200706
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.OPENGL_ANY_PROFILE">glfw.OPENGL_ANY_PROFILE</h2>
+
+<pre><code>OPENGL_ANY_PROFILE :: 0
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.OPENGL_CORE_PROFILE">glfw.OPENGL_CORE_PROFILE</h2>
+
+<pre><code>OPENGL_CORE_PROFILE :: 204801
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.OPENGL_COMPAT_PROFILE">glfw.OPENGL_COMPAT_PROFILE</h2>
+
+<pre><code>OPENGL_COMPAT_PROFILE :: 204802
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.CURSOR">glfw.CURSOR</h2>
+
+<pre><code>CURSOR :: 208897
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.STICKY_KEYS">glfw.STICKY_KEYS</h2>
+
+<pre><code>STICKY_KEYS :: 208898
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.STICKY_MOUSE_BUTTONS">glfw.STICKY_MOUSE_BUTTONS</h2>
+
+<pre><code>STICKY_MOUSE_BUTTONS :: 208899
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.LOCK_KEY_MODS">glfw.LOCK_KEY_MODS</h2>
+
+<pre><code>LOCK_KEY_MODS :: 208900
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.RAW_MOUSE_MOTION">glfw.RAW_MOUSE_MOTION</h2>
+
+<pre><code>RAW_MOUSE_MOTION :: 208901
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.CURSOR_NORMAL">glfw.CURSOR_NORMAL</h2>
+
+<pre><code>CURSOR_NORMAL :: 212993
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.CURSOR_HIDDEN">glfw.CURSOR_HIDDEN</h2>
+
+<pre><code>CURSOR_HIDDEN :: 212994
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.CURSOR_DISABLED">glfw.CURSOR_DISABLED</h2>
+
+<pre><code>CURSOR_DISABLED :: 212995
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.ANY_RELEASE_BEHAVIOR">glfw.ANY_RELEASE_BEHAVIOR</h2>
+
+<pre><code>ANY_RELEASE_BEHAVIOR :: 0
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.RELEASE_BEHAVIOR_FLUSH">glfw.RELEASE_BEHAVIOR_FLUSH</h2>
+
+<pre><code>RELEASE_BEHAVIOR_FLUSH :: 217089
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.RELEASE_BEHAVIOR_NONE">glfw.RELEASE_BEHAVIOR_NONE</h2>
+
+<pre><code>RELEASE_BEHAVIOR_NONE :: 217090
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.NATIVE_CONTEXT_API">glfw.NATIVE_CONTEXT_API</h2>
+
+<pre><code>NATIVE_CONTEXT_API :: 221185
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.EGL_CONTEXT_API">glfw.EGL_CONTEXT_API</h2>
+
+<pre><code>EGL_CONTEXT_API :: 221186
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.OSMESA_CONTEXT_API">glfw.OSMESA_CONTEXT_API</h2>
+
+<pre><code>OSMESA_CONTEXT_API :: 221187
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.ARROW_CURSOR">glfw.ARROW_CURSOR</h2>
+
+<pre><code>ARROW_CURSOR :: 221185
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.IBEAM_CURSOR">glfw.IBEAM_CURSOR</h2>
+
+<pre><code>IBEAM_CURSOR :: 221186
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.CROSSHAIR_CURSOR">glfw.CROSSHAIR_CURSOR</h2>
+
+<pre><code>CROSSHAIR_CURSOR :: 221187
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.HAND_CURSOR">glfw.HAND_CURSOR</h2>
+
+<pre><code>HAND_CURSOR :: 221188
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.HRESIZE_CURSOR">glfw.HRESIZE_CURSOR</h2>
+
+<pre><code>HRESIZE_CURSOR :: 221189
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.VRESIZE_CURSOR">glfw.VRESIZE_CURSOR</h2>
+
+<pre><code>VRESIZE_CURSOR :: 221190
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.CONNECTED">glfw.CONNECTED</h2>
+
+<pre><code>CONNECTED :: 262145
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.DISCONNECTED">glfw.DISCONNECTED</h2>
+
+<pre><code>DISCONNECTED :: 262146
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.JOYSTICK_HAT_BUTTONS">glfw.JOYSTICK_HAT_BUTTONS</h2>
+
+<pre><code>JOYSTICK_HAT_BUTTONS :: 327681
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.COCOA_CHDIR_RESOURCES">glfw.COCOA_CHDIR_RESOURCES</h2>
+
+<pre><code>COCOA_CHDIR_RESOURCES :: 331777
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.COCOA_MENUBAR">glfw.COCOA_MENUBAR</h2>
+
+<pre><code>COCOA_MENUBAR :: 331778
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.DONT_CARE">glfw.DONT_CARE</h2>
+
+<pre><code>DONT_CARE :: -1
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.Window">glfw.Window</h2>
+
+<pre><code>Window :: u8
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.Cursor">glfw.Cursor</h2>
+
+<pre><code>Cursor :: u8
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.Monitor">glfw.Monitor</h2>
+
+<pre><code>Monitor :: u8
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GLProc">glfw.GLProc</h2>
+
+<pre><code>GLProc :: *fn () 
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.VKProc">glfw.VKProc</h2>
+
+<pre><code>VKProc :: *fn () 
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.ErrorFun">glfw.ErrorFun</h2>
+
+<pre><code>ErrorFun :: *fn (_0: s32, _1: *s8) 
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.WindowPosFun">glfw.WindowPosFun</h2>
+
+<pre><code>WindowPosFun :: *fn (_0: *Window, _1: s32, _2: s32) 
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.WindowSizeFun">glfw.WindowSizeFun</h2>
+
+<pre><code>WindowSizeFun :: *fn (_0: *Window, _1: s32, _2: s32) 
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.WindowCloseFun">glfw.WindowCloseFun</h2>
+
+<pre><code>WindowCloseFun :: *fn (_0: *Window) 
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.WindowRefreshFun">glfw.WindowRefreshFun</h2>
+
+<pre><code>WindowRefreshFun :: *fn (_0: *Window) 
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.WindowFocusFun">glfw.WindowFocusFun</h2>
+
+<pre><code>WindowFocusFun :: *fn (_0: *Window, _1: s32) 
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.WindowIconifyFun">glfw.WindowIconifyFun</h2>
+
+<pre><code>WindowIconifyFun :: *fn (_0: *Window, _1: s32) 
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.WindowMaximizeFun">glfw.WindowMaximizeFun</h2>
+
+<pre><code>WindowMaximizeFun :: *fn (_0: *Window, _1: s32) 
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.FrameBufferSizeFun">glfw.FrameBufferSizeFun</h2>
+
+<pre><code>FrameBufferSizeFun :: *fn (_0: *Window, _1: s32, _2: s32) 
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.WindowContentScaleFun">glfw.WindowContentScaleFun</h2>
+
+<pre><code>WindowContentScaleFun :: *fn (_0: *Window, _1: f32, _2: f32) 
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.MouseButtonFun">glfw.MouseButtonFun</h2>
+
+<pre><code>MouseButtonFun :: *fn (_0: *Window, _1: s32, _2: s32, _3: s32) 
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.CursorPosFun">glfw.CursorPosFun</h2>
+
+<pre><code>CursorPosFun :: *fn (_0: *Window, _1: f64, _2: f64) 
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.CursorEnterFun">glfw.CursorEnterFun</h2>
+
+<pre><code>CursorEnterFun :: *fn (_0: *Window, _1: s32) 
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.ScrollFun">glfw.ScrollFun</h2>
+
+<pre><code>ScrollFun :: *fn (_0: *Window, _1: f64, _2: f64) 
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.KeyFun">glfw.KeyFun</h2>
+
+<pre><code>KeyFun :: *fn (_0: *Window, _1: s32, _2: s32, _3: s32, _4: s32) 
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.CharFun">glfw.CharFun</h2>
+
+<pre><code>CharFun :: *fn (_0: *Window, _1: u32) 
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.CharModsFun">glfw.CharModsFun</h2>
+
+<pre><code>CharModsFun :: *fn (_0: *Window, _1: u32, _2: s32) 
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.DropFun">glfw.DropFun</h2>
+
+<pre><code>DropFun :: *fn (_0: *Window, _1: s32, _2: **u8) 
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.MonitorFun">glfw.MonitorFun</h2>
+
+<pre><code>MonitorFun :: *fn (_0: *Monitor, _1: s32) 
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.JoystickFun">glfw.JoystickFun</h2>
+
+<pre><code>JoystickFun :: *fn (_0: s32, _1: s32) 
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.VidMode">glfw.VidMode</h2>
+
+<pre><code>VidMode :: struct {
+    width: s32;
+    height: s32;
+    redBits: s32;
+    greenBits: s32;
+    blueBits: s32;
+    refreshRate: s32;
+}
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GammaRamp">glfw.GammaRamp</h2>
+
+<pre><code>GammaRamp :: struct {
+    red: *u16;
+    green: *u16;
+    blue: *u16;
+    size: u32;
+}
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.Image">glfw.Image</h2>
+
+<pre><code>Image :: struct {
+    width: s32;
+    height: s32;
+    pixels: *u8;
+}
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GamepadState">glfw.GamepadState</h2>
+
+<pre><code>GamepadState :: struct {
+    buttons: ;
+    axes: ;
+}
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.Init">glfw.Init</h2>
+
+<pre><code>Init :: fn () s32 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.Terminate">glfw.Terminate</h2>
+
+<pre><code>Terminate :: fn ()  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.InitHint">glfw.InitHint</h2>
+
+<pre><code>InitHint :: fn (hint: s32, value: s32)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetVersion">glfw.GetVersion</h2>
+
+<pre><code>GetVersion :: fn (major: *s32, minor: *s32, rev: *s32)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetVersionString">glfw.GetVersionString</h2>
+
+<pre><code>GetVersionString :: fn () *u8 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetError">glfw.GetError</h2>
+
+<pre><code>GetError :: fn (description: **u8) s32 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetErrorCallback">glfw.SetErrorCallback</h2>
+
+<pre><code>SetErrorCallback :: fn (cbfun: ErrorFun) ErrorFun #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetMonitors">glfw.GetMonitors</h2>
+
+<pre><code>GetMonitors :: fn (count: *s32) **Monitor #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetPrimaryMonitor">glfw.GetPrimaryMonitor</h2>
+
+<pre><code>GetPrimaryMonitor :: fn () *Monitor #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetMonitorPos">glfw.GetMonitorPos</h2>
+
+<pre><code>GetMonitorPos :: fn (monitor: *Monitor, xpos: *s32, ypos: *s32)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetMonitorWorkarea">glfw.GetMonitorWorkarea</h2>
+
+<pre><code>GetMonitorWorkarea :: fn (monitor: *Monitor, xpos: *s32, ypos: *s32, width: *s32, height: *s32)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetMonitorPhysicalSize">glfw.GetMonitorPhysicalSize</h2>
+
+<pre><code>GetMonitorPhysicalSize :: fn (monitor: *Monitor, widthMM: *s32, heightMM: *s32)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetMonitorContentScale">glfw.GetMonitorContentScale</h2>
+
+<pre><code>GetMonitorContentScale :: fn (monitor: *Monitor, xscale: *f32, yscale: *f32)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetMonitorName">glfw.GetMonitorName</h2>
+
+<pre><code>GetMonitorName :: fn (monitor: *Monitor) *u8 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetMonitorUserPointer">glfw.SetMonitorUserPointer</h2>
+
+<pre><code>SetMonitorUserPointer :: fn (monitor: *Monitor, pointer: *u8)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetMonitorUserPointer">glfw.GetMonitorUserPointer</h2>
+
+<pre><code>GetMonitorUserPointer :: fn (monitor: *Monitor) *u8 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetMonitorCallback">glfw.SetMonitorCallback</h2>
+
+<pre><code>SetMonitorCallback :: fn (cbfun: MonitorFun) MonitorFun #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetVideoModes">glfw.GetVideoModes</h2>
+
+<pre><code>GetVideoModes :: fn (monitor: *Monitor, count: *s32) *VidMode #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetVideoMode">glfw.GetVideoMode</h2>
+
+<pre><code>GetVideoMode :: fn (monitor: *Monitor) *VidMode #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetGamma">glfw.SetGamma</h2>
+
+<pre><code>SetGamma :: fn (monitor: *Monitor, gamma: f32)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetGammaRamp">glfw.GetGammaRamp</h2>
+
+<pre><code>GetGammaRamp :: fn (monitor: *Monitor) *GammaRamp #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetGammaRamp">glfw.SetGammaRamp</h2>
+
+<pre><code>SetGammaRamp :: fn (monitor: *Monitor, ramp: *GammaRamp)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.DefaultWindowHints">glfw.DefaultWindowHints</h2>
+
+<pre><code>DefaultWindowHints :: fn ()  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.WindowHint">glfw.WindowHint</h2>
+
+<pre><code>WindowHint :: fn (hint: s32, value: s32)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.WindowHintString">glfw.WindowHintString</h2>
+
+<pre><code>WindowHintString :: fn (hint: s32, value: *u8)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.CreateWindow">glfw.CreateWindow</h2>
+
+<pre><code>CreateWindow :: fn (width: s32, height: s32, title: *s8, monitor: *Monitor, share: *Window) *Window #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.DestroyWindow">glfw.DestroyWindow</h2>
+
+<pre><code>DestroyWindow :: fn (window: *Window)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.WindowShouldClose">glfw.WindowShouldClose</h2>
+
+<pre><code>WindowShouldClose :: fn (window: *Window) s32 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetWindowShouldClose">glfw.SetWindowShouldClose</h2>
+
+<pre><code>SetWindowShouldClose :: fn (window: *Window, value: s32)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetWindowTitle">glfw.SetWindowTitle</h2>
+
+<pre><code>SetWindowTitle :: fn (window: *Window, title: *u8)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetWindowIcon">glfw.SetWindowIcon</h2>
+
+<pre><code>SetWindowIcon :: fn (window: *Window, count: s32, images: *Image)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetWindowPos">glfw.GetWindowPos</h2>
+
+<pre><code>GetWindowPos :: fn (window: *Window, xpos: *s32, ypos: *s32)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetWindowPos">glfw.SetWindowPos</h2>
+
+<pre><code>SetWindowPos :: fn (window: *Window, xpos: s32, ypos: s32)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetWindowSize">glfw.GetWindowSize</h2>
+
+<pre><code>GetWindowSize :: fn (window: *Window, width: *s32, height: *s32)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetWindowSizeLimits">glfw.SetWindowSizeLimits</h2>
+
+<pre><code>SetWindowSizeLimits :: fn (window: *Window, minwidth: s32, minheight: s32, maxwidth: s32, maxheight: s32)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetWindowAspectRatio">glfw.SetWindowAspectRatio</h2>
+
+<pre><code>SetWindowAspectRatio :: fn (window: *Window, numer: s32, denom: s32)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetWindowSize">glfw.SetWindowSize</h2>
+
+<pre><code>SetWindowSize :: fn (window: *Window, width: s32, height: s32)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetFramebufferSize">glfw.GetFramebufferSize</h2>
+
+<pre><code>GetFramebufferSize :: fn (window: *Window, width: *s32, height: *s32)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetWindowFrameSize">glfw.GetWindowFrameSize</h2>
+
+<pre><code>GetWindowFrameSize :: fn (window: *Window, left: *s32, top: *s32, right: *s32, bottom: *s32)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetWindowContentScale">glfw.GetWindowContentScale</h2>
+
+<pre><code>GetWindowContentScale :: fn (window: *Window, xscale: *f32, yscale: *f32)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetWindowOpacity">glfw.GetWindowOpacity</h2>
+
+<pre><code>GetWindowOpacity :: fn (window: *Window) f32 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetWindowOpacity">glfw.SetWindowOpacity</h2>
+
+<pre><code>SetWindowOpacity :: fn (window: *Window, opacity: f32)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.IconifyWindow">glfw.IconifyWindow</h2>
+
+<pre><code>IconifyWindow :: fn (window: *Window)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.RestoreWindow">glfw.RestoreWindow</h2>
+
+<pre><code>RestoreWindow :: fn (window: *Window)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.MaximizeWindow">glfw.MaximizeWindow</h2>
+
+<pre><code>MaximizeWindow :: fn (window: *Window)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.ShowWindow">glfw.ShowWindow</h2>
+
+<pre><code>ShowWindow :: fn (window: *Window)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.HideWindow">glfw.HideWindow</h2>
+
+<pre><code>HideWindow :: fn (window: *Window)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.FocusWindow">glfw.FocusWindow</h2>
+
+<pre><code>FocusWindow :: fn (window: *Window)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.RequestWindowAttention">glfw.RequestWindowAttention</h2>
+
+<pre><code>RequestWindowAttention :: fn (window: *Window)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetWindowMonitor">glfw.GetWindowMonitor</h2>
+
+<pre><code>GetWindowMonitor :: fn (window: *Window) *Monitor #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetWindowMonitor">glfw.SetWindowMonitor</h2>
+
+<pre><code>SetWindowMonitor :: fn (window: *Window, monitor: *Monitor, xpos: s32, ypos: s32, width: s32, height: s32, refreshRate: s32)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetWindowAttrib">glfw.GetWindowAttrib</h2>
+
+<pre><code>GetWindowAttrib :: fn (window: *Window, attrib: s32) s32 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetWindowAttrib">glfw.SetWindowAttrib</h2>
+
+<pre><code>SetWindowAttrib :: fn (window: *Window, attrib: s32, value: s32)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetWindowUserPointer">glfw.SetWindowUserPointer</h2>
+
+<pre><code>SetWindowUserPointer :: fn (window: *Window, pointer: *u8)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetWindowUserPointer">glfw.GetWindowUserPointer</h2>
+
+<pre><code>GetWindowUserPointer :: fn (window: *Window) *u8 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetWindowPosCallback">glfw.SetWindowPosCallback</h2>
+
+<pre><code>SetWindowPosCallback :: fn (window: *Window, cbfun: WindowPosFun) WindowPosFun #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetWindowSizeCallback">glfw.SetWindowSizeCallback</h2>
+
+<pre><code>SetWindowSizeCallback :: fn (window: *Window, cbfun: WindowSizeFun) WindowSizeFun #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetWindowCloseCallback">glfw.SetWindowCloseCallback</h2>
+
+<pre><code>SetWindowCloseCallback :: fn (window: *Window, cbfun: WindowCloseFun) WindowCloseFun #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetWindowRefreshCallback">glfw.SetWindowRefreshCallback</h2>
+
+<pre><code>SetWindowRefreshCallback :: fn (window: *Window, cbfun: WindowRefreshFun) WindowRefreshFun #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetWindowFocusCallback">glfw.SetWindowFocusCallback</h2>
+
+<pre><code>SetWindowFocusCallback :: fn (window: *Window, cbfun: WindowFocusFun) WindowFocusFun #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetWindowIconifyCallback">glfw.SetWindowIconifyCallback</h2>
+
+<pre><code>SetWindowIconifyCallback :: fn (window: *Window, cbfun: WindowIconifyFun) WindowIconifyFun #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetWindowMaximizeCallback">glfw.SetWindowMaximizeCallback</h2>
+
+<pre><code>SetWindowMaximizeCallback :: fn (window: *Window, cbfun: WindowMaximizeFun) WindowMaximizeFun #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetFramebufferSizeCallback">glfw.SetFramebufferSizeCallback</h2>
+
+<pre><code>SetFramebufferSizeCallback :: fn (window: *Window, cbfun: FrameBufferSizeFun) FrameBufferSizeFun #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetWindowContentScaleCallback">glfw.SetWindowContentScaleCallback</h2>
+
+<pre><code>SetWindowContentScaleCallback :: fn (window: *Window, cbfun: WindowContentScaleFun) WindowContentScaleFun #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.PollEvents">glfw.PollEvents</h2>
+
+<pre><code>PollEvents :: fn ()  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.WaitEvents">glfw.WaitEvents</h2>
+
+<pre><code>WaitEvents :: fn ()  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.WaitEventsTimeout">glfw.WaitEventsTimeout</h2>
+
+<pre><code>WaitEventsTimeout :: fn (timeout: f64)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.PostEmptyEvent">glfw.PostEmptyEvent</h2>
+
+<pre><code>PostEmptyEvent :: fn ()  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetInputMode">glfw.GetInputMode</h2>
+
+<pre><code>GetInputMode :: fn (window: *Window, mode: s32) s32 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetInputMode">glfw.SetInputMode</h2>
+
+<pre><code>SetInputMode :: fn (window: *Window, mode: s32, value: s32)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.RawMouseMotionSupported">glfw.RawMouseMotionSupported</h2>
+
+<pre><code>RawMouseMotionSupported :: fn () s32 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetKeyName">glfw.GetKeyName</h2>
+
+<pre><code>GetKeyName :: fn (key: s32, scancode: s32) *u8 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetKeyScancode">glfw.GetKeyScancode</h2>
+
+<pre><code>GetKeyScancode :: fn (key: s32) s32 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetKey">glfw.GetKey</h2>
+
+<pre><code>GetKey :: fn (window: *Window, key: s32) s32 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetMouseButton">glfw.GetMouseButton</h2>
+
+<pre><code>GetMouseButton :: fn (window: *Window, button: s32) s32 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetCursorPos">glfw.GetCursorPos</h2>
+
+<pre><code>GetCursorPos :: fn (window: *Window, xpos: *f64, ypos: *f64)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetCursorPos">glfw.SetCursorPos</h2>
+
+<pre><code>SetCursorPos :: fn (window: *Window, xpos: f64, ypos: f64)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.CreateCursor">glfw.CreateCursor</h2>
+
+<pre><code>CreateCursor :: fn (image: *Image, xhot: s32, yhot: s32) *Cursor #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.CreateStandardCursor">glfw.CreateStandardCursor</h2>
+
+<pre><code>CreateStandardCursor :: fn (shape: s32) *Cursor #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.DestroyCursor">glfw.DestroyCursor</h2>
+
+<pre><code>DestroyCursor :: fn (cursor: *Cursor)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetCursor">glfw.SetCursor</h2>
+
+<pre><code>SetCursor :: fn (window: *Window, cursor: *Cursor)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetKeyCallback">glfw.SetKeyCallback</h2>
+
+<pre><code>SetKeyCallback :: fn (window: *Window, cbfun: KeyFun) KeyFun #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetCharCallback">glfw.SetCharCallback</h2>
+
+<pre><code>SetCharCallback :: fn (window: *Window, cbfun: CharFun) CharFun #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetCharModsCallback">glfw.SetCharModsCallback</h2>
+
+<pre><code>SetCharModsCallback :: fn (window: *Window, cbfun: CharModsFun) CharModsFun #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetMouseButtonCallback">glfw.SetMouseButtonCallback</h2>
+
+<pre><code>SetMouseButtonCallback :: fn (window: *Window, cbfun: MouseButtonFun) MouseButtonFun #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetCursorPosCallback">glfw.SetCursorPosCallback</h2>
+
+<pre><code>SetCursorPosCallback :: fn (window: *Window, cbfun: CursorPosFun) CursorPosFun #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetCursorEnterCallback">glfw.SetCursorEnterCallback</h2>
+
+<pre><code>SetCursorEnterCallback :: fn (window: *Window, cbfun: CursorEnterFun) CursorEnterFun #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetScrollCallback">glfw.SetScrollCallback</h2>
+
+<pre><code>SetScrollCallback :: fn (window: *Window, cbfun: ScrollFun) ScrollFun #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetDropCallback">glfw.SetDropCallback</h2>
+
+<pre><code>SetDropCallback :: fn (window: *Window, cbfun: DropFun) DropFun #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.JoystickPresent">glfw.JoystickPresent</h2>
+
+<pre><code>JoystickPresent :: fn (jid: s32) s32 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetJoystickAxes">glfw.GetJoystickAxes</h2>
+
+<pre><code>GetJoystickAxes :: fn (jid: s32, count: *s32) *f32 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetJoystickButtons">glfw.GetJoystickButtons</h2>
+
+<pre><code>GetJoystickButtons :: fn (jid: s32, count: *s32) *u8 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetJoystickHats">glfw.GetJoystickHats</h2>
+
+<pre><code>GetJoystickHats :: fn (jid: s32, count: *s32) *u8 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetJoystickName">glfw.GetJoystickName</h2>
+
+<pre><code>GetJoystickName :: fn (jid: s32) *u8 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetJoystickGUID">glfw.GetJoystickGUID</h2>
+
+<pre><code>GetJoystickGUID :: fn (jid: s32) *u8 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetJoystickUserPointer">glfw.SetJoystickUserPointer</h2>
+
+<pre><code>SetJoystickUserPointer :: fn (jid: s32, pointer: *u8)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetJoystickUserPointer">glfw.GetJoystickUserPointer</h2>
+
+<pre><code>GetJoystickUserPointer :: fn (jid: s32) *u8 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.JoystickIsGamepad">glfw.JoystickIsGamepad</h2>
+
+<pre><code>JoystickIsGamepad :: fn (jid: s32) s32 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetJoystickCallback">glfw.SetJoystickCallback</h2>
+
+<pre><code>SetJoystickCallback :: fn (cbfun: JoystickFun) JoystickFun #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.UpdateGamepadMappings">glfw.UpdateGamepadMappings</h2>
+
+<pre><code>UpdateGamepadMappings :: fn (str: *u8) s32 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetGamepadName">glfw.GetGamepadName</h2>
+
+<pre><code>GetGamepadName :: fn (jid: s32) *u8 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetGamepadState">glfw.GetGamepadState</h2>
+
+<pre><code>GetGamepadState :: fn (jid: s32, state: *GamepadState) s32 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetClipboardString">glfw.SetClipboardString</h2>
+
+<pre><code>SetClipboardString :: fn (window: *Window, str: *u8)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetClipboardString">glfw.GetClipboardString</h2>
+
+<pre><code>GetClipboardString :: fn (window: *Window) *u8 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetTime">glfw.GetTime</h2>
+
+<pre><code>GetTime :: fn () f64 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SetTime">glfw.SetTime</h2>
+
+<pre><code>SetTime :: fn (time: f64)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetTimerValue">glfw.GetTimerValue</h2>
+
+<pre><code>GetTimerValue :: fn () s32 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetTimerFrequency">glfw.GetTimerFrequency</h2>
+
+<pre><code>GetTimerFrequency :: fn () s32 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.MakeContextCurrent">glfw.MakeContextCurrent</h2>
+
+<pre><code>MakeContextCurrent :: fn (window: *Window)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetCurrentContext">glfw.GetCurrentContext</h2>
+
+<pre><code>GetCurrentContext :: fn () *Window #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SwapBuffers">glfw.SwapBuffers</h2>
+
+<pre><code>SwapBuffers :: fn (window: *Window)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.SwapInterval">glfw.SwapInterval</h2>
+
+<pre><code>SwapInterval :: fn (interval: s32)  #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.ExtensionSupported">glfw.ExtensionSupported</h2>
+
+<pre><code>ExtensionSupported :: fn (extension: *u8) s32 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetProcAddress">glfw.GetProcAddress</h2>
+
+<pre><code>GetProcAddress :: fn (procname: *u8) GLProc #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.VulkanSupported">glfw.VulkanSupported</h2>
+
+<pre><code>VulkanSupported :: fn () s32 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+<h2 id="glfw.GetRequiredInstanceExtensions">glfw.GetRequiredInstanceExtensions</h2>
+
+<pre><code>GetRequiredInstanceExtensions :: fn (count: *u32) **u8 #extern
+</code></pre>
+<p><em>File: glfw3.bl</em></p>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#glfw3.bl">glfw3.bl</a></li>
+<ul>
+<li><a href="#glfw.VERSION_MAJOR">glfw.VERSION_MAJOR</a></li>
+<li><a href="#glfw.VERSION_MINOR">glfw.VERSION_MINOR</a></li>
+<li><a href="#glfw.VERSION_REVISION">glfw.VERSION_REVISION</a></li>
+<li><a href="#glfw.TRUE">glfw.TRUE</a></li>
+<li><a href="#glfw.FALSE">glfw.FALSE</a></li>
+<li><a href="#glfw.RELEASE">glfw.RELEASE</a></li>
+<li><a href="#glfw.PRESS">glfw.PRESS</a></li>
+<li><a href="#glfw.REPEAT">glfw.REPEAT</a></li>
+<li><a href="#glfw.HAT_CENTERED">glfw.HAT_CENTERED</a></li>
+<li><a href="#glfw.HAT_UP">glfw.HAT_UP</a></li>
+<li><a href="#glfw.HAT_RIGHT">glfw.HAT_RIGHT</a></li>
+<li><a href="#glfw.HAT_DOWN">glfw.HAT_DOWN</a></li>
+<li><a href="#glfw.HAT_LEFT">glfw.HAT_LEFT</a></li>
+<li><a href="#glfw.HAT_RIGHT_UP">glfw.HAT_RIGHT_UP</a></li>
+<li><a href="#glfw.HAT_RIGHT_DOWN">glfw.HAT_RIGHT_DOWN</a></li>
+<li><a href="#glfw.HAT_LEFT_UP">glfw.HAT_LEFT_UP</a></li>
+<li><a href="#glfw.HAT_LEFT_DOWN">glfw.HAT_LEFT_DOWN</a></li>
+<li><a href="#glfw.KEY_UNKNOWN">glfw.KEY_UNKNOWN</a></li>
+<li><a href="#glfw.KEY_SPACE">glfw.KEY_SPACE</a></li>
+<li><a href="#glfw.KEY_APOSTROPHE">glfw.KEY_APOSTROPHE</a></li>
+<li><a href="#glfw.KEY_COMMA">glfw.KEY_COMMA</a></li>
+<li><a href="#glfw.KEY_MINUS">glfw.KEY_MINUS</a></li>
+<li><a href="#glfw.KEY_PERIOD">glfw.KEY_PERIOD</a></li>
+<li><a href="#glfw.KEY_SLASH">glfw.KEY_SLASH</a></li>
+<li><a href="#glfw.KEY_0">glfw.KEY_0</a></li>
+<li><a href="#glfw.KEY_1">glfw.KEY_1</a></li>
+<li><a href="#glfw.KEY_2">glfw.KEY_2</a></li>
+<li><a href="#glfw.KEY_3">glfw.KEY_3</a></li>
+<li><a href="#glfw.KEY_4">glfw.KEY_4</a></li>
+<li><a href="#glfw.KEY_5">glfw.KEY_5</a></li>
+<li><a href="#glfw.KEY_6">glfw.KEY_6</a></li>
+<li><a href="#glfw.KEY_7">glfw.KEY_7</a></li>
+<li><a href="#glfw.KEY_8">glfw.KEY_8</a></li>
+<li><a href="#glfw.KEY_9">glfw.KEY_9</a></li>
+<li><a href="#glfw.KEY_SEMICOLON">glfw.KEY_SEMICOLON</a></li>
+<li><a href="#glfw.KEY_EQUAL">glfw.KEY_EQUAL</a></li>
+<li><a href="#glfw.KEY_A">glfw.KEY_A</a></li>
+<li><a href="#glfw.KEY_B">glfw.KEY_B</a></li>
+<li><a href="#glfw.KEY_C">glfw.KEY_C</a></li>
+<li><a href="#glfw.KEY_D">glfw.KEY_D</a></li>
+<li><a href="#glfw.KEY_E">glfw.KEY_E</a></li>
+<li><a href="#glfw.KEY_F">glfw.KEY_F</a></li>
+<li><a href="#glfw.KEY_G">glfw.KEY_G</a></li>
+<li><a href="#glfw.KEY_H">glfw.KEY_H</a></li>
+<li><a href="#glfw.KEY_I">glfw.KEY_I</a></li>
+<li><a href="#glfw.KEY_J">glfw.KEY_J</a></li>
+<li><a href="#glfw.KEY_K">glfw.KEY_K</a></li>
+<li><a href="#glfw.KEY_L">glfw.KEY_L</a></li>
+<li><a href="#glfw.KEY_M">glfw.KEY_M</a></li>
+<li><a href="#glfw.KEY_N">glfw.KEY_N</a></li>
+<li><a href="#glfw.KEY_O">glfw.KEY_O</a></li>
+<li><a href="#glfw.KEY_P">glfw.KEY_P</a></li>
+<li><a href="#glfw.KEY_Q">glfw.KEY_Q</a></li>
+<li><a href="#glfw.KEY_R">glfw.KEY_R</a></li>
+<li><a href="#glfw.KEY_S">glfw.KEY_S</a></li>
+<li><a href="#glfw.KEY_T">glfw.KEY_T</a></li>
+<li><a href="#glfw.KEY_U">glfw.KEY_U</a></li>
+<li><a href="#glfw.KEY_V">glfw.KEY_V</a></li>
+<li><a href="#glfw.KEY_W">glfw.KEY_W</a></li>
+<li><a href="#glfw.KEY_X">glfw.KEY_X</a></li>
+<li><a href="#glfw.KEY_Y">glfw.KEY_Y</a></li>
+<li><a href="#glfw.KEY_Z">glfw.KEY_Z</a></li>
+<li><a href="#glfw.KEY_LEFT_BRACKET">glfw.KEY_LEFT_BRACKET</a></li>
+<li><a href="#glfw.KEY_BACKSLASH">glfw.KEY_BACKSLASH</a></li>
+<li><a href="#glfw.KEY_RIGHT_BRACKET">glfw.KEY_RIGHT_BRACKET</a></li>
+<li><a href="#glfw.KEY_GRAVE_ACCENT">glfw.KEY_GRAVE_ACCENT</a></li>
+<li><a href="#glfw.KEY_WORLD_1">glfw.KEY_WORLD_1</a></li>
+<li><a href="#glfw.KEY_WORLD_2">glfw.KEY_WORLD_2</a></li>
+<li><a href="#glfw.KEY_ESCAPE">glfw.KEY_ESCAPE</a></li>
+<li><a href="#glfw.KEY_ENTER">glfw.KEY_ENTER</a></li>
+<li><a href="#glfw.KEY_TAB">glfw.KEY_TAB</a></li>
+<li><a href="#glfw.KEY_BACKSPACE">glfw.KEY_BACKSPACE</a></li>
+<li><a href="#glfw.KEY_INSERT">glfw.KEY_INSERT</a></li>
+<li><a href="#glfw.KEY_DELETE">glfw.KEY_DELETE</a></li>
+<li><a href="#glfw.KEY_RIGHT">glfw.KEY_RIGHT</a></li>
+<li><a href="#glfw.KEY_LEFT">glfw.KEY_LEFT</a></li>
+<li><a href="#glfw.KEY_DOWN">glfw.KEY_DOWN</a></li>
+<li><a href="#glfw.KEY_UP">glfw.KEY_UP</a></li>
+<li><a href="#glfw.KEY_PAGE_UP">glfw.KEY_PAGE_UP</a></li>
+<li><a href="#glfw.KEY_PAGE_DOWN">glfw.KEY_PAGE_DOWN</a></li>
+<li><a href="#glfw.KEY_HOME">glfw.KEY_HOME</a></li>
+<li><a href="#glfw.KEY_END">glfw.KEY_END</a></li>
+<li><a href="#glfw.KEY_CAPS_LOCK">glfw.KEY_CAPS_LOCK</a></li>
+<li><a href="#glfw.KEY_SCROLL_LOCK">glfw.KEY_SCROLL_LOCK</a></li>
+<li><a href="#glfw.KEY_NUM_LOCK">glfw.KEY_NUM_LOCK</a></li>
+<li><a href="#glfw.KEY_PRINT_SCREEN">glfw.KEY_PRINT_SCREEN</a></li>
+<li><a href="#glfw.KEY_PAUSE">glfw.KEY_PAUSE</a></li>
+<li><a href="#glfw.KEY_F1">glfw.KEY_F1</a></li>
+<li><a href="#glfw.KEY_F2">glfw.KEY_F2</a></li>
+<li><a href="#glfw.KEY_F3">glfw.KEY_F3</a></li>
+<li><a href="#glfw.KEY_F4">glfw.KEY_F4</a></li>
+<li><a href="#glfw.KEY_F5">glfw.KEY_F5</a></li>
+<li><a href="#glfw.KEY_F6">glfw.KEY_F6</a></li>
+<li><a href="#glfw.KEY_F7">glfw.KEY_F7</a></li>
+<li><a href="#glfw.KEY_F8">glfw.KEY_F8</a></li>
+<li><a href="#glfw.KEY_F9">glfw.KEY_F9</a></li>
+<li><a href="#glfw.KEY_F10">glfw.KEY_F10</a></li>
+<li><a href="#glfw.KEY_F11">glfw.KEY_F11</a></li>
+<li><a href="#glfw.KEY_F12">glfw.KEY_F12</a></li>
+<li><a href="#glfw.KEY_F13">glfw.KEY_F13</a></li>
+<li><a href="#glfw.KEY_F14">glfw.KEY_F14</a></li>
+<li><a href="#glfw.KEY_F15">glfw.KEY_F15</a></li>
+<li><a href="#glfw.KEY_F16">glfw.KEY_F16</a></li>
+<li><a href="#glfw.KEY_F17">glfw.KEY_F17</a></li>
+<li><a href="#glfw.KEY_F18">glfw.KEY_F18</a></li>
+<li><a href="#glfw.KEY_F19">glfw.KEY_F19</a></li>
+<li><a href="#glfw.KEY_F20">glfw.KEY_F20</a></li>
+<li><a href="#glfw.KEY_F21">glfw.KEY_F21</a></li>
+<li><a href="#glfw.KEY_F22">glfw.KEY_F22</a></li>
+<li><a href="#glfw.KEY_F23">glfw.KEY_F23</a></li>
+<li><a href="#glfw.KEY_F24">glfw.KEY_F24</a></li>
+<li><a href="#glfw.KEY_F25">glfw.KEY_F25</a></li>
+<li><a href="#glfw.KEY_KP_0">glfw.KEY_KP_0</a></li>
+<li><a href="#glfw.KEY_KP_1">glfw.KEY_KP_1</a></li>
+<li><a href="#glfw.KEY_KP_2">glfw.KEY_KP_2</a></li>
+<li><a href="#glfw.KEY_KP_3">glfw.KEY_KP_3</a></li>
+<li><a href="#glfw.KEY_KP_4">glfw.KEY_KP_4</a></li>
+<li><a href="#glfw.KEY_KP_5">glfw.KEY_KP_5</a></li>
+<li><a href="#glfw.KEY_KP_6">glfw.KEY_KP_6</a></li>
+<li><a href="#glfw.KEY_KP_7">glfw.KEY_KP_7</a></li>
+<li><a href="#glfw.KEY_KP_8">glfw.KEY_KP_8</a></li>
+<li><a href="#glfw.KEY_KP_9">glfw.KEY_KP_9</a></li>
+<li><a href="#glfw.KEY_KP_DECIMAL">glfw.KEY_KP_DECIMAL</a></li>
+<li><a href="#glfw.KEY_KP_DIVIDE">glfw.KEY_KP_DIVIDE</a></li>
+<li><a href="#glfw.KEY_KP_MULTIPLY">glfw.KEY_KP_MULTIPLY</a></li>
+<li><a href="#glfw.KEY_KP_SUBTRACT">glfw.KEY_KP_SUBTRACT</a></li>
+<li><a href="#glfw.KEY_KP_ADD">glfw.KEY_KP_ADD</a></li>
+<li><a href="#glfw.KEY_KP_ENTER">glfw.KEY_KP_ENTER</a></li>
+<li><a href="#glfw.KEY_KP_EQUAL">glfw.KEY_KP_EQUAL</a></li>
+<li><a href="#glfw.KEY_LEFT_SHIFT">glfw.KEY_LEFT_SHIFT</a></li>
+<li><a href="#glfw.KEY_LEFT_CONTROL">glfw.KEY_LEFT_CONTROL</a></li>
+<li><a href="#glfw.KEY_LEFT_ALT">glfw.KEY_LEFT_ALT</a></li>
+<li><a href="#glfw.KEY_LEFT_SUPER">glfw.KEY_LEFT_SUPER</a></li>
+<li><a href="#glfw.KEY_RIGHT_SHIFT">glfw.KEY_RIGHT_SHIFT</a></li>
+<li><a href="#glfw.KEY_RIGHT_CONTROL">glfw.KEY_RIGHT_CONTROL</a></li>
+<li><a href="#glfw.KEY_RIGHT_ALT">glfw.KEY_RIGHT_ALT</a></li>
+<li><a href="#glfw.KEY_RIGHT_SUPER">glfw.KEY_RIGHT_SUPER</a></li>
+<li><a href="#glfw.KEY_MENU">glfw.KEY_MENU</a></li>
+<li><a href="#glfw.KEY_LAST">glfw.KEY_LAST</a></li>
+<li><a href="#glfw.MOD_SHIFT">glfw.MOD_SHIFT</a></li>
+<li><a href="#glfw.MOD_CONTROL">glfw.MOD_CONTROL</a></li>
+<li><a href="#glfw.MOD_ALT">glfw.MOD_ALT</a></li>
+<li><a href="#glfw.MOD_SUPER">glfw.MOD_SUPER</a></li>
+<li><a href="#glfw.MOD_CAPS_LOCK">glfw.MOD_CAPS_LOCK</a></li>
+<li><a href="#glfw.MOD_NUM_LOCK">glfw.MOD_NUM_LOCK</a></li>
+<li><a href="#glfw.MOUSE_BUTTON_1">glfw.MOUSE_BUTTON_1</a></li>
+<li><a href="#glfw.MOUSE_BUTTON_2">glfw.MOUSE_BUTTON_2</a></li>
+<li><a href="#glfw.MOUSE_BUTTON_3">glfw.MOUSE_BUTTON_3</a></li>
+<li><a href="#glfw.MOUSE_BUTTON_4">glfw.MOUSE_BUTTON_4</a></li>
+<li><a href="#glfw.MOUSE_BUTTON_5">glfw.MOUSE_BUTTON_5</a></li>
+<li><a href="#glfw.MOUSE_BUTTON_6">glfw.MOUSE_BUTTON_6</a></li>
+<li><a href="#glfw.MOUSE_BUTTON_7">glfw.MOUSE_BUTTON_7</a></li>
+<li><a href="#glfw.MOUSE_BUTTON_8">glfw.MOUSE_BUTTON_8</a></li>
+<li><a href="#glfw.MOUSE_BUTTON_LAST">glfw.MOUSE_BUTTON_LAST</a></li>
+<li><a href="#glfw.MOUSE_BUTTON_LEFT">glfw.MOUSE_BUTTON_LEFT</a></li>
+<li><a href="#glfw.MOUSE_BUTTON_RIGHT">glfw.MOUSE_BUTTON_RIGHT</a></li>
+<li><a href="#glfw.MOUSE_BUTTON_MIDDLE">glfw.MOUSE_BUTTON_MIDDLE</a></li>
+<li><a href="#glfw.JOYSTICK_1">glfw.JOYSTICK_1</a></li>
+<li><a href="#glfw.JOYSTICK_2">glfw.JOYSTICK_2</a></li>
+<li><a href="#glfw.JOYSTICK_3">glfw.JOYSTICK_3</a></li>
+<li><a href="#glfw.JOYSTICK_4">glfw.JOYSTICK_4</a></li>
+<li><a href="#glfw.JOYSTICK_5">glfw.JOYSTICK_5</a></li>
+<li><a href="#glfw.JOYSTICK_6">glfw.JOYSTICK_6</a></li>
+<li><a href="#glfw.JOYSTICK_7">glfw.JOYSTICK_7</a></li>
+<li><a href="#glfw.JOYSTICK_8">glfw.JOYSTICK_8</a></li>
+<li><a href="#glfw.JOYSTICK_9">glfw.JOYSTICK_9</a></li>
+<li><a href="#glfw.JOYSTICK_10">glfw.JOYSTICK_10</a></li>
+<li><a href="#glfw.JOYSTICK_11">glfw.JOYSTICK_11</a></li>
+<li><a href="#glfw.JOYSTICK_12">glfw.JOYSTICK_12</a></li>
+<li><a href="#glfw.JOYSTICK_13">glfw.JOYSTICK_13</a></li>
+<li><a href="#glfw.JOYSTICK_14">glfw.JOYSTICK_14</a></li>
+<li><a href="#glfw.JOYSTICK_15">glfw.JOYSTICK_15</a></li>
+<li><a href="#glfw.JOYSTICK_16">glfw.JOYSTICK_16</a></li>
+<li><a href="#glfw.JOYSTICK_LAST">glfw.JOYSTICK_LAST</a></li>
+<li><a href="#glfw.GAMEPAD_BUTTON_A">glfw.GAMEPAD_BUTTON_A</a></li>
+<li><a href="#glfw.GAMEPAD_BUTTON_B">glfw.GAMEPAD_BUTTON_B</a></li>
+<li><a href="#glfw.GAMEPAD_BUTTON_X">glfw.GAMEPAD_BUTTON_X</a></li>
+<li><a href="#glfw.GAMEPAD_BUTTON_Y">glfw.GAMEPAD_BUTTON_Y</a></li>
+<li><a href="#glfw.GAMEPAD_BUTTON_LEFT_BUMPER">glfw.GAMEPAD_BUTTON_LEFT_BUMPER</a></li>
+<li><a href="#glfw.GAMEPAD_BUTTON_RIGHT_BUMPER">glfw.GAMEPAD_BUTTON_RIGHT_BUMPER</a></li>
+<li><a href="#glfw.GAMEPAD_BUTTON_BACK">glfw.GAMEPAD_BUTTON_BACK</a></li>
+<li><a href="#glfw.GAMEPAD_BUTTON_START">glfw.GAMEPAD_BUTTON_START</a></li>
+<li><a href="#glfw.GAMEPAD_BUTTON_GUIDE">glfw.GAMEPAD_BUTTON_GUIDE</a></li>
+<li><a href="#glfw.GAMEPAD_BUTTON_LEFT_THUMB">glfw.GAMEPAD_BUTTON_LEFT_THUMB</a></li>
+<li><a href="#glfw.GAMEPAD_BUTTON_RIGHT_THUMB">glfw.GAMEPAD_BUTTON_RIGHT_THUMB</a></li>
+<li><a href="#glfw.GAMEPAD_BUTTON_DPAD_UP">glfw.GAMEPAD_BUTTON_DPAD_UP</a></li>
+<li><a href="#glfw.GAMEPAD_BUTTON_DPAD_RIGHT">glfw.GAMEPAD_BUTTON_DPAD_RIGHT</a></li>
+<li><a href="#glfw.GAMEPAD_BUTTON_DPAD_DOWN">glfw.GAMEPAD_BUTTON_DPAD_DOWN</a></li>
+<li><a href="#glfw.GAMEPAD_BUTTON_DPAD_LEFT">glfw.GAMEPAD_BUTTON_DPAD_LEFT</a></li>
+<li><a href="#glfw.GAMEPAD_BUTTON_LAST">glfw.GAMEPAD_BUTTON_LAST</a></li>
+<li><a href="#glfw.GAMEPAD_BUTTON_CROSS">glfw.GAMEPAD_BUTTON_CROSS</a></li>
+<li><a href="#glfw.GAMEPAD_BUTTON_CIRCLE">glfw.GAMEPAD_BUTTON_CIRCLE</a></li>
+<li><a href="#glfw.GAMEPAD_BUTTON_SQUARE">glfw.GAMEPAD_BUTTON_SQUARE</a></li>
+<li><a href="#glfw.GAMEPAD_BUTTON_TRIANGLE">glfw.GAMEPAD_BUTTON_TRIANGLE</a></li>
+<li><a href="#glfw.GAMEPAD_AXIS_LEFT_X">glfw.GAMEPAD_AXIS_LEFT_X</a></li>
+<li><a href="#glfw.GAMEPAD_AXIS_LEFT_Y">glfw.GAMEPAD_AXIS_LEFT_Y</a></li>
+<li><a href="#glfw.GAMEPAD_AXIS_RIGHT_X">glfw.GAMEPAD_AXIS_RIGHT_X</a></li>
+<li><a href="#glfw.GAMEPAD_AXIS_RIGHT_Y">glfw.GAMEPAD_AXIS_RIGHT_Y</a></li>
+<li><a href="#glfw.GAMEPAD_AXIS_LEFT_TRIGGER">glfw.GAMEPAD_AXIS_LEFT_TRIGGER</a></li>
+<li><a href="#glfw.GAMEPAD_AXIS_RIGHT_TRIGGER">glfw.GAMEPAD_AXIS_RIGHT_TRIGGER</a></li>
+<li><a href="#glfw.GAMEPAD_AXIS_LAST">glfw.GAMEPAD_AXIS_LAST</a></li>
+<li><a href="#glfw.NO_ERROR">glfw.NO_ERROR</a></li>
+<li><a href="#glfw.NOT_INITIALIZED">glfw.NOT_INITIALIZED</a></li>
+<li><a href="#glfw.NO_CURRENT_CONTEXT">glfw.NO_CURRENT_CONTEXT</a></li>
+<li><a href="#glfw.INVALID_ENUM">glfw.INVALID_ENUM</a></li>
+<li><a href="#glfw.INVALID_VALUE">glfw.INVALID_VALUE</a></li>
+<li><a href="#glfw.OUT_OF_MEMORY">glfw.OUT_OF_MEMORY</a></li>
+<li><a href="#glfw.API_UNAVAILABLE">glfw.API_UNAVAILABLE</a></li>
+<li><a href="#glfw.VERSION_UNAVAILABLE">glfw.VERSION_UNAVAILABLE</a></li>
+<li><a href="#glfw.PLATFORM_ERROR">glfw.PLATFORM_ERROR</a></li>
+<li><a href="#glfw.FORMAT_UNAVAILABLE">glfw.FORMAT_UNAVAILABLE</a></li>
+<li><a href="#glfw.NO_WINDOW_CONTEXT">glfw.NO_WINDOW_CONTEXT</a></li>
+<li><a href="#glfw.FOCUSED">glfw.FOCUSED</a></li>
+<li><a href="#glfw.ICONIFIED">glfw.ICONIFIED</a></li>
+<li><a href="#glfw.RESIZABLE">glfw.RESIZABLE</a></li>
+<li><a href="#glfw.VISIBLE">glfw.VISIBLE</a></li>
+<li><a href="#glfw.DECORATED">glfw.DECORATED</a></li>
+<li><a href="#glfw.AUTO_ICONIFY">glfw.AUTO_ICONIFY</a></li>
+<li><a href="#glfw.FLOATING">glfw.FLOATING</a></li>
+<li><a href="#glfw.MAXIMIZED">glfw.MAXIMIZED</a></li>
+<li><a href="#glfw.CENTER_CURSOR">glfw.CENTER_CURSOR</a></li>
+<li><a href="#glfw.TRANSPARENT_FRAMEBUFFER">glfw.TRANSPARENT_FRAMEBUFFER</a></li>
+<li><a href="#glfw.HOVERED">glfw.HOVERED</a></li>
+<li><a href="#glfw.FOCUS_ON_SHOW">glfw.FOCUS_ON_SHOW</a></li>
+<li><a href="#glfw.RED_BITS">glfw.RED_BITS</a></li>
+<li><a href="#glfw.GREEN_BITS">glfw.GREEN_BITS</a></li>
+<li><a href="#glfw.BLUE_BITS">glfw.BLUE_BITS</a></li>
+<li><a href="#glfw.ALPHA_BITS">glfw.ALPHA_BITS</a></li>
+<li><a href="#glfw.DEPTH_BITS">glfw.DEPTH_BITS</a></li>
+<li><a href="#glfw.STENCIL_BITS">glfw.STENCIL_BITS</a></li>
+<li><a href="#glfw.ACCUM_RED_BITS">glfw.ACCUM_RED_BITS</a></li>
+<li><a href="#glfw.ACCUM_GREEN_BITS">glfw.ACCUM_GREEN_BITS</a></li>
+<li><a href="#glfw.ACCUM_BLUE_BITS">glfw.ACCUM_BLUE_BITS</a></li>
+<li><a href="#glfw.ACCUM_ALPHA_BITS">glfw.ACCUM_ALPHA_BITS</a></li>
+<li><a href="#glfw.AUX_BUFFERS">glfw.AUX_BUFFERS</a></li>
+<li><a href="#glfw.STEREO">glfw.STEREO</a></li>
+<li><a href="#glfw.SAMPLES">glfw.SAMPLES</a></li>
+<li><a href="#glfw.SRGB_CAPABLE">glfw.SRGB_CAPABLE</a></li>
+<li><a href="#glfw.REFRESH_RATE">glfw.REFRESH_RATE</a></li>
+<li><a href="#glfw.DOUBLEBUFFER">glfw.DOUBLEBUFFER</a></li>
+<li><a href="#glfw.CLIENT_API">glfw.CLIENT_API</a></li>
+<li><a href="#glfw.CONTEXT_VERSION_MAJOR">glfw.CONTEXT_VERSION_MAJOR</a></li>
+<li><a href="#glfw.CONTEXT_VERSION_MINOR">glfw.CONTEXT_VERSION_MINOR</a></li>
+<li><a href="#glfw.CONTEXT_REVISION">glfw.CONTEXT_REVISION</a></li>
+<li><a href="#glfw.CONTEXT_ROBUSTNESS">glfw.CONTEXT_ROBUSTNESS</a></li>
+<li><a href="#glfw.OPENGL_FORWARD_COMPAT">glfw.OPENGL_FORWARD_COMPAT</a></li>
+<li><a href="#glfw.OPENGL_DEBUG_CONTEXT">glfw.OPENGL_DEBUG_CONTEXT</a></li>
+<li><a href="#glfw.OPENGL_PROFILE">glfw.OPENGL_PROFILE</a></li>
+<li><a href="#glfw.CONTEXT_RELEASE_BEHAVIOR">glfw.CONTEXT_RELEASE_BEHAVIOR</a></li>
+<li><a href="#glfw.CONTEXT_NO_ERROR">glfw.CONTEXT_NO_ERROR</a></li>
+<li><a href="#glfw.CONTEXT_CREATION_API">glfw.CONTEXT_CREATION_API</a></li>
+<li><a href="#glfw.SCALE_TO_MONITOR">glfw.SCALE_TO_MONITOR</a></li>
+<li><a href="#glfw.COCOA_RETINA_FRAMEBUFFER">glfw.COCOA_RETINA_FRAMEBUFFER</a></li>
+<li><a href="#glfw.COCOA_FRAME_NAME">glfw.COCOA_FRAME_NAME</a></li>
+<li><a href="#glfw.COCOA_GRAPHICS_SWITCHING">glfw.COCOA_GRAPHICS_SWITCHING</a></li>
+<li><a href="#glfw.X11_CLASS_NAME">glfw.X11_CLASS_NAME</a></li>
+<li><a href="#glfw.X11_INSTANCE_NAME">glfw.X11_INSTANCE_NAME</a></li>
+<li><a href="#glfw.NO_API">glfw.NO_API</a></li>
+<li><a href="#glfw.OPENGL_API">glfw.OPENGL_API</a></li>
+<li><a href="#glfw.OPENGL_ES_API">glfw.OPENGL_ES_API</a></li>
+<li><a href="#glfw.NO_ROBUSTNESS">glfw.NO_ROBUSTNESS</a></li>
+<li><a href="#glfw.NO_RESET_NOTIFICATION">glfw.NO_RESET_NOTIFICATION</a></li>
+<li><a href="#glfw.LOSE_CONTEXT_ON_RESET">glfw.LOSE_CONTEXT_ON_RESET</a></li>
+<li><a href="#glfw.OPENGL_ANY_PROFILE">glfw.OPENGL_ANY_PROFILE</a></li>
+<li><a href="#glfw.OPENGL_CORE_PROFILE">glfw.OPENGL_CORE_PROFILE</a></li>
+<li><a href="#glfw.OPENGL_COMPAT_PROFILE">glfw.OPENGL_COMPAT_PROFILE</a></li>
+<li><a href="#glfw.CURSOR">glfw.CURSOR</a></li>
+<li><a href="#glfw.STICKY_KEYS">glfw.STICKY_KEYS</a></li>
+<li><a href="#glfw.STICKY_MOUSE_BUTTONS">glfw.STICKY_MOUSE_BUTTONS</a></li>
+<li><a href="#glfw.LOCK_KEY_MODS">glfw.LOCK_KEY_MODS</a></li>
+<li><a href="#glfw.RAW_MOUSE_MOTION">glfw.RAW_MOUSE_MOTION</a></li>
+<li><a href="#glfw.CURSOR_NORMAL">glfw.CURSOR_NORMAL</a></li>
+<li><a href="#glfw.CURSOR_HIDDEN">glfw.CURSOR_HIDDEN</a></li>
+<li><a href="#glfw.CURSOR_DISABLED">glfw.CURSOR_DISABLED</a></li>
+<li><a href="#glfw.ANY_RELEASE_BEHAVIOR">glfw.ANY_RELEASE_BEHAVIOR</a></li>
+<li><a href="#glfw.RELEASE_BEHAVIOR_FLUSH">glfw.RELEASE_BEHAVIOR_FLUSH</a></li>
+<li><a href="#glfw.RELEASE_BEHAVIOR_NONE">glfw.RELEASE_BEHAVIOR_NONE</a></li>
+<li><a href="#glfw.NATIVE_CONTEXT_API">glfw.NATIVE_CONTEXT_API</a></li>
+<li><a href="#glfw.EGL_CONTEXT_API">glfw.EGL_CONTEXT_API</a></li>
+<li><a href="#glfw.OSMESA_CONTEXT_API">glfw.OSMESA_CONTEXT_API</a></li>
+<li><a href="#glfw.ARROW_CURSOR">glfw.ARROW_CURSOR</a></li>
+<li><a href="#glfw.IBEAM_CURSOR">glfw.IBEAM_CURSOR</a></li>
+<li><a href="#glfw.CROSSHAIR_CURSOR">glfw.CROSSHAIR_CURSOR</a></li>
+<li><a href="#glfw.HAND_CURSOR">glfw.HAND_CURSOR</a></li>
+<li><a href="#glfw.HRESIZE_CURSOR">glfw.HRESIZE_CURSOR</a></li>
+<li><a href="#glfw.VRESIZE_CURSOR">glfw.VRESIZE_CURSOR</a></li>
+<li><a href="#glfw.CONNECTED">glfw.CONNECTED</a></li>
+<li><a href="#glfw.DISCONNECTED">glfw.DISCONNECTED</a></li>
+<li><a href="#glfw.JOYSTICK_HAT_BUTTONS">glfw.JOYSTICK_HAT_BUTTONS</a></li>
+<li><a href="#glfw.COCOA_CHDIR_RESOURCES">glfw.COCOA_CHDIR_RESOURCES</a></li>
+<li><a href="#glfw.COCOA_MENUBAR">glfw.COCOA_MENUBAR</a></li>
+<li><a href="#glfw.DONT_CARE">glfw.DONT_CARE</a></li>
+<li><a href="#glfw.Window">glfw.Window</a></li>
+<li><a href="#glfw.Cursor">glfw.Cursor</a></li>
+<li><a href="#glfw.Monitor">glfw.Monitor</a></li>
+<li><a href="#glfw.GLProc">glfw.GLProc</a></li>
+<li><a href="#glfw.VKProc">glfw.VKProc</a></li>
+<li><a href="#glfw.ErrorFun">glfw.ErrorFun</a></li>
+<li><a href="#glfw.WindowPosFun">glfw.WindowPosFun</a></li>
+<li><a href="#glfw.WindowSizeFun">glfw.WindowSizeFun</a></li>
+<li><a href="#glfw.WindowCloseFun">glfw.WindowCloseFun</a></li>
+<li><a href="#glfw.WindowRefreshFun">glfw.WindowRefreshFun</a></li>
+<li><a href="#glfw.WindowFocusFun">glfw.WindowFocusFun</a></li>
+<li><a href="#glfw.WindowIconifyFun">glfw.WindowIconifyFun</a></li>
+<li><a href="#glfw.WindowMaximizeFun">glfw.WindowMaximizeFun</a></li>
+<li><a href="#glfw.FrameBufferSizeFun">glfw.FrameBufferSizeFun</a></li>
+<li><a href="#glfw.WindowContentScaleFun">glfw.WindowContentScaleFun</a></li>
+<li><a href="#glfw.MouseButtonFun">glfw.MouseButtonFun</a></li>
+<li><a href="#glfw.CursorPosFun">glfw.CursorPosFun</a></li>
+<li><a href="#glfw.CursorEnterFun">glfw.CursorEnterFun</a></li>
+<li><a href="#glfw.ScrollFun">glfw.ScrollFun</a></li>
+<li><a href="#glfw.KeyFun">glfw.KeyFun</a></li>
+<li><a href="#glfw.CharFun">glfw.CharFun</a></li>
+<li><a href="#glfw.CharModsFun">glfw.CharModsFun</a></li>
+<li><a href="#glfw.DropFun">glfw.DropFun</a></li>
+<li><a href="#glfw.MonitorFun">glfw.MonitorFun</a></li>
+<li><a href="#glfw.JoystickFun">glfw.JoystickFun</a></li>
+<li><a href="#glfw.VidMode">glfw.VidMode</a></li>
+<li><a href="#glfw.GammaRamp">glfw.GammaRamp</a></li>
+<li><a href="#glfw.Image">glfw.Image</a></li>
+<li><a href="#glfw.GamepadState">glfw.GamepadState</a></li>
+<li><a href="#glfw.Init">glfw.Init</a></li>
+<li><a href="#glfw.Terminate">glfw.Terminate</a></li>
+<li><a href="#glfw.InitHint">glfw.InitHint</a></li>
+<li><a href="#glfw.GetVersion">glfw.GetVersion</a></li>
+<li><a href="#glfw.GetVersionString">glfw.GetVersionString</a></li>
+<li><a href="#glfw.GetError">glfw.GetError</a></li>
+<li><a href="#glfw.SetErrorCallback">glfw.SetErrorCallback</a></li>
+<li><a href="#glfw.GetMonitors">glfw.GetMonitors</a></li>
+<li><a href="#glfw.GetPrimaryMonitor">glfw.GetPrimaryMonitor</a></li>
+<li><a href="#glfw.GetMonitorPos">glfw.GetMonitorPos</a></li>
+<li><a href="#glfw.GetMonitorWorkarea">glfw.GetMonitorWorkarea</a></li>
+<li><a href="#glfw.GetMonitorPhysicalSize">glfw.GetMonitorPhysicalSize</a></li>
+<li><a href="#glfw.GetMonitorContentScale">glfw.GetMonitorContentScale</a></li>
+<li><a href="#glfw.GetMonitorName">glfw.GetMonitorName</a></li>
+<li><a href="#glfw.SetMonitorUserPointer">glfw.SetMonitorUserPointer</a></li>
+<li><a href="#glfw.GetMonitorUserPointer">glfw.GetMonitorUserPointer</a></li>
+<li><a href="#glfw.SetMonitorCallback">glfw.SetMonitorCallback</a></li>
+<li><a href="#glfw.GetVideoModes">glfw.GetVideoModes</a></li>
+<li><a href="#glfw.GetVideoMode">glfw.GetVideoMode</a></li>
+<li><a href="#glfw.SetGamma">glfw.SetGamma</a></li>
+<li><a href="#glfw.GetGammaRamp">glfw.GetGammaRamp</a></li>
+<li><a href="#glfw.SetGammaRamp">glfw.SetGammaRamp</a></li>
+<li><a href="#glfw.DefaultWindowHints">glfw.DefaultWindowHints</a></li>
+<li><a href="#glfw.WindowHint">glfw.WindowHint</a></li>
+<li><a href="#glfw.WindowHintString">glfw.WindowHintString</a></li>
+<li><a href="#glfw.CreateWindow">glfw.CreateWindow</a></li>
+<li><a href="#glfw.DestroyWindow">glfw.DestroyWindow</a></li>
+<li><a href="#glfw.WindowShouldClose">glfw.WindowShouldClose</a></li>
+<li><a href="#glfw.SetWindowShouldClose">glfw.SetWindowShouldClose</a></li>
+<li><a href="#glfw.SetWindowTitle">glfw.SetWindowTitle</a></li>
+<li><a href="#glfw.SetWindowIcon">glfw.SetWindowIcon</a></li>
+<li><a href="#glfw.GetWindowPos">glfw.GetWindowPos</a></li>
+<li><a href="#glfw.SetWindowPos">glfw.SetWindowPos</a></li>
+<li><a href="#glfw.GetWindowSize">glfw.GetWindowSize</a></li>
+<li><a href="#glfw.SetWindowSizeLimits">glfw.SetWindowSizeLimits</a></li>
+<li><a href="#glfw.SetWindowAspectRatio">glfw.SetWindowAspectRatio</a></li>
+<li><a href="#glfw.SetWindowSize">glfw.SetWindowSize</a></li>
+<li><a href="#glfw.GetFramebufferSize">glfw.GetFramebufferSize</a></li>
+<li><a href="#glfw.GetWindowFrameSize">glfw.GetWindowFrameSize</a></li>
+<li><a href="#glfw.GetWindowContentScale">glfw.GetWindowContentScale</a></li>
+<li><a href="#glfw.GetWindowOpacity">glfw.GetWindowOpacity</a></li>
+<li><a href="#glfw.SetWindowOpacity">glfw.SetWindowOpacity</a></li>
+<li><a href="#glfw.IconifyWindow">glfw.IconifyWindow</a></li>
+<li><a href="#glfw.RestoreWindow">glfw.RestoreWindow</a></li>
+<li><a href="#glfw.MaximizeWindow">glfw.MaximizeWindow</a></li>
+<li><a href="#glfw.ShowWindow">glfw.ShowWindow</a></li>
+<li><a href="#glfw.HideWindow">glfw.HideWindow</a></li>
+<li><a href="#glfw.FocusWindow">glfw.FocusWindow</a></li>
+<li><a href="#glfw.RequestWindowAttention">glfw.RequestWindowAttention</a></li>
+<li><a href="#glfw.GetWindowMonitor">glfw.GetWindowMonitor</a></li>
+<li><a href="#glfw.SetWindowMonitor">glfw.SetWindowMonitor</a></li>
+<li><a href="#glfw.GetWindowAttrib">glfw.GetWindowAttrib</a></li>
+<li><a href="#glfw.SetWindowAttrib">glfw.SetWindowAttrib</a></li>
+<li><a href="#glfw.SetWindowUserPointer">glfw.SetWindowUserPointer</a></li>
+<li><a href="#glfw.GetWindowUserPointer">glfw.GetWindowUserPointer</a></li>
+<li><a href="#glfw.SetWindowPosCallback">glfw.SetWindowPosCallback</a></li>
+<li><a href="#glfw.SetWindowSizeCallback">glfw.SetWindowSizeCallback</a></li>
+<li><a href="#glfw.SetWindowCloseCallback">glfw.SetWindowCloseCallback</a></li>
+<li><a href="#glfw.SetWindowRefreshCallback">glfw.SetWindowRefreshCallback</a></li>
+<li><a href="#glfw.SetWindowFocusCallback">glfw.SetWindowFocusCallback</a></li>
+<li><a href="#glfw.SetWindowIconifyCallback">glfw.SetWindowIconifyCallback</a></li>
+<li><a href="#glfw.SetWindowMaximizeCallback">glfw.SetWindowMaximizeCallback</a></li>
+<li><a href="#glfw.SetFramebufferSizeCallback">glfw.SetFramebufferSizeCallback</a></li>
+<li><a href="#glfw.SetWindowContentScaleCallback">glfw.SetWindowContentScaleCallback</a></li>
+<li><a href="#glfw.PollEvents">glfw.PollEvents</a></li>
+<li><a href="#glfw.WaitEvents">glfw.WaitEvents</a></li>
+<li><a href="#glfw.WaitEventsTimeout">glfw.WaitEventsTimeout</a></li>
+<li><a href="#glfw.PostEmptyEvent">glfw.PostEmptyEvent</a></li>
+<li><a href="#glfw.GetInputMode">glfw.GetInputMode</a></li>
+<li><a href="#glfw.SetInputMode">glfw.SetInputMode</a></li>
+<li><a href="#glfw.RawMouseMotionSupported">glfw.RawMouseMotionSupported</a></li>
+<li><a href="#glfw.GetKeyName">glfw.GetKeyName</a></li>
+<li><a href="#glfw.GetKeyScancode">glfw.GetKeyScancode</a></li>
+<li><a href="#glfw.GetKey">glfw.GetKey</a></li>
+<li><a href="#glfw.GetMouseButton">glfw.GetMouseButton</a></li>
+<li><a href="#glfw.GetCursorPos">glfw.GetCursorPos</a></li>
+<li><a href="#glfw.SetCursorPos">glfw.SetCursorPos</a></li>
+<li><a href="#glfw.CreateCursor">glfw.CreateCursor</a></li>
+<li><a href="#glfw.CreateStandardCursor">glfw.CreateStandardCursor</a></li>
+<li><a href="#glfw.DestroyCursor">glfw.DestroyCursor</a></li>
+<li><a href="#glfw.SetCursor">glfw.SetCursor</a></li>
+<li><a href="#glfw.SetKeyCallback">glfw.SetKeyCallback</a></li>
+<li><a href="#glfw.SetCharCallback">glfw.SetCharCallback</a></li>
+<li><a href="#glfw.SetCharModsCallback">glfw.SetCharModsCallback</a></li>
+<li><a href="#glfw.SetMouseButtonCallback">glfw.SetMouseButtonCallback</a></li>
+<li><a href="#glfw.SetCursorPosCallback">glfw.SetCursorPosCallback</a></li>
+<li><a href="#glfw.SetCursorEnterCallback">glfw.SetCursorEnterCallback</a></li>
+<li><a href="#glfw.SetScrollCallback">glfw.SetScrollCallback</a></li>
+<li><a href="#glfw.SetDropCallback">glfw.SetDropCallback</a></li>
+<li><a href="#glfw.JoystickPresent">glfw.JoystickPresent</a></li>
+<li><a href="#glfw.GetJoystickAxes">glfw.GetJoystickAxes</a></li>
+<li><a href="#glfw.GetJoystickButtons">glfw.GetJoystickButtons</a></li>
+<li><a href="#glfw.GetJoystickHats">glfw.GetJoystickHats</a></li>
+<li><a href="#glfw.GetJoystickName">glfw.GetJoystickName</a></li>
+<li><a href="#glfw.GetJoystickGUID">glfw.GetJoystickGUID</a></li>
+<li><a href="#glfw.SetJoystickUserPointer">glfw.SetJoystickUserPointer</a></li>
+<li><a href="#glfw.GetJoystickUserPointer">glfw.GetJoystickUserPointer</a></li>
+<li><a href="#glfw.JoystickIsGamepad">glfw.JoystickIsGamepad</a></li>
+<li><a href="#glfw.SetJoystickCallback">glfw.SetJoystickCallback</a></li>
+<li><a href="#glfw.UpdateGamepadMappings">glfw.UpdateGamepadMappings</a></li>
+<li><a href="#glfw.GetGamepadName">glfw.GetGamepadName</a></li>
+<li><a href="#glfw.GetGamepadState">glfw.GetGamepadState</a></li>
+<li><a href="#glfw.SetClipboardString">glfw.SetClipboardString</a></li>
+<li><a href="#glfw.GetClipboardString">glfw.GetClipboardString</a></li>
+<li><a href="#glfw.GetTime">glfw.GetTime</a></li>
+<li><a href="#glfw.SetTime">glfw.SetTime</a></li>
+<li><a href="#glfw.GetTimerValue">glfw.GetTimerValue</a></li>
+<li><a href="#glfw.GetTimerFrequency">glfw.GetTimerFrequency</a></li>
+<li><a href="#glfw.MakeContextCurrent">glfw.MakeContextCurrent</a></li>
+<li><a href="#glfw.GetCurrentContext">glfw.GetCurrentContext</a></li>
+<li><a href="#glfw.SwapBuffers">glfw.SwapBuffers</a></li>
+<li><a href="#glfw.SwapInterval">glfw.SwapInterval</a></li>
+<li><a href="#glfw.ExtensionSupported">glfw.ExtensionSupported</a></li>
+<li><a href="#glfw.GetProcAddress">glfw.GetProcAddress</a></li>
+<li><a href="#glfw.VulkanSupported">glfw.VulkanSupported</a></li>
+<li><a href="#glfw.GetRequiredInstanceExtensions">glfw.GetRequiredInstanceExtensions</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

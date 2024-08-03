@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="Dynamic-Library-Tools">Dynamic Library Tools</h1>
+<p><code>#import "std/dlib"</code></p>
+<p>Dynamic library tools for runtime library loading and symbol resolving.</p>
+<h2 id="std.Library">std.Library</h2>
+
+<pre><code>Library :: *u8
+</code></pre>
+<p>Platform specific library handle.</p>
+<p><em>File: dlib.bl</em></p>
+<h2 id="std.library_open">std.library_open</h2>
+
+<pre><code>library_open :: fn (lib_name :: std.str_view_empty) (_0: Library, _1: Error) #inline
+</code></pre>
+<p>Dynamically loads library specified by <code>lib_name</code> and return it's handle or null with error.
+When <code>lib_name</code> is empty, current binary will be loaded. Use <code>library_close</code> call to close
+library when it's not needed anymore.</p>
+<p><em>File: dlib.bl</em></p>
+<h2 id="std.library_get_symbol">std.library_get_symbol</h2>
+
+<pre><code>library_get_symbol :: fn (lib: Library, sym_name: string_view) (_0: *u8, _1: Error) #inline
+</code></pre>
+<p>Resolve named symbol in library and return pointer to it.</p>
+<p><em>File: dlib.bl</em></p>
+<h2 id="std.library_close">std.library_close</h2>
+
+<pre><code>library_close :: fn (lib: Library)  #inline
+</code></pre>
+<p>Close library opened by <code>lirary_open</code> call.</p>
+<p><em>File: dlib.bl</em></p>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#Dynamic-Library-Tools">Dynamic Library Tools</a></li>
+<ul>
+<li><a href="#std.Library">std.Library</a></li>
+<li><a href="#std.library_open">std.library_open</a></li>
+<li><a href="#std.library_get_symbol">std.library_get_symbol</a></li>
+<li><a href="#std.library_close">std.library_close</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

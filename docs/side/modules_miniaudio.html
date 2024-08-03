@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="miniaudio.bl">miniaudio.bl</h1>
+<h2 id="miniaudio.MA_MAX_NODE_LOCAL_BUS_COUNT">miniaudio.MA_MAX_NODE_LOCAL_BUS_COUNT</h2>
+
+<pre><code>MA_MAX_NODE_LOCAL_BUS_COUNT :: 2
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.MA_ENGINE_MAX_LISTENERS">miniaudio.MA_ENGINE_MAX_LISTENERS</h2>
+
+<pre><code>MA_ENGINE_MAX_LISTENERS :: 4
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.MA_SIZEOF_PTR">miniaudio.MA_SIZEOF_PTR</h2>
+
+<pre><code>MA_SIZEOF_PTR : usize : 8
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.MA_RESOURCE_MANAGER_MAX_JOB_THREAD_COUNT">miniaudio.MA_RESOURCE_MANAGER_MAX_JOB_THREAD_COUNT</h2>
+
+<pre><code>MA_RESOURCE_MANAGER_MAX_JOB_THREAD_COUNT :: 64
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.MA_MAX_LOG_CALLBACKS">miniaudio.MA_MAX_LOG_CALLBACKS</h2>
+
+<pre><code>MA_MAX_LOG_CALLBACKS :: 4
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_int8">miniaudio.ma_int8</h2>
+
+<pre><code>ma_int8 :: s8
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_uint8">miniaudio.ma_uint8</h2>
+
+<pre><code>ma_uint8 :: u8
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_int16">miniaudio.ma_int16</h2>
+
+<pre><code>ma_int16 :: s16
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_uint16">miniaudio.ma_uint16</h2>
+
+<pre><code>ma_uint16 :: u16
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_int32">miniaudio.ma_int32</h2>
+
+<pre><code>ma_int32 :: s32
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_uint32">miniaudio.ma_uint32</h2>
+
+<pre><code>ma_uint32 :: u32
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_int64">miniaudio.ma_int64</h2>
+
+<pre><code>ma_int64 :: s64
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_uint64">miniaudio.ma_uint64</h2>
+
+<pre><code>ma_uint64 :: u64
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_bool8">miniaudio.ma_bool8</h2>
+
+<pre><code>ma_bool8 :: s8
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_bool32">miniaudio.ma_bool32</h2>
+
+<pre><code>ma_bool32 :: s32
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_mutex">miniaudio.ma_mutex</h2>
+
+<pre><code>ma_mutex :: 
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_node_vtable">miniaudio.ma_node_vtable</h2>
+
+<pre><code>ma_node_vtable :: u8
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_data_source_vtable">miniaudio.ma_data_source_vtable</h2>
+
+<pre><code>ma_data_source_vtable :: u8
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_decoding_backend_vtable">miniaudio.ma_decoding_backend_vtable</h2>
+
+<pre><code>ma_decoding_backend_vtable :: u8
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_resampling_backend_vtable">miniaudio.ma_resampling_backend_vtable</h2>
+
+<pre><code>ma_resampling_backend_vtable :: u8
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_node">miniaudio.ma_node</h2>
+
+<pre><code>ma_node :: u8
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_spinlock">miniaudio.ma_spinlock</h2>
+
+<pre><code>ma_spinlock :: u32
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_data_source">miniaudio.ma_data_source</h2>
+
+<pre><code>ma_data_source :: u8
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_resampling_backend">miniaudio.ma_resampling_backend</h2>
+
+<pre><code>ma_resampling_backend :: u8
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_vfs">miniaudio.ma_vfs</h2>
+
+<pre><code>ma_vfs :: u8
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_handle">miniaudio.ma_handle</h2>
+
+<pre><code>ma_handle :: C.void_ptr
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_vfs_file">miniaudio.ma_vfs_file</h2>
+
+<pre><code>ma_vfs_file :: ma_handle
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.MA_ATOMIC">miniaudio.MA_ATOMIC</h2>
+
+<pre><code>MA_ATOMIC :: fn (alignment: usize, T: type) type
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_device_type">miniaudio.ma_device_type</h2>
+
+<pre><code>ma_device_type :: enum {
+    DEVICE_TYPE_PLAYBACK = 1;
+    DEVICE_TYPE_CAPTURE = 2;
+    DEVICE_TYPE_DUPLEX;
+    DEVICE_TYPE_LOOPBACK = 4;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_enum_devices_callback_proc">miniaudio.ma_enum_devices_callback_proc</h2>
+
+<pre><code>ma_enum_devices_callback_proc :: *fn (pContext: *ma_context, deviceType: ma_device_type, pInfo: *ma_device_info, pUserData: C.void_ptr) ma_bool32
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_backend_callbacks">miniaudio.ma_backend_callbacks</h2>
+
+<pre><code>ma_backend_callbacks :: struct {
+    onContextInit: *fn (pContext: *ma_context, pConfig: *ma_context_config, pCallbacks: *ma_backend_callbacks) ma_result;
+    onContextUninit: *fn (pContext: *ma_context) ma_result;
+    onContextEnumerateDevices: *fn (pContext: *ma_context, callback: ma_enum_devices_callback_proc, pUserData: C.void_ptr) ma_result;
+    onContextGetDeviceInfo: *fn (pContext: *ma_context, deviceType: ma_device_type, pDeviceID: *ma_device_id, pDeviceInfo: *ma_device_info) ma_result;
+    onDeviceInit: *fn (pDevice: *ma_device, pConfig: *ma_device_config, pDescriptorPlayback: *ma_device_descriptor, pDescriptorCapture: *ma_device_descriptor) ma_result;
+    onDeviceUninit: *fn (pDevice: *ma_device) ma_result;
+    onDeviceStart: *fn (pDevice: *ma_device) ma_result;
+    onDeviceStop: *fn (pDevice: *ma_device) ma_result;
+    onDeviceRead: *fn (pDevice: *ma_device, pFrames: C.void_ptr, frameCount: ma_uint32, pFramesRead: *ma_uint32) ma_result;
+    onDeviceWrite: *fn (pDevice: *ma_device, pFrames: C.void_ptr, frameCount: ma_uint32, pFramesWritten: *ma_uint32) ma_result;
+    onDeviceDataLoop: *fn (pDevice: *ma_device) ma_result;
+    onDeviceDataLoopWakeup: *fn (pDevice: *ma_device) ma_result;
+    onDeviceGetInfo: *fn (pDevice: *ma_device, device_type: ma_device_type, pDeviceInfol: *ma_device_info) ma_result;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_thread_priority">miniaudio.ma_thread_priority</h2>
+
+<pre><code>ma_thread_priority :: enum {
+    THREAD_PRIORITY_IDLE;
+    THREAD_PRIORITY_LOWEST;
+    THREAD_PRIORITY_LOW;
+    THREAD_PRIORITY_NORMAL;
+    THREAD_PRIORITY_HIGH;
+    THREAD_PRIORITY_HIGHEST = 0;
+    THREAD_PRIORITY_REALTIME = 1;
+    THREAD_PRIORITY_DEFAULT = 0;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_ios_session_category">miniaudio.ma_ios_session_category</h2>
+
+<pre><code>ma_ios_session_category :: enum {
+    IOS_SESSION_CATEGORY_DEFAULT = 0;
+    IOS_SESSION_CATEGORY_NONE;
+    IOS_SESSION_CATEGORY_AMBIENT;
+    IOS_SESSION_CATEGORY_SOLO_AMBIENT;
+    IOS_SESSION_CATEGORY_PLAYBACK;
+    IOS_SESSION_CATEGORY_RECORD;
+    IOS_SESSION_CATEGORY_PLAY_AND_RECORD;
+    IOS_SESSION_CATEGORY_MULTI_ROUTE;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_context_config">miniaudio.ma_context_config</h2>
+
+<pre><code>ma_context_config :: struct {
+    pLog: *ma_log;
+    threadPriority: ma_thread_priority;
+    threadStackSize: usize;
+    pUserData: C.void_ptr;
+    allocationCallbacks: ma_allocation_callbacks;
+    alsa: struct {
+        useVerboseDeviceEnumeration: ma_bool32;
+    };
+    pulse: struct {
+        pApplicationName: *C.char;
+        pServerName: *C.char;
+        tryAutoSpawn: ma_bool32;
+    };
+    coreaudio: struct {
+        sessionCategory: ma_ios_session_category;
+        sessionCategoryOptions: ma_uint32;
+        noAudioSessionActivate: ma_bool32;
+        noAudioSessionDeactivate: ma_bool32;
+    };
+    jack: struct {
+        pClientName: *C.char;
+        tryStartServer: ma_bool32;
+    };
+    custom: ma_backend_callbacks;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound_flags">miniaudio.ma_sound_flags</h2>
+
+<pre><code>ma_sound_flags :: enum {
+    SOUND_FLAG_STREAM = 1;
+    SOUND_FLAG_DECODE = 2;
+    SOUND_FLAG_ASYNC = 4;
+    SOUND_FLAG_WAIT_INIT = 8;
+    SOUND_FLAG_NO_DEFAULT_ATTACHMENT = 16;
+    SOUND_FLAG_NO_PITCH = 32;
+    SOUND_FLAG_NO_SPATIALIZATION = 64;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound_config">miniaudio.ma_sound_config</h2>
+
+<pre><code>ma_sound_config :: struct {
+    pFilePath: *C.char;
+    pFilePathW: *u8;
+    pDataSource: *ma_data_source;
+    pInitialAttachment: ma_node;
+    initialAttachmentInputBusIndex: ma_uint32;
+    channelsIn: ma_uint32;
+    channelsOut: ma_uint32;
+    flags: ma_uint32;
+    initialSeekPointInPCMFrames: ma_uint64;
+    rangeBegInPCMFrames: ma_uint64;
+    rangeEndInPCMFrames: ma_uint64;
+    loopPointBegInPCMFrames: ma_uint64;
+    loopPointEndInPCMFrames: ma_uint64;
+    isLooping: ma_bool32;
+    pDoneFence: *ma_fence;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound_group_config">miniaudio.ma_sound_group_config</h2>
+
+<pre><code>ma_sound_group_config :: ma_sound_config
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound_group">miniaudio.ma_sound_group</h2>
+
+<pre><code>ma_sound_group :: ma_sound
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound_inlined">miniaudio.ma_sound_inlined</h2>
+
+<pre><code>ma_sound_inlined :: struct {
+    sound: ma_sound;
+    pNext: *ma_sound_inlined;
+    pPrev: *ma_sound_inlined;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_resource_manager_data_stream">miniaudio.ma_resource_manager_data_stream</h2>
+
+<pre><code>ma_resource_manager_data_stream :: struct {
+    ds: ma_data_source_base;
+    pResourceManager: *ma_resource_manager;
+    flags: ma_uint32;
+    decoder: ma_decoder;
+    isDecoderInitialized: ma_bool32;
+    totalLengthInPCMFrames: ma_uint64;
+    relativeCursor: ma_uint32;
+    absoluteCursor: ;
+    currentPageIndex: ma_uint32;
+    executionCounter: ;
+    executionPointer: ;
+    isLooping: ;
+    pPageData: C.void_ptr;
+    pageFrameCount: ;
+    result: ;
+    isDecoderAtEnd: ;
+    isPageValid: ;
+    seekCounter: ;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_resource_manager_data_source">miniaudio.ma_resource_manager_data_source</h2>
+
+<pre><code>ma_resource_manager_data_source :: struct {
+    backend: union {
+        buffer: ma_resource_manager_data_buffer;
+        stream: ma_resource_manager_data_stream;
+    };
+    flags: ma_uint32;
+    executionCounter: ;
+    executionPointer: ;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_paged_audio_buffer">miniaudio.ma_paged_audio_buffer</h2>
+
+<pre><code>ma_paged_audio_buffer :: struct {
+    ds: ma_data_source_base;
+    pData: *ma_paged_audio_buffer_data;
+    pCurrent: *ma_paged_audio_buffer_page;
+    relativeCursor: ma_uint64;
+    absoluteCursor: ma_uint64;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_resource_manager_data_buffer">miniaudio.ma_resource_manager_data_buffer</h2>
+
+<pre><code>ma_resource_manager_data_buffer :: struct {
+    ds: ma_data_source_base;
+    pResourceManager: *ma_resource_manager;
+    pNode: *ma_resource_manager_data_buffer_node;
+    flags: ma_uint32;
+    executionCounter: ;
+    executionPointer: ;
+    seekTargetInPCMFrames: ma_uint64;
+    seekToCursorOnNextRead: ma_bool32;
+    result: ;
+    isLooping: ;
+    isConnectorInitialized: ma_bool32;
+    connector: union {
+        decoder: ma_decoder;
+        buffer: ma_audio_buffer;
+        pagedBuffer: ma_paged_audio_buffer;
+    };
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_seek_origin">miniaudio.ma_seek_origin</h2>
+
+<pre><code>ma_seek_origin :: enum {
+    SEEK_ORIGIN_START;
+    SEEK_ORIGIN_CURRENT;
+    SEEK_ORIGIN_END;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_decoder_read_proc">miniaudio.ma_decoder_read_proc</h2>
+
+<pre><code>ma_decoder_read_proc :: *fn (pDecoder: *ma_decoder, pBufferOut: C.void_ptr, bytesToRead: usize, pBytesRead: *usize) ma_result
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_decoder_seek_proc">miniaudio.ma_decoder_seek_proc</h2>
+
+<pre><code>ma_decoder_seek_proc :: *fn (pDecoder: *ma_decoder, byteOffset: ma_int64, origin: ma_seek_origin) ma_result
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_decoder_tell_proc">miniaudio.ma_decoder_tell_proc</h2>
+
+<pre><code>ma_decoder_tell_proc :: *fn (pDecoder: *ma_decoder, pCursor: *ma_int64, origin: ma_seek_origin) ma_result
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_decoder">miniaudio.ma_decoder</h2>
+
+<pre><code>ma_decoder :: struct {
+    ds: ma_data_source_base;
+    pBackend: *ma_data_source;
+    pBackendVTable: *ma_decoding_backend_vtable;
+    pBackendUserData: C.void_ptr;
+    onRead: ma_decoder_read_proc;
+    onSeek: ma_decoder_seek_proc;
+    onTell: ma_decoder_tell_proc;
+    pUserData: C.void_ptr;
+    readPointerInPCMFrames: ma_uint64;
+    outputFormat: ma_format;
+    outputChannels: ma_uint32;
+    outputSampleRate: ma_uint32;
+    converter: ma_data_converter;
+    pInputCache: C.void_ptr;
+    inputCacheCap: ma_uint64;
+    inputCacheConsumed: ma_uint64;
+    inputCacheRemaining: ma_uint64;
+    allocationCallbacks: ma_allocation_callbacks;
+    data: union {
+        vfs: struct {
+            pVFS: *ma_vfs;
+            file: ma_vfs_file;
+        };
+        memory: struct {
+            pData: *ma_uint8;
+            dataSize: usize;
+            currentReadPos: usize;
+        };
+    };
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_audio_buffer_ref">miniaudio.ma_audio_buffer_ref</h2>
+
+<pre><code>ma_audio_buffer_ref :: struct {
+    ds: ma_data_source_base;
+    format: ma_format;
+    channels: ma_uint32;
+    cursor: ma_uint64;
+    sizeInFrames: ma_uint64;
+    pData: C.void_ptr;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_audio_buffer">miniaudio.ma_audio_buffer</h2>
+
+<pre><code>ma_audio_buffer :: struct {
+    ref: ma_audio_buffer_ref;
+    allocationCallbacks: ma_allocation_callbacks;
+    ownsData: ma_bool32;
+    _pExtraData: ;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_channel_converter">miniaudio.ma_channel_converter</h2>
+
+<pre><code>ma_channel_converter :: struct {
+    format: ma_format;
+    channelsIn: ma_uint32;
+    channelsOut: ma_uint32;
+    mixingMode: ma_channel_mix_mode;
+    conversionPath: ma_channel_conversion_path;
+    pChannelMapIn: *ma_channel;
+    pChannelMapOut: *ma_channel;
+    pShuffleTable: ma_uint8;
+    weights: union {
+        float: **f32;
+        int16: **s16;
+    };
+    _pHeap: C.void_ptr;
+    _ownsHeap: ma_bool32;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_channel_conversion_path">miniaudio.ma_channel_conversion_path</h2>
+
+<pre><code>ma_channel_conversion_path :: enum {
+    CHANNEL_CONVERSION_PATH_UNKNOWN;
+    CHANNEL_CONVERSION_PATH_PASSTHROUGH;
+    CHANNEL_CONVERSION_PATH_MONO_OUT;
+    CHANNEL_CONVERSION_PATH_MONO_IN;
+    CHANNEL_CONVERSION_PATH_SHUFFLE;
+    CHANNEL_CONVERSION_PATH_WEIGHTS;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_channel_mix_mode">miniaudio.ma_channel_mix_mode</h2>
+
+<pre><code>ma_channel_mix_mode :: enum {
+    CHANNEL_MIX_MODE_RECTANGULAR = 0;
+    CHANNEL_MIX_MODE_SIMPLE;
+    CHANNEL_MIX_MODE_CUSTOM_WEIGHTS;
+    CHANNEL_MIX_MODE_DEFAULT;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_data_converter">miniaudio.ma_data_converter</h2>
+
+<pre><code>ma_data_converter :: struct {
+    formatIn: ma_format;
+    formatOut: ma_format;
+    channelsIn: ma_uint32;
+    channelsOut: ma_uint32;
+    sampleRateIn: ma_uint32;
+    sampleRateOut: ma_uint32;
+    ditherMode: ma_dither_mode;
+    executionPath: ma_data_converter_execution_path;
+    channelConverter: ma_channel_converter;
+    resampler: ma_resampler;
+    hasPreFormatConversion: ma_bool8;
+    hasPostFormatConversion: ma_bool8;
+    hasChannelConverter: ma_bool8;
+    hasResampler: ma_bool8;
+    isPassthrough: ma_bool8;
+    _ownsHeap: ma_bool8;
+    _pHeap: C.void_ptr;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_resample_algorithm">miniaudio.ma_resample_algorithm</h2>
+
+<pre><code>ma_resample_algorithm :: enum {
+    RESAMPLE_ALGORITHM_LINEAR;
+    RESAMPLE_ALGORITHM_CUSTOM;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_resampler_config">miniaudio.ma_resampler_config</h2>
+
+<pre><code>ma_resampler_config :: struct {
+    format: ma_format;
+    channels: ma_uint32;
+    sampleRateIn: ma_uint32;
+    sampleRateOut: ma_uint32;
+    algorithm: ma_resample_algorithm;
+    pBackendVTable: *ma_resampling_backend_vtable;
+    pBackendUserData: C.void_ptr;
+    linear: struct {
+        lpfOrder: ma_uint32;
+    };
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_resampler">miniaudio.ma_resampler</h2>
+
+<pre><code>ma_resampler :: struct {
+    pBackend: *ma_resampling_backend;
+    pBackendVTable: *ma_resampling_backend_vtable;
+    pBackendUserData: C.void_ptr;
+    format: ma_format;
+    channels: ma_uint32;
+    sampleRateIn: ma_uint32;
+    sampleRateOut: ma_uint32;
+    state: union {
+        linear: ma_linear_resampler;
+    };
+    _pHeap: C.void_ptr;
+    _ownsHeap: ma_bool32;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_dither_mode">miniaudio.ma_dither_mode</h2>
+
+<pre><code>ma_dither_mode :: enum {
+    DITHER_MODE_NONE = 0;
+    DITHER_MODE_RECTANGLE;
+    DITHER_MODE_TRIANGLE;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_data_converter_execution_path">miniaudio.ma_data_converter_execution_path</h2>
+
+<pre><code>ma_data_converter_execution_path :: enum {
+    DATA_CONVERTER_EXECUTION_PATH_PASSTHROUGH;
+    DATA_CONVERTER_EXECUTION_PATH_FORMAT_ONLY;
+    DATA_CONVERTER_EXECUTION_PATH_CHANNELS_ONLY;
+    DATA_CONVERTER_EXECUTION_PATH_RESAMPLE_ONLY;
+    DATA_CONVERTER_EXECUTION_PATH_RESAMPLE_FIRST;
+    DATA_CONVERTER_EXECUTION_PATH_CHANNELS_FIRST;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_data_source_base">miniaudio.ma_data_source_base</h2>
+
+<pre><code>ma_data_source_base :: struct {
+    vtable: *ma_data_source_vtable;
+    rangeBegInFrames: ma_uint64;
+    rangeEndInFrames: ma_uint64;
+    loopBegInFrames: ma_uint64;
+    loopEndInFrames: ma_uint64;
+    pCurrent: *ma_data_source;
+    pNext: *ma_data_source;
+    onGetNext: ma_data_source_get_next_proc;
+    isLooping: ;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_data_source_get_next_proc">miniaudio.ma_data_source_get_next_proc</h2>
+
+<pre><code>ma_data_source_get_next_proc :: *fn (pDataSource: ma_data_source) *ma_data_source
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_resource_manager_data_buffer_node">miniaudio.ma_resource_manager_data_buffer_node</h2>
+
+<pre><code>ma_resource_manager_data_buffer_node :: struct {
+    hashedName32: ma_uint32;
+    refCount: ma_uint32;
+    result: ;
+    executionCounter: ;
+    executionPointer: ;
+    isDataOwnedByResourceManager: ma_bool32;
+    data: ma_resource_manager_data_supply;
+    pParent: *ma_resource_manager_data_buffer_node;
+    pChildLo: *ma_resource_manager_data_buffer_node;
+    pChildHi: *ma_resource_manager_data_buffer_node;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_resource_manager_data_supply_type">miniaudio.ma_resource_manager_data_supply_type</h2>
+
+<pre><code>ma_resource_manager_data_supply_type :: enum {
+    RESOURCE_MANAGER_DATA_SUPPLY_TYPE_UNKNOWN = 0;
+    RESOURCE_MANAGER_DATA_SUPPLY_TYPE_ENCODED;
+    RESOURCE_MANAGER_DATA_SUPPLY_TYPE_DECODED;
+    RESOURCE_MANAGER_DATA_SUPPLY_TYPE_DECODED_PAGED;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_resource_manager_data_supply">miniaudio.ma_resource_manager_data_supply</h2>
+
+<pre><code>ma_resource_manager_data_supply :: struct {
+    t: ;
+    backend: union {
+        encoded: struct {
+            pData: C.void_ptr;
+            sizeInBytes: usize;
+        };
+        decoded: struct {
+            pData: C.void_ptr;
+            totalFrameCount: ma_uint64;
+            decodedFrameCount: ma_uint64;
+            format: ma_format;
+            channels: ma_uint32;
+            sampleRate: ma_uint32;
+        };
+        decodedPaged: struct {
+            data: ma_paged_audio_buffer_data;
+            decodedFrameCount: ma_uint64;
+            sampleRate: ma_uint32;
+        };
+    };
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_paged_audio_buffer_page">miniaudio.ma_paged_audio_buffer_page</h2>
+
+<pre><code>ma_paged_audio_buffer_page :: struct {
+    pNext: ;
+    sizeInFrames: ma_uint64;
+    pAudioData: ;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_paged_audio_buffer_data">miniaudio.ma_paged_audio_buffer_data</h2>
+
+<pre><code>ma_paged_audio_buffer_data :: struct {
+    format: ma_format;
+    channels: ma_uint32;
+    head: ma_paged_audio_buffer_page;
+    pTail: ;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_format">miniaudio.ma_format</h2>
+
+<pre><code>ma_format :: enum {
+    FORMAT_UNKNOWN = 0;
+    FORMAT_U8 = 1;
+    FORMAT_S16 = 2;
+    FORMAT_S24 = 3;
+    FORMAT_S32 = 4;
+    FORMAT_F32 = 5;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_linear_resampler_config">miniaudio.ma_linear_resampler_config</h2>
+
+<pre><code>ma_linear_resampler_config :: struct {
+    format: ma_format;
+    channels: ma_uint32;
+    sampleRateIn: ma_uint32;
+    sampleRateOut: ma_uint32;
+    lpfOrder: ma_uint32;
+    lpfNyquistFactor: f64;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_linear_resampler">miniaudio.ma_linear_resampler</h2>
+
+<pre><code>ma_linear_resampler :: struct {
+    config: ma_linear_resampler_config;
+    inAdvanceInt: ma_uint32;
+    inAdvanceFrac: ma_uint32;
+    inTimeInt: ma_uint32;
+    inTimeFrac: ma_uint32;
+    x0: union {
+        float: *f32;
+        int16: *s16;
+    };
+    x2: union {
+        float: *f32;
+        int16: *s16;
+    };
+    lpf: ma_lpf;
+    _pHeap: C.void_ptr;
+    _ownsHeap: ma_bool32;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_spatializer">miniaudio.ma_spatializer</h2>
+
+<pre><code>ma_spatializer :: struct {
+    channelsIn: ma_uint32;
+    channelsOut: ma_uint32;
+    pChannelMapIn: *ma_channel;
+    attenuationModel: ma_attenuation_model;
+    positioning: ma_positioning;
+    handedness: ma_handedness;
+    minGain: f32;
+    maxGain: f32;
+    minDistance: f32;
+    maxDistance: f32;
+    rolloff: f32;
+    coneInnerAngleInRadians: f32;
+    coneOuterAngleInRadians: f32;
+    coneOuterGain: f32;
+    dopplerFactor: f32;
+    directionalAttenuationFactor: f32;
+    gainSmoothTimeInFrames: ma_uint32;
+    position: ma_vec3f;
+    direction: ma_vec3f;
+    velocity: ma_vec3f;
+    dopplerPitch: f32;
+    gainer: ma_gainer;
+    pNewChannelGainsOut: f32;
+    _pHeap: C.void_ptr;
+    _ownsHeap: ma_bool32;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_attenuation_model">miniaudio.ma_attenuation_model</h2>
+
+<pre><code>ma_attenuation_model :: enum {
+    ATTENUATION_MODEL_NONE;
+    ATTENUATION_MODEL_INVERSE;
+    ATTENUATION_MODEL_LINEAR;
+    ATTENUATION_MODEL_EXPONENTIAL;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_engine_node">miniaudio.ma_engine_node</h2>
+
+<pre><code>ma_engine_node :: struct {
+    baseNode: ma_node_base;
+    pEngine: *ma_engine;
+    sampleRate: ma_uint32;
+    fader: ma_fader;
+    resampler: ma_linear_resampler;
+    spatializer: ma_spatializer;
+    panner: ma_panner;
+    pitch: ;
+    oldPitch: f32;
+    oldDopplerPitch: f32;
+    isPitchDisabled: ;
+    isSpatializationDisabled: ;
+    pinnedListenerIndex: ;
+    _ownsHeap: ma_bool8;
+    _pHeap: C.void_ptr;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_lpf">miniaudio.ma_lpf</h2>
+
+<pre><code>ma_lpf :: struct {
+    format: ma_format;
+    channels: ma_uint32;
+    sampleRate: ma_uint32;
+    lpf1Count: ma_uint32;
+    lpf2Count: ma_uint32;
+    pLPF1: *ma_lpf1;
+    pLPF2: *ma_lpf2;
+    _ownsHeap: ma_bool8;
+    _pHeap: C.void_ptr;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_lpf1">miniaudio.ma_lpf1</h2>
+
+<pre><code>ma_lpf1 :: struct {
+    format: ma_format;
+    channels: ma_uint32;
+    a: ma_biquad_coefficient;
+    pR1: *ma_biquad_coefficient;
+    _pHeap: C.void_ptr;
+    _ownsHeap: ma_bool8;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_lpf2">miniaudio.ma_lpf2</h2>
+
+<pre><code>ma_lpf2 :: struct {
+    bq: ma_biquad;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_biquad_coefficient">miniaudio.ma_biquad_coefficient</h2>
+
+<pre><code>ma_biquad_coefficient :: union {
+    float: f32;
+    int: s32;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_biquad_config">miniaudio.ma_biquad_config</h2>
+
+<pre><code>ma_biquad_config :: struct {
+    format: ma_format;
+    channels: ma_uint32;
+    b0: f64;
+    b1: f64;
+    b2: f64;
+    a0: f64;
+    a1: f64;
+    a2: f64;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_biquad">miniaudio.ma_biquad</h2>
+
+<pre><code>ma_biquad :: struct {
+    format: ma_format;
+    channels: ma_uint32;
+    b0: ma_biquad_coefficient;
+    b1: ma_biquad_coefficient;
+    b2: ma_biquad_coefficient;
+    a1: ma_biquad_coefficient;
+    a2: ma_biquad_coefficient;
+    pR1: *ma_biquad_coefficient;
+    pR2: *ma_biquad_coefficient;
+    _pHeap: C.void_ptr;
+    _ownsHeap: ma_bool8;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_fader_config">miniaudio.ma_fader_config</h2>
+
+<pre><code>ma_fader_config :: struct {
+    format: ma_format;
+    channels: ma_uint32;
+    sampleRate: ma_uint32;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_fader">miniaudio.ma_fader</h2>
+
+<pre><code>ma_fader :: struct {
+    config: ma_fader_config;
+    volumeBeg: f32;
+    volumeEnd: f32;
+    lengthInFrames: ma_uint64;
+    cursorInFrames: ma_uint64;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound">miniaudio.ma_sound</h2>
+
+<pre><code>ma_sound :: struct {
+    engineNode: ma_engine_node;
+    pDataSource: *ma_data_source;
+    seekTarget: ma_uint64;
+    atEnd: ;
+    ownsDataSource: ma_bool8;
+    pResourceManagerDataSource: *ma_resource_manager_data_source;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_node_output_bus">miniaudio.ma_node_output_bus</h2>
+
+<pre><code>ma_node_output_bus :: struct {
+    pNode: *ma_node;
+    outputBusIndex: u8;
+    channels: u8;
+    inputma_node_input_busIndex: u8;
+    flags: u32;
+    refCount: u32;
+    isAttached: u32;
+    lock: ma_spinlock;
+    volume: f32;
+    pNext: *ma_node_output_bus;
+    pPrev: *ma_node_output_bus;
+    pInputNode: *ma_node;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_node_input_bus">miniaudio.ma_node_input_bus</h2>
+
+<pre><code>ma_node_input_bus :: struct {
+    head: ma_node_output_bus;
+    nextCounter: u32;
+    lock: ma_spinlock;
+    channels: u8;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_node_graph">miniaudio.ma_node_graph</h2>
+
+<pre><code>ma_node_graph :: struct {
+    base: ma_node_base;
+    endpoint: ma_node_base;
+    nodeCacheCapInFrames: u16;
+    isReading: u32;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_node_state">miniaudio.ma_node_state</h2>
+
+<pre><code>ma_node_state :: enum {
+    NODE_STATE_STARTED = 0;
+    NODE_STATE_STOPPED = 1;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_positioning">miniaudio.ma_positioning</h2>
+
+<pre><code>ma_positioning :: enum {
+    MA_POSITIONING_ABSOLUTE;
+    MA_POSITIONING_RELATIVE;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_node_base">miniaudio.ma_node_base</h2>
+
+<pre><code>ma_node_base :: struct {
+    pNodeGraph: *ma_node_graph;
+    vtable: *ma_node_vtable;
+    pCachedData: *f32;
+    cachedDataCapInFramesPerBus: u16;
+    cachedFrameCountOut: u16;
+    cachedFrameCountIn: u16;
+    consumedFrameCountIn: u16;
+    state: ma_node_state;
+    stateTimes: ;
+    localTime: u64;
+    inputBusCount: u32;
+    outputBusCount: u32;
+    pInputBuses: *ma_node_input_bus;
+    pOutputBuses: *ma_node_output_bus;
+    _inputBuses: ;
+    _outputBuses: ;
+    _pHeap: *u8;
+    _ownsHeap: u32;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_gainer_config">miniaudio.ma_gainer_config</h2>
+
+<pre><code>ma_gainer_config :: struct {
+    channels: ma_uint32;
+    smoothTimeInFrames: ma_uint32;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_gainer">miniaudio.ma_gainer</h2>
+
+<pre><code>ma_gainer :: struct {
+    config: ma_gainer_config;
+    t: ma_uint32;
+    pOldGains: *f32;
+    pNewGains: *f32;
+    _pHeap: *u8;
+    _ownsHeap: u32;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_panner">miniaudio.ma_panner</h2>
+
+<pre><code>ma_panner :: struct {
+    format: ma_format;
+    channels: ma_uint32;
+    mode: ma_pan_mode;
+    pan: f32;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_pan_mode">miniaudio.ma_pan_mode</h2>
+
+<pre><code>ma_pan_mode :: enum {
+    PAN_MODE_BALANCE = 0;
+    PAN_MODE_PAN;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_handedness">miniaudio.ma_handedness</h2>
+
+<pre><code>ma_handedness :: enum {
+    HANDEDNESS_RIGHT;
+    HANDEDNESS_LEFT;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_vec3f">miniaudio.ma_vec3f</h2>
+
+<pre><code>ma_vec3f :: struct {
+    x: f32;
+    y: f32;
+    z: f32;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_spatializer_listener_config">miniaudio.ma_spatializer_listener_config</h2>
+
+<pre><code>ma_spatializer_listener_config :: struct {
+    channelsOut: u32;
+    pChannelMapOut: *ma_channel;
+    handedness: ma_handedness;
+    coneInnerAngleInRadians: f32;
+    coneOuterAngleInRadians: f32;
+    coneOuterGain: f32;
+    speedOfSound: f32;
+    worldUp: ma_vec3f;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_spatializer_listener">miniaudio.ma_spatializer_listener</h2>
+
+<pre><code>ma_spatializer_listener :: struct {
+    config: ma_spatializer_listener_config;
+    position: ma_vec3f;
+    direction: ma_vec3f;
+    velocity: ma_vec3f;
+    isEnabled: u32;
+    _ownsHeap: u32;
+    _pHeap: *u8;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_allocation_callbacks">miniaudio.ma_allocation_callbacks</h2>
+
+<pre><code>ma_allocation_callbacks :: struct {
+    pUserData: *u8;
+    onMalloc: *fn (sz: usize, pUserData: *u8) *u8;
+    onRealloc: *fn (p: *u8, sz: usize, pUserData: *u8) *u8;
+    onFree: *fn (p: *u8, pUserData: *u8) ;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_mono_expansion_mode">miniaudio.ma_mono_expansion_mode</h2>
+
+<pre><code>ma_mono_expansion_mode :: enum {
+    MONO_EXPANSION_MODE_DUPLICATE = 0;
+    MONO_EXPANSION_MODE_AVERAGE;
+    MONO_EXPANSION_MODE_STEREO_ONLY;
+    MONO_EXPANSION_MODE_DEFAULT;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_engine_config">miniaudio.ma_engine_config</h2>
+
+<pre><code>ma_engine_config :: struct {
+    pResourceManager: *ma_resource_manager;
+    pContext: *ma_context;
+    pDevice: *ma_device;
+    pPlaybackDeviceID: *ma_device_id;
+    pLog: *ma_log;
+    listenerCount: ma_uint32;
+    channels: ma_uint32;
+    sampleRate: ma_uint32;
+    periodSizeInFrames: ma_uint32;
+    periodSizeInMilliseconds: ma_uint32;
+    gainSmoothTimeInFrames: ma_uint32;
+    gainSmoothTimeInMilliseconds: ma_uint32;
+    allocationCallbacks: ma_allocation_callbacks;
+    noAutoStart: ma_bool32;
+    noDevice: ma_bool32;
+    monoExpansionMode: ma_mono_expansion_mode;
+    pResourceManagerVFS: *ma_vfs;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_engine">miniaudio.ma_engine</h2>
+
+<pre><code>ma_engine :: struct {
+    nodeGraph: ma_node_graph;
+    pma_resource_manager: *ma_resource_manager;
+    pDevice: *ma_device;
+    pLog: *ma_log;
+    sampleRate: u32;
+    listenerCount: u32;
+    listeners: ;
+    allocationCallbacks: ma_allocation_callbacks;
+    ownsma_resource_manager: u8;
+    ownsDevice: u8;
+    inlinedSoundLock: ma_spinlock;
+    pInlinedSoundHead: *ma_sound_inlined;
+    inlinedSoundCount: u32;
+    gainSmoothTimeInFrames: u32;
+    monoExpansionMode: ma_mono_expansion_mode;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_result">miniaudio.ma_result</h2>
+
+<pre><code>ma_result :: enum {
+    SUCCESS = 0;
+    ERROR;
+    INVALID_ARGS;
+    INVALID_OPERATION;
+    OUT_OF_MEMORY;
+    OUT_OF_RANGE;
+    ACCESS_DENIED;
+    DOES_NOT_EXIST;
+    ALREADY_EXISTS;
+    TOO_MANY_OPEN_FILES;
+    INVALID_FILE;
+    TOO_BIG;
+    PATH_TOO_LONG;
+    NAME_TOO_LONG;
+    NOT_DIRECTORY;
+    IS_DIRECTORY;
+    DIRECTORY_NOT_EMPTY;
+    AT_END;
+    NO_SPACE;
+    BUSY;
+    IO_ERROR;
+    INTERRUPT;
+    UNAVAILABLE;
+    ALREADY_IN_USE;
+    BAD_ADDRESS;
+    BAD_SEEK;
+    BAD_PIPE;
+    DEADLOCK;
+    TOO_MANY_LINKS;
+    NOT_IMPLEMENTED;
+    NO_MESSAGE;
+    BAD_MESSAGE;
+    NO_DATA_AVAILABLE;
+    INVALID_DATA;
+    TIMEOUT;
+    NO_NETWORK;
+    NOT_UNIQUE;
+    NOT_SOCKET;
+    NO_ADDRESS;
+    BAD_PROTOCOL;
+    PROTOCOL_UNAVAILABLE;
+    PROTOCOL_NOT_SUPPORTED;
+    PROTOCOL_FAMILY_NOT_SUPPORTED;
+    ADDRESS_FAMILY_NOT_SUPPORTED;
+    SOCKET_NOT_SUPPORTED;
+    CONNECTION_RESET;
+    ALREADY_CONNECTED;
+    NOT_CONNECTED;
+    CONNECTION_REFUSED;
+    NO_HOST;
+    IN_PROGRESS;
+    CANCELLED;
+    MEMORY_ALREADY_MAPPED;
+    FORMAT_NOT_SUPPORTED;
+    DEVICE_TYPE_NOT_SUPPORTED;
+    SHARE_MODE_NOT_SUPPORTED;
+    NO_BACKEND;
+    NO_DEVICE;
+    API_NOT_FOUND;
+    INVALID_DEVICE_CONFIG;
+    LOOP;
+    DEVICE_NOT_INITIALIZED;
+    DEVICE_ALREADY_INITIALIZED;
+    DEVICE_NOT_STARTED;
+    DEVICE_NOT_STOPPED;
+    FAILED_TO_INIT_BACKEND;
+    FAILED_TO_OPEN_BACKEND_DEVICE;
+    FAILED_TO_START_BACKEND_DEVICE;
+    FAILED_TO_STOP_BACKEND_DEVICE;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_log_callback_proc">miniaudio.ma_log_callback_proc</h2>
+
+<pre><code>ma_log_callback_proc :: *fn (pUserData: C.void_ptr, level: ma_uint32, pMessage: *C.char) 
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_log_callback">miniaudio.ma_log_callback</h2>
+
+<pre><code>ma_log_callback :: struct {
+    onLog: ma_log_callback_proc;
+    pUserData: C.void_ptr;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_log">miniaudio.ma_log</h2>
+
+<pre><code>ma_log :: struct {
+    callbacks: ;
+    callbackCount: ma_uint32;
+    allocationCallbacks: ma_allocation_callbacks;
+    lock: ma_mutex;
+}
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_engine_init">miniaudio.ma_engine_init</h2>
+
+<pre><code>ma_engine_init :: fn (pConfig: *ma_engine_config, pEngine: *ma_engine) ma_result #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_engine_uninit">miniaudio.ma_engine_uninit</h2>
+
+<pre><code>ma_engine_uninit :: fn (pEngine: *ma_engine)  #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_engine_play_sound">miniaudio.ma_engine_play_sound</h2>
+
+<pre><code>ma_engine_play_sound :: fn (pEngine: *ma_engine, pFilePath: *C.char, pGroup: *ma_sound_group) ma_result #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_engine_get_sample_rate">miniaudio.ma_engine_get_sample_rate</h2>
+
+<pre><code>ma_engine_get_sample_rate :: fn (pEngine: *ma_engine) ma_uint32 #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_engine_get_time">miniaudio.ma_engine_get_time</h2>
+
+<pre><code>ma_engine_get_time :: fn (pEngine: *ma_engine) ma_uint64 #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound_init_from_file">miniaudio.ma_sound_init_from_file</h2>
+
+<pre><code>ma_sound_init_from_file :: fn (pEngine: *ma_engine, pFilePath: *C.char, flags: ma_uint32, pGroup: *ma_sound_group, pDoneFence: *ma_fence, pSound: *ma_sound) ma_result #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound_uninit">miniaudio.ma_sound_uninit</h2>
+
+<pre><code>ma_sound_uninit :: fn (pSound: *ma_sound)  #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound_start">miniaudio.ma_sound_start</h2>
+
+<pre><code>ma_sound_start :: fn (pSound: *ma_sound) ma_result #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound_set_start_time_in_pcm_frames">miniaudio.ma_sound_set_start_time_in_pcm_frames</h2>
+
+<pre><code>ma_sound_set_start_time_in_pcm_frames :: fn (pSound: *ma_sound, absoluteGlobalTimeInFrames: ma_uint64)  #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound_set_start_time_in_milliseconds">miniaudio.ma_sound_set_start_time_in_milliseconds</h2>
+
+<pre><code>ma_sound_set_start_time_in_milliseconds :: fn (pSound: *ma_sound, absoluteGlobalTimeInMilliseconds: ma_uint64)  #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound_set_stop_time_in_pcm_frames">miniaudio.ma_sound_set_stop_time_in_pcm_frames</h2>
+
+<pre><code>ma_sound_set_stop_time_in_pcm_frames :: fn (pSound: *ma_sound, absoluteGlobalTimeInFrames: ma_uint64)  #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound_set_stop_time_in_milliseconds">miniaudio.ma_sound_set_stop_time_in_milliseconds</h2>
+
+<pre><code>ma_sound_set_stop_time_in_milliseconds :: fn (pSound: *ma_sound, absoluteGlobalTimeInMilliseconds: ma_uint64)  #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound_stop">miniaudio.ma_sound_stop</h2>
+
+<pre><code>ma_sound_stop :: fn (pSound: *ma_sound) ma_result #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound_set_volume">miniaudio.ma_sound_set_volume</h2>
+
+<pre><code>ma_sound_set_volume :: fn (pSound: *ma_sound, volume: f32)  #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound_get_volume">miniaudio.ma_sound_get_volume</h2>
+
+<pre><code>ma_sound_get_volume :: fn (pSound: *ma_sound) f32 #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound_set_pitch">miniaudio.ma_sound_set_pitch</h2>
+
+<pre><code>ma_sound_set_pitch :: fn (pSound: *ma_sound, pitch: f32)  #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound_get_pitch">miniaudio.ma_sound_get_pitch</h2>
+
+<pre><code>ma_sound_get_pitch :: fn (pSound: *ma_sound) f32 #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_volume_db_to_linear">miniaudio.ma_volume_db_to_linear</h2>
+
+<pre><code>ma_volume_db_to_linear :: fn (gain: f32) f32 #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound_set_fade_in_pcm_frames">miniaudio.ma_sound_set_fade_in_pcm_frames</h2>
+
+<pre><code>ma_sound_set_fade_in_pcm_frames :: fn (pSound: *ma_sound, volumeBeg: f32, volumeEnd: f32, fadeLengthInFrames: ma_uint64)  #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound_set_fade_in_milliseconds">miniaudio.ma_sound_set_fade_in_milliseconds</h2>
+
+<pre><code>ma_sound_set_fade_in_milliseconds :: fn (pSound: *ma_sound, volumeBeg: f32, volumeEnd: f32, fadeLengthInMilliseconds: ma_uint64)  #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound_at_end">miniaudio.ma_sound_at_end</h2>
+
+<pre><code>ma_sound_at_end :: fn (pSound: *ma_sound) ma_bool32 #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound_is_playing">miniaudio.ma_sound_is_playing</h2>
+
+<pre><code>ma_sound_is_playing :: fn (pSound: *ma_sound) ma_bool32 #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound_set_looping">miniaudio.ma_sound_set_looping</h2>
+
+<pre><code>ma_sound_set_looping :: fn (pSound: *ma_sound, isLooping: ma_bool32)  #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound_is_looping">miniaudio.ma_sound_is_looping</h2>
+
+<pre><code>ma_sound_is_looping :: fn (pSound: *ma_sound) ma_bool32 #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound_group_init">miniaudio.ma_sound_group_init</h2>
+
+<pre><code>ma_sound_group_init :: fn (pEngine: *ma_engine, flags: ma_uint32, pParentGroup: *ma_sound_group, pGroup: *ma_sound_group) ma_result #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound_group_uninit">miniaudio.ma_sound_group_uninit</h2>
+
+<pre><code>ma_sound_group_uninit :: fn (pGroup: *ma_sound_group)  #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_context_config_init">miniaudio.ma_context_config_init</h2>
+
+<pre><code>ma_context_config_init :: fn () ma_context_config #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_context_init">miniaudio.ma_context_init</h2>
+
+<pre><code>ma_context_init :: fn (backends: *ma_backend, backendCount: ma_uint32, pConfig: *ma_context_config, pContext: *ma_context) ma_result #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_engine_config_init">miniaudio.ma_engine_config_init</h2>
+
+<pre><code>ma_engine_config_init :: fn () ma_engine_config #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_log_callback_init">miniaudio.ma_log_callback_init</h2>
+
+<pre><code>ma_log_callback_init :: fn (onLog: ma_log_callback_proc, pUserData: C.void_ptr) ma_log_callback #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_engine_listener_set_position">miniaudio.ma_engine_listener_set_position</h2>
+
+<pre><code>ma_engine_listener_set_position :: fn (pEngine: *ma_engine, listenerIndex: ma_uint32, x: f32, y: f32, z: f32)  #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_engine_listener_get_position">miniaudio.ma_engine_listener_get_position</h2>
+
+<pre><code>ma_engine_listener_get_position :: fn (pEngine: *ma_engine, listenerIndex: ma_uint32) ma_vec3f #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound_set_position">miniaudio.ma_sound_set_position</h2>
+
+<pre><code>ma_sound_set_position :: fn (pSound: *ma_sound, x: f32, y: f32, z: f32)  #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound_get_position">miniaudio.ma_sound_get_position</h2>
+
+<pre><code>ma_sound_get_position :: fn (pSound: *ma_sound) ma_vec3f #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_engine_listener_set_direction">miniaudio.ma_engine_listener_set_direction</h2>
+
+<pre><code>ma_engine_listener_set_direction :: fn (pEngine: *ma_engine, listenerIndex: ma_uint32, x: f32, y: f32, z: f32)  #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_engine_listener_get_direction">miniaudio.ma_engine_listener_get_direction</h2>
+
+<pre><code>ma_engine_listener_get_direction :: fn (pEngine: *ma_engine, listenerIndex: ma_uint32) ma_vec3f #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_engine_listener_set_velocity">miniaudio.ma_engine_listener_set_velocity</h2>
+
+<pre><code>ma_engine_listener_set_velocity :: fn (pEngine: *ma_engine, listenerIndex: ma_uint32, x: f32, y: f32, z: f32)  #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_engine_listener_get_velocity">miniaudio.ma_engine_listener_get_velocity</h2>
+
+<pre><code>ma_engine_listener_get_velocity :: fn (pEngine: *ma_engine, listenerIndex: ma_uint32) ma_vec3f #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_engine_listener_set_world_up">miniaudio.ma_engine_listener_set_world_up</h2>
+
+<pre><code>ma_engine_listener_set_world_up :: fn (pEngine: *ma_engine, listenerIndex: ma_uint32, x: f32, y: f32, z: f32)  #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_engine_listener_get_world_up">miniaudio.ma_engine_listener_get_world_up</h2>
+
+<pre><code>ma_engine_listener_get_world_up :: fn (pEngine: *ma_engine, listenerIndex: ma_uint32) ma_vec3f #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_sound_set_pinned_listener_index">miniaudio.ma_sound_set_pinned_listener_index</h2>
+
+<pre><code>ma_sound_set_pinned_listener_index :: fn (pSound: *ma_sound, listenerIndex: ma_uint32)  #extern
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+<h2 id="miniaudio.ma_result_to_string">miniaudio.ma_result_to_string</h2>
+
+<pre><code>ma_result_to_string :: fn (result: ma_result) string_view
+</code></pre>
+<p><em>File: miniaudio.bl</em></p>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#miniaudio.bl">miniaudio.bl</a></li>
+<ul>
+<li><a href="#miniaudio.MA_MAX_NODE_LOCAL_BUS_COUNT">miniaudio.MA_MAX_NODE_LOCAL_BUS_COUNT</a></li>
+<li><a href="#miniaudio.MA_ENGINE_MAX_LISTENERS">miniaudio.MA_ENGINE_MAX_LISTENERS</a></li>
+<li><a href="#miniaudio.MA_SIZEOF_PTR">miniaudio.MA_SIZEOF_PTR</a></li>
+<li><a href="#miniaudio.MA_RESOURCE_MANAGER_MAX_JOB_THREAD_COUNT">miniaudio.MA_RESOURCE_MANAGER_MAX_JOB_THREAD_COUNT</a></li>
+<li><a href="#miniaudio.MA_MAX_LOG_CALLBACKS">miniaudio.MA_MAX_LOG_CALLBACKS</a></li>
+<li><a href="#miniaudio.ma_int8">miniaudio.ma_int8</a></li>
+<li><a href="#miniaudio.ma_uint8">miniaudio.ma_uint8</a></li>
+<li><a href="#miniaudio.ma_int16">miniaudio.ma_int16</a></li>
+<li><a href="#miniaudio.ma_uint16">miniaudio.ma_uint16</a></li>
+<li><a href="#miniaudio.ma_int32">miniaudio.ma_int32</a></li>
+<li><a href="#miniaudio.ma_uint32">miniaudio.ma_uint32</a></li>
+<li><a href="#miniaudio.ma_int64">miniaudio.ma_int64</a></li>
+<li><a href="#miniaudio.ma_uint64">miniaudio.ma_uint64</a></li>
+<li><a href="#miniaudio.ma_bool8">miniaudio.ma_bool8</a></li>
+<li><a href="#miniaudio.ma_bool32">miniaudio.ma_bool32</a></li>
+<li><a href="#miniaudio.ma_mutex">miniaudio.ma_mutex</a></li>
+<li><a href="#miniaudio.ma_node_vtable">miniaudio.ma_node_vtable</a></li>
+<li><a href="#miniaudio.ma_data_source_vtable">miniaudio.ma_data_source_vtable</a></li>
+<li><a href="#miniaudio.ma_decoding_backend_vtable">miniaudio.ma_decoding_backend_vtable</a></li>
+<li><a href="#miniaudio.ma_resampling_backend_vtable">miniaudio.ma_resampling_backend_vtable</a></li>
+<li><a href="#miniaudio.ma_node">miniaudio.ma_node</a></li>
+<li><a href="#miniaudio.ma_spinlock">miniaudio.ma_spinlock</a></li>
+<li><a href="#miniaudio.ma_data_source">miniaudio.ma_data_source</a></li>
+<li><a href="#miniaudio.ma_resampling_backend">miniaudio.ma_resampling_backend</a></li>
+<li><a href="#miniaudio.ma_vfs">miniaudio.ma_vfs</a></li>
+<li><a href="#miniaudio.ma_handle">miniaudio.ma_handle</a></li>
+<li><a href="#miniaudio.ma_vfs_file">miniaudio.ma_vfs_file</a></li>
+<li><a href="#miniaudio.MA_ATOMIC">miniaudio.MA_ATOMIC</a></li>
+<li><a href="#miniaudio.ma_device_type">miniaudio.ma_device_type</a></li>
+<li><a href="#miniaudio.ma_enum_devices_callback_proc">miniaudio.ma_enum_devices_callback_proc</a></li>
+<li><a href="#miniaudio.ma_backend_callbacks">miniaudio.ma_backend_callbacks</a></li>
+<li><a href="#miniaudio.ma_thread_priority">miniaudio.ma_thread_priority</a></li>
+<li><a href="#miniaudio.ma_ios_session_category">miniaudio.ma_ios_session_category</a></li>
+<li><a href="#miniaudio.ma_context_config">miniaudio.ma_context_config</a></li>
+<li><a href="#miniaudio.ma_sound_flags">miniaudio.ma_sound_flags</a></li>
+<li><a href="#miniaudio.ma_sound_config">miniaudio.ma_sound_config</a></li>
+<li><a href="#miniaudio.ma_sound_group_config">miniaudio.ma_sound_group_config</a></li>
+<li><a href="#miniaudio.ma_sound_group">miniaudio.ma_sound_group</a></li>
+<li><a href="#miniaudio.ma_sound_inlined">miniaudio.ma_sound_inlined</a></li>
+<li><a href="#miniaudio.ma_resource_manager_data_stream">miniaudio.ma_resource_manager_data_stream</a></li>
+<li><a href="#miniaudio.ma_resource_manager_data_source">miniaudio.ma_resource_manager_data_source</a></li>
+<li><a href="#miniaudio.ma_paged_audio_buffer">miniaudio.ma_paged_audio_buffer</a></li>
+<li><a href="#miniaudio.ma_resource_manager_data_buffer">miniaudio.ma_resource_manager_data_buffer</a></li>
+<li><a href="#miniaudio.ma_seek_origin">miniaudio.ma_seek_origin</a></li>
+<li><a href="#miniaudio.ma_decoder_read_proc">miniaudio.ma_decoder_read_proc</a></li>
+<li><a href="#miniaudio.ma_decoder_seek_proc">miniaudio.ma_decoder_seek_proc</a></li>
+<li><a href="#miniaudio.ma_decoder_tell_proc">miniaudio.ma_decoder_tell_proc</a></li>
+<li><a href="#miniaudio.ma_decoder">miniaudio.ma_decoder</a></li>
+<li><a href="#miniaudio.ma_audio_buffer_ref">miniaudio.ma_audio_buffer_ref</a></li>
+<li><a href="#miniaudio.ma_audio_buffer">miniaudio.ma_audio_buffer</a></li>
+<li><a href="#miniaudio.ma_channel_converter">miniaudio.ma_channel_converter</a></li>
+<li><a href="#miniaudio.ma_channel_conversion_path">miniaudio.ma_channel_conversion_path</a></li>
+<li><a href="#miniaudio.ma_channel_mix_mode">miniaudio.ma_channel_mix_mode</a></li>
+<li><a href="#miniaudio.ma_data_converter">miniaudio.ma_data_converter</a></li>
+<li><a href="#miniaudio.ma_resample_algorithm">miniaudio.ma_resample_algorithm</a></li>
+<li><a href="#miniaudio.ma_resampler_config">miniaudio.ma_resampler_config</a></li>
+<li><a href="#miniaudio.ma_resampler">miniaudio.ma_resampler</a></li>
+<li><a href="#miniaudio.ma_dither_mode">miniaudio.ma_dither_mode</a></li>
+<li><a href="#miniaudio.ma_data_converter_execution_path">miniaudio.ma_data_converter_execution_path</a></li>
+<li><a href="#miniaudio.ma_data_source_base">miniaudio.ma_data_source_base</a></li>
+<li><a href="#miniaudio.ma_data_source_get_next_proc">miniaudio.ma_data_source_get_next_proc</a></li>
+<li><a href="#miniaudio.ma_resource_manager_data_buffer_node">miniaudio.ma_resource_manager_data_buffer_node</a></li>
+<li><a href="#miniaudio.ma_resource_manager_data_supply_type">miniaudio.ma_resource_manager_data_supply_type</a></li>
+<li><a href="#miniaudio.ma_resource_manager_data_supply">miniaudio.ma_resource_manager_data_supply</a></li>
+<li><a href="#miniaudio.ma_paged_audio_buffer_page">miniaudio.ma_paged_audio_buffer_page</a></li>
+<li><a href="#miniaudio.ma_paged_audio_buffer_data">miniaudio.ma_paged_audio_buffer_data</a></li>
+<li><a href="#miniaudio.ma_format">miniaudio.ma_format</a></li>
+<li><a href="#miniaudio.ma_linear_resampler_config">miniaudio.ma_linear_resampler_config</a></li>
+<li><a href="#miniaudio.ma_linear_resampler">miniaudio.ma_linear_resampler</a></li>
+<li><a href="#miniaudio.ma_spatializer">miniaudio.ma_spatializer</a></li>
+<li><a href="#miniaudio.ma_attenuation_model">miniaudio.ma_attenuation_model</a></li>
+<li><a href="#miniaudio.ma_engine_node">miniaudio.ma_engine_node</a></li>
+<li><a href="#miniaudio.ma_lpf">miniaudio.ma_lpf</a></li>
+<li><a href="#miniaudio.ma_lpf1">miniaudio.ma_lpf1</a></li>
+<li><a href="#miniaudio.ma_lpf2">miniaudio.ma_lpf2</a></li>
+<li><a href="#miniaudio.ma_biquad_coefficient">miniaudio.ma_biquad_coefficient</a></li>
+<li><a href="#miniaudio.ma_biquad_config">miniaudio.ma_biquad_config</a></li>
+<li><a href="#miniaudio.ma_biquad">miniaudio.ma_biquad</a></li>
+<li><a href="#miniaudio.ma_fader_config">miniaudio.ma_fader_config</a></li>
+<li><a href="#miniaudio.ma_fader">miniaudio.ma_fader</a></li>
+<li><a href="#miniaudio.ma_sound">miniaudio.ma_sound</a></li>
+<li><a href="#miniaudio.ma_node_output_bus">miniaudio.ma_node_output_bus</a></li>
+<li><a href="#miniaudio.ma_node_input_bus">miniaudio.ma_node_input_bus</a></li>
+<li><a href="#miniaudio.ma_node_graph">miniaudio.ma_node_graph</a></li>
+<li><a href="#miniaudio.ma_node_state">miniaudio.ma_node_state</a></li>
+<li><a href="#miniaudio.ma_positioning">miniaudio.ma_positioning</a></li>
+<li><a href="#miniaudio.ma_node_base">miniaudio.ma_node_base</a></li>
+<li><a href="#miniaudio.ma_gainer_config">miniaudio.ma_gainer_config</a></li>
+<li><a href="#miniaudio.ma_gainer">miniaudio.ma_gainer</a></li>
+<li><a href="#miniaudio.ma_panner">miniaudio.ma_panner</a></li>
+<li><a href="#miniaudio.ma_pan_mode">miniaudio.ma_pan_mode</a></li>
+<li><a href="#miniaudio.ma_handedness">miniaudio.ma_handedness</a></li>
+<li><a href="#miniaudio.ma_vec3f">miniaudio.ma_vec3f</a></li>
+<li><a href="#miniaudio.ma_spatializer_listener_config">miniaudio.ma_spatializer_listener_config</a></li>
+<li><a href="#miniaudio.ma_spatializer_listener">miniaudio.ma_spatializer_listener</a></li>
+<li><a href="#miniaudio.ma_allocation_callbacks">miniaudio.ma_allocation_callbacks</a></li>
+<li><a href="#miniaudio.ma_mono_expansion_mode">miniaudio.ma_mono_expansion_mode</a></li>
+<li><a href="#miniaudio.ma_engine_config">miniaudio.ma_engine_config</a></li>
+<li><a href="#miniaudio.ma_engine">miniaudio.ma_engine</a></li>
+<li><a href="#miniaudio.ma_result">miniaudio.ma_result</a></li>
+<li><a href="#miniaudio.ma_log_callback_proc">miniaudio.ma_log_callback_proc</a></li>
+<li><a href="#miniaudio.ma_log_callback">miniaudio.ma_log_callback</a></li>
+<li><a href="#miniaudio.ma_log">miniaudio.ma_log</a></li>
+<li><a href="#miniaudio.ma_engine_init">miniaudio.ma_engine_init</a></li>
+<li><a href="#miniaudio.ma_engine_uninit">miniaudio.ma_engine_uninit</a></li>
+<li><a href="#miniaudio.ma_engine_play_sound">miniaudio.ma_engine_play_sound</a></li>
+<li><a href="#miniaudio.ma_engine_get_sample_rate">miniaudio.ma_engine_get_sample_rate</a></li>
+<li><a href="#miniaudio.ma_engine_get_time">miniaudio.ma_engine_get_time</a></li>
+<li><a href="#miniaudio.ma_sound_init_from_file">miniaudio.ma_sound_init_from_file</a></li>
+<li><a href="#miniaudio.ma_sound_uninit">miniaudio.ma_sound_uninit</a></li>
+<li><a href="#miniaudio.ma_sound_start">miniaudio.ma_sound_start</a></li>
+<li><a href="#miniaudio.ma_sound_set_start_time_in_pcm_frames">miniaudio.ma_sound_set_start_time_in_pcm_frames</a></li>
+<li><a href="#miniaudio.ma_sound_set_start_time_in_milliseconds">miniaudio.ma_sound_set_start_time_in_milliseconds</a></li>
+<li><a href="#miniaudio.ma_sound_set_stop_time_in_pcm_frames">miniaudio.ma_sound_set_stop_time_in_pcm_frames</a></li>
+<li><a href="#miniaudio.ma_sound_set_stop_time_in_milliseconds">miniaudio.ma_sound_set_stop_time_in_milliseconds</a></li>
+<li><a href="#miniaudio.ma_sound_stop">miniaudio.ma_sound_stop</a></li>
+<li><a href="#miniaudio.ma_sound_set_volume">miniaudio.ma_sound_set_volume</a></li>
+<li><a href="#miniaudio.ma_sound_get_volume">miniaudio.ma_sound_get_volume</a></li>
+<li><a href="#miniaudio.ma_sound_set_pitch">miniaudio.ma_sound_set_pitch</a></li>
+<li><a href="#miniaudio.ma_sound_get_pitch">miniaudio.ma_sound_get_pitch</a></li>
+<li><a href="#miniaudio.ma_volume_db_to_linear">miniaudio.ma_volume_db_to_linear</a></li>
+<li><a href="#miniaudio.ma_sound_set_fade_in_pcm_frames">miniaudio.ma_sound_set_fade_in_pcm_frames</a></li>
+<li><a href="#miniaudio.ma_sound_set_fade_in_milliseconds">miniaudio.ma_sound_set_fade_in_milliseconds</a></li>
+<li><a href="#miniaudio.ma_sound_at_end">miniaudio.ma_sound_at_end</a></li>
+<li><a href="#miniaudio.ma_sound_is_playing">miniaudio.ma_sound_is_playing</a></li>
+<li><a href="#miniaudio.ma_sound_set_looping">miniaudio.ma_sound_set_looping</a></li>
+<li><a href="#miniaudio.ma_sound_is_looping">miniaudio.ma_sound_is_looping</a></li>
+<li><a href="#miniaudio.ma_sound_group_init">miniaudio.ma_sound_group_init</a></li>
+<li><a href="#miniaudio.ma_sound_group_uninit">miniaudio.ma_sound_group_uninit</a></li>
+<li><a href="#miniaudio.ma_context_config_init">miniaudio.ma_context_config_init</a></li>
+<li><a href="#miniaudio.ma_context_init">miniaudio.ma_context_init</a></li>
+<li><a href="#miniaudio.ma_engine_config_init">miniaudio.ma_engine_config_init</a></li>
+<li><a href="#miniaudio.ma_log_callback_init">miniaudio.ma_log_callback_init</a></li>
+<li><a href="#miniaudio.ma_engine_listener_set_position">miniaudio.ma_engine_listener_set_position</a></li>
+<li><a href="#miniaudio.ma_engine_listener_get_position">miniaudio.ma_engine_listener_get_position</a></li>
+<li><a href="#miniaudio.ma_sound_set_position">miniaudio.ma_sound_set_position</a></li>
+<li><a href="#miniaudio.ma_sound_get_position">miniaudio.ma_sound_get_position</a></li>
+<li><a href="#miniaudio.ma_engine_listener_set_direction">miniaudio.ma_engine_listener_set_direction</a></li>
+<li><a href="#miniaudio.ma_engine_listener_get_direction">miniaudio.ma_engine_listener_get_direction</a></li>
+<li><a href="#miniaudio.ma_engine_listener_set_velocity">miniaudio.ma_engine_listener_set_velocity</a></li>
+<li><a href="#miniaudio.ma_engine_listener_get_velocity">miniaudio.ma_engine_listener_get_velocity</a></li>
+<li><a href="#miniaudio.ma_engine_listener_set_world_up">miniaudio.ma_engine_listener_set_world_up</a></li>
+<li><a href="#miniaudio.ma_engine_listener_get_world_up">miniaudio.ma_engine_listener_get_world_up</a></li>
+<li><a href="#miniaudio.ma_sound_set_pinned_listener_index">miniaudio.ma_sound_set_pinned_listener_index</a></li>
+<li><a href="#miniaudio.ma_result_to_string">miniaudio.ma_result_to_string</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

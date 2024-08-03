@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="Thread">Thread</h1>
+<p><code>#import "std/thread"</code></p>
+<p>This module contains tools for managing multithreading. It's basically wrapper for Windows thread
+system and pthread on posix systems.</p>
+<p><b>warning</b>: This module is experimental and not fully supported across all platforms.</p>
+<h2 id="std.ThreadEntryFn">std.ThreadEntryFn</h2>
+
+<pre><code>ThreadEntryFn :: *fn (ctx: *u8) s32
+</code></pre>
+<p>Thread entry function type.</p>
+<p><em>File: thread.bl</em></p>
+<h2 id="std.Thread">std.Thread</h2>
+
+<pre><code>Thread :: _thread_impl.Handle
+</code></pre>
+<p>Thread handle.</p>
+<p><em>File: thread.bl</em></p>
+<h2 id="std.thread_create">std.thread_create</h2>
+
+<pre><code>thread_create :: fn (entry: ThreadEntryFn, ctx : *u8: null) (_0: Thread, _1: Error) #inline
+</code></pre>
+<p>Create and start new thread with specified <code>entry</code> function. Pointer to custom <code>ctx</code> can be
+optionally passed to the entry function here.</p>
+<p><em>File: thread.bl</em></p>
+<h2 id="std.thread_join">std.thread_join</h2>
+
+<pre><code>thread_join :: fn (thread: Thread) (exit_code: s32, err: Error) #inline
+</code></pre>
+<p>Blocks until <code>thread</code> exits. Return value from worker function is returned as <code>exit_code</code>. When
+execution is successful all thread resources are released.</p>
+<p><em>File: thread.bl</em></p>
+<h2 id="std.thread_join_all">std.thread_join_all</h2>
+
+<pre><code>thread_join_all :: fn (threads: []Thread) Error #inline
+</code></pre>
+<p>Blocks until all <code>threads</code> exits.</p>
+<p><em>File: thread.bl</em></p>
+<h2 id="std.thread_exit">std.thread_exit</h2>
+
+<pre><code>thread_exit :: fn (exit_code : s32: 0) Error #inline
+</code></pre>
+<p>Exit current thread with optional <code>exit_code</code> return value.</p>
+<p><em>File: thread.bl</em></p>
+<h2 id="std.thread_current">std.thread_current</h2>
+
+<pre><code>thread_current :: fn () Thread #inline
+</code></pre>
+<p>Gets current thread.</p>
+<p><em>File: thread.bl</em></p>
+<h2 id="std.get_thread_id">std.get_thread_id</h2>
+
+<pre><code>get_thread_id :: fn () u64 #inline
+</code></pre>
+<p>Gets current thread ID.</p>
+<p><em>File: thread.bl</em></p>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#Thread">Thread</a></li>
+<ul>
+<li><a href="#std.ThreadEntryFn">std.ThreadEntryFn</a></li>
+<li><a href="#std.Thread">std.Thread</a></li>
+<li><a href="#std.thread_create">std.thread_create</a></li>
+<li><a href="#std.thread_join">std.thread_join</a></li>
+<li><a href="#std.thread_join_all">std.thread_join_all</a></li>
+<li><a href="#std.thread_exit">std.thread_exit</a></li>
+<li><a href="#std.thread_current">std.thread_current</a></li>
+<li><a href="#std.get_thread_id">std.get_thread_id</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

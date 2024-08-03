@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="Async-Job-System">Async Job System</h1>
+
+<pre><code><span class="syntax-directive">#import</span> "std/async"
+</code></pre>
+<p>Async module provides high-level interface for thread manipulation. In general, it's suitable for longer running
+parallel tasks expecting some input context and results returned back to the caller.</p>
+<p><span class="hint-warning"><b>Warning:</b>
+This module is in experimental state, new features or API changes may come in the future.</span></p>
+<h2 id="std.Async">std.Async</h2>
+
+<pre><code>Async :: fn (TWorkerContext: type, TResult: type) type
+</code></pre>
+<p>Asynchronous task context holder holding internally created thread instance, input and output data of the worker
+function. Instance of this type is supposed to be initialized exclusively in <a href="#async">async</a> function call and its
+content is internal.</p>
+<p><em>File: async.bl</em></p>
+<h2 id="std.Async2">std.Async2</h2>
+
+<pre><code>Async2 :: fn (TWorkerContext: type, TResult: type) type
+</code></pre>
+<p><em>File: async.bl</em></p>
+<h2 id="std.async">std.async</h2>
+
+<pre><code>async :: fn (ctx: *?TAsync, worker_context: , worker: *fn (ctx: ) ) 
+</code></pre>
+<p>Setup the async <code>ctx</code> context structure and starts internally a new thread executing the <code>worker</code> function. The
+worker runtime context must be specified as <code>worker_context</code>. The execution (worker return) result value is not
+returned immediately since call to this function is not blocking. Use <a href="#async_wait">async_wait</a> to get the cached
+result value back.</p>
+<p><em>File: async.bl</em></p>
+<h2 id="std.async2">std.async2</h2>
+
+<pre><code>async2 :: fn (ctx: *?TAsync, worker_context: , worker: *fn (ctx: *) ) 
+</code></pre>
+<p><em>File: async.bl</em></p>
+<h2 id="std.async_wait">std.async_wait</h2>
+
+<pre><code>async_wait :: fn (ctx: *?TAsync)  #inline
+</code></pre>
+<p>Wait for the async job, executed by <a href="#async">async</a> call, to finish. This function blocks until the underlying job's
+thread exits. The result value is returned on success.</p>
+<p><em>File: async.bl</em></p>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#Async-Job-System">Async Job System</a></li>
+<ul>
+<li><a href="#std.Async">std.Async</a></li>
+<li><a href="#std.Async2">std.Async2</a></li>
+<li><a href="#std.async">std.async</a></li>
+<li><a href="#std.async2">std.async2</a></li>
+<li><a href="#std.async_wait">std.async_wait</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

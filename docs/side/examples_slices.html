@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="Slices">Slices</h1>
+<p>Compile using <code>blc my-file-name.bl</code> and run <code>./out</code>.</p>
+
+<pre><code>main :: <span class="syntax-keyword">fn</span> () s32 <span class="syntax-keyword">{</span>
+	<span class="syntax-comment">// Declare slice variable, no allocation is done here, my_slice.len is zero</span>
+	<span class="syntax-comment">// and my_slice.ptr is null.</span>
+	my_slice: []s32;
+
+	<span class="syntax-comment">// Use of the 'alloc_slice' function to allocate memory block for 10 numbers.</span>
+	alloc_slice(&my_slice, 10);
+
+	<span class="syntax-comment">// Release memory allocated by 'alloc_slice' when it's no longer needed. Defer</span>
+	<span class="syntax-comment">// statement will execute 'free_slice' function at the end of current </span>
+	<span class="syntax-comment">// scope.</span>
+	<span class="syntax-keyword">defer</span> free_slice(&my_slice);
+
+
+	<span class="syntax-comment">// Len is now set to 10.</span>
+	print("my_slice.len = %\n", my_slice.len);
+
+	<span class="syntax-comment">// Ptr is pointer to the allocated memory.</span>
+	print("my_slice.ptr = %\n", my_slice.ptr);
+
+	<span class="syntax-comment">// The 'alloc_slice' will set allocated elements to 0.</span>
+	print("my_slice: %\n", my_slice);
+
+
+
+	<span class="syntax-comment">// Fill the slice with numbers</span>
+	<span class="syntax-keyword">loop</span> i := 0; i &lt; my_slice.len; i += 1 <span class="syntax-keyword">{</span>
+		<span class="syntax-comment">// Use [N] to access elements.</span>
+		my_slice[i] = i;
+	<span class="syntax-keyword">}</span>
+
+	print("my_slice: %\n", my_slice);
+
+
+	<span class="syntax-comment">// Array can be implicitly converted to slice, in such case no 'alloc_slice'</span>
+	<span class="syntax-comment">// or 'free_slice' is needed. Actual data will stay in original array</span>
+	<span class="syntax-comment">// location, slice in such case acts only like an 'interface' to the original</span>
+	<span class="syntax-comment">// array.</span>
+
+	array := [4]s32.<span class="syntax-keyword">{</span>0, 1, 2, 3<span class="syntax-keyword">}</span>;
+	slice_from_array : []s32 = array;
+
+	print("slice_from_array = %\n", slice_from_array);
+
+	<span class="syntax-comment">// This implicit conversion can be useful in function calls. We can now call</span>
+	<span class="syntax-comment">// function 'gimme_slice' with any slice containing numbers of s32 type. If </span>
+	<span class="syntax-comment">// you try this with regular arrays you will be able to pass only arrays of </span>
+	<span class="syntax-comment">// the exact same size defined in array type of the function argument. </span>
+	<span class="syntax-comment">// Passing of array will cause copying of whole array on callee side, passing </span>
+	<span class="syntax-comment">// slice is much more effective, since it's only len and ptr to data.</span>
+	gimme_slice(my_slice);
+	gimme_slice(slice_from_array);
+
+	<span class="syntax-comment">// Due to implicit conversion from array to slice we can call 'gimme_slice'</span>
+	<span class="syntax-comment">// function directly with an array argument, it will be passed into the </span>
+	<span class="syntax-comment">// function as a slice.</span>
+	gimme_slice(array);
+
+	<span class="syntax-keyword">return</span> 0;
+<span class="syntax-keyword">}</span>
+
+gimme_slice :: <span class="syntax-keyword">fn</span> (slice: []s32) <span class="syntax-keyword">{</span>
+	print("Slice has % elements.\n", slice.len);
+<span class="syntax-keyword">}</span>
+
+</code></pre>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#Slices">Slices</a></li>
+</ul>
+</div>
+</div>
+</body>
+</html>

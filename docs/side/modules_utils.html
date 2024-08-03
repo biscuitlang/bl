@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="Utils">Utils</h1>
+<p><code>#load "std/utils.bl"</code></p>
+<p>Set of various utility functions.</p>
+<h2 id="set_flag">set_flag</h2>
+
+<pre><code>set_flag :: fn (flags: *?T, other: T) T #inline
+</code></pre>
+<p>Sets <code>other</code> flag or flags in <code>flags</code> input. This function is valid for numeric and enum flags types (checked by assert).
+This function can be easily replaced by <code>flags |= other</code> expression, pick your preferred way to do it.</p>
+<p><span class="hint-note"><b>Note:</b>
+Multiple flags can be set at once by using an or operator <code>other = A | B</code>.</span></p>
+<p><em>File: utils.bl</em></p>
+<h2 id="clr_flag">clr_flag</h2>
+
+<pre><code>clr_flag :: fn (flags: *?T, other: T) T #inline
+</code></pre>
+<p>Clear <code>other</code> flag or flags in <code>flags</code> input. This function is valid for numeric and enum flags types (checked by assert).</p>
+<p><span class="hint-note"><b>Note:</b>
+Multiple flags can be cleared at once by using an or operator <code>other = A | B</code>.</span></p>
+<p><em>File: utils.bl</em></p>
+<h2 id="is_flag">is_flag</h2>
+
+<pre><code>is_flag :: fn (flags: ?T, other: T) bool #inline
+</code></pre>
+<p>Checks whether <code>other</code> flag or flags is set in <code>flags</code>. This function is valid for numeric and enum flags types (checked by assert).</p>
+<p>In case you provide a combination of multiple flags as <code>other</code> argument, <b>all</b> of them must be set in the <code>flags</code> otherwise
+the function returns false.</p>
+<p>Internally this is wrapper around <code>(flags & other) == other</code> expression.</p>
+<p><em>File: utils.bl</em></p>
+<h2 id="env_get">env_get</h2>
+
+<pre><code>env_get :: fn (var: string_view) string
+</code></pre>
+<p>Reads environment variable specified by <code>var</code> name. Result is empty in case no such variable was
+found or has no content. It's caller responsibility to delete result string.</p>
+<p><em>File: utils.bl</em></p>
+<h2 id="env_set">env_set</h2>
+
+<pre><code>env_set :: fn (var: string_view, value: string_view)  #inline
+</code></pre>
+<p>Sets environment variable.</p>
+<p><em>File: utils.bl</em></p>
+<h2 id="random_seed_time">random_seed_time</h2>
+
+<pre><code>random_seed_time :: fn ()  #inline
+</code></pre>
+<p>Sets seed for <code>std.rand</code> or utility function <a href="#random_number">random_number</a> based on current
+system tick time.</p>
+<p><em>File: utils.bl</em></p>
+<h2 id="random_number">random_number</h2>
+
+<pre><code>random_number :: fn (min :: 0, max :: 1) s32 #inline
+</code></pre>
+<p>Generates random number in specified range &lt;min, max&gt; using standard libc rand generator.
+Random number generator seed is supposed to be set by :ref:<code>random_seed_time</code> or by <code>std.srand</code>
+call.</p>
+<p><em>File: utils.bl</em></p>
+<h2 id="sort">sort</h2>
+
+<pre><code>sort :: fn (list: []?T, cmp: *fn (a: *T, b: *T) bool) 
+</code></pre>
+<p>Slice sorting utility.</p>
+<p><em>File: utils.bl</em></p>
+<h2 id="find_if">find_if</h2>
+
+<pre><code>find_if :: fn (arr: []?T, func: *fn (: *T) bool) (value: *T, index: s64) #inline
+</code></pre>
+<p>Iterate over <code>arr</code> slice and return pointer to the value and it's index if <code>func</code> validator
+function returs true.</p>
+<p>The <code>func</code> is called for every element in the <code>arr</code> slice and pointer to the current element
+is passed into this function.</p>
+<p>In case no element was found, function returns null pointer and -1 index.</p>
+<p><em>File: utils.bl</em></p>
+<h2 id="hash_combine">hash_combine</h2>
+
+<pre><code>hash_combine :: fn (first: ?T, second: T, more: ...T) T #inline
+</code></pre>
+<p>Combine two or more hashes into one, T is expected to be an integer type (checked by static
+assert).</p>
+<p><em>File: utils.bl</em></p>
+<h2 id="is_power_of_two">is_power_of_two</h2>
+
+<pre><code>is_power_of_two :: fn (n: usize) bool #inline
+</code></pre>
+<p>Check whether the number <code>n</code> is power of 2.</p>
+<p><em>File: utils.bl</em></p>
+<h2 id="next_pow_2">next_pow_2</h2>
+
+<pre><code>next_pow_2 :: fn (n: s64) s64 #inline
+</code></pre>
+<p>Finds next power of 2.</p>
+<p><em>File: utils.bl</em></p>
+<h2 id="utf8_to_utf32">utf8_to_utf32</h2>
+
+<pre><code>utf8_to_utf32 :: fn (utf8_str: string_view, out_utf32_str: *[..]u32) Error
+</code></pre>
+<p>Converts UTF8 encoded string to UTF32.</p>
+<p><em>File: utils.bl</em></p>
+<h2 id="utf8_to_utf32_single_char">utf8_to_utf32_single_char</h2>
+
+<pre><code>utf8_to_utf32_single_char :: fn (utf8: string_view) (utf32: u32, decoded_bytes: s32, state: Error) #inline
+</code></pre>
+<p><em>File: utils.bl</em></p>
+<h2 id="utf32_to_utf8">utf32_to_utf8</h2>
+
+<pre><code>utf32_to_utf8 :: fn (utf32_str: []u32, out_utf8_str: *string) Error
+</code></pre>
+<p>Converts UTF32 encoded string to UTF8.</p>
+<p><em>File: utils.bl</em></p>
+<h2 id="utf32_to_utf8_single_char">utf32_to_utf8_single_char</h2>
+
+<pre><code>utf32_to_utf8_single_char :: fn (utf32_char: u32, out_utf8_str: *string) Error
+</code></pre>
+<p>Appends the <code>out_utf8_str</code> string with <em>utf8</em> characters converted from <code>utf32_str</code> input.</p>
+<p><em>File: utils.bl</em></p>
+<h2 id="reinterpret_read_any">reinterpret_read_any</h2>
+
+<pre><code>reinterpret_read_any :: fn (T: type, value: Any) T #inline
+</code></pre>
+<p><em>File: utils.bl</em></p>
+<h2 id="reinterpret_write_any">reinterpret_write_any</h2>
+
+<pre><code>reinterpret_write_any :: fn (dest: Any, value: ?T) usize #inline
+</code></pre>
+<p><em>File: utils.bl</em></p>
+<h2 id="ternary">ternary</h2>
+
+<pre><code>ternary :: fn (expr: bool, a: ?T, b: T) T #inline
+</code></pre>
+<p>Can be used as replacement for C ternary operator <code>expr ? a : b</code>.</p>
+<p><em>File: utils.bl</em></p>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#Utils">Utils</a></li>
+<ul>
+<li><a href="#set_flag">set_flag</a></li>
+<li><a href="#clr_flag">clr_flag</a></li>
+<li><a href="#is_flag">is_flag</a></li>
+<li><a href="#env_get">env_get</a></li>
+<li><a href="#env_set">env_set</a></li>
+<li><a href="#random_seed_time">random_seed_time</a></li>
+<li><a href="#random_number">random_number</a></li>
+<li><a href="#sort">sort</a></li>
+<li><a href="#find_if">find_if</a></li>
+<li><a href="#hash_combine">hash_combine</a></li>
+<li><a href="#is_power_of_two">is_power_of_two</a></li>
+<li><a href="#next_pow_2">next_pow_2</a></li>
+<li><a href="#utf8_to_utf32">utf8_to_utf32</a></li>
+<li><a href="#utf8_to_utf32_single_char">utf8_to_utf32_single_char</a></li>
+<li><a href="#utf32_to_utf8">utf32_to_utf8</a></li>
+<li><a href="#utf32_to_utf8_single_char">utf32_to_utf8_single_char</a></li>
+<li><a href="#reinterpret_read_any">reinterpret_read_any</a></li>
+<li><a href="#reinterpret_write_any">reinterpret_write_any</a></li>
+<li><a href="#ternary">ternary</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

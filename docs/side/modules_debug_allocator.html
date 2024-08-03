@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="Debug-Allocator">Debug Allocator</h1>
+<p><code>#import "std/debug_allocator"</code></p>
+<p>Debug allocator can be used to analyze memory usage and eventually investigate possible memory leaks.
+Every allocation done via debug allocator is internally recorded with some meta-data included to each
+allocation. Debug allocator can later panic in situations like double-free, freeing of non-allocated
+memory; or just report memory usage or memory leaks.</p>
+<p>Each allocation takes more space due to meta data beeing stored. This allocator also should not be
+used in production code since it's way much slower than regular allocators.</p>
+<h3 id="Supported-Operation">Supported Operation</h3>
+
+<pre><code>- [x] Allocate
+- [x] Reallocate
+- [x] Free
+- [x] Release
+- [ ] Reset
+</code></pre>
+<h3 id="Example">Example</h3>
+
+<pre><code><span class="syntax-directive">#import</span> "std/debug_allocator"
+
+debug_allocator: std.DebugAllocator;
+
+main :: <span class="syntax-keyword">fn</span> () s32 <span class="syntax-keyword">{</span>
+	<span class="syntax-keyword">using</span> std;
+	<span class="syntax-comment">// Initialize debug allocator with current context allocator.</span>
+	debug_allocator = debug_allocator_make(application_context.allocator);
+	<span class="syntax-comment">// Always cleanup at the end of the scope.</span>
+	<span class="syntax-keyword">defer</span> debug_allocator_release(&debug_allocator);
+
+	<span class="syntax-comment">// Some leaking memory.</span>
+	alloc(128, DEFAULT_ALIGNMENT, &debug_allocator);
+
+	<span class="syntax-comment">// Do some other stuff...</span>
+
+	dump_memory_leaks(&debug_allocator);
+	<span class="syntax-keyword">return</span> 0;
+<span class="syntax-keyword">}</span>
+
+</code></pre>
+
+<pre><code>.\out.exe
+Dump memory leaks begin:
+    [1] - C:/Develop/bl/tests/test.bl:13 (128 bytes)
+Dump memory leaks end.
+</code></pre>
+<p><span class="hint-note"><b>Note:</b>
+Debug allocator can be used as global application allocator to catch all possible memory leaks
+and other issues.</span></p>
+<p><span class="hint-note"><b>Note:</b>
+Debug allocator is thread safe.</span></p>
+<p><span class="hint-note"><b>Note:</b>
+Memory freed by this allocator is set to 0xdddddddd, if you see such a pattern in the debugger, you
+are probably trying to use already freed memory.</span></p>
+<h2 id="std.DebugAllocator">std.DebugAllocator</h2>
+
+<pre><code>DebugAllocator :: struct {
+    mutex: std.Mutex;
+    allocator: *Allocator;
+    total_allocated: s64;
+    alloc_table: ;
+    serial: u64;
+    break_on: u64;
+}
+</code></pre>
+<p><em>File: debug_allocator.bl</em></p>
+<h2 id="std.debug_allocator_make">std.debug_allocator_make</h2>
+
+<pre><code>debug_allocator_make :: fn (allocator: *Allocator) DebugAllocator
+</code></pre>
+<p>Create new debug allocator instance using <code>allocator</code> to allocate memory.</p>
+<p><em>File: debug_allocator.bl</em></p>
+<h2 id="std.debug_allocator_release">std.debug_allocator_release</h2>
+
+<pre><code>debug_allocator_release :: fn (dbgalloc: *DebugAllocator)  #inline
+</code></pre>
+<p>Release debug allocator resources.</p>
+<p><em>File: debug_allocator.bl</em></p>
+<h2 id="std.debug_allocator_break">std.debug_allocator_break</h2>
+
+<pre><code>debug_allocator_break :: fn (dbgalloc: *DebugAllocator, serial: u64)  #inline
+</code></pre>
+<p>Invoke <code>debug_break</code> before allocation with defined serial ID.</p>
+<p><em>File: debug_allocator.bl</em></p>
+<h2 id="std.debug_allocator_allocated">std.debug_allocator_allocated</h2>
+
+<pre><code>debug_allocator_allocated :: fn (dbgalloc: *DebugAllocator) usize #inline
+</code></pre>
+<p>Return currently allocated memory in bytes.</p>
+<p><em>File: debug_allocator.bl</em></p>
+<h2 id="std.debug_allocator_allocated_count">std.debug_allocator_allocated_count</h2>
+
+<pre><code>debug_allocator_allocated_count :: fn (dbgalloc: *DebugAllocator) s64 #inline
+</code></pre>
+<p>Return count of currently allocated memory entries.</p>
+<p><em>File: debug_allocator.bl</em></p>
+<h2 id="std.debug_allocator_get_allocation_size">std.debug_allocator_get_allocation_size</h2>
+
+<pre><code>debug_allocator_get_allocation_size :: fn (dbgalloc: *DebugAllocator, ptr: *u8) (found: bool, size: usize) #inline
+</code></pre>
+<p>Lookup size in bytes of previously allocated memory. Returns <code>true</code> and size in bytes if allocation
+was found, otherwise returns <code>false</code> and zero size.</p>
+<p><em>File: debug_allocator.bl</em></p>
+<h2 id="std.print_memory_report">std.print_memory_report</h2>
+
+<pre><code>print_memory_report :: fn (dbgalloc: *DebugAllocator, dump_leaks :: false) 
+</code></pre>
+<p>Print memory report. First block contains currently allocated bytes and current count
+of allocations. Optional memory leak dump block (enabled by <code>dump_leaks</code> argument) contains:</p>
+
+<pre><code>[allocation serial ID] - &lt;file&gt;:&lt;line&gt; (allocation size in bytes) 
+</code></pre>
+
+<pre><code>$ ./out.exe
+******************* MEMORY REPORT ******************
+* Allocated 64 Bytes.
+* Count of allocations 1.
+****************************************************
+Dump memory leaks begin:
+    [1] - test.bl:10 (64 bytes)
+Dump memory leaks end.
+</code></pre>
+<p><span class="hint-note"><b>Note:</b>
+Printed report contains all remaining (not freed) allocations in time when function was
+called. Memory leaks can contain false-positives when function is called before execution end.</span></p>
+<p><span class="hint-note"><b>Note:</b>
+Allocation serail ID can be used by <a href="#debug_allocator_break">debug_allocator_break</a> to interrupt
+execution before memory is allocated and eventually localize allocation in debbuger.</span></p>
+<p><em>File: debug_allocator.bl</em></p>
+<h2 id="std.dump_memory_leaks">std.dump_memory_leaks</h2>
+
+<pre><code>dump_memory_leaks :: fn (dbgalloc: *DebugAllocator) s64
+</code></pre>
+<p>Print only leaking memory if any and returs count of leaking allocations. Please see the
+<a href="debug_allocator.md#stdprint_memory_report">print_memory_report</a> for further details.</p>
+<p><em>File: debug_allocator.bl</em></p>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#Debug-Allocator">Debug Allocator</a></li>
+<ul>
+<li><a href="#std.DebugAllocator">std.DebugAllocator</a></li>
+<li><a href="#std.debug_allocator_make">std.debug_allocator_make</a></li>
+<li><a href="#std.debug_allocator_release">std.debug_allocator_release</a></li>
+<li><a href="#std.debug_allocator_break">std.debug_allocator_break</a></li>
+<li><a href="#std.debug_allocator_allocated">std.debug_allocator_allocated</a></li>
+<li><a href="#std.debug_allocator_allocated_count">std.debug_allocator_allocated_count</a></li>
+<li><a href="#std.debug_allocator_get_allocation_size">std.debug_allocator_get_allocation_size</a></li>
+<li><a href="#std.print_memory_report">std.print_memory_report</a></li>
+<li><a href="#std.dump_memory_leaks">std.dump_memory_leaks</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

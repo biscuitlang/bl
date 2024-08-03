@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="ui.bl">ui.bl</h1>
+<h2 id="ui.scale_factor">ui.scale_factor</h2>
+
+<pre><code>scale_factor := 1.000000
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.global_alpha">ui.global_alpha</h2>
+
+<pre><code>global_alpha := 1.000000
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.ignore_inputs">ui.ignore_inputs</h2>
+
+<pre><code>ignore_inputs : bool = 
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.Api">ui.Api</h2>
+
+<pre><code>Api :: struct {
+    draw_rect: DrawRectFn;
+    draw_rect_with_colors: DrawRectWithColorsFn;
+    draw_text: DrawTextFn;
+    draw_hs_rect: DrawHsRectFn;
+    get_mouse_position: GetMousePositionFn;
+    get_mouse_scroll_offset: GetMouseScrollOffsetFn;
+    get_last_char_input: GetLastCharInputFn;
+    is_lmb_press: MouseButtonFn;
+    is_lmb_down: MouseButtonFn;
+    is_lmb_release: MouseButtonFn;
+    is_key_press_or_repeat: KeyEventFn;
+    is_key_release: KeyEventFn;
+    is_key_press: KeyEventFn;
+    set_cursor: SetCursorFn;
+    set_clipboard: SetClipboardFn;
+    get_clipboard: GetClipboardFn;
+    get_text_size: GetTextSizeFn;
+}
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.InitInfo">ui.InitInfo</h2>
+
+<pre><code>InitInfo :: struct {
+    api: Api;
+    font: Font;
+    font_icons: Font;
+    use_light_theme: bool;
+}
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.init">ui.init</h2>
+
+<pre><code>init :: fn (info: *InitInfo) 
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.terminate">ui.terminate</h2>
+
+<pre><code>terminate :: fn () 
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.get_default_style">ui.get_default_style</h2>
+
+<pre><code>get_default_style :: fn (T: type) T
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.get_default_style_ref">ui.get_default_style_ref</h2>
+
+<pre><code>get_default_style_ref :: fn { 
+    fn () *Style; 
+    fn (T: type) *T; 
+}
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.begin">ui.begin</h2>
+
+<pre><code>begin :: fn () 
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.end">ui.end</h2>
+
+<pre><code>end :: fn () 
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.frame_begin">ui.frame_begin</h2>
+
+<pre><code>frame_begin :: fn (viewport_size: glm.v2, dt: f32) 
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.frame_end">ui.frame_end</h2>
+
+<pre><code>frame_end :: fn ()  #inline
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.is_mouse_over">ui.is_mouse_over</h2>
+
+<pre><code>is_mouse_over :: fn () bool #inline
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.has_keyboard_focus">ui.has_keyboard_focus</h2>
+
+<pre><code>has_keyboard_focus :: fn () bool #inline
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.clear_keyboard_focus">ui.clear_keyboard_focus</h2>
+
+<pre><code>clear_keyboard_focus :: fn ()  #inline
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.get_keyboard_focus">ui.get_keyboard_focus</h2>
+
+<pre><code>get_keyboard_focus :: fn () u64 #inline
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.set_keyboard_focus">ui.set_keyboard_focus</h2>
+
+<pre><code>set_keyboard_focus :: fn (hash: u64)  #inline
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.Window">ui.Window</h2>
+
+<pre><code>Window :: struct {
+    rect: Rect;
+    is_minimized: bool;
+    is_visible: bool;
+    style: *WindowStyle;
+    title: string_view;
+    flags: WindowFlags;
+    focus: bool;
+    move_start: glm.v2;
+    z_order: s32;
+    hash: u64;
+    is_moving: bool;
+    is_scrolling: bool;
+    resize: WindowResize;
+}
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.init_window">ui.init_window</h2>
+
+<pre><code>init_window :: fn (w: *Window, rect: Rect, title: string_view, flags :: WindowFlags.DEFAULT, style : *WindowStyle: null, index : u64: 0, loc :: #call_location) 
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.window_begin">ui.window_begin</h2>
+
+<pre><code>window_begin :: fn (window: *Window) bool
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.window_end">ui.window_end</h2>
+
+<pre><code>window_end :: fn ()  #inline
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.label">ui.label</h2>
+
+<pre><code>label :: fn { 
+    label_impl; 
+    label_item_impl; 
+}
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.item_title">ui.item_title</h2>
+
+<pre><code>item_title :: fn (rect: Rect, text: string_view, style : *LabelStyle: null) Rect
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.button_begin">ui.button_begin</h2>
+
+<pre><code>button_begin :: fn (rect: Rect, flags :: ButtonFlags.DEFAULT, _style : *ButtonStyle: null, index : u64: 0, loc :: #call_location) (clicked: bool, button_state: *Button, is_hovered: bool)
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.button_end">ui.button_end</h2>
+
+<pre><code>button_end :: fn ()  #inline
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.button">ui.button</h2>
+
+<pre><code>button :: fn { 
+    button_impl; 
+    button_item_impl; 
+}
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.scroll_area_begin">ui.scroll_area_begin</h2>
+
+<pre><code>scroll_area_begin :: fn (_style : *ScrollAreaStyle: null, index : u64: 0, loc :: #call_location) 
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.scroll_area_end">ui.scroll_area_end</h2>
+
+<pre><code>scroll_area_end :: fn ()  #inline
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.list_begin">ui.list_begin</h2>
+
+<pre><code>list_begin :: fn (style : *ScrollAreaStyle: null, title_width :: 0.000000, colorize_items_base_color :: TRANSPARENT, index : u64: 0, loc :: #call_location) 
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.list_end">ui.list_end</h2>
+
+<pre><code>list_end :: fn ()  #inline
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.list_item_begin">ui.list_item_begin</h2>
+
+<pre><code>list_item_begin :: fn (item_offset :: 2, _item_height :: -1, _color :: TRANSPARENT) (rect: Rect, is_visible: bool)
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.list_item_end">ui.list_item_end</h2>
+
+<pre><code>list_item_end :: fn ()  #inline
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.list_item_separator">ui.list_item_separator</h2>
+
+<pre><code>list_item_separator :: fn (height :: 8)  #inline
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.list_background_color">ui.list_background_color</h2>
+
+<pre><code>list_background_color :: fn (color: glm.v4) glm.v4 #inline
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.checkbox">ui.checkbox</h2>
+
+<pre><code>checkbox :: fn { 
+    checkbox_impl; 
+    checkbox_item_impl; 
+}
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.variants">ui.variants</h2>
+
+<pre><code>variants :: fn { 
+    variants_impl; 
+    variants_item_impl; 
+}
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.textbox">ui.textbox</h2>
+
+<pre><code>textbox :: fn { 
+    textbox_impl; 
+    textbox_item_impl; 
+    intbox_item_impl; 
+    floatbox_impl; 
+    floatbox_item_impl; 
+}
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.canvas_begin">ui.canvas_begin</h2>
+
+<pre><code>canvas_begin :: fn (background_color : glm.v4: TRANSPARENT) 
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.canvas_end">ui.canvas_end</h2>
+
+<pre><code>canvas_end :: fn () 
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.canvas_rect">ui.canvas_rect</h2>
+
+<pre><code>canvas_rect :: fn (rect: Rect, color: glm.v4) 
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.canvas_text">ui.canvas_text</h2>
+
+<pre><code>canvas_text :: fn (pos: glm.v2, text: string_view, font: Font, color: glm.v4) 
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.color_picker">ui.color_picker</h2>
+
+<pre><code>color_picker :: fn (color: *glm.v4, base_color: glm.v4, reset :: false, edit_alpha :: true, index : u64: 0, loc :: #call_location) (applied: bool, cancelled: bool)
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.button_bar">ui.button_bar</h2>
+
+<pre><code>button_bar :: fn { 
+    button_bar_impl; 
+    button_bar_item_impl; 
+}
+</code></pre>
+<p><em>File: ui.bl</em></p>
+<h2 id="ui.get_list_item_height">ui.get_list_item_height</h2>
+
+<pre><code>get_list_item_height :: fn () f32
+</code></pre>
+<p><em>File: ui.bl</em></p>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#ui.bl">ui.bl</a></li>
+<ul>
+<li><a href="#ui.scale_factor">ui.scale_factor</a></li>
+<li><a href="#ui.global_alpha">ui.global_alpha</a></li>
+<li><a href="#ui.ignore_inputs">ui.ignore_inputs</a></li>
+<li><a href="#ui.Api">ui.Api</a></li>
+<li><a href="#ui.InitInfo">ui.InitInfo</a></li>
+<li><a href="#ui.init">ui.init</a></li>
+<li><a href="#ui.terminate">ui.terminate</a></li>
+<li><a href="#ui.get_default_style">ui.get_default_style</a></li>
+<li><a href="#ui.get_default_style_ref">ui.get_default_style_ref</a></li>
+<li><a href="#ui.begin">ui.begin</a></li>
+<li><a href="#ui.end">ui.end</a></li>
+<li><a href="#ui.frame_begin">ui.frame_begin</a></li>
+<li><a href="#ui.frame_end">ui.frame_end</a></li>
+<li><a href="#ui.is_mouse_over">ui.is_mouse_over</a></li>
+<li><a href="#ui.has_keyboard_focus">ui.has_keyboard_focus</a></li>
+<li><a href="#ui.clear_keyboard_focus">ui.clear_keyboard_focus</a></li>
+<li><a href="#ui.get_keyboard_focus">ui.get_keyboard_focus</a></li>
+<li><a href="#ui.set_keyboard_focus">ui.set_keyboard_focus</a></li>
+<li><a href="#ui.Window">ui.Window</a></li>
+<li><a href="#ui.init_window">ui.init_window</a></li>
+<li><a href="#ui.window_begin">ui.window_begin</a></li>
+<li><a href="#ui.window_end">ui.window_end</a></li>
+<li><a href="#ui.label">ui.label</a></li>
+<li><a href="#ui.item_title">ui.item_title</a></li>
+<li><a href="#ui.button_begin">ui.button_begin</a></li>
+<li><a href="#ui.button_end">ui.button_end</a></li>
+<li><a href="#ui.button">ui.button</a></li>
+<li><a href="#ui.scroll_area_begin">ui.scroll_area_begin</a></li>
+<li><a href="#ui.scroll_area_end">ui.scroll_area_end</a></li>
+<li><a href="#ui.list_begin">ui.list_begin</a></li>
+<li><a href="#ui.list_end">ui.list_end</a></li>
+<li><a href="#ui.list_item_begin">ui.list_item_begin</a></li>
+<li><a href="#ui.list_item_end">ui.list_item_end</a></li>
+<li><a href="#ui.list_item_separator">ui.list_item_separator</a></li>
+<li><a href="#ui.list_background_color">ui.list_background_color</a></li>
+<li><a href="#ui.checkbox">ui.checkbox</a></li>
+<li><a href="#ui.variants">ui.variants</a></li>
+<li><a href="#ui.textbox">ui.textbox</a></li>
+<li><a href="#ui.canvas_begin">ui.canvas_begin</a></li>
+<li><a href="#ui.canvas_end">ui.canvas_end</a></li>
+<li><a href="#ui.canvas_rect">ui.canvas_rect</a></li>
+<li><a href="#ui.canvas_text">ui.canvas_text</a></li>
+<li><a href="#ui.color_picker">ui.color_picker</a></li>
+<li><a href="#ui.button_bar">ui.button_bar</a></li>
+<li><a href="#ui.get_list_item_height">ui.get_list_item_height</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

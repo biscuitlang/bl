@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="Command-Line-Argument-Parsing">Command Line Argument Parsing</h1>
+<p>Compile using <code>blc my-file-name.bl</code> and run <code>./out</code>.</p>
+
+<pre><code><span class="syntax-directive">#import</span> "extra/argparse"
+
+MyOptLevel :: <span class="syntax-keyword">enum</span> <span class="syntax-keyword">{</span>
+	DEBUG;
+	RELEASE_SMALL;
+	RELEASE_FAST;
+<span class="syntax-keyword">}</span>
+
+<span class="syntax-comment">// Some options we need.</span>
+MyArgs :: <span class="syntax-keyword">struct</span> <span class="syntax-keyword">{</span>
+	is_debug: bool;
+	worker_count: s32;
+	directory: string_view;
+	inputs: []string_view;
+	outputs: []string_view;
+	optimization: MyOptLevel;
+<span class="syntax-keyword">}</span>
+
+main :: <span class="syntax-keyword">fn</span> () s32 <span class="syntax-keyword">{</span>
+	<span class="syntax-keyword">using</span> argparse;
+
+	<span class="syntax-comment">// Create and initialize new instance of argument parser.</span>
+	parser: Parser;
+	init(&parser, "This is cool testing application parsing command-line arguments, enjoy!");
+	<span class="syntax-comment">// Don't forget to terminate it!</span>
+	<span class="syntax-keyword">defer</span> terminate(&parser);
+
+	args: MyArgs;
+
+	<span class="syntax-comment">// Set the executable name (used in help).</span>
+	set_executable_name(&parser, command_line_arguments[0]);
+
+	<span class="syntax-comment">// Add very basic usage information.</span>
+	add_usage(&parser, "[options]");
+
+	<span class="syntax-comment">// Register positional argument prefixes for input and output files.</span>
+	add_positional(&parser, &args.inputs, "--input", "-i", "List of input files.");
+	add_positional(&parser, &args.outputs, "--output", "-o", "List of output files.");
+
+	<span class="syntax-comment">// Register all other arguments.</span>
+	add(&parser, &args.is_debug, "--debug", "-d", "Enable debug mode"); <span class="syntax-comment">// Boolean flag.</span>
+	add(&parser, &args.worker_count, "--worker-count", "", "Count of worker threads."); <span class="syntax-comment">// Integer value.</span>
+	add(&parser, &args.directory, "--dir", "", "Root directory path."); <span class="syntax-comment">// String view (no need to be preallocated).</span>
+	add(&parser, &args.optimization, "--opt", "", "Optimization level."); <span class="syntax-comment">// Enumerator value.</span>
+
+	<span class="syntax-comment">// Parse all command line arguments here.</span>
+	parsed_argument_count, parse_error :: parse(&parser, command_line_arguments);
+	<span class="syntax-keyword">if</span> parse_error <span class="syntax-keyword">{</span>
+		<span class="syntax-comment">// Print error and show the help.</span>
+		print_err(parse_error);
+		print_help(&parser);
+		<span class="syntax-keyword">return</span> 1;
+	<span class="syntax-keyword">}</span>
+
+	<span class="syntax-comment">// Use the parsed options.</span>
+	print("\nParsed arguments: %\n", parsed_argument_count);
+	print("%\n", args);
+	<span class="syntax-keyword">return</span> 0;
+<span class="syntax-keyword">}</span>
+
+
+</code></pre>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#Command-Line-Argument-Parsing">Command Line Argument Parsing</a></li>
+</ul>
+</div>
+</div>
+</body>
+</html>

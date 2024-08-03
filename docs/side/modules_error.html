@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="Error-Handling">Error Handling</h1>
+<p><code>#load "std/error.bl"</code></p>
+<p>There is no support for <em>exceptions</em> of any kind in BL, however, there are a few features in the
+language helping with error handling such as <a href="/book/control_flow/#defer">defer</a> and
+<a href="/book/functions/#return-value">multiple return values</a>. In general, every possibly failing
+function should return an error state in case of failure containing an error code and some
+message describing the problem. This style is widely adopted by the <em>standard library</em> and may
+be used in the <em>user</em> code as well.</p>
+<p>The error state is represented by the following data structure:</p>
+
+<pre><code>_Error :: <span class="syntax-keyword">struct</span> <span class="syntax-keyword">{</span>
+    msg: string_view;
+    code: s32;
+<span class="syntax-keyword">}</span>
+
+Error :: *_Error;
+</code></pre>
+<h3 id="Example">Example</h3>
+
+<pre><code>div :: <span class="syntax-keyword">fn</span> (a: s32, b: s32) (s32, Error) <span class="syntax-keyword">{</span>
+	<span class="syntax-keyword">if</span> b == 0 <span class="syntax-keyword">{</span>
+		<span class="syntax-comment">// Return error with message.</span>
+		<span class="syntax-keyword">return</span> 0, error("Divide by zero '%/%'!", a, b);
+	<span class="syntax-keyword">}</span>
+	<span class="syntax-comment">// Return result and OK state.</span>
+	<span class="syntax-keyword">return</span> a / b, OK;
+<span class="syntax-keyword">}</span>
+
+main :: <span class="syntax-keyword">fn</span> () s32 <span class="syntax-keyword">{</span>
+	<span class="syntax-keyword">loop</span> i := -5; i &lt;= 5; i += 1 <span class="syntax-keyword">{</span>
+		result, error :: div(10, i);
+		<span class="syntax-keyword">if</span> error <span class="syntax-keyword">{</span>
+			print("Error: %.\n", error);
+		<span class="syntax-keyword">}</span> <span class="syntax-keyword">else</span> <span class="syntax-keyword">{</span>
+			print("Result is %.\n", result);
+		<span class="syntax-keyword">}</span>
+	<span class="syntax-keyword">}</span>
+	<span class="syntax-keyword">return</span> 0;
+<span class="syntax-keyword">}</span>
+
+</code></pre>
+<p>As already mentioned, the <a href="/book/control_flow/#defer">defer</a> statement may be helpful in situations
+where we need to free some memory or do any kind of resource cleanup before the failing function
+returns the error state.</p>
+<h2 id="Error">Error</h2>
+
+<pre><code>Error :: *_Error
+</code></pre>
+<p><em>File: error.bl</em></p>
+<h2 id="OK">OK</h2>
+
+<pre><code>OK : Error = null
+</code></pre>
+<p>No error.</p>
+<p><em>File: error.bl</em></p>
+<h2 id="is_error">is_error</h2>
+
+<pre><code>is_error :: fn (err: Error, code: s32) bool #inline
+</code></pre>
+<p>Check whether <code>err</code> is representing error <code>code</code>. Returns <code>false</code> when <code>err</code> is <code>null</code>.</p>
+<p><em>File: error.bl</em></p>
+<h2 id="error">error</h2>
+
+<pre><code>error :: fn { 
+    impl_error1; 
+    impl_error2; 
+    impl_error3; 
+}
+</code></pre>
+<p>Overloaded function setting up error state. Error state is global variable holding <a href="#error">Error</a>
+instance, <code>error</code> function sets desired values and return pointer to this global. That means
+the <code>Error</code> must be handled immediately after it's returned from failing function since every
+<code>Error</code> state points to the same memory.</p>
+<p>Error creating does not require any HEAP memory alocations.</p>
+<p><b>Overloads:</b></p>
+
+<pre><code><span class="syntax-keyword">fn</span> (code: s32) Error <span class="syntax-directive">#inline</span>
+<span class="syntax-keyword">fn</span> (format: string, args: ...) Error <span class="syntax-directive">#inline</span>
+<span class="syntax-keyword">fn</span> (code: s32, format: string, args: ...) Error <span class="syntax-directive">#inline</span>
+</code></pre>
+<p>Sets error state with <code>code</code> and formatted message.</p>
+<p><em>File: error.bl</em></p>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#Error-Handling">Error Handling</a></li>
+<ul>
+<li><a href="#Error">Error</a></li>
+<li><a href="#OK">OK</a></li>
+<li><a href="#is_error">is_error</a></li>
+<li><a href="#error">error</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

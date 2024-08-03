@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="Growing-Buffer-Stream">Growing Buffer Stream</h1>
+<p><code>#import "std/growing_buffer_stream"</code></p>
+<p>Growing Buffer Stream is dynamically allocated stream buffer reallocating internal memory block if it runs out
+of space.</p>
+<h2 id="std.GrowingBufferStream">std.GrowingBufferStream</h2>
+
+<pre><code>GrowingBufferStream :: struct {
+    allocator: *Allocator;
+    data: []u8;
+    position: s64;
+    end: s64;
+}
+</code></pre>
+<p><em>File: growing_buffer_stream.bl</em></p>
+<h2 id="std.growing_buffer_stream_init">std.growing_buffer_stream_init</h2>
+
+<pre><code>growing_buffer_stream_init :: fn (stream: *GrowingBufferStream, size : usize: 0, allocator : *Allocator: null) 
+</code></pre>
+<p><em>File: growing_buffer_stream.bl</em></p>
+<h2 id="std.growing_buffer_stream_terminate">std.growing_buffer_stream_terminate</h2>
+
+<pre><code>growing_buffer_stream_terminate :: fn (stream: *GrowingBufferStream) 
+</code></pre>
+<p><em>File: growing_buffer_stream.bl</em></p>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#Growing-Buffer-Stream">Growing Buffer Stream</a></li>
+<ul>
+<li><a href="#std.GrowingBufferStream">std.GrowingBufferStream</a></li>
+<li><a href="#std.growing_buffer_stream_init">std.growing_buffer_stream_init</a></li>
+<li><a href="#std.growing_buffer_stream_terminate">std.growing_buffer_stream_terminate</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

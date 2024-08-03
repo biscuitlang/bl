@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="GLM">GLM</h1>
+<p><code>#import "extra/glm"</code></p>
+<p>3D math tools.</p>
+<h2 id="glm.v2">glm.v2</h2>
+
+<pre><code>v2 :: struct {
+    x: f32;
+    y: f32;
+}
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.v2_one">glm.v2_one</h2>
+
+<pre><code>v2_one :: 
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.v2_zero">glm.v2_zero</h2>
+
+<pre><code>v2_zero :: 
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.v3">glm.v3</h2>
+
+<pre><code>v3 :: struct {
+    x: f32;
+    y: f32;
+    z: f32;
+}
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.v3_right">glm.v3_right</h2>
+
+<pre><code>v3_right :: 
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.v3_up">glm.v3_up</h2>
+
+<pre><code>v3_up :: 
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.v3_forward">glm.v3_forward</h2>
+
+<pre><code>v3_forward :: 
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.v3_one">glm.v3_one</h2>
+
+<pre><code>v3_one :: 
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.v3_zero">glm.v3_zero</h2>
+
+<pre><code>v3_zero :: 
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.v4">glm.v4</h2>
+
+<pre><code>v4 :: struct {
+    x: f32;
+    y: f32;
+    z: f32;
+    w: f32;
+}
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.v4_one">glm.v4_one</h2>
+
+<pre><code>v4_one :: 
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.v4_zero">glm.v4_zero</h2>
+
+<pre><code>v4_zero :: 
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.color_white">glm.color_white</h2>
+
+<pre><code>color_white :: 
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.color_black">glm.color_black</h2>
+
+<pre><code>color_black :: 
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.color_red">glm.color_red</h2>
+
+<pre><code>color_red :: 
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.color_green">glm.color_green</h2>
+
+<pre><code>color_green :: 
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.color_blue">glm.color_blue</h2>
+
+<pre><code>color_blue :: 
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.color_yellow">glm.color_yellow</h2>
+
+<pre><code>color_yellow :: 
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.iv2">glm.iv2</h2>
+
+<pre><code>iv2 :: struct {
+    x: s32;
+    y: s32;
+}
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.iv3">glm.iv3</h2>
+
+<pre><code>iv3 :: struct {
+    x: s32;
+    y: s32;
+    z: s32;
+}
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.mat4">glm.mat4</h2>
+
+<pre><code>mat4 :: 
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.quat">glm.quat</h2>
+
+<pre><code>quat :: v4
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.QUAT_IDENTITY">glm.QUAT_IDENTITY</h2>
+
+<pre><code>QUAT_IDENTITY :: 
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.MAT4_IDENTITY">glm.MAT4_IDENTITY</h2>
+
+<pre><code>MAT4_IDENTITY :: 
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.sub">glm.sub</h2>
+
+<pre><code>sub :: fn { 
+    v2_sub; 
+    v2_sub_s; 
+    v3_sub; 
+    v3_sub_s; 
+    v4_sub; 
+    v4_sub_s; 
+}
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.add">glm.add</h2>
+
+<pre><code>add :: fn { 
+    v2_add; 
+    v2_add_s; 
+    v3_add; 
+    v3_add_s; 
+    v4_add; 
+    v4_add_s; 
+}
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.mul">glm.mul</h2>
+
+<pre><code>mul :: fn { 
+    v2_mul; 
+    v2_mul_s; 
+    v3_mul; 
+    v3_mul_s; 
+    v4_mul; 
+    v4_mul_s; 
+}
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.div">glm.div</h2>
+
+<pre><code>div :: fn { 
+    v2_div; 
+    v2_div_s; 
+    v3_div; 
+    v3_div_s; 
+    v4_div; 
+    v4_div_s; 
+}
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.length">glm.length</h2>
+
+<pre><code>length :: fn { 
+    v2_length; 
+    v3_length; 
+    v4_length; 
+}
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.sqr_length">glm.sqr_length</h2>
+
+<pre><code>sqr_length :: fn { 
+    v2_sqr_length; 
+    v3_sqr_length; 
+    v4_sqr_length; 
+}
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.dot">glm.dot</h2>
+
+<pre><code>dot :: fn { 
+    v2_dot; 
+    v3_dot; 
+    v4_dot; 
+}
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.normalize">glm.normalize</h2>
+
+<pre><code>normalize :: fn { 
+    v2_normalize; 
+    v3_normalize; 
+    v4_normalize; 
+}
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.compare">glm.compare</h2>
+
+<pre><code>compare :: fn { 
+    v2_compare; 
+    v3_compare; 
+    v4_compare; 
+}
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.negate">glm.negate</h2>
+
+<pre><code>negate :: fn { 
+    v2_negate; 
+    v3_negate; 
+    v4_negate; 
+}
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.cross">glm.cross</h2>
+
+<pre><code>cross :: fn { 
+    v3_cross; 
+}
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.round">glm.round</h2>
+
+<pre><code>round :: fn { 
+    v2_round; 
+    v3_round; 
+    v4_round; 
+}
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.floor">glm.floor</h2>
+
+<pre><code>floor :: fn { 
+    v2_floor; 
+    v3_floor; 
+    v4_floor; 
+}
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.ceil">glm.ceil</h2>
+
+<pre><code>ceil :: fn { 
+    v2_ceil; 
+    v3_ceil; 
+    v4_ceil; 
+}
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.mat4_init">glm.mat4_init</h2>
+
+<pre><code>mat4_init :: fn (m: *mat4, m00: f32, m10: f32, m20: f32, m30: f32, m01: f32, m11: f32, m21: f32, m31: f32, m02: f32, m12: f32, m22: f32, m32: f32, m03: f32, m13: f32, m23: f32, m33: f32)  #inline
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.mat4_identity">glm.mat4_identity</h2>
+
+<pre><code>mat4_identity :: fn (m: *mat4)  #inline
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.mat4_zero">glm.mat4_zero</h2>
+
+<pre><code>mat4_zero :: fn (m: *mat4)  #inline
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.mat4_init_perspective">glm.mat4_init_perspective</h2>
+
+<pre><code>mat4_init_perspective :: fn (m: *mat4, fov_rad: f32, aspect: f32, near: f32, far: f32)  #inline
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.mat4_init_ortho">glm.mat4_init_ortho</h2>
+
+<pre><code>mat4_init_ortho :: fn (m: *mat4, left: f32, right: f32, bottom: f32, top: f32, near: f32, far: f32) 
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.mat4_init_look_at">glm.mat4_init_look_at</h2>
+
+<pre><code>mat4_init_look_at :: fn (m: *mat4, eye: v3, target: v3, up: v3)  #inline
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.mat4_init_look">glm.mat4_init_look</h2>
+
+<pre><code>mat4_init_look :: fn (m: *mat4, eye: v3, direction: v3, up: v3) 
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.mat4_mul">glm.mat4_mul</h2>
+
+<pre><code>mat4_mul :: fn (a: *mat4, b: *mat4, result: *mat4) 
+</code></pre>
+<p>Multiply matrix <code>a</code> with matrix <code>b</code> and writes the result into <code>result</code>. <code>a</code> or <code>b</code> can be used
+also as the <code>result</code>.</p>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.mat4_inverse">glm.mat4_inverse</h2>
+
+<pre><code>mat4_inverse :: fn (m: *mat4, result: *mat4)  #inline
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.mat4_scale_s">glm.mat4_scale_s</h2>
+
+<pre><code>mat4_scale_s :: fn (m: *mat4, s: f32)  #inline
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.mat4_mul_v4">glm.mat4_mul_v4</h2>
+
+<pre><code>mat4_mul_v4 :: fn (mat: *mat4, v: v4) v4 #inline
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.mat4_mul_v3">glm.mat4_mul_v3</h2>
+
+<pre><code>mat4_mul_v3 :: fn (mat: *mat4, v: v3) v3 #inline
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.mat4_init_translation">glm.mat4_init_translation</h2>
+
+<pre><code>mat4_init_translation :: fn (m: *mat4, v: v3)  #inline
+</code></pre>
+<p>Initialize <code>m</code> matrix as translation matrix.</p>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.mat4_translate">glm.mat4_translate</h2>
+
+<pre><code>mat4_translate :: fn (m: *mat4, v: v3)  #inline
+</code></pre>
+<p>Multiplies the <code>m</code> matrix with translation matrix for <code>v</code> and writes the result into the
+<code>m</code> matrix.</p>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.mat4_get_translation">glm.mat4_get_translation</h2>
+
+<pre><code>mat4_get_translation :: fn (m: *mat4) v3 #inline
+</code></pre>
+<p>Gets the translation vector from the <code>m</code> matrix.</p>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.mat4_init_scale">glm.mat4_init_scale</h2>
+
+<pre><code>mat4_init_scale :: fn (m: *mat4, s: v3)  #inline
+</code></pre>
+<p>Initialize <code>m</code> matrix as scale matrix.</p>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.mat4_scale">glm.mat4_scale</h2>
+
+<pre><code>mat4_scale :: fn (m: *mat4, v: v3)  #inline
+</code></pre>
+<p>Multiplies the <code>m</code> matrix with scale matrix for <code>v</code> and writes the result into the
+<code>m</code> matrix.</p>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.mat4_get_scale">glm.mat4_get_scale</h2>
+
+<pre><code>mat4_get_scale :: fn (m: *mat4) v3
+</code></pre>
+<p>Gets the scale from the <code>m</code> matrix.</p>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.mat4_init_rotation_quat">glm.mat4_init_rotation_quat</h2>
+
+<pre><code>mat4_init_rotation_quat :: fn (m: *mat4, q: quat)  #inline
+</code></pre>
+<p>Initialize rotation matrix <code>m</code> from quaternion <code>q</code>.</p>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.mat4_init_rotation_euler">glm.mat4_init_rotation_euler</h2>
+
+<pre><code>mat4_init_rotation_euler :: fn (m: *mat4, euler: v3)  #inline
+</code></pre>
+<p>Initialize rotation matrix <code>m</code> from euler angles <code>euler</code> (in radians).</p>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.mat4_rotate_quat">glm.mat4_rotate_quat</h2>
+
+<pre><code>mat4_rotate_quat :: fn (m: *mat4, q: quat)  #inline
+</code></pre>
+<p>Rotate the <code>m</code> matrix by quaternion <code>q</code>.</p>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.mat4_rotate_euler">glm.mat4_rotate_euler</h2>
+
+<pre><code>mat4_rotate_euler :: fn (mat: *mat4, euler: v3)  #inline
+</code></pre>
+<p>Rotate the <code>m</code> matrix by euler angles <code>euler</code> (in radians).</p>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.mat4_get_quat">glm.mat4_get_quat</h2>
+
+<pre><code>mat4_get_quat :: fn (m: *mat4) quat
+</code></pre>
+<p>Gets quaternion rotation from <code>m</code> matrix.</p>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.quat_normalize">glm.quat_normalize</h2>
+
+<pre><code>quat_normalize :: fn (q: quat) quat #inline
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.quat_axis_angle">glm.quat_axis_angle</h2>
+
+<pre><code>quat_axis_angle :: fn (axis: v3, angle_rad: f32) quat
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.quat_to_euler">glm.quat_to_euler</h2>
+
+<pre><code>quat_to_euler :: fn (q1: quat) v3
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.euler_to_quat">glm.euler_to_quat</h2>
+
+<pre><code>euler_to_quat :: fn (euler: v3) quat #inline
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.quat_imag">glm.quat_imag</h2>
+
+<pre><code>quat_imag :: fn (q: quat) v3 #inline
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.quat_real">glm.quat_real</h2>
+
+<pre><code>quat_real :: fn (q: quat) f32 #inline
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.quat_mul">glm.quat_mul</h2>
+
+<pre><code>quat_mul :: fn (q1: quat, q2: quat) quat
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.quat_rotate_v3">glm.quat_rotate_v3</h2>
+
+<pre><code>quat_rotate_v3 :: fn (q: quat, v: v3) v3
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.quat_forward">glm.quat_forward</h2>
+
+<pre><code>quat_forward :: fn (q: quat) v3
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.lerp">glm.lerp</h2>
+
+<pre><code>lerp :: fn (a: ?T, b: T, t: f32) T #inline
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.distance">glm.distance</h2>
+
+<pre><code>distance :: fn (a: ?T, b: T) f32 #inline
+</code></pre>
+<p><em>File: glm.bl</em></p>
+<h2 id="glm.sqr_distance">glm.sqr_distance</h2>
+
+<pre><code>sqr_distance :: fn (a: ?T, b: T) f32 #inline
+</code></pre>
+<p><em>File: glm.bl</em></p>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#GLM">GLM</a></li>
+<ul>
+<li><a href="#glm.v2">glm.v2</a></li>
+<li><a href="#glm.v2_one">glm.v2_one</a></li>
+<li><a href="#glm.v2_zero">glm.v2_zero</a></li>
+<li><a href="#glm.v3">glm.v3</a></li>
+<li><a href="#glm.v3_right">glm.v3_right</a></li>
+<li><a href="#glm.v3_up">glm.v3_up</a></li>
+<li><a href="#glm.v3_forward">glm.v3_forward</a></li>
+<li><a href="#glm.v3_one">glm.v3_one</a></li>
+<li><a href="#glm.v3_zero">glm.v3_zero</a></li>
+<li><a href="#glm.v4">glm.v4</a></li>
+<li><a href="#glm.v4_one">glm.v4_one</a></li>
+<li><a href="#glm.v4_zero">glm.v4_zero</a></li>
+<li><a href="#glm.color_white">glm.color_white</a></li>
+<li><a href="#glm.color_black">glm.color_black</a></li>
+<li><a href="#glm.color_red">glm.color_red</a></li>
+<li><a href="#glm.color_green">glm.color_green</a></li>
+<li><a href="#glm.color_blue">glm.color_blue</a></li>
+<li><a href="#glm.color_yellow">glm.color_yellow</a></li>
+<li><a href="#glm.iv2">glm.iv2</a></li>
+<li><a href="#glm.iv3">glm.iv3</a></li>
+<li><a href="#glm.mat4">glm.mat4</a></li>
+<li><a href="#glm.quat">glm.quat</a></li>
+<li><a href="#glm.QUAT_IDENTITY">glm.QUAT_IDENTITY</a></li>
+<li><a href="#glm.MAT4_IDENTITY">glm.MAT4_IDENTITY</a></li>
+<li><a href="#glm.sub">glm.sub</a></li>
+<li><a href="#glm.add">glm.add</a></li>
+<li><a href="#glm.mul">glm.mul</a></li>
+<li><a href="#glm.div">glm.div</a></li>
+<li><a href="#glm.length">glm.length</a></li>
+<li><a href="#glm.sqr_length">glm.sqr_length</a></li>
+<li><a href="#glm.dot">glm.dot</a></li>
+<li><a href="#glm.normalize">glm.normalize</a></li>
+<li><a href="#glm.compare">glm.compare</a></li>
+<li><a href="#glm.negate">glm.negate</a></li>
+<li><a href="#glm.cross">glm.cross</a></li>
+<li><a href="#glm.round">glm.round</a></li>
+<li><a href="#glm.floor">glm.floor</a></li>
+<li><a href="#glm.ceil">glm.ceil</a></li>
+<li><a href="#glm.mat4_init">glm.mat4_init</a></li>
+<li><a href="#glm.mat4_identity">glm.mat4_identity</a></li>
+<li><a href="#glm.mat4_zero">glm.mat4_zero</a></li>
+<li><a href="#glm.mat4_init_perspective">glm.mat4_init_perspective</a></li>
+<li><a href="#glm.mat4_init_ortho">glm.mat4_init_ortho</a></li>
+<li><a href="#glm.mat4_init_look_at">glm.mat4_init_look_at</a></li>
+<li><a href="#glm.mat4_init_look">glm.mat4_init_look</a></li>
+<li><a href="#glm.mat4_mul">glm.mat4_mul</a></li>
+<li><a href="#glm.mat4_inverse">glm.mat4_inverse</a></li>
+<li><a href="#glm.mat4_scale_s">glm.mat4_scale_s</a></li>
+<li><a href="#glm.mat4_mul_v4">glm.mat4_mul_v4</a></li>
+<li><a href="#glm.mat4_mul_v3">glm.mat4_mul_v3</a></li>
+<li><a href="#glm.mat4_init_translation">glm.mat4_init_translation</a></li>
+<li><a href="#glm.mat4_translate">glm.mat4_translate</a></li>
+<li><a href="#glm.mat4_get_translation">glm.mat4_get_translation</a></li>
+<li><a href="#glm.mat4_init_scale">glm.mat4_init_scale</a></li>
+<li><a href="#glm.mat4_scale">glm.mat4_scale</a></li>
+<li><a href="#glm.mat4_get_scale">glm.mat4_get_scale</a></li>
+<li><a href="#glm.mat4_init_rotation_quat">glm.mat4_init_rotation_quat</a></li>
+<li><a href="#glm.mat4_init_rotation_euler">glm.mat4_init_rotation_euler</a></li>
+<li><a href="#glm.mat4_rotate_quat">glm.mat4_rotate_quat</a></li>
+<li><a href="#glm.mat4_rotate_euler">glm.mat4_rotate_euler</a></li>
+<li><a href="#glm.mat4_get_quat">glm.mat4_get_quat</a></li>
+<li><a href="#glm.quat_normalize">glm.quat_normalize</a></li>
+<li><a href="#glm.quat_axis_angle">glm.quat_axis_angle</a></li>
+<li><a href="#glm.quat_to_euler">glm.quat_to_euler</a></li>
+<li><a href="#glm.euler_to_quat">glm.euler_to_quat</a></li>
+<li><a href="#glm.quat_imag">glm.quat_imag</a></li>
+<li><a href="#glm.quat_real">glm.quat_real</a></li>
+<li><a href="#glm.quat_mul">glm.quat_mul</a></li>
+<li><a href="#glm.quat_rotate_v3">glm.quat_rotate_v3</a></li>
+<li><a href="#glm.quat_forward">glm.quat_forward</a></li>
+<li><a href="#glm.lerp">glm.lerp</a></li>
+<li><a href="#glm.distance">glm.distance</a></li>
+<li><a href="#glm.sqr_distance">glm.sqr_distance</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

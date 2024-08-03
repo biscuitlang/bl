@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="Hash-Table">Hash Table</h1>
+<p>Compile using <code>blc my-file-name.bl</code> and run <code>./out</code>.</p>
+
+<pre><code><span class="syntax-directive">#import</span> "std/table"
+
+main :: <span class="syntax-keyword">fn</span> () s32 <span class="syntax-keyword">{</span>
+	<span class="syntax-keyword">using</span> std;
+	table: Table(string_view, s32);
+	<span class="syntax-keyword">defer</span> tbl_terminate(&table);
+
+	<span class="syntax-comment">// Insert some data into the table.</span>
+	tbl_insert(&table, "Martin", 32);
+	tbl_insert(&table, "Lisa", 29);
+	tbl_insert(&table, "John", 40);
+
+	<span class="syntax-comment">// Lookup data by key.</span>
+	value, found :: tbl_lookup(&table, "Martin");
+	<span class="syntax-keyword">if</span> found <span class="syntax-keyword">{</span>
+		print("%\n", value);
+	<span class="syntax-keyword">}</span>
+
+	<span class="syntax-comment">// Iterate over the table</span>
+	<span class="syntax-keyword">loop</span> i := 0; i &lt; table.len; i += 1 <span class="syntax-keyword">{</span>
+		print("[%] %\n", table.keys[i], table.values[i]);
+	<span class="syntax-keyword">}</span>
+
+	<span class="syntax-keyword">return</span> 0;
+<span class="syntax-keyword">}</span>
+
+</code></pre>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#Hash-Table">Hash Table</a></li>
+</ul>
+</div>
+</div>
+</body>
+</html>

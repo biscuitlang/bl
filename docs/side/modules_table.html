@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="Table">Table</h1>
+<p><code>#import "std/table"</code></p>
+<p>Table is generic data container aka hash table or hash map storing data entries
+as pairs of Key and Value. Table provides fast lookup on large amount of data.</p>
+<p>Internally, the table is implemented as preallocated array of <code>slots</code> and dynamic array of <code>keys</code>
+and <code>values</code>. The <code>slots</code> array holds information about mapping of each key-value pair (inserted into <code>keys</code>
+and <code>values</code> arrays) and corresponding 32 bit hash value calculated from the <code>key</code> value.</p>
+<p>The <code>kays</code> and <code>values</code> arrays are actually regular dynamic arrays holding inserted keys and values,
+so it can be iterated as usual. The ordering of arrays is unstable after erase operation.</p>
+<p>Performance of insert and lookup is getting worse when the table is starting to be full, to minimize
+this problem, the table grows when the maximum <b>load factor</b> is reached (i.e. 70%). In such a situation
+only the <code>slots</code> array is reallocated and whole table mapping is recalculated. This operation can be
+expensive on large tables. However, <code>keys</code> and <code>values</code> arrays stays as it is and reallocates as regular
+dynamic arrays (in case there is no preallocated space left).</p>
+<p><span class="hint-warning"><b>Warning:</b>
+Table data array ordering corresponds to the order of inserts until any element is erased from the table.</span></p>
+<p><span class="hint-warning"><b>Warning:</b>
+The key types are limited to numbers, strings and pointers (this may change in the future).</span></p>
+<h3 id="Example">Example</h3>
+
+<pre><code><span class="syntax-directive">#import</span> "std/table"
+
+main :: <span class="syntax-keyword">fn</span> () s32 <span class="syntax-keyword">{</span>
+	<span class="syntax-keyword">using</span> std;
+	table: Table(string_view, s32);
+	<span class="syntax-keyword">defer</span> tbl_terminate(&table);
+
+	<span class="syntax-comment">// Insert some data into the table.</span>
+	tbl_insert(&table, "Martin", 32);
+	tbl_insert(&table, "Lisa", 29);
+	tbl_insert(&table, "John", 40);
+
+	<span class="syntax-comment">// Lookup data by key.</span>
+	value, found :: tbl_lookup(&table, "Martin");
+	<span class="syntax-keyword">if</span> found <span class="syntax-keyword">{</span>
+		print("%\n", value);
+	<span class="syntax-keyword">}</span>
+
+	<span class="syntax-comment">// Iterate over the table</span>
+	<span class="syntax-keyword">loop</span> i := 0; i &lt; table.len; i += 1 <span class="syntax-keyword">{</span>
+		print("[%] %\n", table.keys[i], table.values[i]);
+	<span class="syntax-keyword">}</span>
+
+	<span class="syntax-keyword">return</span> 0;
+<span class="syntax-keyword">}</span>
+
+</code></pre>
+<h2 id="std.Table">std.Table</h2>
+
+<pre><code>Table :: fn (TKey: type, TValue: type) type
+</code></pre>
+<p>Create a new <b>Table</b> type. The <code>TKey</code> must be a number, string or pointer type.</p>
+
+<pre><code>Table :: <span class="syntax-keyword">struct</span> <span class="syntax-keyword">{</span>
+    keys: [..]TKey;
+    values: [..]TValue;
+    len: s64;
+<span class="syntax-keyword">}</span>
+</code></pre>
+<p><em>File: table.bl</em></p>
+<h2 id="std.tbl_init">std.tbl_init</h2>
+
+<pre><code>tbl_init :: fn (tbl: *?T, expected_size :: DEFAULT_ENTRIES_COUNT, allocator : *Allocator: null) 
+</code></pre>
+<p>Initialize the <code>tbl</code> table. It's not necessary to call this method in case the table is
+already zero-initialized. The <code>expected_size</code> can be specified as hint telling the table how many
+elements we're going to store. Memory preallocation is performed using <code>allocator</code>.</p>
+<p><em>File: table.bl</em></p>
+<h2 id="std.tbl_terminate">std.tbl_terminate</h2>
+
+<pre><code>tbl_terminate :: fn (tbl: *?T) 
+</code></pre>
+<p>Release all memory resources used by the table and set the <code>tbl</code> instance to the default state.</p>
+<p><em>File: table.bl</em></p>
+<h2 id="std.tbl_typeof_key">std.tbl_typeof_key</h2>
+
+<pre><code>tbl_typeof_key :: fn (TTable: type) type
+</code></pre>
+<p>Resolve type of key from table type in compile-time.</p>
+<p><em>File: table.bl</em></p>
+<h2 id="std.tbl_typeof_value">std.tbl_typeof_value</h2>
+
+<pre><code>tbl_typeof_value :: fn (TTable: type) type
+</code></pre>
+<p>Resolve type of value from table type in compile-time.</p>
+<p><em>File: table.bl</em></p>
+<h2 id="std.tbl_insert">std.tbl_insert</h2>
+
+<pre><code>tbl_insert :: fn { 
+    impl_insert_empty; 
+    impl_insert; 
+}
+</code></pre>
+<p>Overloaded table insert function adding a new element (associated with the <code>key</code>) into the table.
+The <code>key</code> value must be unique (not already existing in the table), this is checked in debug
+mode and panic is invoked in case of collision.</p>
+<p><b>Overloads:</b></p>
+
+<pre><code><span class="syntax-keyword">fn</span> (tbl: *?T, key: tbl_typeof_key(T), value: tbl_typeof_value(T)) *tbl_typeof_value(T) <span class="syntax-directive">#inline</span>
+<span class="syntax-keyword">fn</span> (tbl: *?T, key: tbl_typeof_key(T)) *tbl_typeof_value(T) <span class="syntax-directive">#inline</span>
+</code></pre>
+<p>Function returns pointer to the newly inserted value in the <code>values</code> array.</p>
+<p><span class="hint-note"><b>Note:</b>
+When no value is explicitly inserted, returned pointer points to non-initialized memory.</span></p>
+<p><em>File: table.bl</em></p>
+<h2 id="std.tbl_lookup_ptr">std.tbl_lookup_ptr</h2>
+
+<pre><code>tbl_lookup_ptr :: fn (tbl: *?T, key: ) * #inline
+</code></pre>
+<p>Lookup entry associated with the <code>key</code> and returns pointer its value or <code>null</code> when no such <code>key</code>
+was found.</p>
+<p><em>File: table.bl</em></p>
+<h2 id="std.tbl_lookup">std.tbl_lookup</h2>
+
+<pre><code>tbl_lookup :: fn (tbl: *?T, key: ) (value: , found: bool) #inline
+</code></pre>
+<p>Lookup entry associated with the <code>key</code> and returns its value and <code>true</code> or uninitialized value of type TValue
+and <code>false</code> when no such <code>key</code> was found in the table.</p>
+<p><em>File: table.bl</em></p>
+<h2 id="std.tbl_lookup_index">std.tbl_lookup_index</h2>
+
+<pre><code>tbl_lookup_index :: fn (tbl: *?T, key: ) s32 #inline
+</code></pre>
+<p>Lookup entry associated with the <code>key</code> and returns index of found element (appliable to <code>keys</code> or <code>values</code>
+arrays) or <code>-1</code> when no such <code>key</code> was found.</p>
+<p><em>File: table.bl</em></p>
+<h2 id="std.tbl_erase">std.tbl_erase</h2>
+
+<pre><code>tbl_erase :: fn (tbl: *?T, key: ) bool #inline
+</code></pre>
+<p>Erase an entry associated with <code>key</code> from the table and returns <code>true</code> in case the entry was
+found.</p>
+<p><span class="hint-note"><b>Note:</b>
+Ordering of the values and keys may change.</span></p>
+<p><em>File: table.bl</em></p>
+<h2 id="std.tbl_contains">std.tbl_contains</h2>
+
+<pre><code>tbl_contains :: fn (tbl: *?T, key: ) bool #inline
+</code></pre>
+<p>Checks whether the table <code>tbl</code> contains the <code>key</code>.</p>
+<p><em>File: table.bl</em></p>
+<h2 id="std.tbl_clear">std.tbl_clear</h2>
+
+<pre><code>tbl_clear :: fn (tbl: *?T)  #inline
+</code></pre>
+<p>Clears the table, but keeps allocated memory.</p>
+<p><em>File: table.bl</em></p>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#Table">Table</a></li>
+<ul>
+<li><a href="#std.Table">std.Table</a></li>
+<li><a href="#std.tbl_init">std.tbl_init</a></li>
+<li><a href="#std.tbl_terminate">std.tbl_terminate</a></li>
+<li><a href="#std.tbl_typeof_key">std.tbl_typeof_key</a></li>
+<li><a href="#std.tbl_typeof_value">std.tbl_typeof_value</a></li>
+<li><a href="#std.tbl_insert">std.tbl_insert</a></li>
+<li><a href="#std.tbl_lookup_ptr">std.tbl_lookup_ptr</a></li>
+<li><a href="#std.tbl_lookup">std.tbl_lookup</a></li>
+<li><a href="#std.tbl_lookup_index">std.tbl_lookup_index</a></li>
+<li><a href="#std.tbl_erase">std.tbl_erase</a></li>
+<li><a href="#std.tbl_contains">std.tbl_contains</a></li>
+<li><a href="#std.tbl_clear">std.tbl_clear</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

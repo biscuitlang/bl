@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="freetype.bl">freetype.bl</h1>
+<h2 id="FreeType.Bool">FreeType.Bool</h2>
+
+<pre><code>Bool :: C.uchar
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.FWord">FreeType.FWord</h2>
+
+<pre><code>FWord :: C.short
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.UFWord">FreeType.UFWord</h2>
+
+<pre><code>UFWord :: C.ushort
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Char">FreeType.Char</h2>
+
+<pre><code>Char :: C.char
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Byte">FreeType.Byte</h2>
+
+<pre><code>Byte :: C.uchar
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Bytes">FreeType.Bytes</h2>
+
+<pre><code>Bytes :: *Byte
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Tag">FreeType.Tag</h2>
+
+<pre><code>Tag :: u32
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.String">FreeType.String</h2>
+
+<pre><code>String :: C.char
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Short">FreeType.Short</h2>
+
+<pre><code>Short :: C.short
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.UShort">FreeType.UShort</h2>
+
+<pre><code>UShort :: C.ushort
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Int">FreeType.Int</h2>
+
+<pre><code>Int :: C.int
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.UInt">FreeType.UInt</h2>
+
+<pre><code>UInt :: C.uint
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Long">FreeType.Long</h2>
+
+<pre><code>Long :: C.long
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.ULong">FreeType.ULong</h2>
+
+<pre><code>ULong :: C.ulong
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Int32">FreeType.Int32</h2>
+
+<pre><code>Int32 :: s32
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.F2Dot14">FreeType.F2Dot14</h2>
+
+<pre><code>F2Dot14 :: C.short
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.F26Dot6">FreeType.F26Dot6</h2>
+
+<pre><code>F26Dot6 :: C.long
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Fixed">FreeType.Fixed</h2>
+
+<pre><code>Fixed :: C.long
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Error">FreeType.Error</h2>
+
+<pre><code>Error :: C.int
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Pointer">FreeType.Pointer</h2>
+
+<pre><code>Pointer :: *u8
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Offset">FreeType.Offset</h2>
+
+<pre><code>Offset :: usize
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.PtrDist">FreeType.PtrDist</h2>
+
+<pre><code>PtrDist :: s64
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Pos">FreeType.Pos</h2>
+
+<pre><code>Pos :: C.long
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LOAD_DEFAULT">FreeType.LOAD_DEFAULT</h2>
+
+<pre><code>LOAD_DEFAULT :: 0
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LOAD_NO_SCALE">FreeType.LOAD_NO_SCALE</h2>
+
+<pre><code>LOAD_NO_SCALE :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LOAD_NO_HINTING">FreeType.LOAD_NO_HINTING</h2>
+
+<pre><code>LOAD_NO_HINTING :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LOAD_RENDER">FreeType.LOAD_RENDER</h2>
+
+<pre><code>LOAD_RENDER :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LOAD_NO_BITMAP">FreeType.LOAD_NO_BITMAP</h2>
+
+<pre><code>LOAD_NO_BITMAP :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LOAD_VERTICAL_LAYOUT">FreeType.LOAD_VERTICAL_LAYOUT</h2>
+
+<pre><code>LOAD_VERTICAL_LAYOUT :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LOAD_FORCE_AUTOHINT">FreeType.LOAD_FORCE_AUTOHINT</h2>
+
+<pre><code>LOAD_FORCE_AUTOHINT :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LOAD_CROP_BITMAP">FreeType.LOAD_CROP_BITMAP</h2>
+
+<pre><code>LOAD_CROP_BITMAP :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LOAD_PEDANTIC">FreeType.LOAD_PEDANTIC</h2>
+
+<pre><code>LOAD_PEDANTIC :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LOAD_IGNORE_GLOBAL_ADVANCE_WIDTH">FreeType.LOAD_IGNORE_GLOBAL_ADVANCE_WIDTH</h2>
+
+<pre><code>LOAD_IGNORE_GLOBAL_ADVANCE_WIDTH :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LOAD_NO_RECURSE">FreeType.LOAD_NO_RECURSE</h2>
+
+<pre><code>LOAD_NO_RECURSE :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LOAD_IGNORE_TRANSFORM">FreeType.LOAD_IGNORE_TRANSFORM</h2>
+
+<pre><code>LOAD_IGNORE_TRANSFORM :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LOAD_MONOCHROME">FreeType.LOAD_MONOCHROME</h2>
+
+<pre><code>LOAD_MONOCHROME :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LOAD_LINEAR_DESIGN">FreeType.LOAD_LINEAR_DESIGN</h2>
+
+<pre><code>LOAD_LINEAR_DESIGN :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LOAD_NO_AUTOHINT">FreeType.LOAD_NO_AUTOHINT</h2>
+
+<pre><code>LOAD_NO_AUTOHINT :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LOAD_COLOR">FreeType.LOAD_COLOR</h2>
+
+<pre><code>LOAD_COLOR :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LOAD_COMPUTE_METRICS">FreeType.LOAD_COMPUTE_METRICS</h2>
+
+<pre><code>LOAD_COMPUTE_METRICS :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LOAD_BITMAP_METRICS_ONLY">FreeType.LOAD_BITMAP_METRICS_ONLY</h2>
+
+<pre><code>LOAD_BITMAP_METRICS_ONLY :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LOAD_ADVANCE_ONLY">FreeType.LOAD_ADVANCE_ONLY</h2>
+
+<pre><code>LOAD_ADVANCE_ONLY :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LOAD_SBITS_ONLY">FreeType.LOAD_SBITS_ONLY</h2>
+
+<pre><code>LOAD_SBITS_ONLY :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.FACE_FLAG_SCALABLE">FreeType.FACE_FLAG_SCALABLE</h2>
+
+<pre><code>FACE_FLAG_SCALABLE :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.FACE_FLAG_FIXED_SIZES">FreeType.FACE_FLAG_FIXED_SIZES</h2>
+
+<pre><code>FACE_FLAG_FIXED_SIZES :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.FACE_FLAG_FIXED_WIDTH">FreeType.FACE_FLAG_FIXED_WIDTH</h2>
+
+<pre><code>FACE_FLAG_FIXED_WIDTH :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.FACE_FLAG_SFNT">FreeType.FACE_FLAG_SFNT</h2>
+
+<pre><code>FACE_FLAG_SFNT :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.FACE_FLAG_HORIZONTAL">FreeType.FACE_FLAG_HORIZONTAL</h2>
+
+<pre><code>FACE_FLAG_HORIZONTAL :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.FACE_FLAG_VERTICAL">FreeType.FACE_FLAG_VERTICAL</h2>
+
+<pre><code>FACE_FLAG_VERTICAL :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.FACE_FLAG_KERNING">FreeType.FACE_FLAG_KERNING</h2>
+
+<pre><code>FACE_FLAG_KERNING :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.FACE_FLAG_FAST_GLYPHS">FreeType.FACE_FLAG_FAST_GLYPHS</h2>
+
+<pre><code>FACE_FLAG_FAST_GLYPHS :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.FACE_FLAG_MULTIPLE_MASTERS">FreeType.FACE_FLAG_MULTIPLE_MASTERS</h2>
+
+<pre><code>FACE_FLAG_MULTIPLE_MASTERS :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.FACE_FLAG_GLYPH_NAMES">FreeType.FACE_FLAG_GLYPH_NAMES</h2>
+
+<pre><code>FACE_FLAG_GLYPH_NAMES :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.FACE_FLAG_EXTERNAL_STREAM">FreeType.FACE_FLAG_EXTERNAL_STREAM</h2>
+
+<pre><code>FACE_FLAG_EXTERNAL_STREAM :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.FACE_FLAG_HINTER">FreeType.FACE_FLAG_HINTER</h2>
+
+<pre><code>FACE_FLAG_HINTER :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.FACE_FLAG_CID_KEYED">FreeType.FACE_FLAG_CID_KEYED</h2>
+
+<pre><code>FACE_FLAG_CID_KEYED :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.FACE_FLAG_TRICKY">FreeType.FACE_FLAG_TRICKY</h2>
+
+<pre><code>FACE_FLAG_TRICKY :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.FACE_FLAG_COLOR">FreeType.FACE_FLAG_COLOR</h2>
+
+<pre><code>FACE_FLAG_COLOR :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.FACE_FLAG_VARIATION">FreeType.FACE_FLAG_VARIATION</h2>
+
+<pre><code>FACE_FLAG_VARIATION :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.HINTING_FREETYPE">FreeType.HINTING_FREETYPE</h2>
+
+<pre><code>HINTING_FREETYPE :: 0
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.HINTING_ADOBE">FreeType.HINTING_ADOBE</h2>
+
+<pre><code>HINTING_ADOBE :: 1
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LOAD_TARGET_NORMAL">FreeType.LOAD_TARGET_NORMAL</h2>
+
+<pre><code>LOAD_TARGET_NORMAL :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LOAD_TARGET_LIGHT">FreeType.LOAD_TARGET_LIGHT</h2>
+
+<pre><code>LOAD_TARGET_LIGHT :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LOAD_TARGET_MONO">FreeType.LOAD_TARGET_MONO</h2>
+
+<pre><code>LOAD_TARGET_MONO :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LOAD_TARGET_LCD">FreeType.LOAD_TARGET_LCD</h2>
+
+<pre><code>LOAD_TARGET_LCD :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LOAD_TARGET_LCD_V">FreeType.LOAD_TARGET_LCD_V</h2>
+
+<pre><code>LOAD_TARGET_LCD_V :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Encoding">FreeType.Encoding</h2>
+
+<pre><code>Encoding :: enum {
+    ENCODING_NONE = 0;
+    ENCODING_MS_SYMBOL = 1;
+    ENCODING_UNICODE = 2;
+    ENCODING_SJIS = 3;
+    ENCODING_PRC = 4;
+    ENCODING_BIG5 = 5;
+    ENCODING_WANSUNG = 6;
+    ENCODING_JOHAB = 7;
+    ENCODING_GB2312 = 4;
+    ENCODING_MS_SJIS = 3;
+    ENCODING_MS_GB2312 = 4;
+    ENCODING_MS_BIG5 = 5;
+    ENCODING_MS_WANSUNG = 6;
+    ENCODING_MS_JOHAB = 7;
+    ENCODING_ADOBE_STANDARD = 8;
+    ENCODING_ADOBE_EXPERT = 9;
+    ENCODING_ADOBE_CUSTOM = 10;
+    ENCODING_ADOBE_LATIN_1 = 11;
+    ENCODING_OLD_LATIN_2 = 12;
+    ENCODING_APPLE_ROMAN = 13;
+}
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Glyph_Format">FreeType.Glyph_Format</h2>
+
+<pre><code>Glyph_Format :: enum {
+    GLYPH_FORMAT_NONE = 0;
+    GLYPH_FORMAT_COMPOSITE = 1668246896;
+    GLYPH_FORMAT_BITMAP = 1651078259;
+    GLYPH_FORMAT_OUTLINE = 1869968492;
+    GLYPH_FORMAT_PLOTTER = 1886154612;
+}
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Size_Request_Type_">FreeType.Size_Request_Type_</h2>
+
+<pre><code>Size_Request_Type_ :: enum {
+    SIZE_REQUEST_TYPE_NOMINAL;
+    SIZE_REQUEST_TYPE_REAL_DIM = 1;
+    SIZE_REQUEST_TYPE_BBOX = 2;
+    SIZE_REQUEST_TYPE_CELL = 3;
+    SIZE_REQUEST_TYPE_SCALES = 4;
+    SIZE_REQUEST_TYPE_MAX = 5;
+}
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Render_Mode">FreeType.Render_Mode</h2>
+
+<pre><code>Render_Mode :: s32
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.RENDER_MODE_NORMAL">FreeType.RENDER_MODE_NORMAL</h2>
+
+<pre><code>RENDER_MODE_NORMAL :: 0
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.RENDER_MODE_LIGHT">FreeType.RENDER_MODE_LIGHT</h2>
+
+<pre><code>RENDER_MODE_LIGHT :: 1
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.RENDER_MODE_MONO">FreeType.RENDER_MODE_MONO</h2>
+
+<pre><code>RENDER_MODE_MONO :: 2
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.RENDER_MODE_LCD">FreeType.RENDER_MODE_LCD</h2>
+
+<pre><code>RENDER_MODE_LCD :: 3
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.RENDER_MODE_LCD_V">FreeType.RENDER_MODE_LCD_V</h2>
+
+<pre><code>RENDER_MODE_LCD_V :: 4
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.RENDER_MODE_MAX">FreeType.RENDER_MODE_MAX</h2>
+
+<pre><code>RENDER_MODE_MAX :: 5
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Kerning_Mode_">FreeType.Kerning_Mode_</h2>
+
+<pre><code>Kerning_Mode_ :: enum {
+    KERNING_DEFAULT = 0;
+    KERNING_UNFITTED = 1;
+    KERNING_UNSCALED = 2;
+}
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Library">FreeType.Library</h2>
+
+<pre><code>Library :: *u8
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Size">FreeType.Size</h2>
+
+<pre><code>Size :: *u8
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Driver">FreeType.Driver</h2>
+
+<pre><code>Driver :: *u8
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Memory">FreeType.Memory</h2>
+
+<pre><code>Memory :: *u8
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Stream">FreeType.Stream</h2>
+
+<pre><code>Stream :: *u8
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Face_Internal">FreeType.Face_Internal</h2>
+
+<pre><code>Face_Internal :: *u8
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.SubGlyph">FreeType.SubGlyph</h2>
+
+<pre><code>SubGlyph :: *u8
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Slot_Internal">FreeType.Slot_Internal</h2>
+
+<pre><code>Slot_Internal :: *u8
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Color">FreeType.Color</h2>
+
+<pre><code>Color :: struct {
+    blue: Byte;
+    green: Byte;
+    red: Byte;
+    alpha: Byte;
+}
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Face">FreeType.Face</h2>
+
+<pre><code>Face :: struct {
+    num_faces: Long;
+    face_index: Long;
+    face_flags: Long;
+    style_flags: Long;
+    num_glyphs: Long;
+    family_name: *String;
+    style_name: *String;
+    num_fixed_sizes: Int;
+    available_sizes: *Bitmap_Size;
+    num_charmaps: Int;
+    charmaps: **CharMap;
+    generic: Generic;
+    bbox: BBox;
+    units_per_EM: UShort;
+    ascender: Short;
+    descender: Short;
+    height: Short;
+    max_advance_width: Short;
+    max_advance_height: Short;
+    underline_position: Short;
+    underline_thickness: Short;
+    glyph: *GlyphSlot;
+    size: Size;
+    charmap: *CharMap;
+    driver: Driver;
+    memory: Memory;
+    stream: Stream;
+    sizes_list: ListRec;
+    autohint: Generic;
+    extensions: *u8;
+    internal: Face_Internal;
+}
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.GlyphSlot">FreeType.GlyphSlot</h2>
+
+<pre><code>GlyphSlot :: struct {
+    library: Library;
+    face: *Face;
+    next: *GlyphSlot;
+    glyph_index: UInt;
+    generic: Generic;
+    metrics: Glyph_Metrics;
+    linearHoriAdvance: Fixed;
+    linearVertAdvance: Fixed;
+    advance: Vector;
+    format: Glyph_Format;
+    bitmap: Bitmap;
+    bitmap_left: Int;
+    bitmap_top: Int;
+    outline: Outline;
+    num_subglyphs: UInt;
+    subglyphs: SubGlyph;
+    control_data: *u8;
+    control_len: s64;
+    lsb_delta: Pos;
+    rsb_delta: Pos;
+    other: *u8;
+    internal: Slot_Internal;
+}
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Glyph_Metrics">FreeType.Glyph_Metrics</h2>
+
+<pre><code>Glyph_Metrics :: struct {
+    width: Pos;
+    height: Pos;
+    horiBearingX: Pos;
+    horiBearingY: Pos;
+    horiAdvance: Pos;
+    vertBearingX: Pos;
+    vertBearingY: Pos;
+    vertAdvance: Pos;
+}
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.GlyphRec">FreeType.GlyphRec</h2>
+
+<pre><code>GlyphRec :: struct {
+    library: *Library;
+    clazz: *u8;
+    format: Glyph_Format;
+    advance: Vector;
+}
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Glyph">FreeType.Glyph</h2>
+
+<pre><code>Glyph :: *GlyphRec
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.ListNode">FreeType.ListNode</h2>
+
+<pre><code>ListNode :: struct {
+    prev: *ListNode;
+    next: *ListNode;
+    data: *u8;
+}
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.ListRec">FreeType.ListRec</h2>
+
+<pre><code>ListRec :: struct {
+    head: *ListNode;
+    tail: *ListNode;
+}
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Bitmap_Size">FreeType.Bitmap_Size</h2>
+
+<pre><code>Bitmap_Size :: struct {
+    height: Short;
+    width: Short;
+    size: Pos;
+    x_ppem: Pos;
+    y_ppem: Pos;
+}
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Bitmap">FreeType.Bitmap</h2>
+
+<pre><code>Bitmap :: struct {
+    rows: u32;
+    width: u32;
+    pitch: s32;
+    buffer: *u8;
+    num_grays: u16;
+    pixel_mode: u8;
+    palette_mode: u8;
+    palette: *u8;
+}
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Outline">FreeType.Outline</h2>
+
+<pre><code>Outline :: struct {
+    n_contours: s16;
+    n_points: s16;
+    points: *Vector;
+    tags: *s8;
+    contours: *s16;
+    flags: s32;
+}
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.CharMap">FreeType.CharMap</h2>
+
+<pre><code>CharMap :: struct {
+    face: *Face;
+    encoding: Encoding;
+    platform_id: UShort;
+    encoding_id: UShort;
+}
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Generic">FreeType.Generic</h2>
+
+<pre><code>Generic :: struct {
+    data: *u8;
+    finalizer: *u8;
+}
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Vector">FreeType.Vector</h2>
+
+<pre><code>Vector :: struct {
+    x: Pos;
+    y: Pos;
+}
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.BBox">FreeType.BBox</h2>
+
+<pre><code>BBox :: struct {
+    xMin: Pos;
+    yMin: Pos;
+    xMax: Pos;
+    yMax: Pos;
+}
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Matrix">FreeType.Matrix</h2>
+
+<pre><code>Matrix :: struct {
+    xx: Fixed;
+    xy: Fixed;
+    yx: Fixed;
+    yy: Fixed;
+}
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.BitmapGlyphRec">FreeType.BitmapGlyphRec</h2>
+
+<pre><code>BitmapGlyphRec :: struct {
+    root: GlyphRec;
+    left: Int;
+    top: Int;
+    bitmap: Bitmap;
+}
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.BitmapGlyph">FreeType.BitmapGlyph</h2>
+
+<pre><code>BitmapGlyph :: *BitmapGlyphRec
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LcdFilter">FreeType.LcdFilter</h2>
+
+<pre><code>LcdFilter :: C.int
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LCD_FILTER_NONE">FreeType.LCD_FILTER_NONE</h2>
+
+<pre><code>LCD_FILTER_NONE :: 0
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LCD_FILTER_DEFAULT">FreeType.LCD_FILTER_DEFAULT</h2>
+
+<pre><code>LCD_FILTER_DEFAULT :: 1
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LCD_FILTER_LIGHT">FreeType.LCD_FILTER_LIGHT</h2>
+
+<pre><code>LCD_FILTER_LIGHT :: 2
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LCD_FILTER_LEGACY1">FreeType.LCD_FILTER_LEGACY1</h2>
+
+<pre><code>LCD_FILTER_LEGACY1 :: 3
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.LCD_FILTER_LEGACY">FreeType.LCD_FILTER_LEGACY</h2>
+
+<pre><code>LCD_FILTER_LEGACY :: 16
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Init_FreeType">FreeType.Init_FreeType</h2>
+
+<pre><code>Init_FreeType :: fn (alibrary: *Library) Error #extern
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Done_FreeType">FreeType.Done_FreeType</h2>
+
+<pre><code>Done_FreeType :: fn (library: Library) Error #extern
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.New_Face">FreeType.New_Face</h2>
+
+<pre><code>New_Face :: fn (library: Library, filepathname: *u8, face_index: Long, aface: **Face) Error #extern
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.New_Memory_Face">FreeType.New_Memory_Face</h2>
+
+<pre><code>New_Memory_Face :: fn (library: Library, file_base: *u8, file_size: Long, face_index: Long, aface: **Face) Error #extern
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Done_Face">FreeType.Done_Face</h2>
+
+<pre><code>Done_Face :: fn (face: *Face) Error #extern
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Set_Pixel_Sizes">FreeType.Set_Pixel_Sizes</h2>
+
+<pre><code>Set_Pixel_Sizes :: fn (face: *Face, pixel_width: UInt, pixel_height: UInt) Error #extern
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Load_Char">FreeType.Load_Char</h2>
+
+<pre><code>Load_Char :: fn (face: *Face, char_code: ULong, load_flags: Int32) Error #extern
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Library_SetLcdFilter">FreeType.Library_SetLcdFilter</h2>
+
+<pre><code>Library_SetLcdFilter :: fn (library: Library, filter: LcdFilter) Error #extern
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Render_Glyph">FreeType.Render_Glyph</h2>
+
+<pre><code>Render_Glyph :: fn (slot: *GlyphSlot, render_mode: Render_Mode) Error #extern
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Get_Char_Index">FreeType.Get_Char_Index</h2>
+
+<pre><code>Get_Char_Index :: fn (face: *Face, charcode: ULong) Error #extern
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Load_Glyph">FreeType.Load_Glyph</h2>
+
+<pre><code>Load_Glyph :: fn (face: *Face, glyph_index: UInt, load_flags: Int32) Error #extern
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Bitmap_Convert">FreeType.Bitmap_Convert</h2>
+
+<pre><code>Bitmap_Convert :: fn (library: Library, source: *Bitmap, target: *Bitmap, alignment: Int) Error #extern
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Bitmap_Init">FreeType.Bitmap_Init</h2>
+
+<pre><code>Bitmap_Init :: fn (abitmap: *Bitmap)  #extern
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Palette_Set_Foreground_Color">FreeType.Palette_Set_Foreground_Color</h2>
+
+<pre><code>Palette_Set_Foreground_Color :: fn (face: *Face, foreground_color: Color) Error #extern
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Library_SetLcdFilterWeights">FreeType.Library_SetLcdFilterWeights</h2>
+
+<pre><code>Library_SetLcdFilterWeights :: fn (library: Library, weights: *C.uchar) Error #extern
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Glyph_To_Bitmap">FreeType.Glyph_To_Bitmap</h2>
+
+<pre><code>Glyph_To_Bitmap :: fn (glyph: *Glyph, render_mode: Render_Mode, origin: *Vector, destroy: Bool) Error #extern
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Get_Glyph">FreeType.Get_Glyph</h2>
+
+<pre><code>Get_Glyph :: fn (slot: *GlyphSlot, aglyph: *Glyph) Error #extern
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Set_Transform">FreeType.Set_Transform</h2>
+
+<pre><code>Set_Transform :: fn (face: *Face, matrix: *Matrix, delta: *Vector)  #extern
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Set_Char_Size">FreeType.Set_Char_Size</h2>
+
+<pre><code>Set_Char_Size :: fn (face: *Face, char_width: F26Dot6, char_height: F26Dot6, horz_resolution: UInt, vert_resolution: UInt) Error #extern
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Property_Set">FreeType.Property_Set</h2>
+
+<pre><code>Property_Set :: fn (library: Library, module_name: *String, property_name: *String, value: *u8) Error #extern
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.Select_Charmap">FreeType.Select_Charmap</h2>
+
+<pre><code>Select_Charmap :: fn (face: *Face, encoding: UInt) Error #extern
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.ENCODING_UNICODE">FreeType.ENCODING_UNICODE</h2>
+
+<pre><code>ENCODING_UNICODE :: 
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+<h2 id="FreeType.ENC_TAG">FreeType.ENC_TAG</h2>
+
+<pre><code>ENC_TAG :: fn (a: u8, b: u8, c: u8, d: u8) UInt
+</code></pre>
+<p><em>File: freetype.bl</em></p>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#freetype.bl">freetype.bl</a></li>
+<ul>
+<li><a href="#FreeType.Bool">FreeType.Bool</a></li>
+<li><a href="#FreeType.FWord">FreeType.FWord</a></li>
+<li><a href="#FreeType.UFWord">FreeType.UFWord</a></li>
+<li><a href="#FreeType.Char">FreeType.Char</a></li>
+<li><a href="#FreeType.Byte">FreeType.Byte</a></li>
+<li><a href="#FreeType.Bytes">FreeType.Bytes</a></li>
+<li><a href="#FreeType.Tag">FreeType.Tag</a></li>
+<li><a href="#FreeType.String">FreeType.String</a></li>
+<li><a href="#FreeType.Short">FreeType.Short</a></li>
+<li><a href="#FreeType.UShort">FreeType.UShort</a></li>
+<li><a href="#FreeType.Int">FreeType.Int</a></li>
+<li><a href="#FreeType.UInt">FreeType.UInt</a></li>
+<li><a href="#FreeType.Long">FreeType.Long</a></li>
+<li><a href="#FreeType.ULong">FreeType.ULong</a></li>
+<li><a href="#FreeType.Int32">FreeType.Int32</a></li>
+<li><a href="#FreeType.F2Dot14">FreeType.F2Dot14</a></li>
+<li><a href="#FreeType.F26Dot6">FreeType.F26Dot6</a></li>
+<li><a href="#FreeType.Fixed">FreeType.Fixed</a></li>
+<li><a href="#FreeType.Error">FreeType.Error</a></li>
+<li><a href="#FreeType.Pointer">FreeType.Pointer</a></li>
+<li><a href="#FreeType.Offset">FreeType.Offset</a></li>
+<li><a href="#FreeType.PtrDist">FreeType.PtrDist</a></li>
+<li><a href="#FreeType.Pos">FreeType.Pos</a></li>
+<li><a href="#FreeType.LOAD_DEFAULT">FreeType.LOAD_DEFAULT</a></li>
+<li><a href="#FreeType.LOAD_NO_SCALE">FreeType.LOAD_NO_SCALE</a></li>
+<li><a href="#FreeType.LOAD_NO_HINTING">FreeType.LOAD_NO_HINTING</a></li>
+<li><a href="#FreeType.LOAD_RENDER">FreeType.LOAD_RENDER</a></li>
+<li><a href="#FreeType.LOAD_NO_BITMAP">FreeType.LOAD_NO_BITMAP</a></li>
+<li><a href="#FreeType.LOAD_VERTICAL_LAYOUT">FreeType.LOAD_VERTICAL_LAYOUT</a></li>
+<li><a href="#FreeType.LOAD_FORCE_AUTOHINT">FreeType.LOAD_FORCE_AUTOHINT</a></li>
+<li><a href="#FreeType.LOAD_CROP_BITMAP">FreeType.LOAD_CROP_BITMAP</a></li>
+<li><a href="#FreeType.LOAD_PEDANTIC">FreeType.LOAD_PEDANTIC</a></li>
+<li><a href="#FreeType.LOAD_IGNORE_GLOBAL_ADVANCE_WIDTH">FreeType.LOAD_IGNORE_GLOBAL_ADVANCE_WIDTH</a></li>
+<li><a href="#FreeType.LOAD_NO_RECURSE">FreeType.LOAD_NO_RECURSE</a></li>
+<li><a href="#FreeType.LOAD_IGNORE_TRANSFORM">FreeType.LOAD_IGNORE_TRANSFORM</a></li>
+<li><a href="#FreeType.LOAD_MONOCHROME">FreeType.LOAD_MONOCHROME</a></li>
+<li><a href="#FreeType.LOAD_LINEAR_DESIGN">FreeType.LOAD_LINEAR_DESIGN</a></li>
+<li><a href="#FreeType.LOAD_NO_AUTOHINT">FreeType.LOAD_NO_AUTOHINT</a></li>
+<li><a href="#FreeType.LOAD_COLOR">FreeType.LOAD_COLOR</a></li>
+<li><a href="#FreeType.LOAD_COMPUTE_METRICS">FreeType.LOAD_COMPUTE_METRICS</a></li>
+<li><a href="#FreeType.LOAD_BITMAP_METRICS_ONLY">FreeType.LOAD_BITMAP_METRICS_ONLY</a></li>
+<li><a href="#FreeType.LOAD_ADVANCE_ONLY">FreeType.LOAD_ADVANCE_ONLY</a></li>
+<li><a href="#FreeType.LOAD_SBITS_ONLY">FreeType.LOAD_SBITS_ONLY</a></li>
+<li><a href="#FreeType.FACE_FLAG_SCALABLE">FreeType.FACE_FLAG_SCALABLE</a></li>
+<li><a href="#FreeType.FACE_FLAG_FIXED_SIZES">FreeType.FACE_FLAG_FIXED_SIZES</a></li>
+<li><a href="#FreeType.FACE_FLAG_FIXED_WIDTH">FreeType.FACE_FLAG_FIXED_WIDTH</a></li>
+<li><a href="#FreeType.FACE_FLAG_SFNT">FreeType.FACE_FLAG_SFNT</a></li>
+<li><a href="#FreeType.FACE_FLAG_HORIZONTAL">FreeType.FACE_FLAG_HORIZONTAL</a></li>
+<li><a href="#FreeType.FACE_FLAG_VERTICAL">FreeType.FACE_FLAG_VERTICAL</a></li>
+<li><a href="#FreeType.FACE_FLAG_KERNING">FreeType.FACE_FLAG_KERNING</a></li>
+<li><a href="#FreeType.FACE_FLAG_FAST_GLYPHS">FreeType.FACE_FLAG_FAST_GLYPHS</a></li>
+<li><a href="#FreeType.FACE_FLAG_MULTIPLE_MASTERS">FreeType.FACE_FLAG_MULTIPLE_MASTERS</a></li>
+<li><a href="#FreeType.FACE_FLAG_GLYPH_NAMES">FreeType.FACE_FLAG_GLYPH_NAMES</a></li>
+<li><a href="#FreeType.FACE_FLAG_EXTERNAL_STREAM">FreeType.FACE_FLAG_EXTERNAL_STREAM</a></li>
+<li><a href="#FreeType.FACE_FLAG_HINTER">FreeType.FACE_FLAG_HINTER</a></li>
+<li><a href="#FreeType.FACE_FLAG_CID_KEYED">FreeType.FACE_FLAG_CID_KEYED</a></li>
+<li><a href="#FreeType.FACE_FLAG_TRICKY">FreeType.FACE_FLAG_TRICKY</a></li>
+<li><a href="#FreeType.FACE_FLAG_COLOR">FreeType.FACE_FLAG_COLOR</a></li>
+<li><a href="#FreeType.FACE_FLAG_VARIATION">FreeType.FACE_FLAG_VARIATION</a></li>
+<li><a href="#FreeType.HINTING_FREETYPE">FreeType.HINTING_FREETYPE</a></li>
+<li><a href="#FreeType.HINTING_ADOBE">FreeType.HINTING_ADOBE</a></li>
+<li><a href="#FreeType.LOAD_TARGET_NORMAL">FreeType.LOAD_TARGET_NORMAL</a></li>
+<li><a href="#FreeType.LOAD_TARGET_LIGHT">FreeType.LOAD_TARGET_LIGHT</a></li>
+<li><a href="#FreeType.LOAD_TARGET_MONO">FreeType.LOAD_TARGET_MONO</a></li>
+<li><a href="#FreeType.LOAD_TARGET_LCD">FreeType.LOAD_TARGET_LCD</a></li>
+<li><a href="#FreeType.LOAD_TARGET_LCD_V">FreeType.LOAD_TARGET_LCD_V</a></li>
+<li><a href="#FreeType.Encoding">FreeType.Encoding</a></li>
+<li><a href="#FreeType.Glyph_Format">FreeType.Glyph_Format</a></li>
+<li><a href="#FreeType.Size_Request_Type_">FreeType.Size_Request_Type_</a></li>
+<li><a href="#FreeType.Render_Mode">FreeType.Render_Mode</a></li>
+<li><a href="#FreeType.RENDER_MODE_NORMAL">FreeType.RENDER_MODE_NORMAL</a></li>
+<li><a href="#FreeType.RENDER_MODE_LIGHT">FreeType.RENDER_MODE_LIGHT</a></li>
+<li><a href="#FreeType.RENDER_MODE_MONO">FreeType.RENDER_MODE_MONO</a></li>
+<li><a href="#FreeType.RENDER_MODE_LCD">FreeType.RENDER_MODE_LCD</a></li>
+<li><a href="#FreeType.RENDER_MODE_LCD_V">FreeType.RENDER_MODE_LCD_V</a></li>
+<li><a href="#FreeType.RENDER_MODE_MAX">FreeType.RENDER_MODE_MAX</a></li>
+<li><a href="#FreeType.Kerning_Mode_">FreeType.Kerning_Mode_</a></li>
+<li><a href="#FreeType.Library">FreeType.Library</a></li>
+<li><a href="#FreeType.Size">FreeType.Size</a></li>
+<li><a href="#FreeType.Driver">FreeType.Driver</a></li>
+<li><a href="#FreeType.Memory">FreeType.Memory</a></li>
+<li><a href="#FreeType.Stream">FreeType.Stream</a></li>
+<li><a href="#FreeType.Face_Internal">FreeType.Face_Internal</a></li>
+<li><a href="#FreeType.SubGlyph">FreeType.SubGlyph</a></li>
+<li><a href="#FreeType.Slot_Internal">FreeType.Slot_Internal</a></li>
+<li><a href="#FreeType.Color">FreeType.Color</a></li>
+<li><a href="#FreeType.Face">FreeType.Face</a></li>
+<li><a href="#FreeType.GlyphSlot">FreeType.GlyphSlot</a></li>
+<li><a href="#FreeType.Glyph_Metrics">FreeType.Glyph_Metrics</a></li>
+<li><a href="#FreeType.GlyphRec">FreeType.GlyphRec</a></li>
+<li><a href="#FreeType.Glyph">FreeType.Glyph</a></li>
+<li><a href="#FreeType.ListNode">FreeType.ListNode</a></li>
+<li><a href="#FreeType.ListRec">FreeType.ListRec</a></li>
+<li><a href="#FreeType.Bitmap_Size">FreeType.Bitmap_Size</a></li>
+<li><a href="#FreeType.Bitmap">FreeType.Bitmap</a></li>
+<li><a href="#FreeType.Outline">FreeType.Outline</a></li>
+<li><a href="#FreeType.CharMap">FreeType.CharMap</a></li>
+<li><a href="#FreeType.Generic">FreeType.Generic</a></li>
+<li><a href="#FreeType.Vector">FreeType.Vector</a></li>
+<li><a href="#FreeType.BBox">FreeType.BBox</a></li>
+<li><a href="#FreeType.Matrix">FreeType.Matrix</a></li>
+<li><a href="#FreeType.BitmapGlyphRec">FreeType.BitmapGlyphRec</a></li>
+<li><a href="#FreeType.BitmapGlyph">FreeType.BitmapGlyph</a></li>
+<li><a href="#FreeType.LcdFilter">FreeType.LcdFilter</a></li>
+<li><a href="#FreeType.LCD_FILTER_NONE">FreeType.LCD_FILTER_NONE</a></li>
+<li><a href="#FreeType.LCD_FILTER_DEFAULT">FreeType.LCD_FILTER_DEFAULT</a></li>
+<li><a href="#FreeType.LCD_FILTER_LIGHT">FreeType.LCD_FILTER_LIGHT</a></li>
+<li><a href="#FreeType.LCD_FILTER_LEGACY1">FreeType.LCD_FILTER_LEGACY1</a></li>
+<li><a href="#FreeType.LCD_FILTER_LEGACY">FreeType.LCD_FILTER_LEGACY</a></li>
+<li><a href="#FreeType.Init_FreeType">FreeType.Init_FreeType</a></li>
+<li><a href="#FreeType.Done_FreeType">FreeType.Done_FreeType</a></li>
+<li><a href="#FreeType.New_Face">FreeType.New_Face</a></li>
+<li><a href="#FreeType.New_Memory_Face">FreeType.New_Memory_Face</a></li>
+<li><a href="#FreeType.Done_Face">FreeType.Done_Face</a></li>
+<li><a href="#FreeType.Set_Pixel_Sizes">FreeType.Set_Pixel_Sizes</a></li>
+<li><a href="#FreeType.Load_Char">FreeType.Load_Char</a></li>
+<li><a href="#FreeType.Library_SetLcdFilter">FreeType.Library_SetLcdFilter</a></li>
+<li><a href="#FreeType.Render_Glyph">FreeType.Render_Glyph</a></li>
+<li><a href="#FreeType.Get_Char_Index">FreeType.Get_Char_Index</a></li>
+<li><a href="#FreeType.Load_Glyph">FreeType.Load_Glyph</a></li>
+<li><a href="#FreeType.Bitmap_Convert">FreeType.Bitmap_Convert</a></li>
+<li><a href="#FreeType.Bitmap_Init">FreeType.Bitmap_Init</a></li>
+<li><a href="#FreeType.Palette_Set_Foreground_Color">FreeType.Palette_Set_Foreground_Color</a></li>
+<li><a href="#FreeType.Library_SetLcdFilterWeights">FreeType.Library_SetLcdFilterWeights</a></li>
+<li><a href="#FreeType.Glyph_To_Bitmap">FreeType.Glyph_To_Bitmap</a></li>
+<li><a href="#FreeType.Get_Glyph">FreeType.Get_Glyph</a></li>
+<li><a href="#FreeType.Set_Transform">FreeType.Set_Transform</a></li>
+<li><a href="#FreeType.Set_Char_Size">FreeType.Set_Char_Size</a></li>
+<li><a href="#FreeType.Property_Set">FreeType.Property_Set</a></li>
+<li><a href="#FreeType.Select_Charmap">FreeType.Select_Charmap</a></li>
+<li><a href="#FreeType.ENCODING_UNICODE">FreeType.ENCODING_UNICODE</a></li>
+<li><a href="#FreeType.ENC_TAG">FreeType.ENC_TAG</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>

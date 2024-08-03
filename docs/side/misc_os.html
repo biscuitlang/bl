@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/x-icon" href="favicon.png">
+</head>
+<body>
+<div class="container">
+<div class="column" id="column1">
+<div class="logo">
+<img src="biscuit_logo.svg">
+<label class="version">0.11.0</label>
+</div>
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="index.html">Home</a></li>
+<li id="menu-top-level-item"><a href="installation.html">Installation</a></li>
+<li id="menu-top-level-item"><a href="manual.html">Manual</a></li>
+<li id="menu-top-level-item"><a href="modules.html">Modules</a></li>
+<li id="menu-top-level-item"><a href="examples.html">Examples</a></li>
+</ul>
+</div>
+<div class="column" id="column2">
+<h1 id="System">System</h1>
+<p>Collection of operating system interface imported implicitly.</p>
+<h2 id="Standard-IO">Standard IO</h2>
+<p>Standard input and output is implemented using the builtin <a href="/modules/io">Stream</a> abstraction, so all common stream manipulation methods
+like <code>read</code> and <code>write</code> can be used. Use following methods to obtain the stream handle.</p>
+
+<pre><code>OsStdIoStream :: struct #base std.Stream {
+    handle: win32.HANDLE;
+}
+
+// Standard input stream
+os_stdin :: fn () *OsStdIoStream
+// Standard output stream.
+os_stdout :: fn () *OsStdIoStream
+// Standard output error stream.
+os_stderr :: fn () *OsStdIoStream
+</code></pre>
+<p>In general, you can use i.e. Standard Output Stream for printing into the console, however using <a href="/modules/print">print</a> function is
+more elegant in most situations.</p>
+<p><span class="hint-note"><b>Note:</b>
+On Windows the terminal output is encoded to UTF-8 by defautl using winapi function <code>SetConsoleOutputCP</code>.</span></p>
+<h2 id="os_execute">os_execute</h2>
+
+<pre><code>os_execute :: fn (command: string_view) s32
+</code></pre>
+<p>Execute shell <code>command</code> and return the command output state as an integer.</p>
+<h2 id="os_get_last_error">os_get_last_error</h2>
+
+<pre><code>os_get_last_error :: fn () (s32, string_view) #inline
+</code></pre>
+<p>Return last known operating system dependent error code.</p>
+<h2 id="os_get_exec_path">os_get_exec_path</h2>
+
+<pre><code>os_get_exec_path :: fn () string
+</code></pre>
+<p>Returns a full path to the currently running executable; internally a new string is allocated and must be deleted after use.
+The path may be empty in case of an error.</p>
+<h2 id="os_get_backtrace">os_get_backtrace</h2>
+
+<pre><code>os_get_backtrace :: fn (skip_frames := 0, max_frame_count := 64) []CodeLocation
+</code></pre>
+<p>Returns current execution stack trace obtained from native executable debug information. This feature is available only in <code>DEBUG</code> mode
+and only during native runtime. Output slice of <a href="/modules/a/#codelocation">CodeLocations</a> contains stack frame records starting from the
+<code>os_get_backtrace</code> caller function + <code>skip_frames</code>. The <code>max_frame_count</code> can limit maximum count of obtained frames.</p>
+<p><span class="hint-note"><b>Note:</b>
+This function internally allocate using current application context temporary allocator.</span></p>
+<p><span class="hint-warning"><b>Warning:</b>
+Currently this function is implemented only on Windows and does nothing on all other supported platforms.</span></p>
+</div>
+<div class="column" id="column3">
+<ul id="menu-top-level">
+<li id="menu-top-level-item"><a href="#System">System</a></li>
+<ul>
+<li><a href="#Standard-IO">Standard IO</a></li>
+<li><a href="#os_execute">os_execute</a></li>
+<li><a href="#os_get_last_error">os_get_last_error</a></li>
+<li><a href="#os_get_exec_path">os_get_exec_path</a></li>
+<li><a href="#os_get_backtrace">os_get_backtrace</a></li>
+</ul>
+</ul>
+</div>
+</div>
+</body>
+</html>
