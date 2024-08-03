@@ -1,0 +1,28 @@
+syscall :: fn {
+	fn (n: s64) s64 #inline {
+		return __syscall(n);
+	};
+	fn (n: s64, a: s64) s64 #inline {
+		return (cast(*fn(s64, s64)s64)&__syscall)(n, a);
+	};
+	fn (n: s64, a: s64, b: s64) s64 #inline {
+		return (cast(*fn(s64, s64, s64)s64)&__syscall)(n, a, b);
+	};
+	fn (n: s64, a: s64, b: s64, c: s64) s64 #inline {
+		return (cast(*fn(s64, s64, s64, s64)s64)&__syscall)(n, a, b, c);
+	};
+	fn (n: s64, a: s64, b: s64, c: s64, d: s64) s64 #inline {
+		return (cast(*fn(s64, s64, s64, s64, s64)s64)&__syscall)(n, a, b, c, d);
+	};
+	fn (n: s64, a: s64, b: s64, c: s64, d: s64, e: s64) s64 #inline {
+		return (cast(*fn(s64, s64, s64, s64, s64, s64)s64)&__syscall)(n, a, b, c, d, e);
+	};
+	fn (n: s64, a: s64, b: s64, c: s64, d: s64, e: s64, f: s64) s64 #inline {
+		return (cast(*fn(s64, s64, s64, s64, s64, s64, s64)s64)&__syscall)(n, a, b, c, d, e, f);
+	};
+};
+
+#private
+
+__syscall :: fn (number: s64) s64 #extern "syscall";
+
