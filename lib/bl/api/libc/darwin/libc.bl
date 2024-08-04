@@ -20,7 +20,7 @@ ssize_t   :: s64;
 
 blkcnt_t :: s64;
 blksize_t :: s32;
-dev_t :: s32;  
+dev_t :: s32;
 fsblkcnt_t :: uint;
 fsfilcnt_t :: uint;
 gid_t :: u32;
@@ -29,15 +29,15 @@ ino64_t :: u64;
 ino_t :: ino64_t;
 mach_port_name_t :: uint;
 mach_port_t :: mach_port_name_t;
-mode_t :: u16;        
+mode_t :: u16;
 pid_t :: s32;
-sigset_t :: u32;      
-suseconds_t :: s32;   
-uid_t :: u32;         
-useconds_t :: u32;    
+sigset_t :: u32;
+suseconds_t :: s32;
+uid_t :: u32;
+useconds_t :: u32;
 uuid_t :: [16]uchar;
 uuid_string_t :: [37]char;
-nlink_t :: u16; 
+nlink_t :: u16;
 time_t :: long;
 timezone :: long;
 off_t :: longlong;
@@ -88,8 +88,8 @@ STDERR :: 2;
 
 SIGHUP  :: 1;
 SIGINT  :: 2;
-SIGQUIT :: 3; 
-SIGILL  :: 4; 
+SIGQUIT :: 3;
+SIGILL  :: 4;
 SIGTRAP :: 5;
 SIGABRT :: 6;
 
@@ -276,11 +276,11 @@ _S_IFLNK  : u32 : 0xA000;
 _S_IFSOCK : u32 : 0xC000;
 
 S_ISDIR :: fn (mode: u32) bool #inline {
-	return (mode & _S_IFMT) == _S_IFDIR;    
+	return (mode & _S_IFMT) == _S_IFDIR;
 }
 
 S_ISREG :: fn (mode: u32) bool #inline {
-	return (mode & _S_IFMT) == _S_IFREG;    
+	return (mode & _S_IFMT) == _S_IFREG;
 }
 
 mkdir :: fn (path: *char, mode: mode_t) int #extern "mkdir";
@@ -301,6 +301,8 @@ strlen :: fn (str: *char) size_t #extern "strlen";
 strcmp :: fn (first: *char, second: *char) int #extern "strcmp";
 wcslen :: fn (str: *u16) usize #extern "wcslen";
 strerror :: fn (errnum: int) *char #extern "strerror";
+popen :: fn (f: *char, m: *char) void_ptr #extern "popen";
+pclose :: fn (f: void_ptr) #extern "pclose";
 fgets :: fn (buf: void_ptr, size: int, f: void_ptr) void_ptr #extern "fgets";
 getchar :: fn () int #extern "getchar";
 rand  :: fn () s32 #extern "rand";
