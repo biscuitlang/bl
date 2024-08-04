@@ -51,9 +51,8 @@ jobs:
     - name: Download LLVM
       run: |
         brew install llvm@16
-        echo "/opt/homebrew/opt/llvm@16/bin" >> $GITHUB_ENV
         TMP_PATH=$(xcrun --show-sdk-path)/user/include
-        echo "CPATH=$TMP_PATH" >> $GITHUB_ENV
+        echo "/opt/homebrew/opt/llvm@16/bin:CPATH=$TMP_PATH" >> $GITHUB_ENV
     - name: Setup
       run: |
         cmake . -DCMAKE_BUILD_TYPE=Release
