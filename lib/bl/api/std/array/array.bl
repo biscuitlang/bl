@@ -11,7 +11,7 @@
 //! ### Example
 //!
 //! ```bl
-//! @@@md/examples/dynamic_arrays.bl
+//! @@@examples/dynamic_arrays.bl
 //! ```
 
 ARRAY_ALLOC_BLOCK_SIZE : usize = 32;
