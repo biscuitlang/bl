@@ -357,7 +357,9 @@ static bool arm64_apple_darwin(struct context *ctx) {
 	} else {
 		s32 major, minor, patch;
 		major = minor = patch = 0;
-		if (sscanf(osver.ptr, "%d.%d.%d", &major, &minor, &patch) == 3) {
+		if (sscanf(osver.ptr, "%d.%d.%d", &major, &minor, &patch) > 0) {
+			// @Note 2024-08-04: minor and patch numbers are optional in the received string. We assume 0 in case they are
+			// not provided... (We love apples...)
 			if (major >= 11) {
 				if (!dir_exists(MACOS_SDK)) {
 					builder_error("Cannot find macOS SDK on '%s'.", MACOS_SDK);
