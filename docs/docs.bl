@@ -342,7 +342,7 @@ generate_page :: fn (filepath: string_view, menu: string_view, content: string_v
 		"<img src=\"biscuit_logo.svg\">\n"
 		"<label class=\"version\">%</label>\n"
 		"</div>\n",
-		blc_ver())
+		get_blc_branch())
 	);
 
 	write_string(&file, menu);
@@ -855,8 +855,10 @@ get_root_dir :: fn () string {
 	return str_new(exec_dir);
 }
 
-blc_ver :: fn () string_view #inline {
-	return tprint("%.%.%", BLC_VER_MAJOR, BLC_VER_MINOR, BLC_VER_PATCH);
+get_blc_branch :: fn () string_view #inline {
+	branch_name, err :: cmd_read_stdout("git branch --show-current");
+	if err { print_err(err); return "UNKNOWN"; }
+	return branch_name;
 }
 
 list_files_recursive :: fn (dirpath: string_view, out: *string) {
@@ -898,4 +900,25 @@ cmd :: fn (fmt: string_view, args: ...) Error {
 	return OK;
 }
 
+cmd_read_stdout :: fn (fmt: string_view, args: ...) (out: string_view, err: Error) {
+	using std;
+	cmd :: tprint(fmt, args);
 
+	tmp  := str_new(128, application_context.temporary_allocator);
+	pipe :: C.popen(strtoc(cmd), strtoc("r"));
+	defer C.pclose(pipe);
+
+	if !pipe then return "", error("Command '%' failed!", cmd);
+
+	buffer: [128]C.char #noinit;
+	loop C.fgets(auto buffer.ptr, auto buffer.len, pipe) {
+		str_append(&tmp, ctostr(buffer.ptr));
+	}
+
+	if (tmp.len > 0 && tmp[tmp.len - 1] == '\n') {
+		tmp[tmp.len-1] = '\0';
+		tmp.len -= 1;
+	}
+
+	return tmp, OK;
+}

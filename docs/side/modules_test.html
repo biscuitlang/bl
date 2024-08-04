@@ -11,7 +11,7 @@
 <div class="column" id="column1">
 <div class="logo">
 <img src="biscuit_logo.svg">
-<label class="version">0.11.0</label>
+<label class="version">master</label>
 </div>
 <ul id="menu-top-level">
 <li id="menu-top-level-item"><a href="index.html">Home</a></li>
@@ -27,15 +27,15 @@
 <p>Integrated unit testing API.</p>
 <h2 id="test_eq">test_eq</h2>
 
-<pre><code>test_eq :: fn { 
-    fn (got: string_view, expected: string_view, loc :: #call_location) ; 
-    fn (got: string, expected: string_view, loc :: #call_location) ; 
-    fn (got: string_view, expected: string, loc :: #call_location) ; 
-    fn (got: string, expected: string, loc :: #call_location) ; 
-    fn (got: f32, expected: f32, epsilon : f32: std.F32_EPSILON, loc :: #call_location) ; 
-    fn (got: f64, expected: f64, epsilon : f64: std.F64_EPSILON, loc :: #call_location) ; 
-    fn (got: ?T, expected: T, loc :: #call_location) ; 
-}
+<pre><code>test_eq :: <span class="syntax-keyword">fn</span> <span class="syntax-keyword">{</span> 
+    <span class="syntax-keyword">fn</span> (got: string_view, expected: string_view, loc :: <span class="syntax-directive">#call_location</span>) ; 
+    <span class="syntax-keyword">fn</span> (got: string, expected: string_view, loc :: <span class="syntax-directive">#call_location</span>) ; 
+    <span class="syntax-keyword">fn</span> (got: string_view, expected: string, loc :: <span class="syntax-directive">#call_location</span>) ; 
+    <span class="syntax-keyword">fn</span> (got: string, expected: string, loc :: <span class="syntax-directive">#call_location</span>) ; 
+    <span class="syntax-keyword">fn</span> (got: f32, expected: f32, epsilon : f32: std.F32_EPSILON, loc :: <span class="syntax-directive">#call_location</span>) ; 
+    <span class="syntax-keyword">fn</span> (got: f64, expected: f64, epsilon : f64: std.F64_EPSILON, loc :: <span class="syntax-directive">#call_location</span>) ; 
+    <span class="syntax-keyword">fn</span> (got: ?T, expected: T, loc :: <span class="syntax-directive">#call_location</span>) ; 
+<span class="syntax-keyword">}</span>
 </code></pre>
 <h3 id="Overloads">Overloads</h3>
 
@@ -51,15 +51,15 @@
 <p><em>File: test.bl</em></p>
 <h2 id="test_neq">test_neq</h2>
 
-<pre><code>test_neq :: fn { 
-    fn (got: string_view, expected: string_view, loc :: #call_location) ; 
-    fn (got: string, expected: string_view, loc :: #call_location) ; 
-    fn (got: string_view, expected: string, loc :: #call_location) ; 
-    fn (got: string, expected: string, loc :: #call_location) ; 
-    fn (got: f32, not_expected: f32, epsilon : f32: std.F32_EPSILON, loc :: #call_location) ; 
-    fn (got: f64, not_expected: f64, epsilon : f64: std.F64_EPSILON, loc :: #call_location) ; 
-    fn (got: ?T, not_expected: T, loc :: #call_location) ; 
-}
+<pre><code>test_neq :: <span class="syntax-keyword">fn</span> <span class="syntax-keyword">{</span> 
+    <span class="syntax-keyword">fn</span> (got: string_view, expected: string_view, loc :: <span class="syntax-directive">#call_location</span>) ; 
+    <span class="syntax-keyword">fn</span> (got: string, expected: string_view, loc :: <span class="syntax-directive">#call_location</span>) ; 
+    <span class="syntax-keyword">fn</span> (got: string_view, expected: string, loc :: <span class="syntax-directive">#call_location</span>) ; 
+    <span class="syntax-keyword">fn</span> (got: string, expected: string, loc :: <span class="syntax-directive">#call_location</span>) ; 
+    <span class="syntax-keyword">fn</span> (got: f32, not_expected: f32, epsilon : f32: std.F32_EPSILON, loc :: <span class="syntax-directive">#call_location</span>) ; 
+    <span class="syntax-keyword">fn</span> (got: f64, not_expected: f64, epsilon : f64: std.F64_EPSILON, loc :: <span class="syntax-directive">#call_location</span>) ; 
+    <span class="syntax-keyword">fn</span> (got: ?T, not_expected: T, loc :: <span class="syntax-directive">#call_location</span>) ; 
+<span class="syntax-keyword">}</span>
 </code></pre>
 <h3 id="Overloads">Overloads</h3>
 
@@ -75,61 +75,61 @@
 <p><em>File: test.bl</em></p>
 <h2 id="test_gt">test_gt</h2>
 
-<pre><code>test_gt :: fn (v1: ?T, v2: T, loc :: #call_location) 
+<pre><code>test_gt :: <span class="syntax-keyword">fn</span> (v1: ?T, v2: T, loc :: <span class="syntax-directive">#call_location</span>) 
 </code></pre>
 <p>Test whether <code>v1</code> is greater than <code>v2</code></p>
 <p><em>File: test.bl</em></p>
 <h2 id="test_lt">test_lt</h2>
 
-<pre><code>test_lt :: fn (v1: ?T, v2: T, loc :: #call_location) 
+<pre><code>test_lt :: <span class="syntax-keyword">fn</span> (v1: ?T, v2: T, loc :: <span class="syntax-directive">#call_location</span>) 
 </code></pre>
 <p>Test whether <code>v1</code> is less than <code>v2</code></p>
 <p><em>File: test.bl</em></p>
 <h2 id="test_true">test_true</h2>
 
-<pre><code>test_true :: fn (v: bool, loc :: #call_location) 
+<pre><code>test_true :: <span class="syntax-keyword">fn</span> (v: bool, loc :: <span class="syntax-directive">#call_location</span>) 
 </code></pre>
 <p>Test whether <code>v</code> value is <code>true</code>.</p>
 <p><em>File: test.bl</em></p>
 <h2 id="test_false">test_false</h2>
 
-<pre><code>test_false :: fn (v: bool, loc :: #call_location) 
+<pre><code>test_false :: <span class="syntax-keyword">fn</span> (v: bool, loc :: <span class="syntax-directive">#call_location</span>) 
 </code></pre>
 <p>Test whether <code>v</code> value is <code>false</code>.</p>
 <p><em>File: test.bl</em></p>
 <h2 id="test_null">test_null</h2>
 
-<pre><code>test_null :: fn (ptr: *?T, loc :: #call_location) 
+<pre><code>test_null :: <span class="syntax-keyword">fn</span> (ptr: *?T, loc :: <span class="syntax-directive">#call_location</span>) 
 </code></pre>
 <p>Test whether <code>ptr</code> pointer value is <code>null</code>.</p>
 <p><em>File: test.bl</em></p>
 <h2 id="test_not_null">test_not_null</h2>
 
-<pre><code>test_not_null :: fn (ptr: *?T, loc :: #call_location) 
+<pre><code>test_not_null :: <span class="syntax-keyword">fn</span> (ptr: *?T, loc :: <span class="syntax-directive">#call_location</span>) 
 </code></pre>
 <p>Test whether <code>ptr</code> pointer value is not <code>null</code>.</p>
 <p><em>File: test.bl</em></p>
 <h2 id="test_ok">test_ok</h2>
 
-<pre><code>test_ok :: fn (err: Error, loc :: #call_location)  #inline
+<pre><code>test_ok :: <span class="syntax-keyword">fn</span> (err: Error, loc :: <span class="syntax-directive">#call_location</span>)  <span class="syntax-directive">#inline</span>
 </code></pre>
 <p>Test whether <code>err</code> is OK.</p>
 <p><em>File: test.bl</em></p>
 <h2 id="test_not_ok">test_not_ok</h2>
 
-<pre><code>test_not_ok :: fn (err: Error, loc :: #call_location)  #inline
+<pre><code>test_not_ok :: <span class="syntax-keyword">fn</span> (err: Error, loc :: <span class="syntax-directive">#call_location</span>)  <span class="syntax-directive">#inline</span>
 </code></pre>
 <p>Test whether <code>err</code> is not OK.</p>
 <p><em>File: test.bl</em></p>
 <h2 id="test_is_error">test_is_error</h2>
 
-<pre><code>test_is_error :: fn (got_err: Error, expected_code: s32, loc :: #call_location)  #inline
+<pre><code>test_is_error :: <span class="syntax-keyword">fn</span> (got_err: Error, expected_code: s32, loc :: <span class="syntax-directive">#call_location</span>)  <span class="syntax-directive">#inline</span>
 </code></pre>
 <p>Test whether <code>got_err</code> code is <code>expected_code</code>.</p>
 <p><em>File: test.bl</em></p>
 <h2 id="test_run">test_run</h2>
 
-<pre><code>test_run :: fn (print_results :: true) s32
+<pre><code>test_run :: <span class="syntax-keyword">fn</span> (print_results :: true) s32 
 </code></pre>
 <p>Execute all registered test cases in current assembly. The <code>test_run</code> function uses compiler
 builtin <code>TEST_CASES</code> constant containing slice of all registered test cases in the current

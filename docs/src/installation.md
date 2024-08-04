@@ -1,10 +1,15 @@
-# Installation
+# Use Pre-built Package
 
-Currently only installation from the source code is possible.
+* Download required compiler version from [Github](https://github.com/travisdoor/bl/releases).
+* Unpack downloaded file.
+* Optionally add `/path/to/blc/bin` to your system `PATH`.
+* Run `blc --help`.
 
-**Important:** The compiler and language are not production ready yet, you might miss some fundamental features. Also it's recommented to use `CMAKE_INSTALL_PREFIX` to set installation directory (e.g. `-DCMAKE_INSTALL_PREFIX=C:\Develop\bl`).
+# Build from Source Code
 
-**Supported targets:**
+Biscuit compiler is written in C and all major dependencies are packed in the compiler repository except [LLVM](https://llvm.org/). [CMake](https://cmake.org) is used as a build system.
+
+## Supported targets
 
 * `x86_64-pc-windows-msvc`
 * `x86_64-pc-linux-gnu`
@@ -14,8 +19,6 @@ Currently only installation from the source code is possible.
 
 ## Windows
 
-* Install [git](https://git-scm.com)
-* Install [CMake](https://cmake.org)
 * Install Visual Studio 2022 or [MS Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools) with C/C++ support
 * Download and compile
 
@@ -24,30 +27,36 @@ git clone https://github.com/travisdoor/bl.git
 cd bl
 mkdir build
 cd build
-cmake .. -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="install/directory"
-cmake --build . --config Release --target install
+cmake .. -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release"
+cmake --build . --config Release
 ```
 
-* Compiler will be installed into `CMAKE_INSTALL_PREFIX` directory.
-* Add `bin` directory to the system `PATH`.
+* You can add `bin` directory to the system `PATH`.
 
 **In Powershell:**
 ```
 [Environment]::SetEnvironmentVariable(
    "Path",
-   [Environment]::GetEnvironmentVariable("Path", "User") + ";install\directory\bin",
+   [Environment]::GetEnvironmentVariable("Path", "User") + ";path\to\bl\bin",
    "User"
 )
 ```
 
-## Ubuntu
-* Install needed tools
-```bash
-apt-get install git cmake build-essential llvm-16-dev
-```
+## Linux
 
-* In case your distribution does not provide LLVM-16 you can alternatively use following script
+* Install LLVM
+
+This step might differ across linux distributions, following snippet might help. You might want to use  `-DLLVM_DIR` pointing to the custom location with LLVM.
+
 ```bash
+# Ubuntu
+apt-get install llvm-16-dev
+
+# Fedora
+dnf copr enable -y @fedora-llvm-team/llvm-snapshots
+dnf install llvm16-devel
+
+# Using LLVM installation script
 mkdir llvm-16
 cd llvm-16
 wget https://apt.llvm.org/llvm.sh
@@ -57,52 +66,25 @@ sudo ./llvm.sh 16
 
 * Download and compile
 
-Note that in case the `CMAKE_INSTALL_PREFIX` is not specified, `/urs/local` will be used as default.
 
 ```bash
 git clone https://github.com/travisdoor/bl.git
 cd bl
 mkdir build
 cd build
-cmake .. -DCMAKE_INSTALL_PREFIX="install/directory"
-make install
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build . --config=Release
 ```
 
-* Add `bin` directory to the system `PATH`. Not needed in case install directory is `/usr/local`.
+* You can add `bin` directory to the system `PATH`.
 
 ```bash
-export PATH=$PATH:/install/directory/bin
-```
-
-## Fedora
-* Install needed tools
-```bash
-dnf copr enable -y @fedora-llvm-team/llvm-snapshots
-dnf install git cmake gcc g++ zlib-devel llvm16-devel
-```
-
-* Download and compile
-
-Note that in case the `CMAKE_INSTALL_PREFIX` is not specified, `/urs/local` will be used as default.
-
-```bash
-git clone https://github.com/travisdoor/bl.git
-cd bl
-mkdir build
-cd build
-cmake .. -DCMAKE_INSTALL_PREFIX="install/directory"
-make install
-```
-
-* Add `bin` directory to the system `PATH`. Not needed in case install directory is `/usr/local`.
-
-```bash
-export PATH=$PATH:/install/directory/bin
+export PATH=$PATH:/path/to/bl/bin
 ```
 
 ## macOS
 * Install command line tools ``xcode-select --install``.
-* Install other needed tools using [brew](https://brew.sh) `brew install git cmake llvm@16`.
+* Install LLVM using [brew](https://brew.sh) `brew install llvm@16` or you might want to use  `-DLLVM_DIR` pointing to the custom location with LLVM.
 * Download and compile
 
 ```bash
@@ -110,23 +92,39 @@ git clone https://github.com/travisdoor/bl.git
 cd bl
 mkdir build
 cd build
-cmake .. -DCMAKE_INSTALL_PREFIX="install/directory"
-make install
+cmake .. -DCMAKE_BUILD_TYPE=Release"
+cmake --build . --config=Release
 ```
 
-* Add `bin` directory to the system `PATH`.
+* You can add `bin` directory to the system `PATH`.
 
 ```bash
-export PATH=$PATH:/install/directory/bin
+export PATH=$PATH:/path/to/bl/bin
 ```
 
 !!! warning
     ARM support is experimental.
 
 
+## Additional Setup
+
+Following flags might be passed to CMake during configuration:
+
+- `-DCMAKE_BUILD_TYPE=<Release|Debug>` - To toggle release/debug configuration.
+- `-DCMAKE_INSTALL_PREFIX=<"path">` - To set installation directory.
+- `-DTRACY_ENABLE=<ON|OFF>` - To toggle [Tracy profiler](https://github.com/wolfpld/tracy) integration.
+- `-DLLVM_DIR=<"path">` - To set custom path to LLVM dev package. Must point to `llvm-directory/lib/cmake/llvm`.
+- `-DBL_X64_TESTS_ENABLE=<ON|OFF>` - To toggle compilation of tests for experimental x64 backend.
+- `-DBL_DEVELOPER=<ON|OFF>` - To toggle some incomplete experimental features (for example x64 backend).
+- `-DBL_ASSERT_ENABLE=<ON|OFF>` - To toggle asserts (by default disabled in release mode).
+- `-DBL_SIMD_ENABLE=<ON|OFF>` - To toggle SIMD. *Windows only*
+- `-DBL_RPMALLOC_ENABLE=<ON|OFF>` - To toggle [rpmalloc](https://github.com/mjansson/rpmalloc).
+
 ## Configuration
 
-Default configuration file `install/directory/etc/bl.yaml` is created automatically. You can use `blc --where-is-config` to get full path to the default config file. To generate new one use `blc --configure` (the old one will be kept as a backup).
+The compiler requires configuration file to be generated before the first use.
+
+Default configuration file `/path/to/bl/etc/bl.yaml` is created automatically on the first run. You can use `blc --where-is-config` to get full path to the default config file. To generate new one use `blc --configure` (the old one will be kept as a backup).
 
 **Example Windows config file:**
 
@@ -158,6 +156,6 @@ x86_64-pc-windows-msvc:
 
 To run compiler unit tests use:
 ```
-cd path/to/git/root/directory
+cd path/to/bl/directory
 blc -run doctor.bl
 ```

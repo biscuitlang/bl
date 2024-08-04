@@ -11,7 +11,7 @@
 <div class="column" id="column1">
 <div class="logo">
 <img src="biscuit_logo.svg">
-<label class="version">0.11.0</label>
+<label class="version">master</label>
 </div>
 <ul id="menu-top-level">
 <li id="menu-top-level-item"><a href="index.html">Home</a></li>
@@ -102,13 +102,13 @@ more details.</span></p>
 <p><em>File: memory.bl</em></p>
 <h2 id="AllocOp">AllocOp</h2>
 
-<pre><code>AllocOp :: enum {
+<pre><code>AllocOp :: <span class="syntax-keyword">enum</span> <span class="syntax-keyword">{</span>
     ALLOCATE;
     REALLOCATE;
     FREE;
     RESET;
     RELEASE;
-}
+<span class="syntax-keyword">}</span>
 </code></pre>
 <p>Specify allocator opratation.</p>
 <h3 id="Variants">Variants</h3>
@@ -122,15 +122,15 @@ more details.</span></p>
 <p><em>File: memory.bl</em></p>
 <h2 id="AllocFn">AllocFn</h2>
 
-<pre><code>AllocFn :: *fn (ctx: *Allocator, operation: AllocOp, ptr: *u8, size: usize, alignment: usize, file: string_view, line: s32) (mem: *u8, err: Error)
+<pre><code>AllocFn :: *<span class="syntax-keyword">fn</span> (ctx: *Allocator, operation: AllocOp, ptr: *u8, size: usize, alignment: usize, file: string_view, line: s32) (mem: *u8, err: Error)
 </code></pre>
 <p>Allocator handle function type.</p>
 <p><em>File: memory.bl</em></p>
 <h2 id="Allocator">Allocator</h2>
 
-<pre><code>Allocator :: struct {
+<pre><code>Allocator :: <span class="syntax-keyword">struct</span> <span class="syntax-keyword">{</span>
     handler: AllocFn;
-}
+<span class="syntax-keyword">}</span>
 </code></pre>
 <p>Default allocator context base. This structure can be used as a base structure for any allocator
 implementation.</p>
@@ -141,7 +141,7 @@ implementation.</p>
 <p><em>File: memory.bl</em></p>
 <h2 id="alloc">alloc</h2>
 
-<pre><code>alloc :: fn (size: usize, alignment :: DEFAULT_ALIGNMENT, preferred_allocator : *Allocator: null, loc :: #call_location) (mem: *u8, err: Error) #inline
+<pre><code>alloc :: <span class="syntax-keyword">fn</span> (size: usize, alignment :: DEFAULT_ALIGNMENT, preferred_allocator : *Allocator: null, loc :: <span class="syntax-directive">#call_location</span>) (mem: *u8, err: Error) <span class="syntax-directive">#inline</span>
 </code></pre>
 <p>Allocate memory using specified <code>preferred_allocator</code>. In case the <code>preferred_allocator</code> is null, default application context
 allocator is used.</p>
@@ -152,7 +152,7 @@ helper function to resolve the best memory alignment for the required type.</p>
 <p><em>File: memory.bl</em></p>
 <h2 id="realloc">realloc</h2>
 
-<pre><code>realloc :: fn (ptr: *u8, size: usize, alignment :: DEFAULT_ALIGNMENT, preferred_allocator : *Allocator: null, loc :: #call_location) (mem: *u8, err: Error) #inline
+<pre><code>realloc :: <span class="syntax-keyword">fn</span> (ptr: *u8, size: usize, alignment :: DEFAULT_ALIGNMENT, preferred_allocator : *Allocator: null, loc :: <span class="syntax-directive">#call_location</span>) (mem: *u8, err: Error) <span class="syntax-directive">#inline</span>
 </code></pre>
 <p>Reallocate previously allocated memory using the <code>preferred_allocator</code>. In case the <code>preferred_allocator</code> is null,
 default application context allocator is used.</p>
@@ -167,7 +167,7 @@ helper function to resolve the best memory alignment for the required type.</p>
 <p><em>File: memory.bl</em></p>
 <h2 id="new">new</h2>
 
-<pre><code>new :: fn (T: type, noinit :: false, preferred_allocator : *Allocator: null, loc :: #call_location) (ptr: *T, err: Error) #inline
+<pre><code>new :: <span class="syntax-keyword">fn</span> (T: type, noinit :: false, preferred_allocator : *Allocator: null, loc :: <span class="syntax-directive">#call_location</span>) (ptr: *T, err: Error) <span class="syntax-directive">#inline</span>
 </code></pre>
 <p>Allocates new object of type <code>T</code> on heap using <code>preferred_allocator</code>, in case the allocator is not specified, the current context
 allocator is used.</p>
@@ -176,7 +176,7 @@ allocator is used.</p>
 <p><em>File: memory.bl</em></p>
 <h2 id="new_slice">new_slice</h2>
 
-<pre><code>new_slice :: fn (TElement: type, element_count: s64, noinit :: false, preferred_allocator : *Allocator: null, loc :: #call_location) (slice: []TElement, err: Error)
+<pre><code>new_slice :: <span class="syntax-keyword">fn</span> (TElement: type, element_count: s64, noinit :: false, preferred_allocator : *Allocator: null, loc :: <span class="syntax-directive">#call_location</span>) (slice: []TElement, err: Error)
 </code></pre>
 <p>Allocates new slice of 'element_count' elements of 'TElement' type.</p>
 <p>Newly allocated memory block is zero initialized by default unless the <code>noinit</code> is <code>true</code>.</p>
@@ -184,14 +184,14 @@ allocator is used.</p>
 <p><em>File: memory.bl</em></p>
 <h2 id="free">free</h2>
 
-<pre><code>free :: fn (ptr: *u8, preferred_allocator : *Allocator: null, loc :: #call_location)  #inline
+<pre><code>free :: <span class="syntax-keyword">fn</span> (ptr: *u8, preferred_allocator : *Allocator: null, loc :: <span class="syntax-directive">#call_location</span>)  <span class="syntax-directive">#inline</span>
 </code></pre>
 <p>Free memory previously allocated by specific <code>preferred_allocator</code>. In case the <code>preferred_allocator</code> is null,
 the default application context allocator is used. The <code>ptr</code> can be null.</p>
 <p><em>File: memory.bl</em></p>
 <h2 id="free_slice">free_slice</h2>
 
-<pre><code>free_slice :: fn (slice: *[]?T, allocator : *Allocator: null, loc :: #call_location) 
+<pre><code>free_slice :: <span class="syntax-keyword">fn</span> (slice: *[]?T, allocator : *Allocator: null, loc :: <span class="syntax-directive">#call_location</span>) 
 </code></pre>
 <p>Release slice memory allocated by <a href="#alloc_slice">alloc_slice</a> or <a href="#new_slice">new_slice</a> call. The input slice is
 set to the zero initialized state.</p>
@@ -200,47 +200,47 @@ The <code>allocator</code> must match the allocator used by 'alloc_slice' or 'ne
 <p><em>File: memory.bl</em></p>
 <h2 id="reset_allocator">reset_allocator</h2>
 
-<pre><code>reset_allocator :: fn (allocator: *Allocator, loc :: #call_location)  #inline
+<pre><code>reset_allocator :: <span class="syntax-keyword">fn</span> (allocator: *Allocator, loc :: <span class="syntax-directive">#call_location</span>)  <span class="syntax-directive">#inline</span>
 </code></pre>
 <p>Invoke the reset operation on the <code>allocator</code>. If supported, the <code>allocator</code> should reset its internal state (make
 all allocation invalid) and reuse already allocated memory eventually for following allocations.</p>
 <p><em>File: memory.bl</em></p>
 <h2 id="release_allocator">release_allocator</h2>
 
-<pre><code>release_allocator :: fn (allocator: *Allocator, loc :: #call_location)  #inline
+<pre><code>release_allocator :: <span class="syntax-keyword">fn</span> (allocator: *Allocator, loc :: <span class="syntax-directive">#call_location</span>)  <span class="syntax-directive">#inline</span>
 </code></pre>
 <p>Invoke the release operation on the <code>allocator</code>. If the operation is supported, the allocator should release all resources and free
 all internally allocated memory.</p>
 <p><em>File: memory.bl</em></p>
 <h2 id="memcpy">memcpy</h2>
 
-<pre><code>memcpy :: fn (destination: *u8, source: *u8, size: usize) 
+<pre><code>memcpy :: <span class="syntax-keyword">fn</span> (destination: *u8, source: *u8, size: usize) 
 </code></pre>
 <p>Copy memory of defined <code>size</code> from <code>source</code> to <code>destination</code>. Destination and source size must be at least
 <code>size</code> bytes.</p>
 <p><em>File: memory.bl</em></p>
 <h2 id="memset">memset</h2>
 
-<pre><code>memset :: fn (destination: *u8, value: u8, size: usize) *u8
+<pre><code>memset :: <span class="syntax-keyword">fn</span> (destination: *u8, value: u8, size: usize) *u8 
 </code></pre>
 <p>Set memory to desired value and return <code>destination</code> pointer. Destination size must be at least <code>size</code> bytes.</p>
 <p><em>File: memory.bl</em></p>
 <h2 id="memmove">memmove</h2>
 
-<pre><code>memmove :: fn (destination: *u8, source: *u8, size: usize) *u8
+<pre><code>memmove :: <span class="syntax-keyword">fn</span> (destination: *u8, source: *u8, size: usize) *u8 
 </code></pre>
 <p>Copy 'size' bytes of data from memory location at 'source' to the 'destination' and returns 'destination'.</p>
 <p><em>File: memory.bl</em></p>
 <h2 id="zeromem">zeromem</h2>
 
-<pre><code>zeromem :: fn (destination: *u8, size: usize) *u8
+<pre><code>zeromem :: <span class="syntax-keyword">fn</span> (destination: *u8, size: usize) *u8 
 </code></pre>
 <p>Zero out <code>destination</code> memory of <code>size</code> and return the original <code>destination</code> pointer.
 This function is internally optimized to zero the <code>destination</code> memory in 64 bit blocks if possible.</p>
 <p><em>File: memory.bl</em></p>
 <h2 id="zeroinit">zeroinit</h2>
 
-<pre><code>zeroinit :: fn (ptr: *?T) *T #inline
+<pre><code>zeroinit :: <span class="syntax-keyword">fn</span> (ptr: *?T) *T <span class="syntax-directive">#inline</span>
 </code></pre>
 <p>Zero initialize memory block at <code>ptr</code> and <code>sizeof(T)</code>. Returns passed <code>ptr</code> this might be useful in case of
 "inline chaining".</p>
@@ -251,24 +251,24 @@ This function is internally optimized to zero the <code>destination</code> memor
 <p><em>File: memory.bl</em></p>
 <h2 id="zero_slice">zero_slice</h2>
 
-<pre><code>zero_slice :: fn (slice: []?T)  #inline
+<pre><code>zero_slice :: <span class="syntax-keyword">fn</span> (slice: []?T)  <span class="syntax-directive">#inline</span>
 </code></pre>
 <p><em>File: memory.bl</em></p>
 <h2 id="swap">swap</h2>
 
-<pre><code>swap :: fn (first: *?T, second: *T)  #inline
+<pre><code>swap :: <span class="syntax-keyword">fn</span> (first: *?T, second: *T)  <span class="syntax-directive">#inline</span>
 </code></pre>
 <p>Swaps content of memory at address <code>first</code> and <code>second</code>.</p>
 <p><em>File: memory.bl</em></p>
 <h2 id="is_aligned">is_aligned</h2>
 
-<pre><code>is_aligned :: fn (ptr: *?T, alignment: usize) bool #inline
+<pre><code>is_aligned :: <span class="syntax-keyword">fn</span> (ptr: *?T, alignment: usize) bool <span class="syntax-directive">#inline</span>
 </code></pre>
 <p>Checks whether passed pointer <code>ptr</code> is properly aligned by <code>alignment</code>.</p>
 <p><em>File: memory.bl</em></p>
 <h2 id="align_ptr_up">align_ptr_up</h2>
 
-<pre><code>align_ptr_up :: fn (p: *u8, alignment: usize) (p: *u8, adjustment: usize)
+<pre><code>align_ptr_up :: <span class="syntax-keyword">fn</span> (p: *u8, alignment: usize) (p: *u8, adjustment: usize)
 </code></pre>
 <p>Align pointer <code>p</code> to <code>alignment</code> and return adjusted pointer and number of bytes needed for
 adjustment.</p>
@@ -277,7 +277,7 @@ Cause panic when alignment is not power of two.</span></p>
 <p><em>File: memory.bl</em></p>
 <h2 id="alloc_slice">alloc_slice</h2>
 
-<pre><code>alloc_slice :: fn (slice: *[]?T, n: s64, zero_initialized :: true, allocator : *Allocator: null, loc :: #call_location) Error
+<pre><code>alloc_slice :: <span class="syntax-keyword">fn</span> (slice: *[]?T, n: s64, zero_initialized :: true, allocator : *Allocator: null, loc :: <span class="syntax-directive">#call_location</span>) Error 
 </code></pre>
 <p>Allocate heap memory for <code>n</code> elements in the <code>slice</code>. Newly allocated slice can be zero initialized
 by setting <code>zero_init</code> to <code>true</code>. Custom allocator can be provided as <code>allocator</code>, the application context
@@ -304,7 +304,7 @@ Zero initialization of allocated memory block can be expensive in case of large 
 <p><em>File: memory.bl</em></p>
 <h2 id="slice_range">slice_range</h2>
 
-<pre><code>slice_range :: fn (slice: []?T, start: s64, end : s64: -1) []T #inline
+<pre><code>slice_range :: <span class="syntax-keyword">fn</span> (slice: []?T, start: s64, end : s64: -1) []T <span class="syntax-directive">#inline</span>
 </code></pre>
 <p>Create slice subset defined as range <code>&lt;start-index, end-index)</code>. Notice that <code>end</code> index
 is excluded from range, so <code>slice_range(other, 0, other.len)</code> is valid and returns
@@ -321,7 +321,7 @@ Function cause panic in case combination of <code>start</code> and <code>end</co
 <p><em>File: memory.bl</em></p>
 <h2 id="temporary_reset">temporary_reset</h2>
 
-<pre><code>temporary_reset :: fn ()  #inline
+<pre><code>temporary_reset :: <span class="syntax-keyword">fn</span> ()  <span class="syntax-directive">#inline</span>
 </code></pre>
 <p>Reduce allocated memory in application context temporary allocator storage, but keeps biggest allocated chunk for
 the later use.</p>
@@ -332,7 +332,7 @@ Call this method i.e. in every event loop (update) iteration.</span></p>
 <p><em>File: memory.bl</em></p>
 <h2 id="temporary_release">temporary_release</h2>
 
-<pre><code>temporary_release :: fn ()  #inline
+<pre><code>temporary_release :: <span class="syntax-keyword">fn</span> ()  <span class="syntax-directive">#inline</span>
 </code></pre>
 <p>Release all memory allocated by the application context temporary allocator.</p>
 <p><span class="hint-warning"><b>Warning:</b>
@@ -342,13 +342,13 @@ This method is implicitly called at exit of executable (after main).</span></p>
 <p><em>File: memory.bl</em></p>
 <h2 id="ptr_shift_bytes">ptr_shift_bytes</h2>
 
-<pre><code>ptr_shift_bytes :: fn (ptr: *?T, bytes: s64) *T #inline
+<pre><code>ptr_shift_bytes :: <span class="syntax-keyword">fn</span> (ptr: *?T, bytes: s64) *T <span class="syntax-directive">#inline</span>
 </code></pre>
 <p>Produce right-shift of input <code>ptr</code> by count of <code>bytes</code>.</p>
 <p><em>File: memory.bl</em></p>
 <h2 id="ptr_diff">ptr_diff</h2>
 
-<pre><code>ptr_diff :: fn (a: *?T1, b: *?T2) s64 #inline
+<pre><code>ptr_diff :: <span class="syntax-keyword">fn</span> (a: *?T1, b: *?T2) s64 <span class="syntax-directive">#inline</span>
 </code></pre>
 <p>Calculates pointer difference <code>a</code> - <code>b</code>.</p>
 <p><em>File: memory.bl</em></p>

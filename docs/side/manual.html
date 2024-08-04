@@ -11,7 +11,7 @@
 <div class="column" id="column1">
 <div class="logo">
 <img src="biscuit_logo.svg">
-<label class="version">0.11.0</label>
+<label class="version">master</label>
 </div>
 <ul id="menu-top-level">
 <li id="menu-top-level-item"><a href="index.html">Home</a></li>
@@ -2077,7 +2077,7 @@ arm64-apple-darwin:
 
 <pre><code><span class="syntax-directive">#import</span> "path/to/module/thread"
 </code></pre>
-<p>See also <a href="/modules/build/#moduleimportpolicy">Module Import Policy</a>.</p>
+<p>See also <a href="modules_build.html#ModuleImportPolicy">Module Import Policy</a>.</p>
 <p><span class="hint-note"><b>Note:</b>
 Modules will be redesigned in the future to support the full set of features required by the build system. The long-term plan is to have the module configuration written directly in BL.</span></p>
 <h2 id="List-of-module-config-entries">List of module config entries</h2>
@@ -2086,6 +2086,7 @@ Modules will be redesigned in the future to support the full set of features req
 <p>The <em>global</em> options are applied to the module on all target platforms.</p>
 <ul>
 <li><code>version: &lt;N&gt;</code> - Module version number used during import to distinguish various versions of the same module, see also <code>ModuleImportPolicy</code> for more information.</li>
+<li><code>supported: "[triple,...]"</code> - Optional list of target triples supported by module separated by comma. When module depends on some platform specific libraries (which are supposed to be bundled with the module), we might allow this module only on platforms we've provided the precompiled binaries for. Error is generated when module is used on target not included in this list.</li>
 </ul>
 <h3 id="Global-or-Platform-Specific-Options">Global or Platform-Specific Options</h3>
 <p>All the following options may be applied globally or just for a specific target platform.</p>
@@ -2111,6 +2112,12 @@ x86_64-pc-linux-gnu:
   src: "my_file_only_for_linux.bl"
   linker_opt: "-lc -lm" # link these only on linux
 </code></pre>
+<h2 id="Additional-Module-Assets">Additional Module Assets</h2>
+<ul>
+<li>Unit tests implementation should be in <code>module-name.test.bl</code> file.</li>
+<li>Additional information should be in <code>README.txt</code> file, we might provide instruction how to compile module dependencies if there are any.</li>
+<li>Bundled platform specific libraries usually in folders with target triple names.</li>
+</ul>
 <h1 id="Libraries">Libraries</h1>
 <p>TODO</p>
 <h1 id="Type-Info">Type Info</h1>
@@ -2476,6 +2483,7 @@ Hit breakpoint in assembly 'out'.
 <li id="menu-top-level-item"><a href="#Modules">Modules</a></li>
 <ul>
 <li><a href="#List-of-module-config-entries">List of module config entries</a></li>
+<li><a href="#Additional-Module-Assets">Additional Module Assets</a></li>
 </ul>
 <li id="menu-top-level-item"><a href="#Libraries">Libraries</a></li>
 <li id="menu-top-level-item"><a href="#Type-Info">Type Info</a></li>

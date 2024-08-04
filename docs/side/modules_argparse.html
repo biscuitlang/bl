@@ -11,7 +11,7 @@
 <div class="column" id="column1">
 <div class="logo">
 <img src="biscuit_logo.svg">
-<label class="version">0.11.0</label>
+<label class="version">master</label>
 </div>
 <ul id="menu-top-level">
 <li id="menu-top-level-item"><a href="index.html">Home</a></li>
@@ -112,19 +112,19 @@ MyArgs {is_debug = false, worker_count = 0, directory = , inputs = [], outputs =
 </code></pre>
 <h2 id="argparse.Parser">argparse.Parser</h2>
 
-<pre><code>Parser :: struct {
+<pre><code>Parser :: <span class="syntax-keyword">struct</span> <span class="syntax-keyword">{</span>
     usage: [..]string_view;
     argument_list: [..]Argument;
     help: bool;
     info: string_view;
     executable_name: string_view;
     allocator: *Allocator;
-}
+<span class="syntax-keyword">}</span>
 </code></pre>
 <p><em>File: argparse.bl</em></p>
 <h2 id="argparse.init">argparse.init</h2>
 
-<pre><code>init :: fn (parser: *Parser, info :: "", allocator : *Allocator: null) 
+<pre><code>init :: <span class="syntax-keyword">fn</span> (parser: *Parser, info :: "", allocator : *Allocator: null) 
 </code></pre>
 <p>Initialize argument parser. Custom application information can be set as optional <code>info</code>, this information is later
 shown in the help message printed by <code>print_help</code> function.</p>
@@ -133,13 +133,13 @@ shown in the help message printed by <code>print_help</code> function.</p>
 <p><em>File: argparse.bl</em></p>
 <h2 id="argparse.terminate">argparse.terminate</h2>
 
-<pre><code>terminate :: fn (parser: *Parser) 
+<pre><code>terminate :: <span class="syntax-keyword">fn</span> (parser: *Parser) 
 </code></pre>
 <p>Release all <code>parser</code> resources.</p>
 <p><em>File: argparse.bl</em></p>
 <h2 id="argparse.add">argparse.add</h2>
 
-<pre><code>add :: fn (parser: *Parser, target: *?T, long: string_view, short :: "", help :: "", is_required :: false) 
+<pre><code>add :: <span class="syntax-keyword">fn</span> (parser: *Parser, target: *?T, long: string_view, short :: "", help :: "", is_required :: false) 
 </code></pre>
 <p>Add a single argument to the <code>parser</code>. Generic <code>target</code> pointer must point to the actual value modified by this
 argument. Basic types as (numbers, floats, strings and bools) are supported. The <code>long</code> specifies the argument
@@ -153,7 +153,7 @@ Argument parser internally does NOT duplicate any argument related metadata (i.e
 <p><em>File: argparse.bl</em></p>
 <h2 id="argparse.add_positional">argparse.add_positional</h2>
 
-<pre><code>add_positional :: fn (parser: *Parser, target: *[]string_view, long: string_view, short :: "", help :: "", is_required :: false) 
+<pre><code>add_positional :: <span class="syntax-keyword">fn</span> (parser: *Parser, target: *[]string_view, long: string_view, short :: "", help :: "", is_required :: false) 
 </code></pre>
 <p>Add positional argument prefix to the <code>parser</code>. In case such prefix argument is parsed from the input arguments, all following
 input argument entries are added into <code>target</code> list (no duplication is done). All following input arguments are added until parser
@@ -162,19 +162,19 @@ hits some known argument name or the input argument list is empty.
 <p><em>File: argparse.bl</em></p>
 <h2 id="argparse.add_usage">argparse.add_usage</h2>
 
-<pre><code>add_usage :: fn (parser: *Parser, usage: string_view) 
+<pre><code>add_usage :: <span class="syntax-keyword">fn</span> (parser: *Parser, usage: string_view) 
 </code></pre>
 <p>Add usage string message listed in <code>Usage</code> section in the help message.</p>
 <p><em>File: argparse.bl</em></p>
 <h2 id="argparse.set_executable_name">argparse.set_executable_name</h2>
 
-<pre><code>set_executable_name :: fn (parser: *Parser, name: string_view) 
+<pre><code>set_executable_name :: <span class="syntax-keyword">fn</span> (parser: *Parser, name: string_view) 
 </code></pre>
 <p>Sets the executable name used in help message.</p>
 <p><em>File: argparse.bl</em></p>
 <h2 id="argparse.parse">argparse.parse</h2>
 
-<pre><code>parse :: fn (parser: *Parser, args: []string_view, first_arg_index :: 1) (parsed_arguments_count: s32, result: Error)
+<pre><code>parse :: <span class="syntax-keyword">fn</span> (parser: *Parser, args: []string_view, first_arg_index :: 1) (parsed_arguments_count: s32, result: Error)
 </code></pre>
 <p>Start parsing of <code>args</code> argument list using the <code>parser</code> configuration. The <code>first_arg_index</code> can be used to skip
 first <code>N</code> entries in the <code>args</code> list (one by default to skip usual executable name in case of command line arguments are
@@ -184,7 +184,7 @@ message or terminating the application).</p>
 <p><em>File: argparse.bl</em></p>
 <h2 id="argparse.print_help">argparse.print_help</h2>
 
-<pre><code>print_help :: fn (parser: *Parser) 
+<pre><code>print_help :: <span class="syntax-keyword">fn</span> (parser: *Parser) 
 </code></pre>
 <p>Print formated help message. The <code>parser</code> should be already initialized with all argumenst.</p>
 <p><em>File: argparse.bl</em></p>

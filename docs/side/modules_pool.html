@@ -11,7 +11,7 @@
 <div class="column" id="column1">
 <div class="logo">
 <img src="biscuit_logo.svg">
-<label class="version">0.11.0</label>
+<label class="version">master</label>
 </div>
 <ul id="menu-top-level">
 <li id="menu-top-level-item"><a href="index.html">Home</a></li>
@@ -53,7 +53,7 @@ This allocator is used as a default temporary allocator in the application conte
 <p><em>File: pool.bl</em></p>
 <h2 id="std.PoolAllocator">std.PoolAllocator</h2>
 
-<pre><code>PoolAllocator :: struct {
+<pre><code>PoolAllocator :: <span class="syntax-keyword">struct</span> <span class="syntax-keyword">{</span>
     block_size: usize;
     allocator: *Allocator;
     used_blocks: [..]*u8;
@@ -62,7 +62,7 @@ This allocator is used as a default temporary allocator in the application conte
     current_block: *u8;
     top: *u8;
     space: usize;
-}
+<span class="syntax-keyword">}</span>
 </code></pre>
 <p>Pool allocator type.</p>
 <h3 id="Members">Members</h3>
@@ -79,7 +79,7 @@ This allocator is used as a default temporary allocator in the application conte
 <p><em>File: pool.bl</em></p>
 <h2 id="std.pool_make">std.pool_make</h2>
 
-<pre><code>pool_make :: fn (allocator : *Allocator: null, block_size :: POOL_DEFAULT_SIZE) PoolAllocator #inline
+<pre><code>pool_make :: <span class="syntax-keyword">fn</span> (allocator : *Allocator: null, block_size :: POOL_DEFAULT_SIZE) PoolAllocator <span class="syntax-directive">#inline</span>
 </code></pre>
 <p>Make new pool allocator instance. The <code>allocator</code> is the allocator used internally to allocate
 block memory. The <code>block_size</code> is size of each preallocated block in Bytes (note that the block
@@ -87,13 +87,13 @@ size can grow over time when bigger continuous memory allocations are required).
 <p><em>File: pool.bl</em></p>
 <h2 id="std.pool_release">std.pool_release</h2>
 
-<pre><code>pool_release :: fn (pool: *PoolAllocator) 
+<pre><code>pool_release :: <span class="syntax-keyword">fn</span> (pool: *PoolAllocator) 
 </code></pre>
 <p>Release all allocated memory used by <code>pool</code> (allocated in <code>pool.allocator</code>).</p>
 <p><em>File: pool.bl</em></p>
 <h2 id="std.pool_reset">std.pool_reset</h2>
 
-<pre><code>pool_reset :: fn (pool: *PoolAllocator)  #inline
+<pre><code>pool_reset :: <span class="syntax-keyword">fn</span> (pool: *PoolAllocator)  <span class="syntax-directive">#inline</span>
 </code></pre>
 <p>Invalidate all allocations but keep preallocated memory block for later use.</p>
 <p><em>File: pool.bl</em></p>
