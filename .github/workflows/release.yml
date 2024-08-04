@@ -21,6 +21,12 @@ jobs:
       run: cmake --build . --config Release
     - name: Run tests
       run: bin\blc.exe -run doctor.bl
+    - name: Generate documentation
+      run: |
+        cd docs
+        ..\bin\blc.exe -build
+        docs.exe
+        cd ..
     - name: Prepare package
       shell: powershell
       run: |
@@ -35,7 +41,7 @@ jobs:
         cp README.md dist
     - uses: actions/upload-artifact@v1
       with:
-        name: windows-artifacts
+        name: blc-x86_64-windows
         path: dist
 
   macos:
@@ -55,6 +61,12 @@ jobs:
       run: cmake --build . --config Release
     - name: Run tests
       run: ./bin/blc -run doctor.bl
+    - name: Generate documentation
+      run: |
+        cd docs
+        ./bin/blc -build
+        ./docs
+        cd ..
     - name: Prepare package
       run: |
         mkdir dist 
@@ -68,7 +80,7 @@ jobs:
         cp README.md dist 
     - uses: actions/upload-artifact@v1
       with:
-        name: macos_artifacts
+        name: blc-arm64-macos
         path: dist
 
   linux:
@@ -88,6 +100,12 @@ jobs:
       run: cmake --build . --config Release
     - name: Run tests
       run: ./bin/blc -run doctor.bl
+    - name: Generate documentation
+      run: |
+        cd docs
+        ./bin/blc -build
+        ./docs
+        cd ..
     - name: Prepare package
       run: |
         mkdir dist 
@@ -101,5 +119,5 @@ jobs:
         cp README.md dist 
     - uses: actions/upload-artifact@v1
       with:
-        name: linux_artifacts
+        name: blc-x86_64-linux
         path: dist
