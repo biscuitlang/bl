@@ -21,6 +21,12 @@ jobs:
       run: cmake --build . --config Release
     - name: Run tests
       run: bin\blc.exe -run doctor.bl
+    - name: Generate documentation
+      run: |
+        cd docs
+        ..\bin\blc.exe -build
+        .\docs.exe
+        cd ..
     - name: Prepare package
       shell: powershell
       run: |
@@ -39,22 +45,27 @@ jobs:
         path: dist
 
   macos:
-    runs-on: macOS-13
+    runs-on: macOS-14
     steps:
     - uses: actions/checkout@v2
     - name: Download LLVM
       run: |
         brew install llvm@16
-        echo "/usr/local/opt/llvm@16/bin" >> $GITHUB_PATH
         TMP_PATH=$(xcrun --show-sdk-path)/user/include
         echo "CPATH=$TMP_PATH" >> $GITHUB_ENV
     - name: Setup
       run: |
         cmake . -DCMAKE_BUILD_TYPE=Release 
     - name: Compile
-      run: cmake --build . --config Release
+      run: cmake --build . --config Release -DLLVM_DIR=/opt/homebrew/Cellar/llvm/16.0.6/lib/cmake/llvm
     - name: Run tests
       run: ./bin/blc -run doctor.bl
+    - name: Generate documentation
+      run: |
+        cd docs
+        ../bin/blc -build
+        ./docs
+        cd ..
     - name: Prepare package
       run: |
         mkdir dist 
@@ -88,6 +99,12 @@ jobs:
       run: cmake --build . --config Release
     - name: Run tests
       run: ./bin/blc -run doctor.bl
+    - name: Generate documentation
+      run: |
+        cd docs
+        ../bin/blc -build
+        ./docs
+        cd ..
     - name: Prepare package
       run: |
         mkdir dist 
