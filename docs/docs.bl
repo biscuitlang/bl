@@ -134,6 +134,7 @@ src_dir:    string;
 side_dir:   string;
 lib_dir:    string;
 module_dir: string;
+blc_exec:   string;
 
 main :: fn () s32 {
 	measure_elapsed_ms_begin();
@@ -151,10 +152,31 @@ main :: fn () s32 {
 
 	print_info("Running in: '%'", root_dir);
 
+	blc := "blc";
+	#if PLATFORM == Platform.WINDOWS {
+		blc = "blc.exe";
+	}
+
 	src_dir    = sprint("%/%", root_dir, SRC_DIR);        defer str_delete(&src_dir);
 	side_dir   = sprint("%/%", root_dir, SIDE_DIR);       defer str_delete(&side_dir);
 	lib_dir    = sprint("%/%", root_dir, LIB_DIR);        defer str_delete(&lib_dir);
 	module_dir = sprint("%/%", root_dir, MODULE_OUT_DIR); defer str_delete(&module_dir);
+	blc_exec   = sprint("%/../bin/%", root_dir, blc);     defer str_delete(&blc_exec);
+
+	blc_exec_err :: path_normalize(&blc_exec);
+	if blc_exec_err {
+		print_err(blc_exec_err);
+		return 1;
+	}
+
+	lib_dir_err :: path_normalize(&lib_dir);
+	if lib_dir_err {
+		print_err(lib_dir_err);
+		return 1;
+	}
+
+	print_info("Using compiler '%'.", blc_exec);
+	print_info("Found compiler API '%'.", lib_dir);
 
 	create_dir(module_dir);
 
@@ -210,7 +232,7 @@ generate_module_documentation :: fn () Error {
 
 	src_files := std.str_new(&default_temporary_allocator);
 	list_files_recursive(lib_dir, &src_files);
-	err_cmd :: cmd("blc -doc --doc-out-dir=\"%\" %", module_dir, src_files);
+	err_cmd :: cmd("% -doc --doc-out-dir=\"%\" %", blc_exec, module_dir, src_files);
 	if err_cmd then return err_cmd;
 	runtime :: measure_elapsed_ms_end("-");
 	print_info("API documentation generated in %s.\n", fmt_real(runtime / 1000., 3));
