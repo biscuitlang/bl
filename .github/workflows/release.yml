@@ -80,6 +80,7 @@ jobs:
         wget https://apt.llvm.org/llvm.sh
         chmod +x llvm.sh
         sudo ./llvm.sh 16
+        sudo apt install libzstd-dev
     - name: Setup
       run: |
         cmake . -DCMAKE_BUILD_TYPE=Release
