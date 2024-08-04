@@ -25,7 +25,7 @@ jobs:
       run: |
         cd docs
         ..\bin\blc.exe -build
-        docs.exe
+        .\docs.exe
         cd ..
     - name: Prepare package
       shell: powershell
@@ -64,7 +64,7 @@ jobs:
     - name: Generate documentation
       run: |
         cd docs
-        ./bin/blc -build
+        ../bin/blc -build
         ./docs
         cd ..
     - name: Prepare package
@@ -103,7 +103,7 @@ jobs:
     - name: Generate documentation
       run: |
         cd docs
-        ./bin/blc -build
+        ../bin/blc -build
         ./docs
         cd ..
     - name: Prepare package
