@@ -221,14 +221,14 @@ bool x86_64_pc_linux_gnu(struct context *ctx) {
 	const char *LINKER_OPT_SHARED = "--shared";
 
 	const str_t LINKER_LIB_PATHS[] = {
-		cstr("/lib"),
-		cstr("/lib64"),
-		cstr("/usr/lib"),
-		cstr("/usr/lib64"),
-		cstr("/usr/local/lib"),
-		cstr("/usr/local/lib64"),
-		cstr("/usr/lib/x86_64-linux-gnu"),
-		// Extend this in case we have some more known locations...
+	    cstr("/lib"),
+	    cstr("/lib64"),
+	    cstr("/usr/lib"),
+	    cstr("/usr/lib64"),
+	    cstr("/usr/local/lib"),
+	    cstr("/usr/local/lib64"),
+	    cstr("/usr/lib/x86_64-linux-gnu"),
+	    // Extend this in case we have some more known locations...
 	};
 
 	ctx->preload_file = cstr("os/_linux.bl");
@@ -365,14 +365,17 @@ static bool arm64_apple_darwin(struct context *ctx) {
 					str_buf_append_fmt(&libpath, ":{s}", MACOS_SDK);
 				}
 			}
+			// @Note 2024-08-04: This is a bit hack, newer macos versions does not have separated standard
+			// libraries (probably to make developers constantly playing hide and seek with each version of
+			// their shit). Since there is no concept of system version in module setup, we cannot set it
+			// conditionally in the libc module :/ this is lame... This might be solved by the new system of
+			// modules using BL executables for configuration.
 			if (major < 14) {
-				// @Note 2024-08-04: This is a bit hack, newer macos versions does not have separated standard
-				// libraries (probably to make developers constantly playing hide and seek with each version of
-				// their shit). Since there is no concept of system version in module setup, we cannot set it
-				// conditionally in the libc module :/ this is lame... This might be solved by the new system of
-				// modules using BL executables for configuration.
 				str_buf_append_fmt(&optexec, "-lc -lm ");
 				str_buf_append_fmt(&optshared, "-lc -lm ");
+			} else {
+				str_buf_append_fmt(&optexec, "-lSystem ");
+				str_buf_append_fmt(&optshared, "-lSystem ");
 			}
 		}
 		str_buf_append_fmt(&optexec, "-macos_version_min {str} ", osver);
