@@ -62,9 +62,9 @@ set(BL_API_DIR "../lib/bl/api") # relative to the executable
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     set(BL_LLVM_VER "16.0.5")
 elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-    set(BL_LLVM_VER "16.0.3")
+    set(BL_LLVM_VER "16")
 elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    set(BL_LLVM_VER "16.0.0")
+    set(BL_LLVM_VER "16")
 endif()
 
 if(MSVC AND NOT LLVM_DIR)
