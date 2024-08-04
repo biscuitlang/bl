@@ -336,7 +336,7 @@ static bool arm64_apple_darwin(struct context *ctx) {
 	const char *MACOS_SDK          = "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib";
 	const str_t LINKER_LIB_PATH    = cstr("/usr/lib:/usr/local/lib");
 	const str_t LINKER_OPT_EXEC    = cstr("-e ___os_start -arch arm64 -ld_classic");
-	const str_t LINKER_OPT_SHARED  = cstr("-dylib -arch arm64 -ld_classic");
+	const str_t LINKER_OPT_SHARED  = cstr("-dylib -arch arm64");
 
 	ctx->preload_file = cstr("os/_macos.bl");
 
