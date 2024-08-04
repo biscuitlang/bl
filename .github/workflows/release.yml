@@ -59,11 +59,12 @@ jobs:
         cmake . -DCMAKE_BUILD_TYPE=Release -DLLVM_DIR="${LLVM_ROOT}/lib/cmake/llvm"
     - name: Compile
       run: cmake --build . --config Release
-
+    - name: Run tests
+      run: ./bin/blc -run doctor.bl
     - name: Generate documentation
       run: |
         cd docs
-        ../bin/blc --verbose -build
+        ../bin/blc -build
         ./docs
         cd ..
     - name: Prepare package

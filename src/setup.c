@@ -334,9 +334,15 @@ static bool x86_64_apple_darwin(struct context *ctx) {
 static bool arm64_apple_darwin(struct context *ctx) {
 	const char *COMMAND_LINE_TOOLS = "/Library/Developer/CommandLineTools";
 	const char *MACOS_SDK          = "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib";
-	const str_t LINKER_LIB_PATH    = cstr("/usr/lib:/usr/local/lib");
 	const str_t LINKER_OPT_EXEC    = cstr("-e ___os_start -arch arm64");
 	const str_t LINKER_OPT_SHARED  = cstr("-dylib -arch arm64");
+
+	const str_t LINKER_LIB_PATHS[] = {
+		cstr("/usr/lib"),
+		cstr("/usr/local/lib"),
+		// Extend this in case we have some more known locations...
+	};
+
 
 	ctx->preload_file = cstr("os/_macos.bl");
 
@@ -350,7 +356,17 @@ static bool arm64_apple_darwin(struct context *ctx) {
 	str_buf_t optexec   = get_tmp_str();
 	str_buf_t optshared = get_tmp_str();
 
-	str_buf_append(&libpath, LINKER_LIB_PATH);
+	// Lookup all possible lib paths on the system.
+	for (s32 i = 0; i < static_arrlenu(LINKER_LIB_PATHS); ++i) {
+		const str_t path = LINKER_LIB_PATHS[i];
+		if (file_exists2(path)) {
+			if (libpath.len > 0) {
+				str_buf_append(&libpath, cstr(":"));
+			}
+			str_buf_append(&libpath, path);
+		}
+	}
+
 	str_buf_t osver = execute("sw_vers -productVersion");
 	if (osver.len == 0) {
 		builder_warning("Cannot detect macOS product version!");
