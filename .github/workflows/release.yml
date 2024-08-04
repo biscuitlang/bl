@@ -53,6 +53,7 @@ jobs:
         brew install llvm@16
         TMP_PATH=$(xcrun --show-sdk-path)/user/include
         echo "CPATH=$TMP_PATH" >> $GITHUB_ENV
+        xcode-select --install
     - name: Setup
       run: |
         LLVM_ROOT=$(brew --prefix llvm@16)
