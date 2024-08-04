@@ -23,7 +23,7 @@ Biscuit compiler is written in C and all major dependencies are packed in the co
 * Download and compile
 
 ```bash
-git clone https://github.com/travisdoor/bl.git
+git clone -b release/0.11.0 https://github.com/travisdoor/bl.git
 cd bl
 mkdir build
 cd build
@@ -68,7 +68,7 @@ sudo ./llvm.sh 16
 
 
 ```bash
-git clone https://github.com/travisdoor/bl.git
+git clone -b release/0.11.0 https://github.com/travisdoor/bl.git
 cd bl
 mkdir build
 cd build
@@ -88,7 +88,7 @@ export PATH=$PATH:/path/to/bl/bin
 * Download and compile
 
 ```bash
-git clone https://github.com/travisdoor/bl.git
+git clone -b release/0.11.0 https://github.com/travisdoor/bl.git
 cd bl
 mkdir build
 cd build
