@@ -365,6 +365,15 @@ static bool arm64_apple_darwin(struct context *ctx) {
 					str_buf_append_fmt(&libpath, ":{s}", MACOS_SDK);
 				}
 			}
+			if (major < 14) {
+				// @Note 2024-08-04: This is a bit hack, newer macos versions does not have separated standard
+				// libraries (probably to make developers constantly playing hide and seek with each version of
+				// their shit). Since there is no concept of system version in module setup, we cannot set it
+				// conditionally in the libc module :/ this is lame... This might be solved by the new system of
+				// modules using BL executables for configuration.
+				str_buf_append_fmt(&optexec, "-lc -lm ");
+				str_buf_append_fmt(&optshared, "-lc -lm ");
+			}
 		}
 		str_buf_append_fmt(&optexec, "-macos_version_min {str} ", osver);
 		str_buf_append_fmt(&optshared, "-macos_version_min {str} ", osver);

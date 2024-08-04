@@ -18,4 +18,4 @@ x86_64-apple-darwin:
 
 arm64-apple-darwin:
   src: "darwin/libc.bl:darwin/arm64.bl"
-  linker_opt: "-lc -lm"
+  linker_opt: ""
