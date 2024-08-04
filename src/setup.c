@@ -353,7 +353,7 @@ static bool arm64_apple_darwin(struct context *ctx) {
 	str_buf_append(&libpath, LINKER_LIB_PATH);
 	str_buf_t osver = execute("sw_vers -productVersion");
 	if (osver.len == 0) {
-		builder_error("Cannot detect macOS product version!");
+		builder_warning("Cannot detect macOS product version!");
 	} else {
 		s32 major, minor, patch;
 		major = minor = patch = 0;
@@ -377,6 +377,8 @@ static bool arm64_apple_darwin(struct context *ctx) {
 				str_buf_append_fmt(&optexec, "-lSystem ");
 				str_buf_append_fmt(&optshared, "-lSystem ");
 			}
+		} else {
+			builder_warning("Cannot parse macOS product version, provided string is '%.*s'!", osver.len, osver.ptr);
 		}
 		str_buf_append_fmt(&optexec, "-macos_version_min {str} ", osver);
 		str_buf_append_fmt(&optshared, "-macos_version_min {str} ", osver);
