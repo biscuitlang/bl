@@ -53,11 +53,10 @@ jobs:
         brew install llvm@16
         TMP_PATH=$(xcrun --show-sdk-path)/user/include
         LLVM_ROOT=$(brew --prefix llvm@16)
-        echo "CPATH=$TMP_PATH" >> $GITHUB_ENV
+        echo "${LLVM_ROOT}/lib/cmake/llvm:CPATH=$TMP_PATH" >> $GITHUB_ENV
     - name: Setup
       run: |
-        ls ${LLVM_ROOT}/lib/cmake/llvm
-        cmake . -DCMAKE_BUILD_TYPE=Release -DLLVM_DIR="${LLVM_ROOT}/lib/cmake/llvm"
+        cmake . -DCMAKE_BUILD_TYPE=Release
     - name: Compile
       run: cmake --build . --config Release
     - name: Run tests
