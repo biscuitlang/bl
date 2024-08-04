@@ -56,6 +56,7 @@ jobs:
         echo "CPATH=$TMP_PATH" >> $GITHUB_ENV
     - name: Setup
       run: |
+        ls ${LLVM_ROOT}/lib/cmake/llvm
         cmake . -DCMAKE_BUILD_TYPE=Release -DLLVM_DIR="${LLVM_ROOT}/lib/cmake/llvm"
     - name: Compile
       run: cmake --build . --config Release
