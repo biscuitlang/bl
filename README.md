@@ -38,7 +38,7 @@ Language design and some core principles are based on the hard work of [Jonathan
 * And more...
 
 # Installation
-See the installation guide [here](https://biscuitlang.org/#installation).
+See the installation guide [here](https://biscuitlang.org).
 
 # Example
 ```rust
@@ -59,7 +59,7 @@ main :: fn () s32 {
 }
 ```
 
-See more examples [here](https://biscuitlang.org/how-to/).
+See more examples [here](https://biscuitlang.org).
 
 # Authors
 
