@@ -72,7 +72,7 @@ jobs:
         path: dist
 
   linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
     - name: Download LLVM
