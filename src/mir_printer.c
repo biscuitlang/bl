@@ -938,7 +938,7 @@ void print_instr_block(struct context *ctx, struct mir_instr_block *block) {
 	if (is_global) {
 		fprintf(ctx->stream, " {\n");
 	} else {
-		if (!block->base.ref_count)
+		if (block->base.is_unreachable)
 			fprintf(ctx->stream, " /* NEVER REACHED */\n");
 		else
 			fprintf(ctx->stream, "\n");

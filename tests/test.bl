@@ -3,14 +3,17 @@
 */
 
 main :: fn () s32 {
-	a := true;
-	b := false;
-	c := false;
+	a :: true;
+	// b := false;
+	// c := false;
 
-	T :: *u8;
-	is_string :: T == string || T == string_view;
-	print("%\n",is_string);
+	v :: if a then 10 else 20;
 
+	// T :: *u8;
+	// is_string :: T == string || T == string_view;
+	// print("%\n",is_string);
+
+	/*
 	if a && b && c {
 		print("SHIT!!!!\n");
 	} else {
@@ -30,7 +33,7 @@ main :: fn () s32 {
 	}
 
 	if c && foo() {
-	}
+	}*/
 
 	return 0;
 }

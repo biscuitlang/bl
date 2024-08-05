@@ -1435,9 +1435,11 @@ static inline void phi_add_income(struct mir_instr_phi *phi, struct mir_instr *v
 	bassert(phi && value && block);
 	sarrput(phi->incoming_values, ref_instr(value));
 	sarrput(phi->incoming_blocks, ref_instr(&block->base));
-	if (value->kind == MIR_INSTR_COND_BR) { // @Clenup 2024-08-05
-		((struct mir_instr_cond_br *)value)->keep_stack_value = true;
-	}
+	bassert(value->kind != MIR_INSTR_COND_BR && value->kind != MIR_INSTR_BR);
+
+	// if (value->kind == MIR_INSTR_COND_BR) { // @Clenup 2024-08-05
+	// 	((struct mir_instr_cond_br *)value)->keep_stack_value = true;
+	// }
 }
 
 static inline bool is_load_needed(const struct mir_instr *instr) {
@@ -4227,19 +4229,33 @@ enum vm_interp_state evaluate(struct context *ctx, struct mir_instr *instr) {
 		unref_instr(&call->base);
 		break;
 	}
+
 	case MIR_INSTR_PHI: {
-		// Comptime PHI instruction must be resolvable in this stage; it must have only one
-		// possible income. It's converted to constant value containing resolved phi value.
-		struct mir_instr_phi *phi = (struct mir_instr_phi *)instr;
-		bassert((sarrlenu(phi->incoming_blocks) == sarrlenu(phi->incoming_values)) == 1);
-		struct mir_instr *value = sarrpeek(phi->incoming_values, 0);
-		bassert(value);
-		// @Incomplete: Check if the value is constant?
+		// @Explain
+		struct mir_instr_phi *phi          = (struct mir_instr_phi *)instr;
+		struct mir_instr     *result_value = NULL;
+
+		for (usize i = 0; i < sarrlenu(phi->incoming_values); ++i) {
+			struct mir_instr *value = sarrpeek(phi->incoming_values, i);
+			struct mir_instr *block = sarrpeek(phi->incoming_blocks, i);
+
+			unref_instr(value);
+			unref_instr(block);
+			if (block->ref_count == 0) continue;
+
+			bassert(result_value && "Phi constant evaluation cannot tell which income value is supposed to be used!");
+			result_value = value;
+		}
+
+		bassert(result_value && "Invalid phi result!");
+		bassert(mir_is_comptime(result_value) && "Contant phi income value is supposed to be comptime!");
+
 		struct mir_instr_const *placeholder = mutate_instr(instr, MIR_INSTR_CONST);
-		// Duplicate constant value.
-		memcpy(&placeholder->base.value, &value->value, sizeof(placeholder->base.value));
+		memcpy(&placeholder->base.value, &result_value->value, sizeof(placeholder->base.value));
+
 		return VM_INTERP_PASSED;
 	}
+
 	case MIR_INSTR_COND_BR: {
 		// Comptime conditional break can be simplified into direct break instruction in case
 		// the expression is known in compile time. Dropped branch is kept for analyze but
@@ -4249,19 +4265,25 @@ enum vm_interp_state evaluate(struct context *ctx, struct mir_instr *instr) {
 		const bool                cond           = MIR_CEV_READ_AS(bool, &cond_br->cond->value);
 		struct mir_instr_block   *continue_block = cond ? cond_br->then_block : cond_br->else_block;
 		struct mir_instr_block   *discard_block  = !cond ? cond_br->then_block : cond_br->else_block;
+
 		unref_instr(&discard_block->base);
 		unref_instr(cond_br->cond);
+
 		if (cond_br->is_static && discard_block->base.ref_count == 0) {
 			erase_block(&discard_block->base);
 		}
+
 		struct mir_instr_br *br    = mutate_instr(&cond_br->base, MIR_INSTR_BR);
 		br->then_block             = continue_block;
-		br->base.value.is_comptime = false; // ???
+		br->base.value.is_comptime = false;
+
 		return VM_INTERP_PASSED;
 	}
+
 	case MIR_INSTR_DESIGNATOR:
 		// Nothing for now?
 		return VM_INTERP_PASSED;
+
 	default:
 		if (!vm_eval_instr(ctx->vm, ctx->assembly, instr)) {
 			// Evaluation was aborted due to error.
@@ -4417,40 +4439,55 @@ struct result analyze_instr_phi(struct context *ctx, struct mir_instr_phi *phi) 
 	bassert(phi->incoming_blocks && phi->incoming_values);
 	bassert(sarrlenu(phi->incoming_values) == sarrlenu(phi->incoming_blocks));
 	// @Performance: Recreating small arrays here is probably faster then removing elements?
-	mir_instrs_t                 *new_blocks      = arena_alloc(&ctx->assembly->arenas.sarr);
-	mir_instrs_t                 *new_values      = arena_alloc(&ctx->assembly->arenas.sarr);
-	const struct mir_instr_block *phi_owner_block = phi->base.owner_block;
-	struct mir_type              *type            = NULL;
-	bool                          is_comptime     = true;
-	bool                          cnt             = true;
-	for (usize i = 0; i < sarrlenu(phi->incoming_values) && cnt; ++i) {
+	mir_instrs_t *new_blocks = arena_alloc(&ctx->assembly->arenas.sarr);
+	mir_instrs_t *new_values = arena_alloc(&ctx->assembly->arenas.sarr);
+	// const struct mir_instr_block *phi_owner_block = phi->base.owner_block;
+	struct mir_type *type        = NULL;
+	bool             is_comptime = true;
+	for (usize i = 0; i < sarrlenu(phi->incoming_values); ++i) {
 		struct mir_instr **value_ref = &sarrpeek(phi->incoming_values, i);
 		struct mir_instr  *block     = sarrpeek(phi->incoming_blocks, i);
 		bassert(block && block->kind == MIR_INSTR_BLOCK);
 		bassert((*value_ref)->state == MIR_IS_COMPLETE && "Phi incoming value is not analyzed!");
+
+		/* @Cleanup
 		if ((*value_ref)->kind == MIR_INSTR_COND_BR) {
-			*value_ref = ((struct mir_instr_cond_br *)(*value_ref))->cond;
-			bassert(value_ref && *value_ref);
-			bassert((*value_ref)->state == MIR_IS_COMPLETE && "Phi incoming value is not analyzed!");
+		    *value_ref = ((struct mir_instr_cond_br *)(*value_ref))->cond;
+		    bassert(value_ref && *value_ref);
+		    bassert((*value_ref)->state == MIR_IS_COMPLETE && "Phi incoming value is not analyzed!");
 		} else if ((*value_ref)->kind == MIR_INSTR_BR) {
-			const struct mir_instr_br *br = (struct mir_instr_br *)(*value_ref);
-			bassert(is_comptime);
-			// THE RESULT VALUE MUST BE LISTED BEFORE THE BREAK INSTRUCTION.
-			*value_ref = br->base.prev;
-			bassert(*value_ref); // @Incomplete: Check for constant instr?
-			if (br->then_block->base.id == phi_owner_block->base.id) {
-				cnt = false;
-			} else {
-				bassert((*value_ref)->ref_count == 0);
-				// unref_instr(*value_ref);
-				continue;
-			}
+		    const struct mir_instr_br *br = (struct mir_instr_br *)(*value_ref);
+		    bassert(is_comptime);
+		    // THE RESULT VALUE MUST BE LISTED BEFORE THE BREAK INSTRUCTION.
+		    *value_ref = br->base.prev;
+		    bassert(*value_ref); // @Incomplete: Check for constant instr?
+		    if (br->then_block->base.id == phi_owner_block->base.id) {
+		        cnt = false;
+		    } else {
+		        bassert((*value_ref)->ref_count == 0);
+		        // unref_instr(*value_ref);
+		        continue;
+		    }
 		} else {
-			const analyze_stage_fn_t *conf = type ? analyze_slot_conf_default : analyze_slot_conf_basic;
-			if (analyze_slot(ctx, conf, value_ref, type) != ANALYZE_PASSED) return_zone(FAIL);
-		}
+		    const analyze_stage_fn_t *conf = type ? analyze_slot_conf_default : analyze_slot_conf_basic;
+		    if (analyze_slot(ctx, conf, value_ref, type) != ANALYZE_PASSED) return_zone(FAIL);
+		}*/
+
+		bassert((*value_ref)->kind != MIR_INSTR_BR && (*value_ref)->kind != MIR_INSTR_COND_BR);
+
+		const analyze_stage_fn_t *conf = type ? analyze_slot_conf_default : analyze_slot_conf_basic;
+		if (analyze_slot(ctx, conf, value_ref, type) != ANALYZE_PASSED) return_zone(FAIL);
+
 		if (!type) type = (*value_ref)->value.type;
-		is_comptime = is_comptime ? (*value_ref)->value.is_comptime : false;
+		if (is_comptime) {
+			// 2024-08-05 @Explain
+			if ((*value_ref)->value.is_comptime || block->ref_count == 1) {
+				is_comptime = true;
+			} else {
+				is_comptime = false;
+			}
+		}
+
 		sarrput(new_blocks, block);
 		sarrput(new_values, *value_ref);
 	}
@@ -4459,7 +4496,7 @@ struct result analyze_instr_phi(struct context *ctx, struct mir_instr_phi *phi) 
 	phi->incoming_values        = new_values;
 	phi->base.value.type        = type;
 	phi->base.value.addr_mode   = MIR_VAM_RVALUE;
-	phi->base.value.is_comptime = is_comptime && !phi->force_no_comptime;
+	phi->base.value.is_comptime = is_comptime /* && !phi->force_no_comptime*/;
 	return_zone(PASS);
 }
 
@@ -10501,10 +10538,10 @@ struct mir_instr *ast_expr_binop(struct context *ctx, struct ast *binop) {
 
 		set_current_block(ctx, continue_block);
 
-		struct mir_instr     *v   = append_instr_const_bool(ctx, NULL, false);
-		struct mir_instr_phi *phi = (struct mir_instr_phi *)append_instr_phi(ctx, NULL, false);
+		struct mir_instr     *const_false = append_instr_const_bool(ctx, NULL, false);
+		struct mir_instr_phi *phi         = (struct mir_instr_phi *)append_instr_phi(ctx, NULL, false);
 
-		phi_add_income(phi, v, lhs_continue_block);
+		phi_add_income(phi, const_false, lhs_continue_block);
 		phi_add_income(phi, rhs, rhs_continue_block);
 		return &phi->base;
 	}
@@ -10535,10 +10572,10 @@ struct mir_instr *ast_expr_binop(struct context *ctx, struct ast *binop) {
 
 		set_current_block(ctx, continue_block);
 
-		struct mir_instr     *v   = append_instr_const_bool(ctx, NULL, op == BINOP_LOGIC_OR);
-		struct mir_instr_phi *phi = (struct mir_instr_phi *)append_instr_phi(ctx, NULL, false);
+		struct mir_instr     *const_true = append_instr_const_bool(ctx, NULL, op == BINOP_LOGIC_OR);
+		struct mir_instr_phi *phi        = (struct mir_instr_phi *)append_instr_phi(ctx, NULL, false);
 
-		phi_add_income(phi, v, lhs_continue_block);
+		phi_add_income(phi, const_true, lhs_continue_block);
 		phi_add_income(phi, rhs, rhs_continue_block);
 		return &phi->base;
 	}
