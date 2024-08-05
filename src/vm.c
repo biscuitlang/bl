@@ -1283,13 +1283,12 @@ void interp_instr_toany(struct virtual_machine *vm, struct mir_instr_to_any *toa
 void interp_instr_phi(struct virtual_machine *vm, struct mir_instr_phi *phi) {
 	struct mir_instr_block *prev_block = vm->stack->prev_block;
 	bassert(prev_block && "Invalid previous block for phi instruction.");
-	bassert(phi->incoming_blocks && phi->incoming_values);
-	bassert(sarrlen(phi->incoming_blocks) == sarrlen(phi->incoming_values));
-	bassert(sarrlen(phi->incoming_values) > 0);
 	struct mir_instr *value = NULL;
-	for (usize i = 0; i < sarrlenu(phi->incoming_values); ++i) {
-		value                         = sarrpeek(phi->incoming_values, i);
-		struct mir_instr_block *block = (struct mir_instr_block *)sarrpeek(phi->incoming_blocks, i);
+	for (usize i = 0; i < static_arrlenu(phi->incoming_values); ++i) {
+		value = phi->incoming_values[i];
+		bassert(value);
+		struct mir_instr_block *block = phi->incoming_blocks[i];
+		bassert(block);
 		if (block->base.id == prev_block->base.id) break;
 	}
 	bassert(value && "Invalid value for phi income.");

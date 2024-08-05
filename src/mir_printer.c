@@ -380,22 +380,14 @@ void print_instr_set_initializer(struct context *ctx, struct mir_instr_set_initi
 void print_instr_phi(struct context *ctx, struct mir_instr_phi *phi) {
 	print_instr_head(ctx, &phi->base, "phi");
 
-	if (sarrlen(phi->incoming_blocks) != sarrlen(phi->incoming_values)) {
-		fprintf(ctx->stream, "<value_count_does_not_match_block_count>");
-		return;
-	}
-
 	struct mir_instr       *value;
 	struct mir_instr_block *block;
-	const usize             c = sarrlenu(phi->incoming_values);
 
-	if (c == 0) {
-		fprintf(ctx->stream, "<empty incomes>");
-	}
+	for (usize i = 0; i < static_arrlenu(phi->incoming_values); ++i) {
+		value = phi->incoming_values[i];
+		block = phi->incoming_blocks[i];
 
-	for (usize i = 0; i < c; ++i) {
-		value = sarrpeek(phi->incoming_values, i);
-		block = (struct mir_instr_block *)sarrpeek(phi->incoming_blocks, i);
+		if (!value || !block) continue;
 
 		fprintf(ctx->stream, "[");
 		print_comptime_value_or_id(ctx, value);

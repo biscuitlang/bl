@@ -4,10 +4,10 @@
 
 main :: fn () s32 {
 	a :: true;
-	// b := false;
+	b :: false;
 	// c := false;
 
-	v :: if a then 10 else 20;
+	v :: if (a && b) then 10 else 20;
 
 	// T :: *u8;
 	// is_string :: T == string || T == string_view;

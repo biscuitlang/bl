@@ -911,12 +911,14 @@ enum state emit_instr_decl_direct_ref(struct context *ctx, struct mir_instr_decl
 }
 
 enum state emit_instr_phi(struct context *ctx, struct mir_instr_phi *phi) {
-	const usize   count   = sarrlenu(phi->incoming_blocks);
+	const usize   count   = static_arrlenu(phi->incoming_values);
 	llvm_values_t llvm_iv = SARR_ZERO;
 	llvm_values_t llvm_ib = SARR_ZERO;
 	for (usize i = 0; i < count; ++i) {
-		struct mir_instr       *value = sarrpeek(phi->incoming_values, i);
-		struct mir_instr_block *block = (struct mir_instr_block *)sarrpeek(phi->incoming_blocks, i);
+		struct mir_instr *value = phi->incoming_values[i];
+		bassert(value);
+		struct mir_instr_block *block = phi->incoming_blocks[i];
+		bassert(block);
 		bassert(value->llvm_value);
 		sarrput(&llvm_iv, value->llvm_value);
 		sarrput(&llvm_ib, LLVMBasicBlockAsValue(emit_basic_block(ctx, block)));

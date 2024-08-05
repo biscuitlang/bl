@@ -510,7 +510,6 @@ struct mir_instr_block {
 	struct mir_instr *terminal;
 	// Optional; when not set block is implicit global block.
 	struct mir_fn *owner_fn;
-	// bool is_excluded;
 };
 
 struct mir_instr_decl_var {
@@ -894,12 +893,12 @@ struct mir_instr_designator {
 
 struct mir_instr_phi {
 	struct mir_instr base;
-	mir_instrs_t    *incoming_values;
-	mir_instrs_t    *incoming_blocks;
+
+	struct mir_instr       *incoming_values[2];
+	struct mir_instr_block *incoming_blocks[2];
 
 	// 2024-07-21 Force the phi expression not being evaluated in comptime, this is used in case the
 	// phi result depends on runtime condition (ternary if).
-	// 2024-08-05 Try to remove this.
 	bool force_no_comptime;
 };
 
