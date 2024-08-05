@@ -3,14 +3,41 @@
 */
 
 main :: fn () s32 {
-	expr := false;
+	a := true;
+	b := false;
+	c := false;
 
-	a := 10;
-	b := 20;
+	T :: *u8;
+	is_string :: T == string || T == string_view;
+	print("%\n",is_string);
 
-	num_ptr : *s32 : if expr then &a else &b;
-	print("num = %\n", @num_ptr);
+	if a && b && c {
+		print("SHIT!!!!\n");
+	} else {
+		print("OK!!!!\n");
+	}
+
+	if (a || b) && c {
+		print("SHIT!!!!\n");
+	} else {
+		print("OK!!!!\n");
+	}
+
+	if c && (a || b) {
+		print("SHIT!!!!\n");
+	} else {
+		print("OK!!!!\n");
+	}
+
+	if c && foo() {
+	}
+
 	return 0;
+}
+
+foo :: fn () bool {
+	print("FUCK!\n");
+	return false;
 }
 
 /*

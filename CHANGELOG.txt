@@ -1,28 +1,31 @@
+0.12.0 - PRE-RELEASE
+---------------------------------------------------------------------------------------
+
 0.11.0 - PRE-RELEASE
 ---------------------------------------------------------------------------------------
-Rewrite string handling inside the compiler.
-Improved documentation generator (added more value expressions).
-Add SIMD implementation for some hot code paths (Windows only).
-Reduced amount of types generated internally by the compiler (use cache).
-RPMalloc used for the compiler.
 Add 'then' keyword and inline if statements.
-Add ternary if expression.
-Add fmod and trunc math functions.
-Add dlib VM runtime support.
 Add --dirty-mode compiler flag.
-Add builder configuration api for build pipelines.
+Add SIMD implementation for some hot code paths (Windows only).
 Add automatic static array element count using [_]s32 syntax for compound initializers.
-Fix rpmalloc missing terminations for threads causing deadlocks sometimes.
+Add builder configuration api for build pipelines.
+Add dlib VM runtime support.
+Add fmod and trunc math functions.
+Add new documentation web generator.
+Add support for x86_64-unknown-linux-gnu target architecture triple.
+Add ternary if expression.
+Add untyped compound expressions.
+Fix group initialization of multiple variables at once in global scope.
 Fix invalid position of vargs generated before call causing stack problem in VM execution.
+Fix member access directly on call result.
 Fix reports of unused symbols declared after usage in local scopes.
+Fix rpmalloc missing terminations for threads causing deadlocks sometimes.
 Fix unary not operator precedence.
 Fix unroll on global variables.
-Fix member access directly on call result.
-Fix group initialization of multiple variables at once in global scope.
-Add support for x86_64-unknown-linux-gnu target architecture triple.
-Add untyped compound expressions.
-Add new documentation web generator.
+Improved documentation generator (added more value expressions).
+RPMalloc used for the compiler.
+Reduced amount of types generated internally by the compiler (use cache).
 Reworked thread pool.
+Rewrite string handling inside the compiler.
 
 0.10.0 - PRE-RELEASE
 ---------------------------------------------------------------------------------------

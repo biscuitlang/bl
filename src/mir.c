@@ -502,6 +502,7 @@ static struct mir_instr *append_instr_type_info(struct context *ctx, struct ast 
 static struct mir_instr *append_instr_msg(struct context *ctx, struct ast *node, mir_instrs_t *args, enum mir_user_msg_kind kind);
 static struct mir_instr *append_instr_test_cases(struct context *ctx, struct ast *node);
 static struct mir_instr *append_instr_elem_ptr(struct context *ctx, struct ast *node, struct mir_instr *arr_ptr, struct mir_instr *index);
+static struct mir_instr *append_instr_phi(struct context *ctx, struct ast *node, bool force_no_comptime);
 static struct mir_instr *append_instr_member_ptr(struct context      *ctx,
                                                  struct ast          *node,
                                                  struct mir_instr    *target_ptr,
@@ -1434,7 +1435,7 @@ static inline void phi_add_income(struct mir_instr_phi *phi, struct mir_instr *v
 	bassert(phi && value && block);
 	sarrput(phi->incoming_values, ref_instr(value));
 	sarrput(phi->incoming_blocks, ref_instr(&block->base));
-	if (value->kind == MIR_INSTR_COND_BR) {
+	if (value->kind == MIR_INSTR_COND_BR) { // @Clenup 2024-08-05
 		((struct mir_instr_cond_br *)value)->keep_stack_value = true;
 	}
 }
@@ -3580,6 +3581,12 @@ append_instr_switch(struct context *ctx, struct ast *node, struct mir_instr *val
 
 struct mir_instr *append_instr_elem_ptr(struct context *ctx, struct ast *node, struct mir_instr *arr_ptr, struct mir_instr *index) {
 	struct mir_instr *tmp = create_instr_elem_ptr(ctx, node, arr_ptr, index);
+	append_current_block(ctx, tmp);
+	return tmp;
+}
+
+struct mir_instr *append_instr_phi(struct context *ctx, struct ast *node, bool force_no_comptime) {
+	struct mir_instr *tmp = create_instr_phi(ctx, node, force_no_comptime);
 	append_current_block(ctx, tmp);
 	return tmp;
 }
@@ -10467,7 +10474,76 @@ struct mir_instr *ast_expr_binop(struct context *ctx, struct ast *binop) {
 		return append_instr_store(ctx, binop, tmp, lhs);
 	}
 
-	case BINOP_LOGIC_AND:
+	case BINOP_LOGIC_AND: {
+		struct mir_fn *fn = ast_current_fn(ctx);
+
+		// lhs
+		struct mir_instr       *lhs                = ast(ctx, ast_lhs);
+		struct mir_instr_block *lhs_continue_block = ast_current_block(ctx);
+
+		// rhs
+		struct mir_instr_block *rhs_block = append_block(ctx, fn, cstr("rhs_block"));
+		set_current_block(ctx, rhs_block);
+		struct mir_instr       *rhs                = ast(ctx, ast_rhs);
+		struct mir_instr_block *rhs_continue_block = ast_current_block(ctx);
+
+		struct mir_instr_block *continue_block = append_block(ctx, fn, cstr("continue_block"));
+
+		// Terminate lhs
+		set_current_block(ctx, lhs_continue_block);
+		bassert(!is_current_block_terminated(ctx));
+		append_instr_cond_br(ctx, NULL, lhs, rhs_block, continue_block, false);
+
+		// Terminate rhs
+		set_current_block(ctx, rhs_continue_block);
+		bassert(!is_current_block_terminated(ctx));
+		append_instr_br(ctx, NULL, continue_block);
+
+		set_current_block(ctx, continue_block);
+
+		struct mir_instr     *v   = append_instr_const_bool(ctx, NULL, false);
+		struct mir_instr_phi *phi = (struct mir_instr_phi *)append_instr_phi(ctx, NULL, false);
+
+		phi_add_income(phi, v, lhs_continue_block);
+		phi_add_income(phi, rhs, rhs_continue_block);
+		return &phi->base;
+	}
+	case BINOP_LOGIC_OR: {
+		struct mir_fn *fn = ast_current_fn(ctx);
+
+		// lhs
+		struct mir_instr       *lhs                = ast(ctx, ast_lhs);
+		struct mir_instr_block *lhs_continue_block = ast_current_block(ctx);
+
+		// rhs
+		struct mir_instr_block *rhs_block = append_block(ctx, fn, cstr("rhs_block"));
+		set_current_block(ctx, rhs_block);
+		struct mir_instr       *rhs                = ast(ctx, ast_rhs);
+		struct mir_instr_block *rhs_continue_block = ast_current_block(ctx);
+
+		struct mir_instr_block *continue_block = append_block(ctx, fn, cstr("continue_block"));
+
+		// Terminate lhs
+		set_current_block(ctx, lhs_continue_block);
+		bassert(!is_current_block_terminated(ctx));
+		append_instr_cond_br(ctx, NULL, lhs, continue_block, rhs_block, false);
+
+		// Terminate rhs
+		set_current_block(ctx, rhs_continue_block);
+		bassert(!is_current_block_terminated(ctx));
+		append_instr_br(ctx, NULL, continue_block);
+
+		set_current_block(ctx, continue_block);
+
+		struct mir_instr     *v   = append_instr_const_bool(ctx, NULL, op == BINOP_LOGIC_OR);
+		struct mir_instr_phi *phi = (struct mir_instr_phi *)append_instr_phi(ctx, NULL, false);
+
+		phi_add_income(phi, v, lhs_continue_block);
+		phi_add_income(phi, rhs, rhs_continue_block);
+		return &phi->base;
+	}
+
+		/*
 	case BINOP_LOGIC_OR: {
 		const bool              swap_condition   = op == BINOP_LOGIC_AND;
 		struct mir_fn          *fn               = ast_current_fn(ctx);
@@ -10479,36 +10555,36 @@ struct mir_instr *ast_expr_binop(struct context *ctx, struct ast *binop) {
 		// and we must create one. Also PHI instruction must be crated (but not appended yet);
 		// created PHI gather incomes from all nested branches created by expression.
 		if (!end_block) {
-			bassert(!phi);
-			end_block                      = create_block(ctx, cstr("end_block"));
-			phi                            = (struct mir_instr_phi *)create_instr_phi(ctx, binop, false);
-			ctx->ast.current_phi_end_block = end_block;
-			ctx->ast.current_phi           = phi;
-			append_end_block               = true;
+		    bassert(!phi);
+		    end_block                      = create_block(ctx, cstr("end_block"));
+		    phi                            = (struct mir_instr_phi *)create_instr_phi(ctx, binop, false);
+		    ctx->ast.current_phi_end_block = end_block;
+		    ctx->ast.current_phi           = phi;
+		    append_end_block               = true;
 		}
 
 		struct mir_instr *lhs = ast(ctx, ast_lhs);
 		struct mir_instr *brk = NULL;
 		if (swap_condition) {
-			brk = append_instr_cond_br(ctx, NULL, lhs, rhs_block, end_block, false);
+		    brk = append_instr_cond_br(ctx, NULL, lhs, rhs_block, end_block, false);
 		} else {
-			brk = append_instr_cond_br(ctx, NULL, lhs, end_block, rhs_block, false);
+		    brk = append_instr_cond_br(ctx, NULL, lhs, end_block, rhs_block, false);
 		}
 		phi_add_income(phi, brk, ast_current_block(ctx));
 		set_current_block(ctx, rhs_block);
 		struct mir_instr *rhs = ast(ctx, ast_rhs);
 		if (append_end_block) {
-			append_instr_br(ctx, NULL, end_block);
-			phi_add_income(phi, rhs, ast_current_block(ctx));
-			append_block2(ctx, fn, end_block);
-			set_current_block(ctx, end_block);
-			append_current_block(ctx, &phi->base);
-			ctx->ast.current_phi_end_block = NULL;
-			ctx->ast.current_phi           = NULL;
-			return &phi->base;
+		    append_instr_br(ctx, NULL, end_block);
+		    phi_add_income(phi, rhs, ast_current_block(ctx));
+		    append_block2(ctx, fn, end_block);
+		    set_current_block(ctx, end_block);
+		    append_current_block(ctx, &phi->base);
+		    ctx->ast.current_phi_end_block = NULL;
+		    ctx->ast.current_phi           = NULL;
+		    return &phi->base;
 		}
 		return rhs;
-	}
+	}*/
 
 	default: {
 		struct mir_instr *rhs = ast(ctx, ast_rhs);
