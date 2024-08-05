@@ -633,10 +633,9 @@ int main(s32 argc, char *argv[]) {
 		    .help       = "Set maximum reported error count.",
 		},
 		{
-		    .name       = "--dirty-mode",
+		    .name       = "--do-cleanup",
 		    .help       = "Toggles whether compiler should release allocated memory when compilation is done. "
-		                  "Disabling this might speed up compilation in case the compiler is used as a single shot executable."
-		                  "(on by default)",
+		                  "(off by default)",
 		    .variants   = "off|on",
 		    .kind       = ENUM,
 		    .property.n = (s32 *)&opt.app.do_cleanup_when_done,
