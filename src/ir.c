@@ -911,10 +911,19 @@ enum state emit_instr_decl_direct_ref(struct context *ctx, struct mir_instr_decl
 }
 
 enum state emit_instr_phi(struct context *ctx, struct mir_instr_phi *phi) {
-	const usize   count   = static_arrlenu(phi->incoming_values);
+	const int count = phi->num;
+	bassert(count > 0);
+	if (count == 1) {
+		struct mir_instr *value = phi->incoming_values[0];
+		bassert(value);
+		bassert(value->llvm_value);
+		phi->base.llvm_value = value->llvm_value;
+		return STATE_PASSED;
+	}
+
 	llvm_values_t llvm_iv = SARR_ZERO;
 	llvm_values_t llvm_ib = SARR_ZERO;
-	for (usize i = 0; i < count; ++i) {
+	for (int i = 0; i < count; ++i) {
 		struct mir_instr *value = phi->incoming_values[i];
 		bassert(value);
 		struct mir_instr_block *block = phi->incoming_blocks[i];

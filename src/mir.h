@@ -894,6 +894,7 @@ struct mir_instr_designator {
 struct mir_instr_phi {
 	struct mir_instr base;
 
+	int num;
 	struct mir_instr       *incoming_values[2];
 	struct mir_instr_block *incoming_blocks[2];
 

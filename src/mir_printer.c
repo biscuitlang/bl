@@ -383,7 +383,7 @@ void print_instr_phi(struct context *ctx, struct mir_instr_phi *phi) {
 	struct mir_instr       *value;
 	struct mir_instr_block *block;
 
-	for (usize i = 0; i < static_arrlenu(phi->incoming_values); ++i) {
+	for (usize i = 0; i < phi->num; ++i) {
 		value = phi->incoming_values[i];
 		block = phi->incoming_blocks[i];
 

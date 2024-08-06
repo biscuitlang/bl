@@ -187,6 +187,8 @@ struct context {
 			struct mir_instr *key;
 			u8                value; // this is not used
 		}) skipped_instructions;
+
+		array(struct mir_instr_block *) unreached_blocks;
 	} analyze;
 
 	struct
@@ -855,6 +857,12 @@ static inline void _report(enum builder_msg_type type, s32 code, const struct as
 	va_end(args);
 }
 
+static inline void add_unreached_block_check(struct context *ctx, struct mir_instr_block* block) {
+	bassert(block);
+	bassert(block->base.ref_count < 1 && "Block is currently used!");
+	arrput(ctx->analyze.unreached_blocks, block);
+}
+
 static inline struct ast *get_last_instruction_node(struct mir_instr_block *block) {
 	if (!block->last_instr) return NULL;
 	return block->last_instr->node;
@@ -1284,13 +1292,16 @@ static inline void push_into_gscope(struct context *ctx, struct mir_instr *instr
 	arrput(ctx->assembly->MIR.global_instrs, instr);
 }
 
-static inline void add_phi_income(int index, struct mir_instr_phi *phi, struct mir_instr *value, struct mir_instr_block *block) {
-	bassert(index < static_arrlenu(phi->incoming_values));
+static inline void add_phi_income(struct mir_instr_phi *phi, struct mir_instr *value, struct mir_instr_block *block) {
 	bassert(value && block);
+	const int index = phi->num;
+	bassert(index < static_arrlenu(phi->incoming_values));
+
 	bassert(phi->incoming_values[index] == NULL);
 	bassert(phi->incoming_blocks[index] == NULL);
 	phi->incoming_values[index] = ref_instr(value);
 	phi->incoming_blocks[index] = (struct mir_instr_block *)ref_instr(&block->base);
+	++phi->num;
 }
 
 // =================================================================================================
@@ -4380,58 +4391,73 @@ struct result analyze_instr_phi(struct context *ctx, struct mir_instr_phi *phi) 
 	zone();
 	struct mir_instr_block *phi_owner_block = phi->base.owner_block;
 
-	struct mir_type  *type                  = NULL;
-	struct mir_instr *comptime_result_value = NULL;
-	bool is_comptime = false;
+	struct mir_type        *type                = NULL;
+	struct mir_instr       *result_income_value = NULL;
+	struct mir_instr_block *result_income_block = NULL;
 
-	{ // 0
-		bassert(phi->incoming_values[0]);
-		bassert(phi->incoming_blocks[0]);
-		if (analyze_slot(ctx, analyze_slot_conf_basic, &phi->incoming_values[0], NULL) != ANALYZE_PASSED) return_zone(FAIL);
+	bool is_comptime             = true;
+	bool has_one_possible_income = false;
 
-		struct mir_instr       *value = phi->incoming_values[0];
-		struct mir_instr_block *block = phi->incoming_blocks[0];
+	bassert(phi->num == 2);
+
+	for (int i = 0; i < phi->num; ++i) {
+		bassert(phi->incoming_values[i]);
+		bassert(phi->incoming_blocks[i]);
+		bassert(i == 0 || type);
+		const analyze_stage_fn_t *conf = i == 0 ? analyze_slot_conf_basic : analyze_slot_conf_basic;
+		if (analyze_slot(ctx, conf, &phi->incoming_values[i], type) != ANALYZE_PASSED) return_zone(FAIL);
+
+		struct mir_instr       *value = phi->incoming_values[i];
+		struct mir_instr_block *block = phi->incoming_blocks[i];
 
 		struct mir_instr *block_terminal = block->terminal;
-		if (block_terminal->kind == MIR_INSTR_BR) {
-			struct mir_instr_br* br = (struct mir_instr_br*)block_terminal;
-			if (br->then_block == phi_owner_block) {
-				comptime_result_value = value;
+		if (i == 0) {
+			if (block_terminal->kind == MIR_INSTR_BR) {
+				has_one_possible_income = true;
+				struct mir_instr_br *br = (struct mir_instr_br *)block_terminal;
+				if (br->then_block == phi_owner_block && (block->base.ref_count > 1 || block->base.ref_count == NO_REF_COUNTING)) {
+					result_income_value = value;
+					result_income_block = block;
+				} else {
+					unref_instr(value);
+					unref_instr(&block->base);
+				}
+			}
+		} else if (has_one_possible_income) {
+			bassert(block_terminal->kind == MIR_INSTR_BR);
+			struct mir_instr_br *br = (struct mir_instr_br *)block_terminal;
+			if (br->then_block == phi_owner_block && block->base.ref_count > 1) {
+				if (!result_income_value) {
+					result_income_value = value;
+					result_income_block = block;
+				}
+			} else {
+				unref_instr(value);
+				unref_instr(&block->base);
 			}
 		}
 
-		is_comptime = mir_is_comptime(value);
-		type = value->value.type;
+		is_comptime = is_comptime && mir_is_comptime(value);
+		if (!type) type = value->value.type;
 	}
 
-	{ // 1
-		bassert(phi->incoming_values[1]);
-		bassert(phi->incoming_blocks[1]);
-		bassert(type);
-		if (analyze_slot(ctx, analyze_slot_conf_default, &phi->incoming_values[1], type) != ANALYZE_PASSED) return_zone(FAIL);
-
-		struct mir_instr       *value = phi->incoming_values[1];
-		struct mir_instr_block *block = phi->incoming_blocks[1];
-
-		bassert(block->terminal->kind == MIR_INSTR_BR);
-
-		if (comptime_result_value) {
-			unref_instr(value);
-			unref_instr(&block->base);
-		} else if (mir_is_comptime(value)) {
-			comptime_result_value = value;
-		} else {
-			is_comptime = false;
-		}
-	}
+	bassert(has_one_possible_income == false || (result_income_value && result_income_block));
 
 	phi->base.value.type        = type;
 	phi->base.value.addr_mode   = MIR_VAM_RVALUE;
 	phi->base.value.is_comptime = is_comptime;
 
-	if (comptime_result_value) {
-		struct mir_instr_const *tmp = mutate_instr(&phi->base, MIR_INSTR_CONST);
-		memcpy(&tmp->base.value, &comptime_result_value->value, sizeof(tmp->base.value));
+	if (result_income_value) {
+		if (is_comptime) {
+			struct mir_instr_const *tmp = mutate_instr(&phi->base, MIR_INSTR_CONST);
+			memcpy(&tmp->base.value, &result_income_value->value, sizeof(tmp->base.value));
+			unref_instr(result_income_value);
+			unref_instr(&result_income_block->base);
+		} else {
+			phi->num                = 1;
+			phi->incoming_values[0] = result_income_value;
+			phi->incoming_blocks[0] = result_income_block;
+		}
 	}
 
 	return_zone(PASS);
@@ -6116,6 +6142,7 @@ struct result analyze_instr_cond_br(struct context *ctx, struct mir_instr_cond_b
 	zone();
 	bassert(br->cond && br->then_block && br->else_block);
 	bassert(br->cond->state == MIR_IS_COMPLETE);
+
 	if (analyze_slot(ctx, analyze_slot_conf_default, &br->cond, ctx->builtin_types->t_bool) != ANALYZE_PASSED) {
 		return_zone(FAIL);
 	}
@@ -6137,6 +6164,7 @@ struct result analyze_instr_cond_br(struct context *ctx, struct mir_instr_cond_b
 		unref_instr(&discard_block->base);
 		unref_instr(br->cond);
 
+		if (br->cond->ref_count == 0) erase_instr_tree(br->cond, false, false);
 		if (br->is_static && discard_block->base.ref_count == 0) {
 			erase_block(&discard_block->base);
 		}
@@ -9718,7 +9746,7 @@ struct mir_instr *ast_stmt_if(struct context *ctx, struct ast *stmt_if) {
 			if (!maybe_then_expression) {
 				report_error(EXPECTED_EXPR, ast_then, "Expected expression.");
 			} else {
-				add_phi_income(0, ternary_phi, maybe_then_expression, last_then_block);
+				add_phi_income(ternary_phi, maybe_then_expression, last_then_block);
 			}
 		}
 	}
@@ -9733,7 +9761,7 @@ struct mir_instr *ast_stmt_if(struct context *ctx, struct ast *stmt_if) {
 			if (!maybe_else_expression) {
 				report_error(EXPECTED_EXPR, ast_then, "Expected expression.");
 			} else {
-				add_phi_income(1, ternary_phi, maybe_else_expression, last_else_block);
+				add_phi_income(ternary_phi, maybe_else_expression, last_else_block);
 			}
 		}
 	}
@@ -10502,8 +10530,8 @@ struct mir_instr *ast_expr_binop(struct context *ctx, struct ast *binop) {
 		struct mir_instr     *const_false = append_instr_const_bool(ctx, NULL, false);
 		struct mir_instr_phi *phi         = (struct mir_instr_phi *)append_instr_phi(ctx, binop, false);
 
-		add_phi_income(0, phi, const_false, lhs_continue_block);
-		add_phi_income(1, phi, rhs, rhs_continue_block);
+		add_phi_income(phi, const_false, lhs_continue_block);
+		add_phi_income(phi, rhs, rhs_continue_block);
 
 		return &phi->base;
 	}
@@ -10537,8 +10565,8 @@ struct mir_instr *ast_expr_binop(struct context *ctx, struct ast *binop) {
 		struct mir_instr     *const_true = append_instr_const_bool(ctx, NULL, op == BINOP_LOGIC_OR);
 		struct mir_instr_phi *phi        = (struct mir_instr_phi *)append_instr_phi(ctx, NULL, false);
 
-		add_phi_income(0, phi, const_true, lhs_continue_block);
-		add_phi_income(1, phi, rhs, rhs_continue_block);
+		add_phi_income(phi, const_true, lhs_continue_block);
+		add_phi_income(phi, rhs, rhs_continue_block);
 
 		return &phi->base;
 	}
@@ -11990,6 +12018,7 @@ DONE:
 	hmfree(ctx.analyze.waiting);
 
 	arrfree(ctx.analyze.usage_check_arr);
+	arrfree(ctx.analyze.unreached_blocks);
 	sarrfree(&ctx.analyze.incomplete_rtti);
 	sarrfree(&ctx.fn_generate.replacement_queue);
 	sarrfree(&ctx.analyze.complete_check_type_stack);
