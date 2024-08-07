@@ -4402,26 +4402,54 @@ struct result analyze_instr_toany(struct context *ctx, struct mir_instr_to_any *
 	return_zone(PASS);
 }
 
+static struct mir_instr_block *trace_comptime_execution(struct mir_instr_br *start_br, struct mir_instr_block *dst_block) {
+#define MAX_DEPTH 1024
+
+	bassert(start_br->base.kind == MIR_INSTR_BR);
+
+	struct mir_instr_block *block  = start_br->then_block;
+	struct mir_instr_block *result = start_br->base.owner_block;
+	bassert(result);
+	bassert(block);
+
+	int n = 0;
+	while (block != dst_block && n++ < MAX_DEPTH) {
+		struct mir_instr_br *br = (struct mir_instr_br *)block->terminal;
+		bassert(br);
+		if (br->base.kind != MIR_INSTR_BR) {
+			// 2024-08-07 Maybe assert here?
+			return NULL;
+		}
+		result = block;
+		block  = br->then_block;
+		bassert(block);
+	}
+
+	return result;
+}
+
 struct result analyze_instr_phi(struct context *ctx, struct mir_instr_phi *phi) {
 	zone();
-	struct mir_instr_block *phi_owner_block = phi->base.owner_block;
-
 	struct mir_type *type = NULL;
 
-	int result_income_index = -1;
-
-	bool are_incomes_comptime    = true;
-	bool has_one_possible_income = false;
+	int  result_income_index  = -1;
+	bool are_incomes_comptime = true;
 
 	// 2024-08-07 Phi instruction is supposed to have 2 incomes before it's analyzed. This is a bit simplification of
 	// rather complicated branching resolve we can find in C for example. Final value is composed in multiple steps
 	// processing 2 incomes at a time.
 	bassert(phi->num == 2);
 
-	struct mir_instr *origin_br = phi->origin_br;
+	struct mir_instr_block *phi_owner_block = phi->base.owner_block;
+	struct mir_instr       *origin_br       = phi->origin_br;
+
 	bassert(origin_br && origin_br->kind == MIR_INSTR_COND_BR || origin_br->kind == MIR_INSTR_BR);
 
-	const bool has_comptime_known_income_branch = origin_br->kind == MIR_INSTR_BR;
+	struct mir_instr_block *result_block = NULL;
+	if (origin_br->kind == MIR_INSTR_BR) {
+		result_block = trace_comptime_execution((struct mir_instr_br *)origin_br, phi_owner_block);
+		bassert(result_block);
+	}
 
 	for (int i = 0; i < phi->num; ++i) {
 		bassert(phi->incoming_values[i]);
@@ -4433,17 +4461,13 @@ struct result analyze_instr_phi(struct context *ctx, struct mir_instr_phi *phi) 
 		struct mir_instr       *value = phi->incoming_values[i];
 		struct mir_instr_block *block = phi->incoming_blocks[i];
 
-		if (has_comptime_known_income_branch) {
-			if (block->base.ref_count == MIR_NO_REF_COUNTING || block->base.ref_count == 1) {
-				result_income_index = i;
-			}
-		}
+		if (block == result_block) result_income_index = i;
 
 		are_incomes_comptime = are_incomes_comptime && mir_is_comptime(value);
 		if (!type) type = value->value.type;
 	}
 
-	bassert(has_comptime_known_income_branch == false || result_income_index != -1);
+	bassert(result_block == NULL || result_income_index != -1);
 
 	phi->base.value.type        = type;
 	phi->base.value.addr_mode   = MIR_VAM_RVALUE;
@@ -4455,8 +4479,8 @@ struct result analyze_instr_phi(struct context *ctx, struct mir_instr_phi *phi) 
 	if (result_income_index != -1) {
 		const int discard_income_index = result_income_index == 0 ? 1 : 0;
 
-		struct mir_instr       *result_income_value = phi->incoming_values[result_income_index];
-		struct mir_instr_block *result_income_block = phi->incoming_blocks[result_income_index];
+		struct mir_instr       *result_income_value  = phi->incoming_values[result_income_index];
+		struct mir_instr_block *result_income_block  = phi->incoming_blocks[result_income_index];
 		struct mir_instr       *discard_income_value = phi->incoming_values[discard_income_index];
 		struct mir_instr_block *discard_income_block = phi->incoming_blocks[discard_income_index];
 
@@ -4472,7 +4496,7 @@ struct result analyze_instr_phi(struct context *ctx, struct mir_instr_phi *phi) 
 			memcpy(&tmp->base.value, &result_income_value->value, sizeof(tmp->base.value));
 			unref_instr(result_income_value);
 			unref_instr(&result_income_block->base);
-			
+
 			if (result_income_value->ref_count == 0) {
 				erase_instr_tree(result_income_value, false, false);
 			}
@@ -9793,7 +9817,8 @@ struct mir_instr *ast_stmt_if(struct context *ctx, struct ast *stmt_if) {
 
 	bassert(root_block && then_block);
 	set_current_block(ctx, root_block);
-	ternary_phi->origin_br = append_instr_cond_br(ctx, stmt_if, cond, then_block, else_block ? else_block : continue_block, is_static);
+	struct mir_instr *br = append_instr_cond_br(ctx, stmt_if, cond, then_block, else_block ? else_block : continue_block, is_static);
+	if (ternary_phi) ternary_phi->origin_br = br;
 
 	// Terminate all previous blocks
 	if (!is_block_terminated(last_then_block)) {

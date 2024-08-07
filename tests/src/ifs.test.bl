@@ -146,6 +146,26 @@ logical_op9 :: fn () #test {
 	reset();
 }
 
+logical_op10 :: fn () #test {
+	a :: true;
+	b :: false;
+	c :: false;
+	test_false((a || b) && c);
+	test_false((b || c) && c);
+	test_false(c && (a || b));
+	test_false(c && (b || a));
+}
+
+logical_comptime :: fn () #test {
+	a := true;
+	b := false;
+	c := false;
+	test_false((a || b) && c);
+	test_false((b || c) && c);
+	test_false(c && (a || b));
+	test_false(c && (b || a));
+}
+
 static_if_1 :: fn () #test {
 	#if false {
 		test_true(false);
