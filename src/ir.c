@@ -914,6 +914,8 @@ enum state emit_instr_phi(struct context *ctx, struct mir_instr_phi *phi) {
 	const int count = phi->num;
 	bassert(count > 0);
 	if (count == 1) {
+		// 2024-08-07 We have only one income, but phi itself was not replaced by constant, because the
+		// income value is runtime.
 		struct mir_instr *value = phi->incoming_values[0];
 		bassert(value);
 		bassert(value->llvm_value);
@@ -2990,13 +2992,14 @@ enum state emit_instr_fn_proto(struct context *ctx, struct mir_instr_fn_proto *f
 	if (isnotflag(fn->flags, FLAG_EXTERN) && isnotflag(fn->flags, FLAG_INTRINSIC)) {
 		if (ctx->generate_debug_info) emit_DI_fn(ctx, fn);
 		// Generate all blocks in the function body.
-		struct mir_instr *block = (struct mir_instr *)fn->first_block;
+		struct mir_instr_block *block = fn->first_block;
 		while (block) {
-			if (!block->is_unreachable) {
-				const enum state s = emit_instr(ctx, block);
+			bassert(block->base.kind == MIR_INSTR_BLOCK);
+			if (!block->is_unreachable && (block->base.ref_count == MIR_NO_REF_COUNTING || block->base.ref_count > 0)) {
+				const enum state s = emit_instr(ctx, &block->base);
 				if (s != STATE_PASSED) babort("Postpone for whole block is not supported!");
 			}
-			block = block->next;
+			block = (struct mir_instr_block *)block->base.next;
 		}
 	}
 

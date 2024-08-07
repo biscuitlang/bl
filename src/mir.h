@@ -42,6 +42,8 @@
 #define MIR_SLICE_LEN_INDEX 0
 #define MIR_SLICE_PTR_INDEX 1
 
+#define MIR_NO_REF_COUNTING (-1)
+
 #ifdef BL_DEBUG
 vm_stack_ptr_t _mir_cev_read(struct mir_const_expr_value *value);
 #else
@@ -244,7 +246,7 @@ struct mir_fn {
 	struct mir_instr *ret_tmp;
 	// Return instruction of function.
 	struct mir_instr_ret *terminal_instr;
-	struct location      *first_unreachable_loc;
+
 	// @Performance: This is needed only for external functions!
 	struct {
 		DCpointer                 extern_entry;
@@ -494,11 +496,8 @@ struct mir_instr {
 #if defined(BL_DEBUG) || defined(BL_ASSERT_ENABLE)
 	enum mir_instr_kind _orig_kind;
 #endif
-	s32 ref_count;
-
-	bool is_unreachable;
+	s32  ref_count;
 	bool is_implicit;
-
 	bmagic_member
 };
 
@@ -510,6 +509,9 @@ struct mir_instr_block {
 	struct mir_instr *terminal;
 	// Optional; when not set block is implicit global block.
 	struct mir_fn *owner_fn;
+	// 2024-08-07 Used only for code explicitly writen by user as unreachable. This does not apply to
+	// blocks becoming unreferenced by optimizations is analyze pass.
+	bool is_unreachable;
 };
 
 struct mir_instr_decl_var {
@@ -894,13 +896,11 @@ struct mir_instr_designator {
 struct mir_instr_phi {
 	struct mir_instr base;
 
-	int num;
+	int                     num;
 	struct mir_instr       *incoming_values[2];
 	struct mir_instr_block *incoming_blocks[2];
 
-	// 2024-07-21 Force the phi expression not being evaluated in comptime, this is used in case the
-	// phi result depends on runtime condition (ternary if).
-	bool force_no_comptime;
+	struct mir_instr *origin_br; // @Comment
 };
 
 struct mir_instr_to_any {

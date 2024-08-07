@@ -61,7 +61,7 @@ static inline void print_instr_head(struct context *ctx, struct mir_instr *instr
 	if (!instr) return;
 
 #ifdef BL_DEBUG
-	if (instr->ref_count == -1) {
+	if (instr->ref_count == MIR_NO_REF_COUNTING) {
 		fprintf(ctx->stream, "    %%%-8llu (-)", (unsigned long long)instr->id);
 	} else {
 		fprintf(ctx->stream, "    %%%-8llu (%d)", (unsigned long long)instr->id, instr->ref_count);
@@ -930,7 +930,7 @@ void print_instr_block(struct context *ctx, struct mir_instr_block *block) {
 	if (is_global) {
 		fprintf(ctx->stream, " {\n");
 	} else {
-		if (block->base.is_unreachable)
+		if (block->is_unreachable)
 			fprintf(ctx->stream, " /* NEVER REACHED */\n");
 		else
 			fprintf(ctx->stream, "\n");

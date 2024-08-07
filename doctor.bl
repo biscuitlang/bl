@@ -5,7 +5,7 @@
 
 TEMPORARY_DIR :: "tmp-doctor";
 TEST_SRC_DIR :: "tests/src";
-EXAMPLES_DIR :: "docs/examples";
+EXAMPLES_DIR :: "docs/src/examples";
 EXPECT_FAIL_DIR :: "tests/src/expect_fail";
 
 SKIP :: [_]Test.{
