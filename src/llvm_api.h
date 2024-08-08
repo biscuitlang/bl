@@ -38,8 +38,7 @@ _SHUT_UP_BEGIN
 #include <llvm-c/ExecutionEngine.h>
 #include <llvm-c/Linker.h>
 #include <llvm-c/TargetMachine.h>
-#include <llvm-c/Transforms/PassManagerBuilder.h>
-#include <llvm-c/Transforms/Vectorize.h>
+#include <llvm-c/Transforms/PassBuilder.h>
 #include <llvm-c/Types.h>
 _SHUT_UP_END
 

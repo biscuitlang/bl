@@ -228,7 +228,7 @@ static void setup_assembly_pipeline(struct assembly *assembly) {
 		// Experimental direct generation MIR -> OBJ.
 		arrput(*stages, &x86_64run);
 	} else {
-		// Old LLVM pipeline.
+		// LLVM pipeline.
 		arrput(*stages, &ir_run);
 		arrput(*stages, &ir_opt_run);
 		if (t->emit_llvm) arrput(*stages, &bc_writer_run);

@@ -185,8 +185,20 @@ void str_buf_setcap(str_buf_t *buf, s32 cap);
 
 void      _str_buf_append(str_buf_t *buf, char *ptr, s32 len);
 str_buf_t _str_buf_dup(char *ptr, s32 len);
-void      str_buf_append_fmt(str_buf_t *buf, const char *fmt, ...);
-void      str_buf_clr(str_buf_t *buf); // This is also setting the zero
+
+// Append our custom string buffer with formatted input.
+// Formatting:
+//   {s}   - Zero terminated C string.
+//   {str} - Our string buffer or string view.
+//   {s32} - Signed 32bit integer.
+//   {u32} - Unsigned 32bit integer.
+//   {s64} - Signed 64bit integer.
+//   {u64} - Unsigned 64bit integer.
+//
+// The formatter implementation can be found in 'bvsnprint' feel free to implement missing formatting you need.
+void str_buf_append_fmt(str_buf_t *buf, const char *fmt, ...);
+
+void str_buf_clr(str_buf_t *buf); // This is also setting the zero
 
 static inline const char *_str_to_c_checked(char *ptr, s32 len) {
 	if (!len) return "";
@@ -417,7 +429,7 @@ static inline void *next_aligned(void *p, usize alignment) {
 	return p;
 }
 
-#define next_aligned2(ptr, a) (usize)next_aligned((void *)(usize)(ptr), (a))
+#define next_aligned2(ptr, a) (usize) next_aligned((void *)(usize)(ptr), (a))
 
 #define file_exists2(S) _file_exists((S).ptr, (S).len)
 #define dir_exists2(S) _dir_exists((S).ptr, (S).len)

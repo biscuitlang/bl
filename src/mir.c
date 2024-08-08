@@ -1846,7 +1846,10 @@ struct mir_type *create_type_null(struct context *ctx, struct mir_type *base_typ
 	hash_t hash = strhash(name);
 	if (is_cached) {
 		tmp = lookup_type(ctx, hash);
-		if (tmp) goto DONE;
+		if (tmp) {
+			bassert(tmp->kind == MIR_TYPE_NULL);
+			goto DONE;
+		}
 	}
 
 	tmp                      = create_type(ctx, MIR_TYPE_NULL, &builtin_ids[BUILTIN_ID_NULL]);
@@ -1876,7 +1879,10 @@ struct mir_type *create_type_ptr(struct context *ctx, struct mir_type *src_type)
 	hash_t hash = strhash(name);
 	if (is_cached) {
 		tmp = lookup_type(ctx, hash);
-		if (tmp) goto DONE;
+		if (tmp) { 
+			bassert(tmp->kind == MIR_TYPE_PTR);
+			goto DONE;
+		}
 	}
 
 	tmp                = create_type(ctx, MIR_TYPE_PTR, NULL);
@@ -1903,7 +1909,10 @@ struct mir_type *create_type_poly(struct context *ctx, struct id *user_id, bool 
 	hash_t hash = strhash(name);
 
 	struct mir_type *tmp = lookup_type(ctx, hash);
-	if (tmp) goto DONE;
+	if (tmp) { 
+		bassert(tmp->kind == MIR_TYPE_POLY);
+		goto DONE;
+	}
 
 	tmp          = create_type(ctx, MIR_TYPE_POLY, user_id);
 	tmp->id.str  = scdup2(&ctx->assembly->string_cache, name);
@@ -2014,7 +2023,10 @@ struct mir_type *create_type_array(struct context *ctx, struct id *user_id, stru
 
 	if (can_use_cache) {
 		result = lookup_type(ctx, hash);
-		if (result) goto DONE;
+		if (result) { 
+			bassert(result->kind == MIR_TYPE_ARRAY);
+			goto DONE;
+		}
 	}
 
 	result                       = create_type(ctx, MIR_TYPE_ARRAY, user_id);
@@ -2066,7 +2078,9 @@ struct mir_type *create_type_struct_incomplete(struct context *ctx, struct id *u
 
 	const hash_t     hash   = strhash(name);
 	struct mir_type *result = lookup_type(ctx, hash);
-	if (result) goto DONE;
+	if (result) { 
+		goto DONE;
+	}
 
 	result = create_type(ctx, MIR_TYPE_STRUCT, user_id);
 
@@ -2097,7 +2111,10 @@ struct mir_type *create_type_struct(struct context *ctx, create_type_struct_args
 
 		if (can_use_cache) {
 			result = lookup_type(ctx, hash);
-			if (result) goto DONE;
+			if (result) { 
+				bassert(result->kind == MIR_TYPE_STRING);
+				goto DONE;
+			}
 		}
 
 		id.hash = hash;
@@ -2193,7 +2210,10 @@ struct mir_type *create_type_slice(struct context *ctx, enum mir_type_kind kind,
 
 	if (can_use_cache) {
 		result = lookup_type(ctx, hash);
-		if (result) goto DONE;
+		if (result) { 
+			bassert(result->kind == kind);
+			goto DONE;
+		}
 	}
 
 	mir_members_t *members = arena_alloc(&ctx->assembly->arenas.sarr);
@@ -2252,7 +2272,10 @@ struct mir_type *create_type_struct_dynarr(struct context *ctx, struct id *user_
 	const hash_t hash = strhash(name);
 	if (can_use_cache) {
 		result = lookup_type(ctx, hash);
-		if (result) goto DONE;
+		if (result) { 
+			bassert(result->kind == MIR_TYPE_DYNARR);
+			goto DONE;
+		}
 	}
 
 	mir_members_t *members = arena_alloc(&ctx->assembly->arenas.sarr);
@@ -2329,7 +2352,10 @@ static struct mir_type *create_type_enum(struct context *ctx, create_type_enum_a
 	const hash_t hash = strhash(name);
 
 	struct mir_type *result = lookup_type(ctx, hash);
-	if (result) goto DONE;
+	if (result) { 
+		bassert(result->kind == MIR_TYPE_ENUM);
+		goto DONE;
+	}
 
 	result                     = create_type(ctx, MIR_TYPE_ENUM, args->user_id);
 	result->id.hash            = hash;
@@ -2808,6 +2834,7 @@ void append_current_block(struct context *ctx, struct mir_instr *instr) {
 	if (is_block_terminated(block)) {
 		block = append_block(ctx, block->owner_fn, cstr(".unreachable"), true);
 		set_current_block(ctx, block);
+		append_instr_unreachable(ctx, instr->node);
 		report_unreachable = true;
 	}
 
@@ -8448,27 +8475,6 @@ struct result analyze_instr_block(struct context *ctx, struct mir_instr_block *b
 		return_zone(PASS);
 	}
 
-	/*
-	if (block->is_unreachable && block->entry_instr && block->entry_instr->node && isnotflag(fn->flags, FLAG_COMPTIME)) {
-	    // Report unreachable code if there is one only once inside function body.
-	    const str_t debug_replacement = fn->generated.debug_replacement_types;
-	    const str_t fn_readable_name  = mir_get_fn_readable_name(fn);
-	    if (debug_replacement.len) {
-	        builder_msg(MSG_WARN,
-	                    0,
-	                    block->entry_instr->node->location,
-	                    CARET_NONE,
-	                    "Unreachable code detected in the function '%.*s' with polymorph replacement: %.*s",
-	                    fn_readable_name.len,
-	                    fn_readable_name.ptr,
-	                    debug_replacement.len,
-	                    debug_replacement.ptr);
-	    } else {
-	        builder_msg(MSG_WARN, 0, block->entry_instr->node->location, CARET_NONE, "Unreachable code detected in the function '%.*s'.", fn_readable_name.len, fn_readable_name.ptr);
-	    }
-	}
-	*/
-
 	// Append implicit return for void functions or generate error when last
 	// block is not terminated
 	if (!is_block_terminated(block)) {
@@ -8484,7 +8490,7 @@ struct result analyze_instr_block(struct context *ctx, struct mir_instr_block *b
 			append_instr_br(ctx, block->base.node, fn->exit_block);
 		} else if (block->is_unreachable || block->base.ref_count == 0) {
 			set_current_block(ctx, block);
-			append_instr_br(ctx, block->base.node, block);
+			append_instr_br(ctx, block->base.node, fn->exit_block);
 		} else {
 			report_error(MISSING_RETURN, fn->decl_node, "Not every path inside function return value.");
 		}

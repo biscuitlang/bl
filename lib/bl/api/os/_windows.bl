@@ -1,7 +1,7 @@
 // =================================================================================================
 // bl
 //
-// File:   windows.bl 
+// File:   windows.bl
 // Author: Martin Dorazil
 // Date:   2/11/19
 //
@@ -88,7 +88,7 @@ os_get_exec_path :: fn () string {
 		return result;
 	}
 
-	return std.str_new(); 
+	return std.str_new();
 }
 
 os_execute :: fn (command: string_view) s32 {
@@ -194,20 +194,20 @@ __os_start :: fn () #entry {
 		result_size: usize = sizeof(string_view) * auto wargs.len;
 
 		loop i := 0; i < wargs.len; i += 1 {
-			tmp_size += auto win32.WideCharToMultiByte(win32.CP_UTF8, null, wargs[i], -1, null, 0, null, null); 
+			tmp_size += auto win32.WideCharToMultiByte(win32.CP_UTF8, null, wargs[i], -1, null, 0, null, null);
 		}
 
-		buffer :: C.malloc(result_size + tmp_size); 
+		buffer :: C.malloc(result_size + tmp_size);
 		if buffer == null { __os_abort(); }
 
 		out_args.len = wargs.len;
-		out_args.ptr = auto buffer; 
+		out_args.ptr = auto buffer;
 		tmp := string_view.{ auto tmp_size, ptr_shift_bytes(buffer, auto result_size) };
 
 		tmp_i := 0;
 		loop i := 0; i < wargs.len; i += 1 {
-			len :: win32.WideCharToMultiByte(win32.CP_UTF8, null, wargs[i], -1, null, 0, null, null); 
-			win32.WideCharToMultiByte(win32.CP_UTF8, null, wargs[i], auto C.wcslen(wargs[i]), auto &tmp[tmp_i], len, null, null); 
+			len :: win32.WideCharToMultiByte(win32.CP_UTF8, null, wargs[i], -1, null, 0, null, null);
+			win32.WideCharToMultiByte(win32.CP_UTF8, null, wargs[i], auto C.wcslen(wargs[i]), auto &tmp[tmp_i], len, null, null);
 
 			(@out_args)[i].len = len - 1;
 			(@out_args)[i].ptr = &tmp[tmp_i];
@@ -226,7 +226,7 @@ __os_start :: fn () #entry {
 	temporary_release();
 
 	out :: cast(s32) main();
-	C.free(auto args.ptr); 
+	C.free(auto args.ptr);
 	C.exit(out);
 }
 

@@ -31,16 +31,24 @@
 
 void ir_opt_run(struct assembly *assembly) {
 	zone();
-	LLVMModuleRef             llvm_module     = assembly->llvm.module;
-	LLVMTargetMachineRef      llvm_tm         = assembly->llvm.TM;
-	const LLVMCodeGenOptLevel opt_level       = opt_to_LLVM(assembly->target->opt);
-	LLVMPassManagerBuilderRef llvm_pm_builder = LLVMPassManagerBuilderCreate();
-	LLVMPassManagerBuilderSetOptLevel(llvm_pm_builder, (unsigned)opt_level);
-	LLVMPassManagerRef llvm_pm = LLVMCreatePassManager();
-	LLVMAddAnalysisPasses(llvm_tm, llvm_pm);
-	LLVMPassManagerBuilderPopulateModulePassManager(llvm_pm_builder, llvm_pm);
-	LLVMRunPassManager(llvm_pm, llvm_module);
-	LLVMDisposePassManager(llvm_pm);
-	LLVMPassManagerBuilderDispose(llvm_pm_builder);
+	LLVMModuleRef        llvm_module = assembly->llvm.module;
+	LLVMTargetMachineRef llvm_tm     = assembly->llvm.TM;
+
+	str_t opt = opt_to_LLVM_pass_str(assembly->target->opt);
+
+	str_buf_t tmp = get_tmp_str();
+	str_buf_append_fmt(&tmp, "default<{str}>", opt);
+
+	LLVMPassBuilderOptionsRef options = LLVMCreatePassBuilderOptions();
+
+	const char  *passes = str_to_c(tmp);
+	LLVMErrorRef err    = LLVMRunPasses(llvm_module, passes, llvm_tm, options);
+	if (err != LLVMErrorSuccess) {
+		char *msg = LLVMGetErrorMessage(err);
+		builder_error("LLVM error: %s", msg);
+		LLVMDisposeErrorMessage(msg);
+	}
+
+	put_tmp_str(tmp);
 	return_zone();
 }

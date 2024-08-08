@@ -60,7 +60,7 @@ set(BL_CONFIG_FILE etc/bl.yaml)
 set(BL_API_DIR "../lib/bl/api") # relative to the executable
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-    set(BL_LLVM_VER "16.0.5")
+    set(BL_LLVM_VER "18.1.8")
 elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
     set(BL_LLVM_VER "16")
 elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
@@ -80,7 +80,7 @@ if(MSVC AND NOT LLVM_DIR)
                 DOWNLOAD ${BL_LLVM_REMOTE_ZIP}
                 ${BL_LLVM_DIR_ZIP}
                 SHOW_PROGRESS
-                EXPECTED_HASH MD5=f142191b0fbf2aac4fb8902ff5a2394f)
+                EXPECTED_HASH MD5=516b8602730c1a1e10d0b9d2eb9b8efd)
         endif()
         execute_process(
             COMMAND ${CMAKE_COMMAND} -E tar -xf ${BL_LLVM_DIR_ZIP}

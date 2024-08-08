@@ -345,4 +345,18 @@ static inline LLVMCodeGenOptLevel opt_to_LLVM(enum assembly_opt opt) {
 	babort("Invalid build mode");
 }
 
+static inline str_t opt_to_LLVM_pass_str(enum assembly_opt opt) {
+	switch (opt) {
+	case ASSEMBLY_OPT_DEBUG:
+		return cstr("O0");
+	case ASSEMBLY_OPT_RELEASE_FAST:
+		return cstr("O3");
+	case ASSEMBLY_OPT_RELEASE_SMALL:
+		return cstr("Os");
+	case ASSEMBLY_OPT_RELEASE_WITH_DEBUG_INFO:
+		return cstr("O2");
+	}
+	babort("Invalid build mode");
+}
+
 #endif

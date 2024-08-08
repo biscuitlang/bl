@@ -164,7 +164,7 @@ validate_filename :: fn (name: string_view) bool {
 }
 
 get_cwd :: fn () string #inline {
-	buf: [OS_PATH_MAX]u8;
+	buf: [OS_PATH_MAX]u8 #noinit;
 	written :: win32.GetCurrentDirectoryA(auto buf.len, auto buf.ptr);
 	if written == 0 { return std.str_new(); }
 	out :: std.str_new(buf.ptr);
@@ -193,7 +193,7 @@ get_home :: fn () string #inline {
 }
 
 get_tmp :: fn () string #inline {
-	buf: [OS_PATH_MAX]u8;
+	buf: [OS_PATH_MAX]u8 #noinit;
 	written :: win32.GetTempPathA(auto buf.len, auto buf.ptr);
 	if written == 0 { return std.str_new(); }
 	out :: std.str_new(buf.ptr);
