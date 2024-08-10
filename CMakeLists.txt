@@ -100,7 +100,7 @@ endif()
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     set(LLD_BIN ${BL_DEPS_DIR}/lld.exe)
-    set(LLD_ZIP lld-16.0.5-win64-release.zip)
+    set(LLD_ZIP lld-18.1.8-win64-release.zip)
     set(LLD_ZIP_MD5 358C490AF5AF5652DDF441E2893DC104)
     set(BL_VSWHERE_EXE "vswhere.exe")
     set(BL_VSWHERE "${BL_DEPS_DIR}/vswhere-2.8.4/${BL_VSWHERE_EXE}")
@@ -182,7 +182,7 @@ set(HEADER_FILES
 	src/mir_printer.h
 	src/scope.h
 	src/stb_ds.h
-  src/table.h
+	src/table.h
 	src/threading.h
 	src/tokens.h
 	src/tokens_inline_utils.h
@@ -226,7 +226,7 @@ set(SOURCE_FILES
 	src/parser.c
 	src/scope.c
 	src/setup.c
-  src/table.c
+	src/table.c
 	src/threading.c
 	src/token_printer.c
 	src/tokens.c
