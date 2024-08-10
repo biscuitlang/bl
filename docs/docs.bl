@@ -5,7 +5,6 @@
 
 MD_PAGES :: [_]string_view.{
 	"index",
-	"installation",
 	"manual",
 };
 
@@ -70,8 +69,7 @@ MD_PAGES_MODULES :: [_]string_view.{
 };
 
 MAIN_MENU :: [_]MenuItem.{
-	.{ id = "index.html", title = "Home", level = 1},
-	.{ id = "installation.html", title = "Installation", level = 1},
+	.{ id = "index.html", title = "Installation", level = 1},
 	.{ id = "manual.html", title = "Manual", level = 1},
 	.{ id = "modules.html", title = "Modules", level = 1},
 	.{ id = "examples.html", title = "Examples", level = 1},
@@ -361,7 +359,7 @@ generate_page :: fn (filepath: string_view, menu: string_view, content: string_v
 		"<div class=\"container\">\n"
 		"<div class=\"column\" id=\"column1\">\n"
 		"<div class=\"logo\">\n"
-		"<img src=\"biscuit_logo.svg\">\n"
+		"<a href=\"https://biscuitlang.org\"><img src=\"biscuit_logo.svg\"></a>\n"
 		"<label class=\"version\">%</label>\n"
 		"</div>\n",
 		get_blc_branch())
