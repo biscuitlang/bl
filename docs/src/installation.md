@@ -14,8 +14,8 @@ Biscuit compiler is written in C and all major dependencies are packed in the co
 * `x86_64-pc-windows-msvc`
 * `x86_64-pc-linux-gnu`
 * `x86_64-unknown-linux-gnu`
-* `x86_64-apple-darwin`
-* `arm64-apple-darwin` (experimental)
+* `x86_64-apple-darwin` (deprecated)
+* `arm64-apple-darwin`
 
 ## Windows
 
@@ -50,18 +50,16 @@ This step might differ across linux distributions, following snippet might help.
 
 ```bash
 # Ubuntu
-apt-get install llvm-16-dev
+apt-get install llvm-18-dev
 
 # Fedora
 dnf copr enable -y @fedora-llvm-team/llvm-snapshots
-dnf install llvm16-devel
+dnf install llvm18-devel
 
 # Using LLVM installation script
-mkdir llvm-16
-cd llvm-16
 wget https://apt.llvm.org/llvm.sh
 chmod +x llvm.sh
-sudo ./llvm.sh 16
+sudo ./llvm.sh 18
 ```
 
 * Download and compile
@@ -84,7 +82,7 @@ export PATH=$PATH:/path/to/bl/bin
 
 ## macOS
 * Install command line tools ``xcode-select --install``.
-* Install LLVM using [brew](https://brew.sh) `brew install llvm@16` or you might want to use  `-DLLVM_DIR` pointing to the custom location with LLVM.
+* Install LLVM using [brew](https://brew.sh) `brew install llvm@18` or you might want to use  `-DLLVM_DIR` pointing to the custom location with LLVM.
 * Download and compile
 
 ```bash
@@ -101,9 +99,6 @@ cmake --build . --config=Release
 ```bash
 export PATH=$PATH:/path/to/bl/bin
 ```
-
-!!! warning
-    ARM support is experimental.
 
 
 ## Additional Setup
