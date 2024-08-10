@@ -1,9 +1,6 @@
 <div style="text-align:center"><img src="https://biscuitlang.org/versions/0.9.0/_static/header.png" /></div>
 
 # About
-![Windows](https://github.com/travisdoor/bl/workflows/Windows/badge.svg?branch=master)
-![Linux](https://github.com/travisdoor/bl/workflows/Linux/badge.svg?branch=master)
-![macOS](https://github.com/travisdoor/bl/workflows/macOS/badge.svg?branch=master)
 
 [![Twitter URL](https://img.shields.io/twitter/url/https/twitter.com/MTravisDoor.svg?style=social&label=Follow%20%40MTravisDoor)](https://twitter.com/MTravisDoor)
 
