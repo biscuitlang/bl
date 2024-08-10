@@ -900,7 +900,9 @@ struct mir_instr_phi {
 	struct mir_instr       *incoming_values[2];
 	struct mir_instr_block *incoming_blocks[2];
 
-	struct mir_instr *origin_br; // @Comment
+	// 2024-08-10 Phi instructions are currently constructed in the way that the first income block is
+	// terminated by conditional break evertime, and we store it here.
+	struct mir_instr *origin_br;
 };
 
 struct mir_instr_to_any {

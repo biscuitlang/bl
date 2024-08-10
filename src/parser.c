@@ -538,12 +538,14 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 		// and it is visible only from such unit.
 		// Private scope contains only global entity declarations with 'private' flag set
 		// in ast node.
-		struct scope *scope = scope_safe_create(
+		struct scope *scope = scope_create(
 		    ctx->scopes_context, SCOPE_PRIVATE, scope_get(ctx), &tok_directive->location);
 
 		ctx->current_private_scope = scope;
 		ctx->unit->private_scope   = scope;
 		scope_set(ctx, scope);
+
+		scope_reserve(scope, 256);
 
 		return_zone(ast_create_node(ctx->ast_arena, AST_PRIVATE, tok_directive, scope_get(ctx)));
 	}
@@ -574,11 +576,16 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 		} else {
 			scope_entry = scope_create_entry(
 			    &ctx->assembly->scopes_context, SCOPE_ENTRY_NAMED_SCOPE, id, scope, false);
+
 			scope_insert(scope_get(ctx), SCOPE_DEFAULT_LAYER, scope_entry);
-			struct scope *named_scope = scope_safe_create(
+
+			struct scope *named_scope = scope_create(
 			    ctx->scopes_context, SCOPE_NAMED, scope_get(ctx), &tok_directive->location);
+
 			named_scope->name       = id->str;
 			scope_entry->data.scope = named_scope;
+
+			scope_reserve(named_scope, 2048);
 		}
 		if (scope_get(ctx)->kind == SCOPE_GLOBAL) scope_unlock(scope_get(ctx));
 		if (ctx->current_named_scope) {
@@ -1212,7 +1219,7 @@ struct ast *parse_stmt_loop(struct context *ctx) {
 	ctx->is_inside_loop      = true;
 
 	struct scope *scope =
-	    scope_safe_create(ctx->scopes_context, SCOPE_LEXICAL, scope_get(ctx), &tok_begin->location);
+	    scope_create(ctx->scopes_context, SCOPE_LEXICAL, scope_get(ctx), &tok_begin->location);
 
 	scope_push(ctx, scope);
 
@@ -1544,7 +1551,7 @@ struct ast *parse_expr_lit_fn(struct context *ctx) {
 
 	// Create function scope for function signature.
 	scope_push(ctx,
-	           scope_safe_create(ctx->scopes_context, SCOPE_FN, scope_get(ctx), &tok_fn->location));
+	           scope_create(ctx->scopes_context, SCOPE_FN, scope_get(ctx), &tok_fn->location));
 
 	struct ast *type = parse_type_fn(ctx, /* named_args */ true, /* create_scope */ false);
 	bassert(type);
@@ -1755,7 +1762,7 @@ struct ast *parse_type_enum(struct context *ctx) {
 	}
 
 	struct scope *scope =
-	    scope_safe_create(ctx->scopes_context, SCOPE_TYPE_ENUM, scope_get(ctx), &tok->location);
+	    scope_create(ctx->scopes_context, SCOPE_TYPE_ENUM, scope_get(ctx), &tok->location);
 	enm->data.type_enm.scope = scope;
 	scope_push(ctx, scope);
 
@@ -1994,7 +2001,7 @@ struct ast *parse_type_fn_return(struct context *ctx) {
 		// multiple return type ( T1, T2 )
 		// eat (
 		struct token *tok_begin = tokens_consume(ctx->tokens);
-		struct scope *scope     = scope_safe_create(
+		struct scope *scope     = scope_create(
             ctx->scopes_context, SCOPE_TYPE_STRUCT, scope_get(ctx), &tok_begin->location);
 		scope_push(ctx, scope);
 
@@ -2049,7 +2056,7 @@ struct ast *parse_type_fn(struct context *ctx, bool named_args, bool create_scop
 	if (create_scope) {
 		scope_push(
 		    ctx,
-		    scope_safe_create(ctx->scopes_context, SCOPE_FN, scope_get(ctx), &tok_fn->location));
+		    scope_create(ctx->scopes_context, SCOPE_FN, scope_get(ctx), &tok_fn->location));
 	}
 
 	// parse arg types
@@ -2169,7 +2176,7 @@ struct ast *parse_type_struct(struct context *ctx) {
 	}
 
 	struct scope *scope =
-	    scope_safe_create(ctx->scopes_context, SCOPE_TYPE_STRUCT, scope_get(ctx), &tok->location);
+	    scope_create(ctx->scopes_context, SCOPE_TYPE_STRUCT, scope_get(ctx), &tok->location);
 	scope_push(ctx, scope);
 
 	struct ast *type_struct =
@@ -2477,7 +2484,7 @@ struct ast *parse_block(struct context *ctx, enum scope_kind scope_kind) {
 		bassert((scope_kind == SCOPE_LEXICAL || scope_kind == SCOPE_FN_BODY) &&
 		        "Unexpected scope kind, extend this assert in case it's intentional.");
 
-		struct scope *scope = scope_safe_create(
+		struct scope *scope = scope_create(
 		    ctx->scopes_context, scope_kind, scope_get(ctx), &tok_begin->location);
 
 		scope_push(ctx, scope);

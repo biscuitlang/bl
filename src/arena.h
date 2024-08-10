@@ -35,6 +35,7 @@ typedef void (*arena_elem_dtor_t)(void *);
 
 struct arena_chunk;
 
+// 2024-08-10 Arenas are by default thread safe.
 struct arena {
 	struct arena_chunk     *first_chunk;
 	struct arena_chunk     *current_chunk;
@@ -53,6 +54,5 @@ void arena_init(struct arena     *arena,
 
 void  arena_terminate(struct arena *arena);
 void *arena_alloc(struct arena *arena);
-void *arena_safe_alloc(struct arena *arena);
 
 #endif

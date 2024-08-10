@@ -598,7 +598,9 @@ struct assembly *assembly_new(const struct target *target) {
 	           16, // Is this correct?
 	           EXPECTED_ARRAY_COUNT,
 	           (arena_elem_dtor_t)sarr_dtor);
+
 	assembly->gscope = scope_create(&assembly->scopes_context, SCOPE_GLOBAL, NULL, NULL);
+	scope_reserve(assembly->gscope, 2048);
 
 	dl_init(assembly);
 	mir_init(assembly);

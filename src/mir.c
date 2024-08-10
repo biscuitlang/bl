@@ -33,6 +33,7 @@
 #include "common.h"
 #include "mir_printer.h"
 #include "stb_ds.h"
+#include "table.h"
 #include <stdarg.h>
 
 #ifdef _MSC_VER
@@ -41,6 +42,7 @@
 
 #define ARENA_CHUNK_COUNT 1024
 #define ARENA_INSTR_CHUNK_COUNT 2048
+#define TYPE_CACHE_PREALLOCATE 2048
 #define RESOLVE_TYPE_FN_NAME cstr(".type")
 #define RESOLVE_EXPR_FN_NAME cstr(".expr")
 #define INIT_VALUE_FN_NAME cstr(".init")
@@ -115,16 +117,19 @@ typedef sarr_t(LLVMTypeRef, 8) llvm_types_t;
 typedef sarr_t(struct rtti_incomplete, 64) rttis_t;
 typedef sarr_t(struct ast *, 16) defer_stack_t;
 
+struct type_cache_entry {
+	hash_t           hash;
+	str_t            key;
+	struct mir_type *type;
+};
+
 // Instance in run method is zero initialized, no need to set default values explicitly.
 struct context {
 	struct virtual_machine *vm;
 	struct assembly        *assembly;
 	bool                    debug_mode;
 
-	hash_table(struct {
-		hash_t           key;
-		struct mir_type *value;
-	}) type_cache;
+	my_hash_table(struct type_cache_entry) type_cache;
 
 	// Ast -> MIR generation
 	struct
@@ -1027,17 +1032,25 @@ DONE:
 	return_zone(first_incomplete_type);
 }
 
-static inline struct mir_type *lookup_type(struct context *ctx, hash_t hash) {
-	const s64 i = hmgeti(ctx->type_cache, hash);
-	if (i == -1) return NULL;
-	return ctx->type_cache[i].value;
+static inline struct mir_type *lookup_type(struct context *ctx, hash_t hash, str_t name) {
+	zone();
+	const s32 i = tbl_lookup_index_with_key(ctx->type_cache, hash, name);
+	if (i == -1) return_zone(NULL);
+	return_zone(ctx->type_cache[i].type);
 }
 
-static inline void insert_type_into_cache(struct context *ctx, struct mir_type *type) {
+static inline void insert_type_into_cache(struct context *ctx, struct mir_type *type, str_t name) {
+	zone();
 	bassert(type);
 	bassert(type->id.hash != 0);
-	bassert(hmgeti(ctx->type_cache, type->id.hash) == -1);
-	hmput(ctx->type_cache, type->id.hash, type);
+	bassert(lookup_type(ctx, type->id.hash, type->id.str) == NULL);
+	struct type_cache_entry entry = {
+	    .hash = type->id.hash,
+	    .key  = type->id.str,
+	    .type = type,
+	};
+	tbl_insert(ctx->type_cache, entry);
+	return_zone();
 }
 
 // Determinate if instruction has volatile type, that means we can change type of the value during
@@ -1845,7 +1858,7 @@ struct mir_type *create_type_null(struct context *ctx, struct mir_type *base_typ
 
 	hash_t hash = strhash(name);
 	if (is_cached) {
-		tmp = lookup_type(ctx, hash);
+		tmp = lookup_type(ctx, hash, str_buf_view(name));
 		if (tmp) {
 			bassert(tmp->kind == MIR_TYPE_NULL);
 			goto DONE;
@@ -1860,7 +1873,7 @@ struct mir_type *create_type_null(struct context *ctx, struct mir_type *base_typ
 
 	type_init_llvm_null(ctx, tmp);
 
-	if (is_cached) insert_type_into_cache(ctx, tmp);
+	if (is_cached) insert_type_into_cache(ctx, tmp, str_buf_view(name));
 
 DONE:
 	put_tmp_str(name);
@@ -1878,8 +1891,8 @@ struct mir_type *create_type_ptr(struct context *ctx, struct mir_type *src_type)
 
 	hash_t hash = strhash(name);
 	if (is_cached) {
-		tmp = lookup_type(ctx, hash);
-		if (tmp) { 
+		tmp = lookup_type(ctx, hash, str_buf_view(name));
+		if (tmp) {
 			bassert(tmp->kind == MIR_TYPE_PTR);
 			goto DONE;
 		}
@@ -1892,7 +1905,7 @@ struct mir_type *create_type_ptr(struct context *ctx, struct mir_type *src_type)
 	tmp->can_use_cache = src_type->can_use_cache;
 
 	type_init_llvm_ptr(ctx, tmp);
-	if (is_cached) insert_type_into_cache(ctx, tmp);
+	if (is_cached) insert_type_into_cache(ctx, tmp, str_buf_view(name));
 
 DONE:
 	put_tmp_str(name);
@@ -1908,8 +1921,8 @@ struct mir_type *create_type_poly(struct context *ctx, struct id *user_id, bool 
 
 	hash_t hash = strhash(name);
 
-	struct mir_type *tmp = lookup_type(ctx, hash);
-	if (tmp) { 
+	struct mir_type *tmp = lookup_type(ctx, hash, str_buf_view(name));
+	if (tmp) {
 		bassert(tmp->kind == MIR_TYPE_POLY);
 		goto DONE;
 	}
@@ -1925,7 +1938,7 @@ struct mir_type *create_type_poly(struct context *ctx, struct id *user_id, bool 
 	tmp->data.poly.is_master = is_master;
 
 	type_init_llvm_dummy(ctx, tmp);
-	insert_type_into_cache(ctx, tmp);
+	insert_type_into_cache(ctx, tmp, str_buf_view(name));
 DONE:
 	put_tmp_str(name);
 	return tmp;
@@ -2022,8 +2035,8 @@ struct mir_type *create_type_array(struct context *ctx, struct id *user_id, stru
 	const hash_t hash = strhash(name);
 
 	if (can_use_cache) {
-		result = lookup_type(ctx, hash);
-		if (result) { 
+		result = lookup_type(ctx, hash, str_buf_view(name));
+		if (result) {
 			bassert(result->kind == MIR_TYPE_ARRAY);
 			goto DONE;
 		}
@@ -2038,7 +2051,7 @@ struct mir_type *create_type_array(struct context *ctx, struct id *user_id, stru
 	type_init_llvm_array(ctx, result);
 
 	if (can_use_cache) {
-		insert_type_into_cache(ctx, result);
+		insert_type_into_cache(ctx, result, str_buf_view(name));
 		result->can_use_cache = true;
 	}
 
@@ -2077,8 +2090,8 @@ struct mir_type *create_type_struct_incomplete(struct context *ctx, struct id *u
 	// The user_id is required so we can use cache every time? See comments in create_type_struct.
 
 	const hash_t     hash   = strhash(name);
-	struct mir_type *result = lookup_type(ctx, hash);
-	if (result) { 
+	struct mir_type *result = lookup_type(ctx, hash, str_buf_view(name));
+	if (result) {
 		goto DONE;
 	}
 
@@ -2110,8 +2123,8 @@ struct mir_type *create_type_struct(struct context *ctx, create_type_struct_args
 		const hash_t hash = strhash(name);
 
 		if (can_use_cache) {
-			result = lookup_type(ctx, hash);
-			if (result) { 
+			result = lookup_type(ctx, hash, str_buf_view(name));
+			if (result) {
 				bassert(result->kind == MIR_TYPE_STRING);
 				goto DONE;
 			}
@@ -2139,7 +2152,7 @@ struct mir_type *create_type_struct(struct context *ctx, create_type_struct_args
 	type_init_llvm_struct(ctx, result);
 
 	if (can_use_cache) {
-		insert_type_into_cache(ctx, result);
+		insert_type_into_cache(ctx, result, str_buf_view(name));
 		result->can_use_cache = true;
 	}
 
@@ -2209,8 +2222,8 @@ struct mir_type *create_type_slice(struct context *ctx, enum mir_type_kind kind,
 	const hash_t hash = strhash(name);
 
 	if (can_use_cache) {
-		result = lookup_type(ctx, hash);
-		if (result) { 
+		result = lookup_type(ctx, hash, str_buf_view(name));
+		if (result) {
 			bassert(result->kind == kind);
 			goto DONE;
 		}
@@ -2246,7 +2259,7 @@ struct mir_type *create_type_slice(struct context *ctx, enum mir_type_kind kind,
 	                            });
 
 	if (can_use_cache) {
-		insert_type_into_cache(ctx, result);
+		insert_type_into_cache(ctx, result, str_buf_view(name));
 		result->can_use_cache = true;
 	}
 
@@ -2271,8 +2284,8 @@ struct mir_type *create_type_struct_dynarr(struct context *ctx, struct id *user_
 
 	const hash_t hash = strhash(name);
 	if (can_use_cache) {
-		result = lookup_type(ctx, hash);
-		if (result) { 
+		result = lookup_type(ctx, hash, str_buf_view(name));
+		if (result) {
 			bassert(result->kind == MIR_TYPE_DYNARR);
 			goto DONE;
 		}
@@ -2326,7 +2339,7 @@ struct mir_type *create_type_struct_dynarr(struct context *ctx, struct id *user_
 	                            });
 
 	if (can_use_cache) {
-		insert_type_into_cache(ctx, result);
+		insert_type_into_cache(ctx, result, str_buf_view(name));
 		result->can_use_cache = true;
 	}
 
@@ -2351,8 +2364,8 @@ static struct mir_type *create_type_enum(struct context *ctx, create_type_enum_a
 
 	const hash_t hash = strhash(name);
 
-	struct mir_type *result = lookup_type(ctx, hash);
-	if (result) { 
+	struct mir_type *result = lookup_type(ctx, hash, str_buf_view(name));
+	if (result) {
 		bassert(result->kind == MIR_TYPE_ENUM);
 		goto DONE;
 	}
@@ -2375,7 +2388,7 @@ static struct mir_type *create_type_enum(struct context *ctx, create_type_enum_a
 		variant->value_type         = result;
 	}
 
-	insert_type_into_cache(ctx, result);
+	insert_type_into_cache(ctx, result, str_buf_view(name));
 
 DONE:
 	put_tmp_str(name);
@@ -4482,7 +4495,7 @@ struct result analyze_instr_phi(struct context *ctx, struct mir_instr_phi *phi) 
 		bassert(phi->incoming_values[i]);
 		bassert(phi->incoming_blocks[i]);
 		bassert(i == 0 || type);
-		const analyze_stage_fn_t *conf = i == 0 ? analyze_slot_conf_basic : analyze_slot_conf_basic;
+		const analyze_stage_fn_t *conf = i == 0 ? analyze_slot_conf_basic : analyze_slot_conf_default;
 		if (analyze_slot(ctx, conf, &phi->incoming_values[i], type) != ANALYZE_PASSED) return_zone(FAIL);
 
 		struct mir_instr       *value = phi->incoming_values[i];
@@ -4848,7 +4861,7 @@ struct result analyze_instr_compound(struct context *ctx, struct mir_instr_compo
 		result = analyze_instr_compound_regular(ctx, cmp);
 	}
 
-	if (result.state != ANALYZE_PASSED) return result;
+	if (result.state != ANALYZE_PASSED) return_zone(result);
 	struct mir_type *type = cmp->base.value.type;
 	bassert(type);
 
@@ -11975,6 +11988,8 @@ void mir_run(struct assembly *assembly) {
 	arrsetcap(ctx.analyze.stack[0], 256);
 	arrsetcap(ctx.analyze.stack[1], 256);
 
+	tbl_init(ctx.type_cache, TYPE_CACHE_PREALLOCATE);
+
 	ctx.analyze.unnamed_entry = scope_create_entry(&ctx.assembly->scopes_context, SCOPE_ENTRY_UNNAMED, NULL, NULL, true);
 
 	// initialize all builtin types
@@ -12004,6 +12019,9 @@ void mir_run(struct assembly *assembly) {
 	blog("Analyze queue push count: %i", push_count);
 DONE:
 	assembly->stats.mir_s = runtime_measure_end(mir);
+
+	if (!builder.options->do_cleanup_when_done) return_zone();
+
 	ast_free_defer_stack(&ctx);
 	arrfree(ctx.analyze.stack[0]);
 	arrfree(ctx.analyze.stack[1]);
@@ -12014,6 +12032,6 @@ DONE:
 	sarrfree(&ctx.analyze.incomplete_rtti);
 	sarrfree(&ctx.fn_generate.replacement_queue);
 	sarrfree(&ctx.analyze.complete_check_type_stack);
-	hmfree(ctx.type_cache);
+	tbl_free(ctx.type_cache);
 	return_zone();
 }

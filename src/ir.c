@@ -31,6 +31,7 @@
 #include "builder.h"
 #include "common.h"
 #include "stb_ds.h"
+#include "table.h"
 #include "llvm-c/Types.h"
 
 #ifdef BL_DEBUG
@@ -66,7 +67,8 @@ typedef sarr_t(LLVMValueRef, 16) llvm_values_t;
 typedef sarr_t(LLVMMetadataRef, 16) llvm_metas_t;
 
 struct cache_entry {
-	hash_t       key;
+	hash_t       hash;
+	str_t        key; // Might be not used...
 	LLVMValueRef value;
 };
 
@@ -88,8 +90,8 @@ struct context {
 	LLVMValueRef llvm_const_i64_zero;
 	LLVMValueRef llvm_const_i8_zero;
 
-	hash_table(struct cache_entry) gstring_cache;
-	hash_table(struct cache_entry) llvm_fn_cache;
+	my_hash_table(struct cache_entry) gstring_cache;
+	my_hash_table(struct cache_entry) llvm_fn_cache;
 	array(struct rtti_incomplete) incomplete_rtti;
 
 	struct BuiltinTypes *builtin_types;
@@ -254,16 +256,23 @@ static inline void emit_DI_instr_loc(struct context *ctx, struct mir_instr *inst
 }
 
 static inline LLVMValueRef llvm_lookup_fn(struct context *ctx, const str_t name) {
+	zone();
 	const hash_t hash  = strhash(name);
-	const s64    index = hmgeti(ctx->llvm_fn_cache, hash);
-	if (index == -1) return NULL;
-	return ctx->llvm_fn_cache[index].value;
+	const s64    index = tbl_lookup_index_with_key(ctx->llvm_fn_cache, hash, name);
+	if (index == -1) return_zone(NULL);
+	return_zone(ctx->llvm_fn_cache[index].value);
 }
 
 static inline LLVMValueRef llvm_cache_fn(struct context *ctx, str_t name, LLVMValueRef llvm_fn) {
-	const hash_t hash = strhash(name);
-	hmput(ctx->llvm_fn_cache, hash, llvm_fn);
-	return llvm_fn;
+	zone();
+	const hash_t       hash  = strhash(name);
+	struct cache_entry entry = {
+	    .hash  = hash,
+	    .key   = name,
+	    .value = llvm_fn,
+	};
+	tbl_insert(ctx->llvm_fn_cache, entry);
+	return_zone(llvm_fn);
 }
 
 static inline bool is_initialized(LLVMValueRef constant) {
@@ -834,6 +843,7 @@ LLVMValueRef emit_fn_proto(struct context *ctx, struct mir_fn *fn, bool schedule
 }
 
 LLVMValueRef emit_const_string(struct context *ctx, const str_t s) {
+	zone();
 	struct mir_type *type     = ctx->builtin_types->t_string_literal;
 	LLVMValueRef     llvm_str = NULL;
 	if (s.len) {
@@ -844,7 +854,7 @@ LLVMValueRef emit_const_string(struct context *ctx, const str_t s) {
 		// There is probably no good reason to try cache large string data.
 		if (use_cache) {
 			hash  = strhash(s);
-			index = hmgeti(ctx->gstring_cache, hash);
+			index = tbl_lookup_index_with_key(ctx->gstring_cache, hash, s);
 		}
 		if (index != -1) {
 			llvm_str = ctx->gstring_cache[index].value;
@@ -857,7 +867,14 @@ LLVMValueRef emit_const_string(struct context *ctx, const str_t s) {
 			LLVMSetLinkage(llvm_str, LLVMPrivateLinkage);
 			LLVMSetGlobalConstant(llvm_str, true);
 
-			if (use_cache) hmput(ctx->gstring_cache, hash, llvm_str);
+			if (use_cache) {
+				struct cache_entry entry = {
+				    .hash  = hash,
+				    .key   = s,
+				    .value = llvm_str,
+				};
+				tbl_insert(ctx->gstring_cache, entry);
+			}
 		}
 	} else {
 		// null string content
@@ -870,7 +887,7 @@ LLVMValueRef emit_const_string(struct context *ctx, const str_t s) {
 	struct mir_type *len_type = mir_get_struct_elem_type(type, 0);
 	values[0]                 = LLVMConstInt(get_type(ctx, len_type), (uint64_t)s.len, true);
 	values[1]                 = llvm_str;
-	return LLVMConstNamedStruct(get_type(ctx, type), values, static_arrlenu(values));
+	return_zone(LLVMConstNamedStruct(get_type(ctx, type), values, static_arrlenu(values)));
 }
 
 enum state emit_instr_decl_ref(struct context *ctx, struct mir_instr_decl_ref *ref) {
@@ -911,7 +928,7 @@ enum state emit_instr_decl_direct_ref(struct context *ctx, struct mir_instr_decl
 }
 
 enum state emit_instr_phi(struct context *ctx, struct mir_instr_phi *phi) {
-	const int count = phi->num;
+	const s32 count = phi->num;
 	bassert(count > 0);
 	if (count == 1) {
 		// 2024-08-07 We have only one income, but phi itself was not replaced by constant, because the
@@ -925,7 +942,7 @@ enum state emit_instr_phi(struct context *ctx, struct mir_instr_phi *phi) {
 
 	llvm_values_t llvm_iv = SARR_ZERO;
 	llvm_values_t llvm_ib = SARR_ZERO;
-	for (int i = 0; i < count; ++i) {
+	for (s32 i = 0; i < count; ++i) {
 		struct mir_instr *value = phi->incoming_values[i];
 		bassert(value);
 		struct mir_instr_block *block = phi->incoming_blocks[i];
@@ -3257,6 +3274,9 @@ void ir_run(struct assembly *assembly) {
 	qsetcap(&ctx.incomplete_queue, 256);
 	qsetcap(&ctx.queue, 256);
 
+	tbl_init(ctx.gstring_cache, 2048);
+	tbl_init(ctx.llvm_fn_cache, 2048);
+
 	init_llvm_module(&ctx);
 
 	if (ctx.generate_debug_info) {
@@ -3290,18 +3310,21 @@ void ir_run(struct assembly *assembly) {
 		LLVMDisposeMessage(llvm_error);
 	}
 
+	blog("Generated %d instructions.", ctx.emit_instruction_count);
+	assembly->stats.llvm_s = runtime_measure_end(llvm);
+
+	if (!builder.options->do_cleanup_when_done) return_zone();
+
 	LLVMDisposeBuilder(ctx.llvm_builder);
 	if (ctx.generate_debug_info) {
 		DI_terminate(&ctx);
 	}
 
-	blog("Generated %d instructions.", ctx.emit_instruction_count);
 	qfree(&ctx.queue);
 	qfree(&ctx.incomplete_queue);
 	arrfree(ctx.incomplete_rtti);
-	hmfree(ctx.gstring_cache);
-	hmfree(ctx.llvm_fn_cache);
-	assembly->stats.llvm_s = runtime_measure_end(llvm);
+	tbl_free(ctx.gstring_cache);
+	tbl_free(ctx.llvm_fn_cache);
 
 	return_zone();
 }

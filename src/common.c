@@ -870,10 +870,8 @@ s32 get_last_error(char *buf, s32 buf_len) {
 u32 next_pow_2(u32 n) {
 	u32 p = 1;
 	if (n && !(n & (n - 1))) return n;
-
 	while (p < n)
 		p <<= 1;
-
 	return p;
 }
 

@@ -2,59 +2,27 @@
 
 */
 
+#import "std/table"
+
 main :: fn () s32 {
-	a :: true;
-	b :: false;
-	c := false;
+	using std;
+	tbl: Table(s32, s32);
+	defer tbl_terminate(&tbl);
 
-	x := true;
+	TEST_COUNT :: 100;
 
-	// v :: if (a && b) then 10 else 20;
-
-	v1 :: if  x then 10 else 20;
-	v2 :: if !x then 10 else 20;
-
-	// if c {
-	// 	return 0;
-	// 	print("foo");
-	// }
-
-	print_log("v1 = %", v1);
-	print_log("v2 = %", v2);
-
-
-	T :: *u8;
-	is_string :: T == string || T == string_view;
-	print("%\n",is_string);
-
-	if a && b && c {
-		print("SHIT!!!!\n");
-	} else {
-		print("OK!!!!\n");
+	loop i := 0; i < TEST_COUNT; i += 1 {
+		tbl_insert(&tbl, i, i);
+		assert(tbl_lookup_index(&tbl, i) != -1);
 	}
+	assert(tbl.len == TEST_COUNT);
 
-	if (a || b) && c {
-		print("SHIT!!!!\n");
-	} else {
-		print("OK!!!!\n");
+	loop i := 0; i < TEST_COUNT; i += 1 {
+		assert(tbl_lookup_index(&tbl, i) != -1);
+		assert(tbl_erase(&tbl, i));
 	}
-
-	if c && (a || b) {
-		print("SHIT!!!!\n");
-	} else {
-		print("OK!!!!\n");
-	}
-
-	if c && foo() {
-	}
-
-
+	assert(tbl.len == 0);
 	return 0;
-}
-
-foo :: fn () bool {
-	print("FUCK!\n");
-	return false;
 }
 
 // bar :: fn (v: s32) {

@@ -408,6 +408,12 @@ int main(s32 argc, char *argv[]) {
 		},
 		{
 		    .kind       = STRING,
+		    .name       = "--output",
+		    .help       = "Specify name of the output binary.",
+		    .property.s = &opt.target->name,
+		},
+		{
+		    .kind       = STRING,
 		    .name       = "--work-dir",
 		    .help       = "Set current working directory. Compiler use by default the current working "
 		                  "directory to output all files.",

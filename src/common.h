@@ -241,8 +241,10 @@ s32 bvsnprint(char *buf, s32 buf_len, const char *fmt, va_list args);
 // STB utils
 // =================================================================================================
 
+// These are used for explicitness.
 #define array(T) T *
 #define hash_table(T) T *
+#define my_hash_table(T) T *
 
 #define queue_t(T) \
 	struct {       \

@@ -81,6 +81,13 @@ struct scope_entry {
 	bmagic_member
 };
 
+struct scope_tbl_entry {
+	// Hash value of the scope entry as combination of layer and id.
+	u64                 hash;
+	str_t               key;
+	struct scope_entry *value;
+};
+
 enum scope_kind {
 	SCOPE_NONE = 0,
 	SCOPE_GLOBAL,
@@ -104,11 +111,7 @@ struct scope {
 	struct location        *location;
 	array(struct scope *) usings;
 	LLVMMetadataRef llvm_meta;
-	hash_table(struct {
-		// Hash value of the scope entry as combination of layer and id.
-		u64                 key;
-		struct scope_entry *value;
-	}) entries;
+	my_hash_table(struct scope_tbl_entry) entries;
 
 	bmagic_member
 };
@@ -120,16 +123,14 @@ struct scope *scope_create(struct scopes_context *ctx,
                            enum scope_kind        kind,
                            struct scope          *parent,
                            struct location       *loc);
-struct scope *scope_safe_create(struct scopes_context *ctx,
-                                enum scope_kind        kind,
-                                struct scope          *parent,
-                                struct location       *loc);
 
 struct scope_entry *scope_create_entry(struct scopes_context *ctx,
                                        enum scope_entry_kind  kind,
                                        struct id             *id,
                                        struct ast            *node,
                                        bool                   is_builtin);
+
+void scope_reserve(struct scope *scope, s32 num);
 
 void scope_insert(struct scope *scope, hash_t layer, struct scope_entry *entry);
 

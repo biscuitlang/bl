@@ -28,7 +28,10 @@
 
 #include "scope.h"
 #include "stb_ds.h"
+#include "table.h"
 #include "threading.h"
+
+BL_STATIC_ASSERT(sizeof(BL_TBL_HASH_T) == sizeof(u64), "Scope require hash value to be 64bit.");
 
 #define entry_hash(id, layer) ((((u64)layer) << 32) | (u64)id)
 
@@ -50,7 +53,7 @@ static void sync_delete(scope_sync_impl *impl) {
 
 static void scope_dtor(struct scope *scope) {
 	bmagic_assert(scope);
-	hmfree(scope->entries);
+	tbl_free(scope->entries);
 	arrfree(scope->usings);
 	sync_delete(scope->sync);
 }
@@ -109,21 +112,9 @@ struct scope *scope_create(struct scopes_context *ctx,
 	return scope;
 }
 
-struct scope *scope_safe_create(struct scopes_context *ctx,
-                                enum scope_kind        kind,
-                                struct scope          *parent,
-                                struct location       *loc) {
-	bassert(kind != SCOPE_NONE && "Invalid scope kind.");
-	struct scope *scope = arena_safe_alloc(&ctx->arenas.scopes);
-	scope->parent       = parent;
-	scope->kind         = kind;
-	scope->location     = loc;
-	scope->ctx          = ctx;
-
-	// Global scopes must be thread safe!
-	if (kind == SCOPE_GLOBAL) scope->sync = sync_new();
-	bmagic_set(scope);
-	return scope;
+void scope_reserve(struct scope *scope, s32 num) {
+	bassert(scope->entries == NULL && "This can be called only once before the first use!");
+	tbl_init(scope->entries, num);
 }
 
 struct scope_entry *scope_create_entry(struct scopes_context *ctx,
@@ -131,7 +122,7 @@ struct scope_entry *scope_create_entry(struct scopes_context *ctx,
                                        struct id             *id,
                                        struct ast            *node,
                                        bool                   is_builtin) {
-	struct scope_entry *entry = arena_safe_alloc(&ctx->arenas.entries);
+	struct scope_entry *entry = arena_alloc(&ctx->arenas.entries);
 	entry->id                 = id;
 	entry->kind               = kind;
 	entry->node               = node;
@@ -146,9 +137,14 @@ void scope_insert(struct scope *scope, hash_t layer, struct scope_entry *entry) 
 	bassert(scope);
 	bassert(entry && entry->id);
 	const u64 hash = entry_hash(entry->id->hash, layer);
-	bassert(hmgeti(scope->entries, hash) == -1 && "Duplicate scope entry key!!!");
-	entry->parent_scope = scope;
-	hmput(scope->entries, hash, entry);
+	bassert(tbl_lookup_index_with_key(scope->entries, hash, entry->id->str) == -1 && "Duplicate scope entry key!!!");
+	entry->parent_scope              = scope;
+	struct scope_tbl_entry tbl_entry = {
+	    .hash  = hash,
+	    .key   = entry->id->str,
+	    .value = entry,
+	};
+	tbl_insert(scope->entries, tbl_entry);
 	return_zone();
 }
 
@@ -185,7 +181,7 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 		if (!found_using && args->out_ambiguous) {
 			found_using = lookup_usings(scope, args->id, &ambiguous);
 		}
-		const s64 i = hmgeti(scope->entries, hash);
+		const s64 i = tbl_lookup_index_with_key(scope->entries, hash, args->id->str);
 		if (i != -1) {
 			found = scope->entries[i].value;
 			bassert(found);

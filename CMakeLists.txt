@@ -62,9 +62,9 @@ set(BL_API_DIR "../lib/bl/api") # relative to the executable
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     set(BL_LLVM_VER "18.1.8")
 elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-    set(BL_LLVM_VER "16")
+    set(BL_LLVM_VER "18")
 elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    set(BL_LLVM_VER "16")
+    set(BL_LLVM_VER "18")
 endif()
 
 if(MSVC AND NOT LLVM_DIR)
@@ -80,7 +80,7 @@ if(MSVC AND NOT LLVM_DIR)
                 DOWNLOAD ${BL_LLVM_REMOTE_ZIP}
                 ${BL_LLVM_DIR_ZIP}
                 SHOW_PROGRESS
-                EXPECTED_HASH MD5=516b8602730c1a1e10d0b9d2eb9b8efd)
+                EXPECTED_HASH MD5=0DDE5D41A4F9212FB49D2A280FEBB77E)
         endif()
         execute_process(
             COMMAND ${CMAKE_COMMAND} -E tar -xf ${BL_LLVM_DIR_ZIP}
@@ -101,7 +101,7 @@ endif()
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     set(LLD_BIN ${BL_DEPS_DIR}/lld.exe)
     set(LLD_ZIP lld-16.0.5-win64-release.zip)
-    set(LLD_ZIP_MD5 f352aa2535c96a20d107bbdc61533d5b)
+    set(LLD_ZIP_MD5 358C490AF5AF5652DDF441E2893DC104)
     set(BL_VSWHERE_EXE "vswhere.exe")
     set(BL_VSWHERE "${BL_DEPS_DIR}/vswhere-2.8.4/${BL_VSWHERE_EXE}")
     set(BL_LLD_EXE "bl-lld.exe")
@@ -182,6 +182,7 @@ set(HEADER_FILES
 	src/mir_printer.h
 	src/scope.h
 	src/stb_ds.h
+    src/table.h
 	src/threading.h
 	src/tokens.h
 	src/tokens_inline_utils.h
@@ -225,6 +226,7 @@ set(SOURCE_FILES
 	src/parser.c
 	src/scope.c
 	src/setup.c
+    src/table.c
 	src/threading.c
 	src/token_printer.c
 	src/tokens.c

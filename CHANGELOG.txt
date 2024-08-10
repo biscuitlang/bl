@@ -1,5 +1,11 @@
-0.12.0 - PRE-RELEASE
+0.11.1 - PRE-RELEASE
 ---------------------------------------------------------------------------------------
+Add compiler option to set output name.
+Changed reports of unreachable code.
+Dirty mode compiler flag renamed to "do-cleanup".
+Fix if branching.
+Fix hash table bugs.
+Update to LLVM 18.
 
 0.11.0 - PRE-RELEASE
 ---------------------------------------------------------------------------------------

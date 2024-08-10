@@ -56,6 +56,8 @@ extern "C" {
 #	define __FILENAME__
 #endif
 
+#define BL_STATIC_ASSERT(c, e) _Static_assert((c), e)
+
 typedef enum { LOG_ASSERT,
 	           LOG_ABORT,
 	           LOG_ABORT_ISSUE,

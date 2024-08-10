@@ -4,14 +4,14 @@
 //!
 //! Table is generic data container aka hash table or hash map storing data entries
 //! as pairs of Key and Value. Table provides fast lookup on large amount of data.
-//! 
+//!
 //! Internally, the table is implemented as preallocated array of `slots` and dynamic array of `keys`
 //! and `values`. The `slots` array holds information about mapping of each key-value pair (inserted into `keys`
 //! and `values` arrays) and corresponding 32 bit hash value calculated from the `key` value.
 //!
 //! The `kays` and `values` arrays are actually regular dynamic arrays holding inserted keys and values,
 //! so it can be iterated as usual. The ordering of arrays is unstable after erase operation.
-//! 
+//!
 //! Performance of insert and lookup is getting worse when the table is starting to be full, to minimize
 //! this problem, the table grows when the maximum **load factor** is reached (i.e. 70%). In such a situation
 //! only the `slots` array is reallocated and whole table mapping is recalculated. This operation can be
@@ -61,14 +61,14 @@ Table :: fn (TKey: type #comptime, TValue: type #comptime) type #comptime {
 
 /// Initialize the `tbl` table. It's not necessary to call this method in case the table is
 /// already zero-initialized. The `expected_size` can be specified as hint telling the table how many
-/// elements we're going to store. Memory preallocation is performed using `allocator`. 
+/// elements we're going to store. Memory preallocation is performed using `allocator`.
 tbl_init :: fn (tbl: *?T, expected_size := DEFAULT_ENTRIES_COUNT, allocator: *Allocator = null) {
 	assert(tbl);
 	tbl.allocator = allocator;
 	tbl.len = 0;
 	array_init(&tbl.keys, expected_size, tbl.allocator);
 	array_init(&tbl.values, expected_size, tbl.allocator);
-	resize(tbl, expected_size);
+	resize(tbl, auto next_pow_2(auto expected_size * 2));
 }
 
 /// Release all memory resources used by the table and set the `tbl` instance to the default state.
@@ -121,7 +121,7 @@ tbl_lookup_ptr :: fn (tbl: *?T, key: tbl_typeof_key(T)) *tbl_typeof_value(T) #in
 tbl_lookup :: fn (tbl: *?T, key: tbl_typeof_key(T)) (value: tbl_typeof_value(T), found: bool) #inline {
 	assert(tbl);
 	value_ptr :: tbl_lookup_ptr(tbl, key);
-	if value_ptr { return @value_ptr, true; }
+	if value_ptr then return @value_ptr, true;
 	empty: tbl_typeof_value(T) #noinit;
 	return empty, false;
 }
@@ -130,7 +130,7 @@ tbl_lookup :: fn (tbl: *?T, key: tbl_typeof_key(T)) (value: tbl_typeof_value(T),
 /// arrays) or `-1` when no such `key` was found.
 tbl_lookup_index :: fn (tbl: *?T, key: tbl_typeof_key(T)) s32 #inline {
 	assert(tbl);
-	if !tbl.slots.ptr { return -1; }
+	if !tbl.slots.ptr then return -1;
 	_, entry_index :: lookup_indices(tbl, calculate_hash(key), key);
 	return entry_index;
 }
@@ -143,9 +143,9 @@ tbl_lookup_index :: fn (tbl: *?T, key: tbl_typeof_key(T)) s32 #inline {
 tbl_erase :: fn (tbl: *?T, key: tbl_typeof_key(T)) bool #inline {
 	assert(tbl);
 	erase_slot_index, erase_entry_index :: lookup_indices(tbl, calculate_hash(key), key);
-	if erase_entry_index < 0 { return false; }
-	if tbl.len > 1 {
-		// Array erase internaly swaps the last element with erased one, so we need to remap
+	if erase_entry_index < 0 then return false;
+	if tbl.len > 1 && (erase_entry_index+1) != tbl.len {
+		// Array erase internally swaps the last element with erased one, so we need to remap
 		// slots here.
 		last_entry_key :: tbl.keys[tbl.len-1];
 		last_entry_slot_index :: lookup_indices(tbl, calculate_hash(last_entry_key), last_entry_key);
@@ -156,6 +156,7 @@ tbl_erase :: fn (tbl: *?T, key: tbl_typeof_key(T)) bool #inline {
 	array_erase(&tbl.values, erase_entry_index);
 	tbl.slots[erase_slot_index].index = DELETED_INDEX;
 	tbl.len -= 1;
+	assert(tbl.len >= 0);
 	return true;
 }
 
@@ -250,7 +251,7 @@ insert :: fn (tbl: *?T, hash: u32, key: tbl_typeof_key(T)) *tbl_typeof_value(T) 
 	slot_index :: lookup_indices(tbl, hash, key);
 	if slot_index >= 0 { panic("Duplicate key entry '%' in table!", key); }
 }
-	slot_index :: free_slot_index(tbl, hash);
+	slot_index :: find_free_slot_index(tbl, hash);
 	array_push(&tbl.keys, key);
 	value_ptr := array_push(&tbl.values);
 	assert(tbl.keys.len == tbl.values.len);
@@ -260,11 +261,12 @@ insert :: fn (tbl: *?T, hash: u32, key: tbl_typeof_key(T)) *tbl_typeof_value(T) 
 	return value_ptr;
 }
 
-free_slot_index :: fn (tbl: *?T, hash: u32) s32 {
+find_free_slot_index :: fn (tbl: *?T, hash: u32, panic_on_resize := false) s32 {
 	assert(tbl);
 	assert(tbl.slots.ptr);
 	if (tbl.len + 1)*100 >= tbl.slots.len*LOAD_FACTOR {
-		resize(tbl, auto next_pow_2(auto tbl.slots.len));
+		if panic_on_resize then panic();
+		resize(tbl, auto next_pow_2(auto tbl.slots.len * 2));
 	}
 	index := cast(s32) (hash % auto tbl.slots.len);
 	increment := initial_increment(tbl, hash);
@@ -275,8 +277,9 @@ free_slot_index :: fn (tbl: *?T, hash: u32) s32 {
 		}
 		index += increment;
 		increment += 1;
-		if index >= tbl.slots.len { index -= cast(s32) tbl.slots.len; }
+		loop index >= tbl.slots.len { index -= cast(s32) tbl.slots.len; }
 	}
+	assert(index < tbl.slots.len);
 	return index;
 }
 
@@ -293,13 +296,14 @@ lookup_indices :: fn (tbl: *?T, hash: u32, key: tbl_typeof_key(T)) (slot_index: 
 		}
 		index += increment;
 		increment += 1;
-		if index >= tbl.slots.len { index -= cast(s32) tbl.slots.len; }
+		loop index >= tbl.slots.len { index -= cast(s32) tbl.slots.len; }
 	}
 	return -1, -1;
 }
 
 resize :: fn (tbl: *?T, new_size : s32 = DEFAULT_ENTRIES_COUNT) {
 	assert(new_size > 32);
+	assert(new_size > tbl.slots.len);
 	old_slots :: tbl.slots;
 	alloc_slice(&tbl.slots, new_size, false, tbl.allocator);
 	loop i := 0; i < tbl.slots.len; i += 1 {
@@ -310,7 +314,7 @@ resize :: fn (tbl: *?T, new_size : s32 = DEFAULT_ENTRIES_COUNT) {
 	loop i := 0; i < old_slots.len && used_count >= 0; i += 1 {
 		slot :: &old_slots[i];
 		if slot.index == EMPTY_INDEX || slot.index == DELETED_INDEX { continue; }
-		new_slot_index :: free_slot_index(tbl, slot.hash);
+		new_slot_index :: find_free_slot_index(tbl, slot.hash);
 		tbl.slots[new_slot_index].index = slot.index;
 		tbl.slots[new_slot_index].hash  = slot.hash;
 		used_count -= 1;

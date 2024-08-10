@@ -31,6 +31,9 @@
 
 void ir_opt_run(struct assembly *assembly) {
 	zone();
+	// 2024-08-09 LLVM is slow, so no passes for debug.
+	if (assembly->target->opt == ASSEMBLY_OPT_DEBUG) return_zone();
+
 	LLVMModuleRef        llvm_module = assembly->llvm.module;
 	LLVMTargetMachineRef llvm_tm     = assembly->llvm.TM;
 
