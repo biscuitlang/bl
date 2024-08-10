@@ -22,6 +22,7 @@ yet. Biscuit is designed to be simple, fast and explicit.
 
 - [**Latest Release**](https://biscuitlang.org)
 - [master](https://biscuitlang.org/versions/master/) (current unstable version)
+- [0.11.0](https://biscuitlang.org/versions/0.11.0/)
 - [0.9.0](https://biscuitlang.org/versions/0.9.0/)
 - [0.8.0](https://biscuitlang.org/versions/0.8.0/)
 - [0.7.2](https://biscuitlang.org/versions/0.7.2/)

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(bl VERSION 0.12.0)
+project(bl VERSION 0.11.1)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
