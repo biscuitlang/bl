@@ -6,7 +6,7 @@ on:
 
 env:
   VSINSTALLDIR: C:/Program Files/Microsoft Visual Studio/2022/Enterprise/
-    
+
 jobs:
   windows:
     runs-on: windows-latest
@@ -50,12 +50,12 @@ jobs:
     - uses: actions/checkout@v2
     - name: Download LLVM
       run: |
-        brew install llvm@16
+        brew install llvm@18
         TMP_PATH=$(xcrun --show-sdk-path)/user/include
         echo "CPATH=$TMP_PATH" >> $GITHUB_ENV
     - name: Setup
       run: |
-        LLVM_ROOT=$(brew --prefix llvm@16)
+        LLVM_ROOT=$(brew --prefix llvm@18)
         cmake . -DCMAKE_BUILD_TYPE=Release -DLLVM_DIR="${LLVM_ROOT}/lib/cmake/llvm"
     - name: Compile
       run: cmake --build . --config Release
@@ -69,15 +69,15 @@ jobs:
         cd ..
     - name: Prepare package
       run: |
-        mkdir dist 
+        mkdir dist
         cp -r lib dist
         cp -r bin dist
         cp -r syntax dist
         cp -r docs/side dist/docs
         cp CHANGELOG.txt dist
         cp LEGAL dist
-        cp LICENSE dist 
-        cp README.md dist 
+        cp LICENSE dist
+        cp README.md dist
     - uses: actions/upload-artifact@v1
       with:
         name: blc-arm64-macos
@@ -91,7 +91,7 @@ jobs:
       run: |
         wget https://apt.llvm.org/llvm.sh
         chmod +x llvm.sh
-        sudo ./llvm.sh 16
+        sudo ./llvm.sh 18
         sudo apt install libzstd-dev
     - name: Setup
       run: |
@@ -108,15 +108,15 @@ jobs:
         cd ..
     - name: Prepare package
       run: |
-        mkdir dist 
+        mkdir dist
         cp -r lib dist
         cp -r bin dist
         cp -r syntax dist
         cp -r docs/side dist/docs
         cp CHANGELOG.txt dist
         cp LEGAL dist
-        cp LICENSE dist 
-        cp README.md dist 
+        cp LICENSE dist
+        cp README.md dist
     - uses: actions/upload-artifact@v1
       with:
         name: blc-x86_64-linux
