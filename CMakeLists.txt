@@ -182,7 +182,7 @@ set(HEADER_FILES
 	src/mir_printer.h
 	src/scope.h
 	src/stb_ds.h
-    src/table.h
+  src/table.h
 	src/threading.h
 	src/tokens.h
 	src/tokens_inline_utils.h
@@ -226,7 +226,7 @@ set(SOURCE_FILES
 	src/parser.c
 	src/scope.c
 	src/setup.c
-    src/table.c
+  src/table.c
 	src/threading.c
 	src/token_printer.c
 	src/tokens.c
