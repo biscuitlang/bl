@@ -6,6 +6,23 @@
 MD_PAGES :: [_]string_view.{
 	"index",
 	"manual",
+	"examples",
+
+	"examples/argparse",
+	"examples/arrays",
+	"examples/bucket_array",
+	"examples/demo",
+	"examples/dynamic_arrays",
+	"examples/first_program",
+	"examples/flow_control",
+	"examples/polymorph",
+	"examples/simple_allocator",
+	"examples/slices",
+	"examples/streams",
+	"examples/table",
+	"examples/thread_local_variable",
+	"examples/threading",
+	"examples/variables",
 };
 
 MD_PAGES_MODULES :: [_]string_view.{
@@ -50,26 +67,11 @@ MD_PAGES_MODULES :: [_]string_view.{
 	"modules/png",
 	"modules/ui",
 	"modules/vulkan",
-
-	"examples/argparse",
-	"examples/arrays",
-	"examples/bucket_array",
-	"examples/dynamic_arrays",
-	"examples/first_program",
-	"examples/flow_control",
-	"examples/polymorph",
-	"examples/simple_allocator",
-	"examples/slices",
-	"examples/streams",
-	"examples/table",
-	"examples/thread_local_variable",
-	"examples/threading",
-	"examples/variables",
-	"examples"
 };
 
 MAIN_MENU :: [_]MenuItem.{
 	.{ id = "index.html", title = "Installation", level = 1},
+	.{ id = "examples_demo.html", title = "Quick Start", level = 1},
 	.{ id = "manual.html", title = "Manual", level = 1},
 	.{ id = "modules.html", title = "Modules", level = 1},
 	.{ id = "examples.html", title = "Examples", level = 1},
@@ -219,9 +221,17 @@ main :: fn () s32 {
 	}
 	tbl_terminate(&include_file_cache);
 
+	copy_err :: copy_additional_files();
+	if copy_err then print_err(copy_err);
+
 	runtime :: measure_elapsed_ms_end("-");
 	print_info("Completed in %s.\n", fmt_real(runtime / 1000., 3));
 	return 0;
+}
+
+copy_additional_files :: fn () Error {
+	using std;
+	return copy_file(tprint("%/%", src_dir, "examples/demo.bl"), tprint("%/%", side_dir, "demo.bl"), true);
 }
 
 generate_module_documentation :: fn () Error {
@@ -849,10 +859,11 @@ include_file :: fn (filepath: string_view) (content: string_view, err: Error) {
 
 	file, file_err :: open_file(fullpath, OpenFileMode.READ);
 	defer close_file(&file);
-	if file_err then return "", file_err;
+
+	if file_err { return "", file_err; }
 
 	data, read_err :: load_whole_file(&file);
-	if read_err then return "", read_err;
+	if read_err { return "", read_err; }
 
 	tbl_insert(&include_file_cache, hash, data);
 	return data, OK;

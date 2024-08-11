@@ -633,7 +633,7 @@ static struct mir_instr       *ast(struct context *ctx, struct ast *node);
 static void                    ast_ublock(struct context *ctx, struct ast *ublock);
 static void                    ast_unreachable(struct context *ctx, struct ast *unr);
 static void                    ast_debugbreak(struct context *ctx, struct ast *debug_break);
-static void                    ast_defer_block(struct context *ctx, struct ast *block, bool whole_tree);
+static void                    ast_defer_block(struct context *ctx, struct scope *block_owner_scope, bool whole_branch);
 static void                    ast_block(struct context *ctx, struct ast *block);
 static struct mir_instr       *ast_stmt_if(struct context *ctx, struct ast *stmt_if);
 static void                    ast_stmt_return(struct context *ctx, struct ast *ret);
@@ -8497,13 +8497,15 @@ struct result analyze_instr_block(struct context *ctx, struct mir_instr_block *b
 		// since instruction generation is just appending blocks).
 		bassert(block != fn->exit_block && "Exit block must be terminated!");
 
+		struct ast* node = block->last_instr ? block->last_instr->node : NULL;
+
 		if (fn->type->data.fn.ret_type->kind == MIR_TYPE_VOID) {
 			set_current_block(ctx, block);
 			bassert(fn->exit_block && "Current function does not have exit block set or even generated!");
-			append_instr_br(ctx, block->base.node, fn->exit_block);
+			append_instr_br(ctx, node, fn->exit_block);
 		} else if (block->is_unreachable || block->base.ref_count == 0) {
 			set_current_block(ctx, block);
-			append_instr_br(ctx, block->base.node, fn->exit_block);
+			append_instr_br(ctx, node, fn->exit_block);
 		} else {
 			report_error(MISSING_RETURN, fn->decl_node, "Not every path inside function return value.");
 		}
@@ -9740,16 +9742,16 @@ struct mir_var *rtti_gen_fn_group(struct context *ctx, struct mir_type *type) {
 
 // MIR building
 // Generate instructions for all ast nodes pushed into defer_stack in reverse order.
-void ast_defer_block(struct context *ctx, struct ast *block, bool whole_tree) {
+void ast_defer_block(struct context *ctx, struct scope *block_owner_scope, bool whole_branch) {
 	bassert(ctx->ast.current_defer_stack_index >= 0);
-	bassert(block);
+	bassert(block_owner_scope);
 	defer_stack_t *stack = &ctx->ast.defer_stack[ctx->ast.current_defer_stack_index];
 	struct ast    *defer;
 	for (usize i = sarrlenu(stack); i-- > 0;) {
 		defer = sarrpeek(stack, i);
-		if (defer->owner_scope == block->owner_scope) {
+		if (defer->owner_scope == block_owner_scope) {
 			sarrpop(stack);
-		} else if (!whole_tree) {
+		} else if (!whole_branch) {
 			break;
 		}
 		ast(ctx, defer->data.stmt_defer.expr);
@@ -9767,7 +9769,7 @@ void ast_block(struct context *ctx, struct ast *block) {
 		struct ast *tmp = sarrpeek(block->data.block.nodes, i);
 		ast(ctx, tmp);
 	}
-	if (!block->data.block.has_return) ast_defer_block(ctx, block, false);
+	if (!block->data.block.has_return) ast_defer_block(ctx, block->owner_scope, false);
 }
 
 void ast_unreachable(struct context *ctx, struct ast *unr) {
@@ -10024,7 +10026,7 @@ void ast_stmt_return(struct context *ctx, struct ast *ret) {
 		} else if (value) {
 			report_error(UNEXPECTED_EXPR, value->node, "Unexpected return value.");
 		}
-		ast_defer_block(ctx, ret->data.stmt_return.owner_block, true);
+		ast_defer_block(ctx, ret->data.stmt_return.owner_block->owner_scope, true);
 	}
 	struct mir_instr_block *exit_block = fn->exit_block;
 	bassert(exit_block);
