@@ -76,6 +76,31 @@ f8 :: fn (list: *string) {
 	std.str_append(list, "A");
 }
 
+f9 :: fn (list: *string) {
+	expr := false;
+	defer std.str_append(list, "C");
+	defer std.str_append(list, "B");
+	if expr then return;
+
+	defer std.str_append(list, "A");
+}
+
+f10 :: fn (list: *string) {
+	loop i := 0; i < 10; i += 1 {
+		defer std.str_append(list, i);
+		defer std.str_append(list, "A");
+	}
+}
+
+f11 :: fn (list: *string) s32 {
+	defer std.str_append(list, "B");
+	defer std.str_append(list, "A");
+	if true then return 0;
+
+	defer std.str_append(list, "X");
+	return 1;
+}
+
 defer_test_1 :: fn () #test {
 	list :: std.str_new();
 	f1(&list);
@@ -129,5 +154,26 @@ defer_test_8 :: fn () #test {
 	list :: std.str_new();
 	f8(&list);
 	test_eq(list, "ABC");
+	std.str_delete(&list);
+}
+
+defer_test_9 :: fn () #test {
+	list :: std.str_new();
+	f9(&list);
+	test_eq(list, "ABC");
+	std.str_delete(&list);
+}
+
+defer_test_10 :: fn () #test {
+	list :: std.str_new();
+	f10(&list);
+	test_eq(list, "A0A1A2A3A4A5A6A7A8A9");
+	std.str_delete(&list);
+}
+
+defer_test_11 :: fn () #test {
+	list :: std.str_new();
+	f11(&list);
+	test_eq(list, "AB");
 	std.str_delete(&list);
 }

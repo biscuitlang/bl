@@ -1007,9 +1007,39 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 
 	struct token *tok_then = tokens_consume_if(ctx->tokens, SYM_THEN);
 
+	bool is_semicolon_required = !is_expression;
+
+	//
+	// Then branch
+	//
 	struct ast *true_branch = parse_block(ctx, SCOPE_LEXICAL);
-	if (!true_branch && tok_then) true_branch = parse_single_block_stmt_or_expr(ctx, NULL);
+	if (true_branch) {
+		if (is_expression) {
+			builder_msg(MSG_ERR, ERR_EXPECTED_EXPR, true_branch->location, CARET_WORD, "Blocks cannot be used in ternary if expressions.");
+		}
+		is_semicolon_required = false;
+	}
+
+	if (!true_branch && tok_then) {
+		if (is_expression) {
+			true_branch = parse_single_block_stmt_or_expr(ctx, NULL);
+		} else {
+			struct scope *scope =
+			    scope_create(ctx->scopes_context, SCOPE_LEXICAL, scope_get(ctx), &tok_then->location);
+			scope_push(ctx, scope);
+			struct ast *block       = ast_create_node(ctx->ast_arena, AST_BLOCK, tok_then, scope_get(ctx));
+			block->data.block.nodes = arena_alloc(ctx->sarr_arena);
+			block_push(ctx, block);
+			true_branch = parse_single_block_stmt_or_expr(ctx, NULL);
+			sarrput(block->data.block.nodes, true_branch);
+			block_pop(ctx);
+			scope_pop(ctx);
+			true_branch = block;
+		}
+	}
+	
 	if (!true_branch) {
+		// Missing true branch (required).
 		struct token *tok_err = tokens_consume(ctx->tokens);
 		report_error(EXPECTED_STMT,
 		             tok_err,
@@ -1019,25 +1049,41 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 	}
 
 	bassert(true_branch);
-
-	// @Note 2024-07-29: Defer is disabled for now, this might complicate defered instruction stack when defer is conditional.
-	// We might improve this in future.
-	if (true_branch->kind == AST_STMT_DEFER) {
-		builder_msg(MSG_ERR,
-		            ERR_EXPECTED_EXPR,
-		            true_branch->location,
-		            CARET_WORD,
-		            "Defer statement is not allowed in inline if statements for now.");
-	}
-
 	stmt_if->data.stmt_if.true_stmt = true_branch;
 
+	//
+	// Else branch
+	//
 	struct ast *false_branch = NULL;
 	if (tokens_consume_if(ctx->tokens, SYM_ELSE)) {
 		false_branch = parse_stmt_if(ctx, is_static);
 		if (!false_branch) false_branch = parse_block(ctx, SCOPE_LEXICAL);
-		if (!false_branch) false_branch = parse_single_block_stmt_or_expr(ctx, NULL);
+		if (false_branch) {
+			if (is_expression) {
+				builder_msg(MSG_ERR, ERR_EXPECTED_EXPR, true_branch->location, CARET_WORD, "Blocks cannot be used in ternary if expressions.");
+			}
+			is_semicolon_required = false;
+		}
 		if (!false_branch) {
+			if (is_expression) {
+				false_branch = parse_single_block_stmt_or_expr(ctx, NULL);
+			} else {
+				struct scope *scope =
+				    scope_create(ctx->scopes_context, SCOPE_LEXICAL, scope_get(ctx), &tok_then->location);
+				scope_push(ctx, scope);
+				struct ast *block       = ast_create_node(ctx->ast_arena, AST_BLOCK, tok_then, scope_get(ctx));
+				block->data.block.nodes = arena_alloc(ctx->sarr_arena);
+				block_push(ctx, block);
+				false_branch = parse_single_block_stmt_or_expr(ctx, NULL);
+				sarrput(block->data.block.nodes, false_branch);
+				block_pop(ctx);
+				scope_pop(ctx);
+				false_branch = block;
+			}
+		}
+
+		if (!false_branch) {
+			// Missing false branch.
 			struct token *tok_err = tokens_consume(ctx->tokens);
 			report_error(EXPECTED_STMT,
 			             tok_err,
@@ -1047,18 +1093,6 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 		}
 
 		bassert(false_branch);
-
-		// @Note 2024-07-29: Defer is disabled for now, this might complicate defered instruction stack when defer is conditional.
-		// We might improve this in future.
-		if (false_branch->kind == AST_STMT_DEFER) {
-			struct ast *expr = stmt_if->data.stmt_if.false_stmt;
-			builder_msg(MSG_ERR,
-			            ERR_EXPECTED_EXPR,
-			            expr->location,
-			            CARET_WORD,
-			            "Defer statement is not allowed in inline if statements for now.");
-		}
-
 	} else if (is_expression) {
 		// @Note 2024-07-29: Expression require else to be present!
 		struct token *tok_err = tokens_peek(ctx->tokens);
@@ -1071,22 +1105,9 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 
 	stmt_if->data.stmt_if.false_stmt = false_branch;
 
-	if (is_expression) {
-		// Disable block for ternary if expressions.
-		bassert(true_branch);
-		if (true_branch->kind == AST_BLOCK) {
-			builder_msg(MSG_ERR, ERR_EXPECTED_EXPR, true_branch->location, CARET_WORD, "Block cannot be used in ternary if expressions.");
-		}
-		if (false_branch && false_branch->kind == AST_BLOCK) {
-			builder_msg(MSG_ERR, ERR_EXPECTED_EXPR, false_branch->location, CARET_WORD, "Block cannot be used in ternary if expressions.");
-		}
+	if (is_semicolon_required) {
+		parse_semicolon_rq(ctx);
 	}
-
-	if (is_expression) return_zone(stmt_if);
-	if (false_branch && (false_branch->kind == AST_BLOCK || false_branch->kind == AST_STMT_IF)) return_zone(stmt_if);
-	if (true_branch->kind == AST_BLOCK) return_zone(stmt_if);
-
-	parse_semicolon_rq(ctx);
 	return_zone(stmt_if);
 }
 

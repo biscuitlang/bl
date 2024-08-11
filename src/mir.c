@@ -8497,15 +8497,13 @@ struct result analyze_instr_block(struct context *ctx, struct mir_instr_block *b
 		// since instruction generation is just appending blocks).
 		bassert(block != fn->exit_block && "Exit block must be terminated!");
 
-		struct ast* node = block->last_instr ? block->last_instr->node : NULL;
-
 		if (fn->type->data.fn.ret_type->kind == MIR_TYPE_VOID) {
 			set_current_block(ctx, block);
 			bassert(fn->exit_block && "Current function does not have exit block set or even generated!");
-			append_instr_br(ctx, node, fn->exit_block);
+			append_instr_br(ctx, NULL, fn->exit_block);
 		} else if (block->is_unreachable || block->base.ref_count == 0) {
 			set_current_block(ctx, block);
-			append_instr_br(ctx, node, fn->exit_block);
+			append_instr_br(ctx, NULL, fn->exit_block);
 		} else {
 			report_error(MISSING_RETURN, fn->decl_node, "Not every path inside function return value.");
 		}
@@ -9740,8 +9738,13 @@ struct mir_var *rtti_gen_fn_group(struct context *ctx, struct mir_type *type) {
 	return rtti_var;
 }
 
-// MIR building
-// Generate instructions for all ast nodes pushed into defer_stack in reverse order.
+// Generate instructions for ast nodes pushed into defer_stack in reverse order.
+//
+// There are two cases in general:
+// 1) We're at the end of lexical block, so we want to generate all deferred instructions
+//    registered  only in the block scope. The whole_branch = false.
+// 2) We're at then end of block terminated by return instruction, so we want to generate
+//    all registered deferred instructions in the stack. The whole_branch = true.
 void ast_defer_block(struct context *ctx, struct scope *block_owner_scope, bool whole_branch) {
 	bassert(ctx->ast.current_defer_stack_index >= 0);
 	bassert(block_owner_scope);
@@ -10026,7 +10029,7 @@ void ast_stmt_return(struct context *ctx, struct ast *ret) {
 		} else if (value) {
 			report_error(UNEXPECTED_EXPR, value->node, "Unexpected return value.");
 		}
-		ast_defer_block(ctx, ret->data.stmt_return.owner_block->owner_scope, true);
+		ast_defer_block(ctx, ret->owner_scope, true);
 	}
 	struct mir_instr_block *exit_block = fn->exit_block;
 	bassert(exit_block);
@@ -12019,6 +12022,7 @@ void mir_run(struct assembly *assembly) {
 	analyze_report_unused(&ctx);
 
 	blog("Analyze queue push count: %i", push_count);
+
 DONE:
 	assembly->stats.mir_s = runtime_measure_end(mir);
 
