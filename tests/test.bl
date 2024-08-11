@@ -1,24 +1,12 @@
+
 /* CURRENT TODO
 
 */
 
-#import "std/table"
-
 main :: fn () s32 {
-	expr := false;
-	defer print("C\n");
-	defer print("B\n");
-
-	if expr then return 0;
-
-	defer print("A\n");
+	i :: if true 10 else 20;
 
 	return 0;
-}
-
-bar :: fn () {
-	defer print("A\n");
-	defer print("B\n");
 }
 
 /*

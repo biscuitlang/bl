@@ -1006,6 +1006,11 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 	}
 
 	struct token *tok_then = tokens_consume_if(ctx->tokens, SYM_THEN);
+	if (!tok_then && is_expression) {
+		struct token *tok_err = tokens_peek(ctx->tokens);
+		report_error(INVALID_EXPR, tok_err, CARET_WORD, "Expected 'then' keyword after ternary if statement expression.");
+		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
+	}
 
 	bool is_semicolon_required = !is_expression;
 
@@ -1037,7 +1042,7 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 			true_branch = block;
 		}
 	}
-	
+
 	if (!true_branch) {
 		// Missing true branch (required).
 		struct token *tok_err = tokens_consume(ctx->tokens);
