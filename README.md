@@ -1,13 +1,10 @@
-<div style="text-align:center"><img src="https://biscuitlang.org/versions/0.9.0/_static/header.png" /></div>
-
-# About
-
-[![Twitter URL](https://img.shields.io/twitter/url/https/twitter.com/MTravisDoor.svg?style=social&label=Follow%20%40MTravisDoor)](https://twitter.com/MTravisDoor)
+# Biscuit Programming Language
 
 The Biscuit Language (BL) is a simple imperative programming language using LLVM backend and compiler implemented in C.
 **Language syntax and all its features are still in development.** Biscuit is designed to be simple, fast, and explicit.
 
 - Project homepage: [biscuitlang.org](https://biscuitlang.org)
+- Discord: [here](https://discord.gg/DDTCcYzb9h)
 - Contact email: [biscuitlang@gmail.com](mailto:biscuitlang@gmail.com)
 
 Language design and some core principles are based on the hard work of [Jonathan Blow](https://en.wikipedia.org/wiki/Jonathan_Blow), who, over the past few years, has been working on the JAI programming language. You can watch his streams on [Twitch](https://www.twitch.tv/j_blow). I liked the idea of C++ replacement a lot from the beginning, and since Blow's project is not publicly available, I've started implementing my own language from scratch.
@@ -62,10 +59,6 @@ See more examples [here](https://biscuitlang.org).
 
 - **Martin Dorazil** (travis) [![](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/travisdoor)
 - **Gmos**
-
-# Discord Server
-
-https://discord.gg/DDTCcYzb9h
 
 # Projects Using BL
 
