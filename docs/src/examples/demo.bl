@@ -1,21 +1,18 @@
 main :: fn () s32 {
 	variables();
-
 	if_statements();
 	loops();
 	defer_statements();
-
 	arrays();
 	array_slices();
 	dynamic_arrays();
-
 	string_views();
 	dynamic_strings();
-
 	type_info();
-
 	structs();
-
+	function_taking_any();
+	polymorph_functions();
+	comptime_functions();
 
 	return 0;
 }
@@ -263,10 +260,54 @@ structs :: fn () {
 
 		Entity :: struct {
 			position: [3]s32;
-			id: u32;
 			render_data: *u8 #tag NO_SERIALIZE;
+			id: u32;
 		};
+
+		// Tag is later accessible in structure member related type info, and
+		// can be used in runtime.
+		// Here we exclude automatically all members tagged as NO_SERIALIZE from
+		// serialization.
+
+		info_struct :: cast(*TypeInfoStruct) typeinfo(Entity);
+		loop i := 0; i < info_struct.members.len; i += 1 {
+			member :: info_struct.members[i];
+			if member.tag == NO_SERIALIZE then continue;
+			print_log("Serialize member '%'!", member.name);
+		}
 	}
+}
+
+function_taking_any :: fn () {
+	print_log("=== function_taking_any ===");
+
+	// The value of Any type contains pointer to type information and pointer
+	// to data. This way we can implement reusable generic function (like for example
+	// print/print_log we already used a lot).
+
+	print_number_or_bool :: fn (v: Any) {
+		if v.type_info.kind == TypeKind.INT {
+			// v.data is pointer to u8 type.
+			v_int :: @(cast(*s32)v.data); // @ is dereference of pointer
+			print_log("Number: %", v_int);
+		} else if v.type_info.kind == TypeKind.BOOL {
+			v_bool :: @(cast(*bool)v.data);
+			print_log("Boolean: %", if v_bool then "TRUE" else "FALSE");
+		}
+	};
+
+	// Notice we do not need to do explicit conversion here, anything can by converted
+	// to Any implicitly. (Even types)
+	print_number_or_bool(10);
+	print_number_or_bool(false);
+}
+
+polymorph_functions :: fn () {
+	print_log("=== polymorph_functions ===");
+}
+
+comptime_functions :: fn () {
+	print_log("=== comptime_functions ===");
 }
 
 

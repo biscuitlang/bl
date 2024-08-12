@@ -6,6 +6,7 @@ Master
 Add demo program.
 Fix conversion of builtin array.len to Any on function call.
 Fix defer statements used with inline ifs.
+Fix local scope struct type composition.
 
 0.11.1
 ---------------------------------------------------------------------------------------

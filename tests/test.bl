@@ -4,16 +4,38 @@
 */
 
 main :: fn () s32 {
+	// print("%", NO_SERIALIZE);
+
 	NO_SERIALIZE : u64 : 1;
 
-	Entity :: struct {
-		position: [3]s32;
-		id: u32;
-		render_data: *u8 #tag NO_SERIALIZE;
-	};
+	a: BOO;
+
+	// Entity :: struct {
+	// 	position: Point;
+	// 	id: u32;
+	// 	render_data: *u8 #tag NO_SERIALIZE;
+	// };
+
+	// Point :: struct {
+	// 	x: s32;
+	// 	y: s32;
+	// };
 
 	return 0;
 }
+
+/* BUG
+
+print_number_or_bool :: fn (v: Any) {
+	if v.type_info.kind == TypeKind.INT {
+		print_log("Number: %", @(cast(*s32)v.data)); // HERE!!!
+	} else if v.type_info.kind == TypeKind.BOOL {
+		v_bool :: @(cast(*bool)v.data);
+		print_log("Boolean: %", if v_bool then "TRUE" else "FALSE");
+	}
+};
+
+*/
 
 /*
 enum_variants_to_string_list :: fn (TEnum: type #comptime) [enum_count(TEnum)]string_view #comptime {
