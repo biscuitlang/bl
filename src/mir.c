@@ -4310,8 +4310,8 @@ enum vm_interp_state evaluate(struct context *ctx, struct mir_instr *instr) {
 		}
 		const bool is_volatile = is_instr_type_volatile(instr);
 		erase_instr_tree(instr, true, true);
-		mutate_instr(instr, MIR_INSTR_CONST);
-		((struct mir_instr_const *)instr)->volatile_type = is_volatile;
+		struct mir_instr_const *cnst = (struct mir_instr_const *)mutate_instr(instr, MIR_INSTR_CONST);
+		cnst->volatile_type          = is_volatile;
 	}
 	return VM_INTERP_PASSED;
 }
@@ -5182,6 +5182,7 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 			len->volatile_type          = false;
 			len->base.value.is_comptime = true;
 			len->base.value.type        = ctx->builtin_types->t_s64;
+			target_addr_mode            = MIR_VAM_RVALUE;
 			MIR_CEV_WRITE_AS(s64, &len->base.value, target_type->data.array.len);
 		} else if (member_ptr->builtin_id == BUILTIN_ID_ARR_PTR || is_builtin(ast_member_ident, BUILTIN_ID_ARR_PTR)) {
 			// @Incomplete <2022-06-21 Tue> I don't remember why we need both checks here.
@@ -5204,6 +5205,7 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 			struct mir_instr_addrof *addrof_elem = (struct mir_instr_addrof *)mutate_instr(&member_ptr->base, MIR_INSTR_ADDROF);
 			addrof_elem->base.state              = MIR_IS_PENDING;
 			addrof_elem->src                     = elem_ptr;
+
 			analyze_instr_rq(&addrof_elem->base);
 		} else {
 			report_error(INVALID_MEMBER_ACCESS, ast_member_ident, "Unknown member.");
