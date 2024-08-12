@@ -13,6 +13,7 @@ main :: fn () s32 {
 	function_taking_any();
 	polymorph_functions();
 	comptime_functions();
+	load_data_to_stack();
 
 	return 0;
 }
@@ -282,7 +283,7 @@ function_taking_any :: fn () {
 	print_log("=== function_taking_any ===");
 
 	// The value of Any type contains pointer to type information and pointer
-	// to data. This way we can implement reusable generic function (like for example
+	// to data. This way we can implement reusable "generic" function (like for example
 	// print/print_log we already used a lot).
 
 	print_number_or_bool :: fn (v: Any) {
@@ -302,12 +303,20 @@ function_taking_any :: fn () {
 	print_number_or_bool(false);
 }
 
+function_returning_multiple_values :: fn () {
+	print_log("=== function_returning_multiple_values ===");
+}
+
 polymorph_functions :: fn () {
 	print_log("=== polymorph_functions ===");
 }
 
 comptime_functions :: fn () {
 	print_log("=== comptime_functions ===");
+}
+
+load_data_to_stack :: fn () {
+	print_log("=== load_data_to_stack ===");
 }
 
 
