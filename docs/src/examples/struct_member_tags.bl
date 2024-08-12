@@ -1,0 +1,20 @@
+NO_SERIALIZE : u64 : 1;
+
+Entity :: struct {
+	position: [3]f32;
+	name: string;
+	render_data: *u8 #tag NO_SERIALIZE;
+}
+
+// Check the tag.
+main :: fn () s32 {
+	info :: cast(*TypeInfoStruct) typeinfo(Entity);
+	loop i := 0; i < info.members.len; i += 1 {
+		member :: info.members[i];
+		if member.tag == NO_SERIALIZE then continue;
+
+		// do serialization...
+		print_log("Serialize member: %", member.name);
+	}
+	return 0;
+}

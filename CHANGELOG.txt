@@ -3,8 +3,9 @@ Master
 
 0.11.2
 ---------------------------------------------------------------------------------------
-Fix defer statements used with inline ifs.
 Add demo program.
+Fix conversion of builtin array.len to Any on function call.
+Fix defer statements used with inline ifs.
 
 0.11.1
 ---------------------------------------------------------------------------------------

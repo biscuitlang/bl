@@ -93,7 +93,7 @@ To use our new build script, simply type `blc -build` into the terminal (in the 
 
 The build script file is nothing else than the regular BL program executed directly when `-build` compiler flag is used. That means we can do any advanced programming here, you can use `fs` module API to create new files, and directories or to generate any advanced build output.
 
-See also [Build System](/modules/build)
+See also [Build System](modules_build.html#Build-System)
 
 # Variables
 
@@ -583,9 +583,11 @@ person_add_age :: fn (person: *Person, add: s32) {
 }
 ```
 
+### Implicit Composition
+
 A structure can extend any type with the use of `#base <T>`. This is a kind of inheritance (similar to the C style) where inheritance can be simulated by composition. The `#base <T>` inserts `base: T`; as the first member into the structure. The compiler can use this information later to provide more inheritance-related features like merging of scopes to enable direct access to base-type members via `.` operator or implicit cast from a child to a parent pointer type.
 
-Example of structure extension:
+**Example of structure extension:**
 
 ```bl
 Entity :: struct {
@@ -639,6 +641,17 @@ update :: fn (e: *Entity) {
     print("id = %\n", e.id);
 }
 ```
+
+### Member Tagging
+
+Compile-time `u64` tag can be assigned to struct members. The tag value is later accessible via Type Info API in `TypeInfoStructMember.tag`. 
+
+```bl
+@@@examples/struct_member_tags.bl
+
+```
+
+
 
 ## Union Type
 
@@ -1585,7 +1598,7 @@ Since the BL compiler supports documentation generation out of the box, you can 
 - `//!` Documentation of the file.
 - `///` Documentation of the following symbol.
 
-See also [Self-Documentation](/book/documentation).
+See also [Documentation](manual.html#Documentation).
 
 # Literals
 
@@ -1957,7 +1970,7 @@ A BL code is organized into scopes similar to C++ namespaces. Each scope groups 
 
 ## Global Scope
 
-The global scope is created implicitly and encloses all symbols and other scopes in the program. It's the top scope without any parent scope. You can use `#load` or `#import` directives to add symbols from other files in the global scope of our program. Consider we have two files, one called *utils.bl* containing the *my_print_log* function declared in global scope, and the other file containing the *main* function. We can use a `#load` followed by the file name to make the *my_print_log* function available in the *main*. The `#load` should be followed by the *filepath* relative to the file we're loading from, but it can be any *absolute* existing path to the other file. The `#import` is meant to be used with [modules](/book/modules).
+The global scope is created implicitly and encloses all symbols and other scopes in the program. It's the top scope without any parent scope. You can use `#load` or `#import` directives to add symbols from other files in the global scope of our program. Consider we have two files, one called *utils.bl* containing the *my_print_log* function declared in global scope, and the other file containing the *main* function. We can use a `#load` followed by the file name to make the *my_print_log* function available in the *main*. The `#load` should be followed by the *filepath* relative to the file we're loading from, but it can be any *absolute* existing path to the other file. The `#import` is meant to be used with [modules](manual.html#Modules).
 
 ```bl
 // utils.bl
@@ -1994,9 +2007,9 @@ Loads source code in a single file into the current global scope of your project
 #import "<path/to/your/module>"
 ```
 
-The import is supposed to be used with BL [modules](/book/modules).
+The import is supposed to be used with BL [modules](manual.html#Modules).
 
-See also [Module Import Policy](/modules/build/#moduleimportpolicy).
+See also [Module Import Policy](modules_build.html#ModuleImportPolicy).
 
 ## Named Scope
 
@@ -2212,9 +2225,9 @@ x86_64-pc-linux-gnu:
 
 # Type Info
 
-The full *runtime type introspection* is supported in BL. You can use `typeinfo(<TYPE>)` builtin function to get the runtime [information](/modules/a/#typekind) about the *TYPE*.  The `typeinfo` returns a pointer to the type metadata included in the final binary, so there is no additional unexpected overhead involved (except the binary might be slightly bigger). The type metadata information is added lazily into the binary only for required types.
+The full *runtime type introspection* is supported in BL. You can use `typeinfo(<TYPE>)` builtin function to get the runtime [information](modules_a.html#TypeKind) about the *TYPE*.  The `typeinfo` returns a pointer to the type metadata included in the final binary, so there is no additional unexpected overhead involved (except the binary might be slightly bigger). The type metadata information is added lazily into the binary only for required types.
 
-This feature may be handy for automatic serialization of any kind, the good example is the [print](/modules/print/#print) which gives you automatically pretty print of any passed value or type.
+This feature may be handy for automatic serialization of any kind, the good example is the [print](modules_print.html#print) which gives you automatically pretty print of any passed value or type.
 
 ```bl
 main :: fn () s32 {
@@ -2251,7 +2264,7 @@ List of builtin variables set by compiler:
 - `BLC_VER_MINOR` Compiler minor version number.
 - `BLC_VER_PATCH` Compiler patch version number.
 
-## Functions
+## Builtin Functions
 
 ### `sizeof`
 
@@ -2301,6 +2314,37 @@ compiler_warning(message: string_view) #comptime
 
 Report warning in compile-time.
 
+# Directives
+
+- `#base` - See [here](manual.html#Implicit-Composition).
+- `#build_entry` - See [here](modules_build.html).
+- `#call_location` - See [here](manual.html#Call-Location).
+- `#compiler` - Compiler internal.
+- `#comptime` - Mark symbol as known in compile-time.
+- `#enable_if` - See [here](manual.html#enable_if).
+- `#entry` - Compiler internal.
+- `#export` - See [here](manual.html#export).
+- `#extern` - See [here](manual.html#extern).
+- `#file` - Evaluates in `string_view` containing name of current file.
+- `#flags` - See [here](manual.html#Enum-Flags-Type).
+- `#if` - Mark if statement as static if evaluated in compile time.
+- `#import` - See [here](manual.html#Import).
+- `#inline` - Mark function as inline.
+- `#intrinsic` - Compiler internal.
+- `#line` - Evaluates in `s32` number of current line in the file.
+- `#load` - See [here](manual.html#Load).
+- `#maybe_unused` - See [here](manual.html#Usage-Checks).
+- `#noinit` - See [here](manual.html#Initialization).
+- `#noinline` - Disable function inlining.
+- `#obsolete` - Mark function as obsolete. 
+	```bl
+	foo :: fn () #obsolete "Use bar instead!" {}
+	```
+- `#private` - See [here](manual.html#Private-Scope).
+- `#scope` - See [here](manual.html#Named-Scope).
+- `#tag` - See [here](manual.html#Member-Tagging).
+- `#test` - See [here](manual.html#Unit-Testing).
+- `#thread_local` - See [here](manual.html#Global).
 
 # Documentation
 
@@ -2363,7 +2407,7 @@ Count of printed bytes is returned.
 
 # Compiler Usage
 
-Biscuit language compiler is a standalone terminal application called *blc*.  It can be compiled from source code found on [GitHub](https://github.com/travisdoor/bl) repository or downloaded from the home page as a binary executable (since the compiler is still under development, the binary versions may be outdated, currently [compilation](/installation) from the source code is preferred). All three major operating systems (Windows, macOS and Linux) are supported, but current active development is done on Windows and it usually takes some time to port the latest changes to the other platforms. The compiler executable can be found in *bin* directory it's usually a good idea to add the executable location to the system *PATH* to be accessible from other locations.
+Biscuit language compiler is a standalone terminal application called *blc*.  It can be compiled from source code found on [GitHub](https://github.com/travisdoor/bl) repository or downloaded from the home page as a binary executable (since the compiler is still under development, the binary versions may be outdated, currently [compilation](index.html) from the source code is preferred). All three major operating systems (Windows, macOS and Linux) are supported, but current active development is done on Windows and it usually takes some time to port the latest changes to the other platforms. The compiler executable can be found in *bin* directory it's usually a good idea to add the executable location to the system *PATH* to be accessible from other locations.
 
 There are several options that can be passed to the compiler.
 
