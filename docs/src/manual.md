@@ -2505,6 +2505,7 @@ $ ./main.bl
 
 All command line arguments are forwarded into the executed script and can be accessed via `command_line_arguments` builtin variable. The first argument contains the script name every time.
 
+In case you don't want to use shebang, or your're not on the system supporting it, you can just use `blc -silent-run my-program.bl` in terminal. Note that, there is one limitation: All programs executed using builtin interpreter can use only dynamically loaded libraries, static ones are not supported, basically due to fact, we're not compiling to the native binary, so there is no linking step.
 
 # Unit Testing
 

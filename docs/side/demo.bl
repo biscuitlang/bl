@@ -12,6 +12,8 @@ main :: fn () s32 {
 	string_views();
 	dynamic_strings();
 
+	type_info();
+
 	return 0;
 }
 
@@ -219,3 +221,6 @@ dynamic_strings :: fn () {
 	std.str_delete(&str);
 }
 
+type_info :: fn () {
+	print_log("=== type_info ===");
+}

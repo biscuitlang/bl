@@ -12,6 +12,11 @@ main :: fn () s32 {
 	string_views();
 	dynamic_strings();
 
+	type_info();
+
+	structs();
+
+
 	return 0;
 }
 
@@ -218,4 +223,50 @@ dynamic_strings :: fn () {
 	// Don't forget to release memory allocated by the string.
 	std.str_delete(&str);
 }
+
+type_info :: fn () {
+	print_log("=== type_info ===");
+
+	// Language provides detailed runtime type information via 'typeinfo()'
+	// builtin function.
+
+	// Print the type info for 'print' function.
+	print_log("%", typeinfo(print));
+}
+
+structs :: fn () {
+	print_log("=== structs ===");
+
+	{
+		// Struct type declaration.
+		Entity :: struct {
+			position: [3]s32;
+			id: u32;
+		};
+
+		// To initialize variable of this type you can use compound initializer.
+		entity := Entity.{
+			position = .{ 10, 20, 30 },
+			id = 666,
+		};
+
+		// You can againg directly print the structure. Like this:
+		print_log("entity = %", entity);
+
+		// What is maybe more cool, you can print even the structure type:
+		print_log("T = %", Entity);
+	}
+
+	{
+		// Structure members can be tagged by u64 value known in compile-time.
+		NO_SERIALIZE : u64 : 1;
+
+		Entity :: struct {
+			position: [3]s32;
+			id: u32;
+			render_data: *u8 #tag NO_SERIALIZE;
+		};
+	}
+}
+
 

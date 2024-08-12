@@ -4,7 +4,13 @@
 */
 
 main :: fn () s32 {
-	i :: if true 10 else 20;
+	NO_SERIALIZE : u64 : 1;
+
+	Entity :: struct {
+		position: [3]s32;
+		id: u32;
+		render_data: *u8 #tag NO_SERIALIZE;
+	};
 
 	return 0;
 }
