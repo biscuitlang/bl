@@ -1413,7 +1413,7 @@ static inline void commit_var(struct context *ctx, struct mir_var *var, const bo
 	if (entry->kind == SCOPE_ENTRY_UNNAMED) return;
 	entry->kind     = SCOPE_ENTRY_VAR;
 	entry->data.var = var;
-	if (isflag(var->iflags, MIR_VAR_GLOBAL) || isflag(var->iflags, MIR_VAR_STRUCT_TYPEDEF)) analyze_notify_provided(ctx, id->hash);
+	if (isflag(var->iflags, MIR_VAR_GLOBAL) || var->value.is_comptime) analyze_notify_provided(ctx, id->hash);
 	if (check_usage) usage_check_push(ctx, entry);
 }
 
@@ -5717,9 +5717,25 @@ struct result analyze_instr_decl_ref(struct context *ctx, struct mir_instr_decl_
 		ref->scope_entry = found;
 	}
 
+	if (found->node && ref->base.node &&
+	    scope_is_local(found->parent_scope) && scope_is_local(ref->base.node->owner_scope) &&
+	    scope_is_subtree_of(ref->base.node->owner_scope, found->parent_scope)) {
+		// 2024-08-12 It's actually possible, the symbol goes after it's usage, for example we can have local
+		// struct type definition with tag defined after. Struct type is resolved in separate block so, we get to
+		// tag definition even when structure type is not complete yet. This might lead to breaking rules of
+		// definition flow in local scopes.
+		if (found->node->location->line > ref->base.node->location->line) {
+			str_t sym_name = ref->rid->str;
+			report_error(UNKNOWN_SYMBOL, ref->base.node, "Symbol '%.*s' is used before it is declared.", sym_name.len, sym_name.ptr);
+			report_note(found->node, "Symbol declaration found here.");
+			return_zone(FAIL);
+		}
+	}
+
 	if (found->kind == SCOPE_ENTRY_INCOMPLETE) {
 		return_zone(WAIT(ref->rid->hash));
 	}
+
 	scope_entry_ref(found);
 	switch (found->kind) {
 	case SCOPE_ENTRY_FN: {
@@ -9117,25 +9133,14 @@ void analyze_report_unresolved(struct context *ctx) {
 		for (usize j = 0; j < sarrlenu(wq); ++j) {
 			struct mir_instr *instr = sarrpeek(wq, j);
 			bassert(instr);
-			str_t       sym_name                  = str_empty;
-			bool        used_before_declared      = false;
-			struct ast *used_before_declared_node = NULL;
+			str_t sym_name = str_empty;
 			switch (instr->kind) {
 			case MIR_INSTR_DECL_REF: {
 				struct mir_instr_decl_ref *ref = (struct mir_instr_decl_ref *)instr;
 				if (!ref->scope) continue;
 				if (!ref->rid) continue;
-				sym_name                  = ref->rid->str;
-				struct scope_entry *found = NULL;
-				lookup_ref(ctx, ref, &found, NULL);
-				if (found) {
-					if (found->kind == SCOPE_ENTRY_INCOMPLETE && scope_is_local(found->parent_scope)) {
-						used_before_declared      = true;
-						used_before_declared_node = found->node;
-					} else {
-						continue;
-					}
-				}
+				sym_name = ref->rid->str;
+				if (ref->scope_entry) continue;
 				break;
 			}
 			default:
@@ -9143,16 +9148,9 @@ void analyze_report_unresolved(struct context *ctx) {
 				continue;
 			}
 			bassert(sym_name.len && "Invalid unresolved symbol name!");
-			if (used_before_declared) {
-				report_error(UNKNOWN_SYMBOL, instr->node, "Symbol '%.*s' is used before it is declared.", sym_name.len, sym_name.ptr);
-				if (used_before_declared_node) {
-					report_note(used_before_declared_node, "Symbol declaration found here.");
-				}
-			} else {
-				report_error(UNKNOWN_SYMBOL, instr->node, "Unknown symbol '%.*s'.", sym_name.len, sym_name.ptr);
-				if (str_match(sym_name, builtin_ids[BUILTIN_ID_MAIN].str)) {
-					report_note(NULL, "Executable requires 'main' entry point function: \n\n\tmain :: fn () s32 {\n\t\treturn 0;\n\t}\n");
-				}
+			report_error(UNKNOWN_SYMBOL, instr->node, "Unknown symbol '%.*s'.", sym_name.len, sym_name.ptr);
+			if (str_match(sym_name, builtin_ids[BUILTIN_ID_MAIN].str)) {
+				report_note(NULL, "Executable requires 'main' entry point function: \n\n\tmain :: fn () s32 {\n\t\treturn 0;\n\t}\n");
 			}
 			++reported;
 		}

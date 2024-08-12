@@ -82,7 +82,7 @@ multi_declaration1 :: fn () #test {
 	test_eq(a, 999);
 	test_eq(b, 999);
 	test_eq(c, 999);
-	test_eq(d, 999);    
+	test_eq(d, 999);
 }
 
 multi_declaration2 :: fn () #test {
@@ -90,7 +90,7 @@ multi_declaration2 :: fn () #test {
 	test_eq(a, 999);
 	test_eq(b, 999);
 	test_eq(c, 999);
-	test_eq(d, 999);    
+	test_eq(d, 999);
 }
 
 cc := 0;
@@ -102,7 +102,7 @@ multi_declaration3 :: fn () #test {
 	test_eq(a, 999);
 	test_eq(b, 999);
 	test_eq(c, 999);
-	test_eq(d, 999);    
+	test_eq(d, 999);
 }
 
 multi_declaration4 :: fn () #test {
@@ -121,4 +121,26 @@ multi_declaration5 :: fn () #test {
 	test_eq(b, 20);
 	test_eq(c, 20);
 	test_eq(d, 20);
+}
+
+local_struct_composition :: fn () #test {
+	Point :: struct {
+		x: s32;
+	};
+
+	Entity :: struct {
+		position: Point;
+	};
+
+	_: Entity;
+}
+
+local_struct_composition_tags :: fn () #test {
+	MY_TAG : u64 : 10;
+
+	Entity :: struct {
+		position: s32 #tag MY_TAG;
+	};
+
+	_: Entity;
 }
