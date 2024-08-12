@@ -860,10 +860,10 @@ include_file :: fn (filepath: string_view) (content: string_view, err: Error) {
 	file, file_err :: open_file(fullpath, OpenFileMode.READ);
 	defer close_file(&file);
 
-	if file_err { return "", file_err; }
+	if file_err then return "", file_err;
 
 	data, read_err :: load_whole_file(&file);
-	if read_err { return "", read_err; }
+	if read_err then return "", read_err;
 
 	tbl_insert(&include_file_cache, hash, data);
 	return data, OK;

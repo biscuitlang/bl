@@ -896,7 +896,7 @@ bool parse_semicolon(struct context *ctx) {
 
 bool parse_semicolon_rq(struct context *ctx) {
 	struct token *tok = tokens_consume_if(ctx->tokens, SYM_SEMICOLON);
-	if (!tok) {
+	if (!tok && builder.errorc == 0) {
 		tok = tokens_peek_prev(ctx->tokens);
 		report_error(MISSING_SEMICOLON, tok, CARET_AFTER, "Expected semicolon ';'.");
 		// consume_till(ctx->tokens, SYM_IDENT, SYM_RBLOCK); 2024-07-29 We don't want this everytime...
@@ -1002,6 +1002,7 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 		struct token *tok_err = tokens_consume(ctx->tokens);
 		report_error(
 		    EXPECTED_EXPR, tok_err, CARET_WORD, "Expected expression for the if statement.");
+		tokens_consume_till(ctx->tokens, SYM_SEMICOLON);
 		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
 	}
 
@@ -1009,6 +1010,7 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 	if (!tok_then && is_expression) {
 		struct token *tok_err = tokens_peek(ctx->tokens);
 		report_error(INVALID_EXPR, tok_err, CARET_WORD, "Expected 'then' keyword after ternary if statement expression.");
+		tokens_consume_till(ctx->tokens, SYM_SEMICOLON);
 		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
 	}
 
@@ -1026,7 +1028,9 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 	}
 
 	if (!true_branch && tok_then) {
-		if (is_expression) {
+		if (tokens_current_is(ctx->tokens, SYM_SEMICOLON) || tokens_current_is(ctx->tokens, SYM_ELSE)) {
+			true_branch = NULL;
+		} else if (is_expression) {
 			true_branch = parse_single_block_stmt_or_expr(ctx, NULL);
 		} else {
 			struct scope *scope =
@@ -1065,12 +1069,14 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 		if (!false_branch) false_branch = parse_block(ctx, SCOPE_LEXICAL);
 		if (false_branch) {
 			if (is_expression) {
-				builder_msg(MSG_ERR, ERR_EXPECTED_EXPR, true_branch->location, CARET_WORD, "Blocks cannot be used in ternary if expressions.");
+				builder_msg(MSG_ERR, ERR_EXPECTED_EXPR, false_branch->location, CARET_WORD, "Blocks cannot be used in ternary if expressions.");
 			}
 			is_semicolon_required = false;
 		}
 		if (!false_branch) {
-			if (is_expression) {
+			if (tokens_current_is(ctx->tokens, SYM_SEMICOLON)) {
+				false_branch = NULL;
+			} else if (is_expression) {
 				false_branch = parse_single_block_stmt_or_expr(ctx, NULL);
 			} else {
 				struct scope *scope =
@@ -2428,7 +2434,9 @@ NEXT:
 	switch (tokens_peek_sym(ctx->tokens)) {
 	case SYM_SEMICOLON:
 		tok = tokens_consume(ctx->tokens);
-		report_warning(tok, CARET_WORD, "Extra semicolon can be removed ';'.");
+		if (builder.errorc == 0) {
+			report_warning(tok, CARET_WORD, "Extra semicolon can be removed ';'.");
+		}
 		goto NEXT;
 
 	case SYM_HASH: {
