@@ -1,9 +1,9 @@
 //! # File System
-//! 
+//!
 //! `#import "std/fs"`
-//! 
-//! File system module for manipulation with files and directories. This module provides an 
-//! abstraction over operating system APIs such as creating files and directories, reading and 
+//!
+//! File system module for manipulation with files and directories. This module provides an
+//! abstraction over operating system APIs such as creating files and directories, reading and
 //! writing, and scanning the filesystem.
 
 #import "std/io"
@@ -37,9 +37,9 @@ OpenFileMode :: enum #flags {
 /// opened, otherwise return invalid stream and proper error. Stream must be closed by [close_file](#stdclose_file)
 /// call.
 ///
-/// File open `mode` is optional, any combination of `OpenFileMode` can be used. When `Create` 
-/// `mode` is specified, new file is created on `filepath` only if it does not exist, otherwise 
-/// already existing file is used. `Read` `mode` is used as default when neither `Read`, `Write` or 
+/// File open `mode` is optional, any combination of `OpenFileMode` can be used. When `Create`
+/// `mode` is specified, new file is created on `filepath` only if it does not exist, otherwise
+/// already existing file is used. `Read` `mode` is used as default when neither `Read`, `Write` or
 /// `Append` is specified.
 ///
 /// ### Example
@@ -76,7 +76,7 @@ remove_file :: fn (filepath: string_view) Error #inline {
 	return _fs_impl.remove(filepath);
 }
 
-/// Copy existing file from `src` to `dest` and override existing file in destination if `override` 
+/// Copy existing file from `src` to `dest` and override existing file in destination if `override`
 /// is true. Return `ok` or `error`.
 ///
 /// The destination file is created if it does not exist.
@@ -112,7 +112,7 @@ file_size :: fn (stream: *FileStream) (s64, Error) {
 // Directory utils
 // =================================================================================================
 
-/// Create new directory and return `OK` on success. This function does not create directories 
+/// Create new directory and return `OK` on success. This function does not create directories
 /// recursively.
 create_dir :: fn (dirpath: string_view) Error #inline {
 	return _fs_impl.create_dir(dirpath);
@@ -199,7 +199,7 @@ FileVisitInfo :: struct {
 	/// File or directory full path.
 	filepath: string_view;
 	/// In case the file visitor is in recursive mode the visitor callback might change this
-	/// value to `false` in case the current directory should be ignored. 
+	/// value to `false` in case the current directory should be ignored.
 	///
 	/// !!! note
 	///     Does not take any effect in case the `leaf_first` is set in visit options.
@@ -267,9 +267,9 @@ file_exist :: fn (filepath: string_view) bool #inline {
 	return _fs_impl.exist(filepath);
 }
 
-/// Try to normalize `filepath`, basically try to remove all relative path nodes `..` and `.`. Path 
-/// must be valid path (existing) on system. Original `filepath` is extended with current working 
-/// directory. Function return `OK` on success or proper error on fail. Original string is not 
+/// Try to normalize `filepath`, basically try to remove all relative path nodes `..` and `.`. Path
+/// must be valid path (existing) on system. Original `filepath` is extended with current working
+/// directory. Function return `OK` on success or proper error on fail. Original string is not
 /// modified when error occurs.
 path_normalize :: fn (filepath: *string) Error #inline {
 	return _fs_impl.normalize(filepath);
@@ -305,7 +305,7 @@ path_split :: fn (filepath: string_view) (head: string_view, tail: string_view) 
 }
 
 /// Split input `filepath` into `head` and `ext` components. The `ext` is the file extension  and the `head` is
-/// everything before. 
+/// everything before.
 ///
 /// ### Example
 ///
@@ -331,7 +331,7 @@ path_splitext :: fn (filepath: string_view) (head: string_view, ext: string_view
 }
 
 // @Incomplete: use temporary allocator
-/// Try to obtain current working directory, result must be released by `std.str_delete`. Path does 
+/// Try to obtain current working directory, result must be released by `std.str_delete`. Path does
 /// not contain last path separator.
 get_cwd :: fn () string #inline {
 	return _fs_impl.get_cwd();
@@ -343,14 +343,14 @@ set_cwd :: fn (path: string_view) Error #inline {
 }
 
 // @Incomplete: use temporary allocator
-/// Try to obtain system home directory, result must be released by `std.str_delete`. Path does not 
+/// Try to obtain system home directory, result must be released by `std.str_delete`. Path does not
 /// contain last path separator.
 get_home :: fn () string #inline {
 	return _fs_impl.get_home();
 }
 
 // @Incomplete: use temporary allocator
-/// Try to obtain system temporary directory, result must be released by `std.str_delete`. Path does 
+/// Try to obtain system temporary directory, result must be released by `std.str_delete`. Path does
 /// not contain last path separator.
 get_tmp :: fn () string #inline {
 	return _fs_impl.get_tmp();

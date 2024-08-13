@@ -1,3 +1,5 @@
+#import "std/fs"
+
 main :: fn () s32 {
 	variables();
 	if_statements();
@@ -11,9 +13,11 @@ main :: fn () s32 {
 	type_info();
 	structs();
 	function_taking_any();
+	function_returning_multiple_values();
+	error_handling();
 	polymorph_functions();
 	comptime_functions();
-	load_data_to_stack();
+	temporary_storage();
 
 	return 0;
 }
@@ -163,6 +167,9 @@ dynamic_arrays :: fn () {
 
 	// BL provides builtin dynamic arrays (implemented in Array module).
 	arr: [..]s32;
+	// Don't forget to release memory allocated by the array. We use defer, so
+	// termination is called at teh end of the scope or when funcition returns.
+	defer array_terminate(&arr);
 
 	loop i := 0; i < 10; i += 1 {
 		// Append at the array end.
@@ -185,9 +192,6 @@ dynamic_arrays :: fn () {
 	};
 
 	print_log("sum(arr) = %", sum(arr));
-
-	// Don't forget to release memory allocated by the array.
-	array_terminate(&arr);
 }
 
 string_views :: fn () {
@@ -211,15 +215,13 @@ dynamic_strings :: fn () {
 
 	// Allocate new dynamic string.
 	str :: std.str_new("Hello");
+	defer std.str_delete(&str);
 
 	// Append the string.
 	std.str_append(&str, " World!");
 
 	// Print the string.
 	print_log("str = %", str);
-
-	// Don't forget to release memory allocated by the string.
-	std.str_delete(&str);
 }
 
 type_info :: fn () {
@@ -305,18 +307,174 @@ function_taking_any :: fn () {
 
 function_returning_multiple_values :: fn () {
 	print_log("=== function_returning_multiple_values ===");
+
+	// In some cases you might need to return more than just one value from function
+	{
+		get_two_numbers :: fn () (s32, s32) {
+			return 10, 20;
+		};
+
+		a, b :: get_two_numbers();
+		print_log("a = %", a);
+		print_log("b = %", b);
+	}
+
+	{
+		// You can name these things...
+		get_two_numbers :: fn () (first: s32, second: s32) {
+			return 10, 20;
+		};
+
+		a, b :: get_two_numbers();
+		print_log("a = %", a);
+		print_log("b = %", b);
+
+		// You can use just one of the results.
+		first :: get_two_numbers();
+		print_log("first = %", first);
+
+		// Use blanbk identifier to ignore first value.
+		_, second :: get_two_numbers();
+		print_log("second = %", second);
+	}
+}
+
+error_handling :: fn () {
+	print_log("=== error_handling ===");
+
+	// There is really nothing special about error handling in BL; we just return an error,
+	// but multiple return values makes it a bit easier.
+
+	div :: fn (a: s32, b: s32) (result: s32, err: Error) {
+		if b == 0 then return 0, error("You can't divide by 0!");
+		return a/b, OK;
+	};
+
+	{
+		result, err :: div(10, 2);
+		if err then print_err(err) else print_log("result = %", result);
+	}
+
+	{
+		result, err :: div(10, 0);
+		if err then print_err(err) else print_log("result = %", result);
+	}
+
 }
 
 polymorph_functions :: fn () {
 	print_log("=== polymorph_functions ===");
+
+	// We also have generic/polymorph/templated/whatever functions in the language. You'll
+	// write thing we call "function recipe" and actual implementation is generated automatically
+	// when function is used.
+
+	// ? before type name indicates polymorph master type which is inferred from call
+	// side.
+	add :: fn (first: ?T, second: T) T {
+		return first + second;
+	};
+
+	// Use with integers.
+	print_log("add(10, 20) = %", add(10, 20));
+
+	// Use with floats.
+	print_log("add(10.f, 20.f) = %", add(10.f, 20.f));
 }
 
 comptime_functions :: fn () {
 	print_log("=== comptime_functions ===");
+
+	// Compile-time known expressions in the language are evaluated under the hood and
+	// replaced by constant results. We use integrated interpretter for this (the same thing
+	// used when you use 'blc -run something.bl').
+	// So we can have compile-time functions (executed during the compilation) and not
+	// existing in result executable produced by the compiler.
+
+	load_file_to_stack :: fn () []u8 #comptime { // Marked as comptime.
+		using std;
+
+		// Load current source file.
+		stream, open_err :: open_file(#file);
+		defer close_file(&stream);
+		if open_err then panic(open_err);
+
+		data: [..]u8;
+		read_err :: read_whole(&stream, &data);
+		if read_err then panic(read_err);
+
+		return data;
+	};
+
+	// Here the comptime function is executed during the compilation and its return value
+	// (content of this file in our case) becomes static string literal stored in DATA constant.
+	DATA :: load_file_to_stack();
+	print_log("Static data: %...", slice_range(DATA, 0, 32));
 }
 
-load_data_to_stack :: fn () {
-	print_log("=== load_data_to_stack ===");
+comptime_function_arguments :: fn () {
+	print_log("=== comptime_function_arguments ===");
+
+	// You can specify function arguments as comptime, this way we actually implement
+	// generic containers. You can pass types as comptime arguments.
+
+	MyArray :: fn (TValue: type #comptime, SIZE: s32 #comptime) type #comptime {
+		return struct {
+			data: [SIZE]TValue;
+			len: s32;
+		};
+	};
+
+	{ // Use for integer
+		arr: MyArray(s32, 10);
+		loop i := 0; i < 4; i += 1 {
+			arr.data[i] = i;
+			arr.len += 1;
+		}
+
+		print_log("arr = %", arr);
+	}
+
+	{ // Use for strings
+		arr: MyArray(string_view, 10);
+		loop i := 0; i < 4; i += 1 {
+			arr.data[i] = "Hello";
+			arr.len += 1;
+		}
+
+		print_log("arr = %", arr);
+	}
 }
 
+temporary_storage :: fn () {
+	print_log("=== temporary_storage ===");
+
+	// Temporary storage is preallocated memory in memory pool provided to every
+	// application implicitly in 'application_context' global variable.
+	// This might be useful in frame based applications where you need some scratch
+	// memory used each frame.
+
+	ROOT_DIR :: "/my/dir";
+
+	loop i := 0; i < 10; i += 1 {
+		// Our frame.
+
+		// tprint internally uses temporary storage to hold the resulting path here.
+		path :: tprint("%/%.txt", ROOT_DIR, i);
+		print_log("path = %", path);
+
+		// Resetting the temporary storage will keep memory preallocated, but 'path'
+		// becomes invalid after reset.
+
+		temporary_reset();
+	}
+
+	// Release the temporary storage (free preallocated pool). (this is done automatically
+	// at main function exit, but you might want to be explicit sometimes).
+	temporary_release();
+
+	// Note that the 'application_context' is muttable, and you can change various default
+	// things there (such as abort handler, log handler, global allocator, temporary allocator
+	// etc.).
+}
 

@@ -1,7 +1,7 @@
 src/modules
 side/*.html
 side/search.json
-size/*.bl
+side/*.bl
 *.exe
 *.obj
 *.pdb
