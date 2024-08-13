@@ -1,5 +1,5 @@
 //! # Input/Ouput
-//! 
+//!
 //! `#import "std/io"`
 //!
 //! Input and output is handled by generic stream interface containing callbacks for read, write and
@@ -140,7 +140,39 @@ read_all :: fn (stream: *Stream, dest: *u8, bytes_to_read: s64, buffer_size := 5
 	}
 	assert(read_bytes == bytes_to_read);
 	return OK;
-}    
+}
+
+/// Loads context of the whole (from BEGIN locator to END) stream into `dest` dynamic array. The input stream must
+/// be readable and seekable.
+///
+/// The `size_limit_bytes` might be specified to limit the maximum allowed count of bytes to read. Error is generated
+/// in case the stream content is bigger then the limit, and no reading is done in such a case. The `size_limit_bytes`
+/// is ignored when set to -1 (default).
+///
+/// Stream locator position is preserved.
+read_whole :: fn (stream: *Stream, dest: *[..]u8, size_limit_bytes : s64 = -1) Error {
+	using StreamLocator;
+
+	prev_location, err1  :: seek(stream, CURRENT);
+	if err1 { return err1; }
+	defer seek(stream, CURRENT, prev_location);
+
+	_, err2 :: seek(stream, BEGIN);
+	if err2 { return err2; }
+
+	size, err3 :: seek(stream, END);
+	if err3 { return err3; }
+
+	_, err4 :: seek(stream, BEGIN);
+	if err4 { return err4; }
+
+	if size_limit_bytes != -1 && size > size_limit_bytes {
+		return error(-1, "File bigger than specified limit %B.", size_limit_bytes);
+	}
+
+	array_resize(dest, size);
+	return read_all(stream, dest.ptr, size, 2048);
+}
 
 read_value :: fn (stream: *Stream, v: *?T) Error #inline {
 	assert(v);

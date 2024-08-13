@@ -1,0 +1,5 @@
+// @ERR_EXPECTED_STMT@
+main :: fn () s32 {
+	if true then;
+	return 0;
+}

@@ -633,7 +633,7 @@ static struct mir_instr       *ast(struct context *ctx, struct ast *node);
 static void                    ast_ublock(struct context *ctx, struct ast *ublock);
 static void                    ast_unreachable(struct context *ctx, struct ast *unr);
 static void                    ast_debugbreak(struct context *ctx, struct ast *debug_break);
-static void                    ast_defer_block(struct context *ctx, struct ast *block, bool whole_tree);
+static void                    ast_defer_block(struct context *ctx, struct scope *block_owner_scope, bool whole_branch);
 static void                    ast_block(struct context *ctx, struct ast *block);
 static struct mir_instr       *ast_stmt_if(struct context *ctx, struct ast *stmt_if);
 static void                    ast_stmt_return(struct context *ctx, struct ast *ret);
@@ -1413,7 +1413,7 @@ static inline void commit_var(struct context *ctx, struct mir_var *var, const bo
 	if (entry->kind == SCOPE_ENTRY_UNNAMED) return;
 	entry->kind     = SCOPE_ENTRY_VAR;
 	entry->data.var = var;
-	if (isflag(var->iflags, MIR_VAR_GLOBAL) || isflag(var->iflags, MIR_VAR_STRUCT_TYPEDEF)) analyze_notify_provided(ctx, id->hash);
+	if (isflag(var->iflags, MIR_VAR_GLOBAL) || var->value.is_comptime) analyze_notify_provided(ctx, id->hash);
 	if (check_usage) usage_check_push(ctx, entry);
 }
 
@@ -4310,8 +4310,8 @@ enum vm_interp_state evaluate(struct context *ctx, struct mir_instr *instr) {
 		}
 		const bool is_volatile = is_instr_type_volatile(instr);
 		erase_instr_tree(instr, true, true);
-		mutate_instr(instr, MIR_INSTR_CONST);
-		((struct mir_instr_const *)instr)->volatile_type = is_volatile;
+		struct mir_instr_const *cnst = (struct mir_instr_const *)mutate_instr(instr, MIR_INSTR_CONST);
+		cnst->volatile_type          = is_volatile;
 	}
 	return VM_INTERP_PASSED;
 }
@@ -5182,6 +5182,7 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 			len->volatile_type          = false;
 			len->base.value.is_comptime = true;
 			len->base.value.type        = ctx->builtin_types->t_s64;
+			target_addr_mode            = MIR_VAM_RVALUE;
 			MIR_CEV_WRITE_AS(s64, &len->base.value, target_type->data.array.len);
 		} else if (member_ptr->builtin_id == BUILTIN_ID_ARR_PTR || is_builtin(ast_member_ident, BUILTIN_ID_ARR_PTR)) {
 			// @Incomplete <2022-06-21 Tue> I don't remember why we need both checks here.
@@ -5204,6 +5205,7 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 			struct mir_instr_addrof *addrof_elem = (struct mir_instr_addrof *)mutate_instr(&member_ptr->base, MIR_INSTR_ADDROF);
 			addrof_elem->base.state              = MIR_IS_PENDING;
 			addrof_elem->src                     = elem_ptr;
+
 			analyze_instr_rq(&addrof_elem->base);
 		} else {
 			report_error(INVALID_MEMBER_ACCESS, ast_member_ident, "Unknown member.");
@@ -5715,9 +5717,25 @@ struct result analyze_instr_decl_ref(struct context *ctx, struct mir_instr_decl_
 		ref->scope_entry = found;
 	}
 
+	if (found->node && ref->base.node &&
+	    scope_is_local(found->parent_scope) && scope_is_local(ref->base.node->owner_scope) &&
+	    scope_is_subtree_of(ref->base.node->owner_scope, found->parent_scope)) {
+		// 2024-08-12 It's actually possible, the symbol goes after it's usage, for example we can have local
+		// struct type definition with tag defined after. Struct type is resolved in separate block so, we get to
+		// tag definition even when structure type is not complete yet. This might lead to breaking rules of
+		// definition flow in local scopes.
+		if (found->node->location->line > ref->base.node->location->line) {
+			str_t sym_name = ref->rid->str;
+			report_error(UNKNOWN_SYMBOL, ref->base.node, "Symbol '%.*s' is used before it is declared.", sym_name.len, sym_name.ptr);
+			report_note(found->node, "Symbol declaration found here.");
+			return_zone(FAIL);
+		}
+	}
+
 	if (found->kind == SCOPE_ENTRY_INCOMPLETE) {
 		return_zone(WAIT(ref->rid->hash));
 	}
+
 	scope_entry_ref(found);
 	switch (found->kind) {
 	case SCOPE_ENTRY_FN: {
@@ -8500,10 +8518,10 @@ struct result analyze_instr_block(struct context *ctx, struct mir_instr_block *b
 		if (fn->type->data.fn.ret_type->kind == MIR_TYPE_VOID) {
 			set_current_block(ctx, block);
 			bassert(fn->exit_block && "Current function does not have exit block set or even generated!");
-			append_instr_br(ctx, block->base.node, fn->exit_block);
+			append_instr_br(ctx, NULL, fn->exit_block);
 		} else if (block->is_unreachable || block->base.ref_count == 0) {
 			set_current_block(ctx, block);
-			append_instr_br(ctx, block->base.node, fn->exit_block);
+			append_instr_br(ctx, NULL, fn->exit_block);
 		} else {
 			report_error(MISSING_RETURN, fn->decl_node, "Not every path inside function return value.");
 		}
@@ -9115,25 +9133,14 @@ void analyze_report_unresolved(struct context *ctx) {
 		for (usize j = 0; j < sarrlenu(wq); ++j) {
 			struct mir_instr *instr = sarrpeek(wq, j);
 			bassert(instr);
-			str_t       sym_name                  = str_empty;
-			bool        used_before_declared      = false;
-			struct ast *used_before_declared_node = NULL;
+			str_t sym_name = str_empty;
 			switch (instr->kind) {
 			case MIR_INSTR_DECL_REF: {
 				struct mir_instr_decl_ref *ref = (struct mir_instr_decl_ref *)instr;
 				if (!ref->scope) continue;
 				if (!ref->rid) continue;
-				sym_name                  = ref->rid->str;
-				struct scope_entry *found = NULL;
-				lookup_ref(ctx, ref, &found, NULL);
-				if (found) {
-					if (found->kind == SCOPE_ENTRY_INCOMPLETE && scope_is_local(found->parent_scope)) {
-						used_before_declared      = true;
-						used_before_declared_node = found->node;
-					} else {
-						continue;
-					}
-				}
+				sym_name = ref->rid->str;
+				if (ref->scope_entry) continue;
 				break;
 			}
 			default:
@@ -9141,16 +9148,9 @@ void analyze_report_unresolved(struct context *ctx) {
 				continue;
 			}
 			bassert(sym_name.len && "Invalid unresolved symbol name!");
-			if (used_before_declared) {
-				report_error(UNKNOWN_SYMBOL, instr->node, "Symbol '%.*s' is used before it is declared.", sym_name.len, sym_name.ptr);
-				if (used_before_declared_node) {
-					report_note(used_before_declared_node, "Symbol declaration found here.");
-				}
-			} else {
-				report_error(UNKNOWN_SYMBOL, instr->node, "Unknown symbol '%.*s'.", sym_name.len, sym_name.ptr);
-				if (str_match(sym_name, builtin_ids[BUILTIN_ID_MAIN].str)) {
-					report_note(NULL, "Executable requires 'main' entry point function: \n\n\tmain :: fn () s32 {\n\t\treturn 0;\n\t}\n");
-				}
+			report_error(UNKNOWN_SYMBOL, instr->node, "Unknown symbol '%.*s'.", sym_name.len, sym_name.ptr);
+			if (str_match(sym_name, builtin_ids[BUILTIN_ID_MAIN].str)) {
+				report_note(NULL, "Executable requires 'main' entry point function: \n\n\tmain :: fn () s32 {\n\t\treturn 0;\n\t}\n");
 			}
 			++reported;
 		}
@@ -9738,18 +9738,23 @@ struct mir_var *rtti_gen_fn_group(struct context *ctx, struct mir_type *type) {
 	return rtti_var;
 }
 
-// MIR building
-// Generate instructions for all ast nodes pushed into defer_stack in reverse order.
-void ast_defer_block(struct context *ctx, struct ast *block, bool whole_tree) {
+// Generate instructions for ast nodes pushed into defer_stack in reverse order.
+//
+// There are two cases in general:
+// 1) We're at the end of lexical block, so we want to generate all deferred instructions
+//    registered  only in the block scope. The whole_branch = false.
+// 2) We're at then end of block terminated by return instruction, so we want to generate
+//    all registered deferred instructions in the stack. The whole_branch = true.
+void ast_defer_block(struct context *ctx, struct scope *block_owner_scope, bool whole_branch) {
 	bassert(ctx->ast.current_defer_stack_index >= 0);
-	bassert(block);
+	bassert(block_owner_scope);
 	defer_stack_t *stack = &ctx->ast.defer_stack[ctx->ast.current_defer_stack_index];
 	struct ast    *defer;
 	for (usize i = sarrlenu(stack); i-- > 0;) {
 		defer = sarrpeek(stack, i);
-		if (defer->owner_scope == block->owner_scope) {
+		if (defer->owner_scope == block_owner_scope) {
 			sarrpop(stack);
-		} else if (!whole_tree) {
+		} else if (!whole_branch) {
 			break;
 		}
 		ast(ctx, defer->data.stmt_defer.expr);
@@ -9767,7 +9772,7 @@ void ast_block(struct context *ctx, struct ast *block) {
 		struct ast *tmp = sarrpeek(block->data.block.nodes, i);
 		ast(ctx, tmp);
 	}
-	if (!block->data.block.has_return) ast_defer_block(ctx, block, false);
+	if (!block->data.block.has_return) ast_defer_block(ctx, block->owner_scope, false);
 }
 
 void ast_unreachable(struct context *ctx, struct ast *unr) {
@@ -10024,7 +10029,7 @@ void ast_stmt_return(struct context *ctx, struct ast *ret) {
 		} else if (value) {
 			report_error(UNEXPECTED_EXPR, value->node, "Unexpected return value.");
 		}
-		ast_defer_block(ctx, ret->data.stmt_return.owner_block, true);
+		ast_defer_block(ctx, ret->owner_scope, true);
 	}
 	struct mir_instr_block *exit_block = fn->exit_block;
 	bassert(exit_block);
@@ -12017,6 +12022,7 @@ void mir_run(struct assembly *assembly) {
 	analyze_report_unused(&ctx);
 
 	blog("Analyze queue push count: %i", push_count);
+
 DONE:
 	assembly->stats.mir_s = runtime_measure_end(mir);
 

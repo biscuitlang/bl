@@ -1,33 +1,41 @@
+
 /* CURRENT TODO
 
 */
 
-#import "std/table"
-
 main :: fn () s32 {
-	using std;
-	tbl: Table(s32, s32);
-	defer tbl_terminate(&tbl);
+	// print("%", NO_SERIALIZE);
 
-	TEST_COUNT :: 100;
+	NO_SERIALIZE : u64 : 1;
 
-	loop i := 0; i < TEST_COUNT; i += 1 {
-		tbl_insert(&tbl, i, i);
-		assert(tbl_lookup_index(&tbl, i) != -1);
-	}
-	assert(tbl.len == TEST_COUNT);
+	a: BOO;
 
-	loop i := 0; i < TEST_COUNT; i += 1 {
-		assert(tbl_lookup_index(&tbl, i) != -1);
-		assert(tbl_erase(&tbl, i));
-	}
-	assert(tbl.len == 0);
+	// Entity :: struct {
+	// 	position: Point;
+	// 	id: u32;
+	// 	render_data: *u8 #tag NO_SERIALIZE;
+	// };
+
+	// Point :: struct {
+	// 	x: s32;
+	// 	y: s32;
+	// };
+
 	return 0;
 }
 
-// bar :: fn (v: s32) {
-// 	print_log("v1 = %", v);
-// }
+/* BUG
+
+print_number_or_bool :: fn (v: Any) {
+	if v.type_info.kind == TypeKind.INT {
+		print_log("Number: %", @(cast(*s32)v.data)); // HERE!!!
+	} else if v.type_info.kind == TypeKind.BOOL {
+		v_bool :: @(cast(*bool)v.data);
+		print_log("Boolean: %", if v_bool then "TRUE" else "FALSE");
+	}
+};
+
+*/
 
 /*
 enum_variants_to_string_list :: fn (TEnum: type #comptime) [enum_count(TEnum)]string_view #comptime {

@@ -2166,9 +2166,6 @@ void eval_instr_member_ptr(struct virtual_machine       UNUSED(*vm),
 		vm_stack_ptr_t     strct_ptr;
 
 		if (member_ptr->target_ptr->kind == MIR_INSTR_CONST) {
-			// In case the target pointer is constant, we assume it's created from call instruction compile time evaluation.
-			// In such a case the call result is saved directly in the constant value.
-			bassert(member_ptr->target_ptr->_orig_kind == MIR_INSTR_CALL);
 			strct_ptr = (vm_stack_ptr_t)&member_ptr->target_ptr->value;
 		} else {
 			strct_ptr = MIR_CEV_READ_AS(vm_stack_ptr_t, &member_ptr->target_ptr->value);

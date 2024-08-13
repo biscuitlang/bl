@@ -1,0 +1,480 @@
+#import "std/fs"
+
+main :: fn () s32 {
+	variables();
+	if_statements();
+	loops();
+	defer_statements();
+	arrays();
+	array_slices();
+	dynamic_arrays();
+	string_views();
+	dynamic_strings();
+	type_info();
+	structs();
+	function_taking_any();
+	function_returning_multiple_values();
+	error_handling();
+	polymorph_functions();
+	comptime_functions();
+	temporary_storage();
+
+	return 0;
+}
+
+variables :: fn () {
+	print_log("=== variables ===");
+
+	// Mutable variable declaration.
+	n1 := 10;
+	print_log("n1 = %", n1);
+
+	// Mutable variable declaration with explicit type.
+	n2 : s32 = 20;
+	print_log("n2 = %", n2);
+
+	// Immutable variable declaration.
+	N :: 30;
+	print_log("N = %", N);
+
+	// BL variables are by default zero initialized unless you
+	// use #noinit directive.
+	n3: s32;
+	print_log("n3 = %", n3);
+
+	n4: s32 #noinit; // Not initialized to 0.
+	print_log("n4 = %", n4);
+}
+
+if_statements :: fn () {
+	print_log("=== if_statements ===");
+
+	v :: 10;
+
+	// Inline if statement.
+	if v == 10 then print_log("v is 10");
+
+	// Inline if statement with else branch.
+	if v == 10 then print_log("v is 10") else print_log("v is not 10");
+
+	// If statement using blocks (then is optional).
+	if v == 10 {
+		print_log("v is 10");
+	} else {
+		print_log("v is not 10");
+	}
+
+	// We can use if statement as expresion.
+	n := if v == 10 then 20 else 40;
+	print_log("n = %", n);
+}
+
+loops :: fn () {
+	print_log("=== loops ===");
+
+	i := 0;
+	loop {
+		print_log("i = %", i);
+		i += 1;
+		// Use break statement to stop the looping.
+		if i == 10 then break;
+	}
+
+	j := 0;
+	loop j < 10 {
+		print_log("j = %", j);
+		j += 1;
+	}
+
+	loop k := 0; k < 10; k += 1 {
+		print_log("k = %", k);
+	}
+}
+
+defer_statements :: fn () {
+	print_log("=== defer_statements ===");
+
+	// We have defer as any other "cool" language these days. It can
+	// be used to postpone statement execution at the end of scope. So
+	// we can pair init/terminate functions together.
+
+	foo :: fn () {
+		print_log("A");
+
+		defer print_log("C");
+		defer print_log("B");
+	};
+
+	foo();
+}
+
+arrays :: fn () {
+	print_log("=== arrays ===");
+
+	arr: [10]s32; // Zero initialized array of 10 integers.
+
+	// Initialize the array.
+	arr = .{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+
+	// Each array has builtin 'len' as s64 count of elements in
+	// the array, and 'ptr' as pointer to the array memory.
+	print_log("len = %", arr.len);
+	print_log("ptr = %", arr.ptr);
+
+	// Print each element.
+	loop i := 0; i < arr.len; i += 1 {
+		// Use [index] to access individual array elements.
+		print_log("arr[%] = %", i, arr[i]);
+	}
+
+	// We can print whole array directly like this.
+	print_log("arr = %", arr);
+}
+
+array_slices :: fn () {
+	print_log("=== array_slices ===");
+
+	// Slices are widely used across the language, in general,
+	// slice is just a structure with pointer to first array
+	// element and count of elements.
+
+	// Note that in case we have fixed number of elements, we
+	// can use "blank identifier" '_' to automatically set the array
+	// length bases on element count of the initializer.
+	arr :: [_]s32.{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+
+	// Arrays can be implicitly converted to slices.
+	s : []s32 = arr;
+	print_log("s = %", s);
+
+	// This feature might be useful in case we for example want pass
+	// array of arbitrary sizes into function.
+
+	sum :: fn (arr: []s32) s32 {
+		sum := 0;
+		loop i := 0; i < arr.len; i += 1 {
+			sum += arr[i];
+		}
+		return sum;
+	};
+
+	print_log("sum(arr) = %", sum(arr));
+	print_log("sum(arr) = %", sum([3]s32.{ 10, 20, 30 }));
+}
+
+dynamic_arrays :: fn () {
+	print_log("=== dynamic_arrays ===");
+
+	// BL provides builtin dynamic arrays (implemented in Array module).
+	arr: [..]s32;
+	// Don't forget to release memory allocated by the array. We use defer, so
+	// termination is called at teh end of the scope or when funcition returns.
+	defer array_terminate(&arr);
+
+	loop i := 0; i < 10; i += 1 {
+		// Append at the array end.
+		array_push(&arr, i);
+	}
+
+	// Print count of elements.
+	print_log("arr.len = %", arr.len);
+
+	// Print whole array.
+	print_log("arr = %", arr);
+
+	// Dynamic arrays can be converted to slices too.
+	sum :: fn (arr: []s32) s32 {
+		sum := 0;
+		loop i := 0; i < arr.len; i += 1 {
+			sum += arr[i];
+		}
+		return sum;
+	};
+
+	print_log("sum(arr) = %", sum(arr));
+}
+
+string_views :: fn () {
+	print_log("=== string_views ===");
+
+	// Comptime constant string literal.
+	name :: "Martin";
+
+	// String views are just slices pointing to actual string data.
+
+	// Print the string directly.
+	print_log("My name is %.", name);
+	print_log("len = %", name.len);
+}
+
+dynamic_strings :: fn () {
+	print_log("=== dynamic_strings ===");
+
+	// Dynamic string (similar to dynamic arrays) are again provided by
+	// default API in 'std' namespace.
+
+	// Allocate new dynamic string.
+	str :: std.str_new("Hello");
+	defer std.str_delete(&str);
+
+	// Append the string.
+	std.str_append(&str, " World!");
+
+	// Print the string.
+	print_log("str = %", str);
+}
+
+type_info :: fn () {
+	print_log("=== type_info ===");
+
+	// Language provides detailed runtime type information via 'typeinfo()'
+	// builtin function.
+
+	// Print the type info for 'print' function.
+	print_log("%", typeinfo(print));
+}
+
+structs :: fn () {
+	print_log("=== structs ===");
+
+	{
+		// Struct type declaration.
+		Entity :: struct {
+			position: [3]s32;
+			id: u32;
+		};
+
+		// To initialize variable of this type you can use compound initializer.
+		entity := Entity.{
+			position = .{ 10, 20, 30 },
+			id = 666,
+		};
+
+		// You can againg directly print the structure. Like this:
+		print_log("entity = %", entity);
+
+		// What is maybe more cool, you can print even the structure type:
+		print_log("T = %", Entity);
+	}
+
+	{
+		// Structure members can be tagged by u64 value known in compile-time.
+		NO_SERIALIZE : u64 : 1;
+
+		Entity :: struct {
+			position: [3]s32;
+			render_data: *u8 #tag NO_SERIALIZE;
+			id: u32;
+		};
+
+		// Tag is later accessible in structure member related type info, and
+		// can be used in runtime.
+		// Here we exclude automatically all members tagged as NO_SERIALIZE from
+		// serialization.
+
+		info_struct :: cast(*TypeInfoStruct) typeinfo(Entity);
+		loop i := 0; i < info_struct.members.len; i += 1 {
+			member :: info_struct.members[i];
+			if member.tag == NO_SERIALIZE then continue;
+			print_log("Serialize member '%'!", member.name);
+		}
+	}
+}
+
+function_taking_any :: fn () {
+	print_log("=== function_taking_any ===");
+
+	// The value of Any type contains pointer to type information and pointer
+	// to data. This way we can implement reusable "generic" function (like for example
+	// print/print_log we already used a lot).
+
+	print_number_or_bool :: fn (v: Any) {
+		if v.type_info.kind == TypeKind.INT {
+			// v.data is pointer to u8 type.
+			v_int :: @(cast(*s32)v.data); // @ is dereference of pointer
+			print_log("Number: %", v_int);
+		} else if v.type_info.kind == TypeKind.BOOL {
+			v_bool :: @(cast(*bool)v.data);
+			print_log("Boolean: %", if v_bool then "TRUE" else "FALSE");
+		}
+	};
+
+	// Notice we do not need to do explicit conversion here, anything can by converted
+	// to Any implicitly. (Even types)
+	print_number_or_bool(10);
+	print_number_or_bool(false);
+}
+
+function_returning_multiple_values :: fn () {
+	print_log("=== function_returning_multiple_values ===");
+
+	// In some cases you might need to return more than just one value from function
+	{
+		get_two_numbers :: fn () (s32, s32) {
+			return 10, 20;
+		};
+
+		a, b :: get_two_numbers();
+		print_log("a = %", a);
+		print_log("b = %", b);
+	}
+
+	{
+		// You can name these things...
+		get_two_numbers :: fn () (first: s32, second: s32) {
+			return 10, 20;
+		};
+
+		a, b :: get_two_numbers();
+		print_log("a = %", a);
+		print_log("b = %", b);
+
+		// You can use just one of the results.
+		first :: get_two_numbers();
+		print_log("first = %", first);
+
+		// Use blanbk identifier to ignore first value.
+		_, second :: get_two_numbers();
+		print_log("second = %", second);
+	}
+}
+
+error_handling :: fn () {
+	print_log("=== error_handling ===");
+
+	// There is really nothing special about error handling in BL; we just return an error,
+	// but multiple return values makes it a bit easier.
+
+	div :: fn (a: s32, b: s32) (result: s32, err: Error) {
+		if b == 0 then return 0, error("You can't divide by 0!");
+		return a/b, OK;
+	};
+
+	{
+		result, err :: div(10, 2);
+		if err then print_err(err) else print_log("result = %", result);
+	}
+
+	{
+		result, err :: div(10, 0);
+		if err then print_err(err) else print_log("result = %", result);
+	}
+
+}
+
+polymorph_functions :: fn () {
+	print_log("=== polymorph_functions ===");
+
+	// We also have generic/polymorph/templated/whatever functions in the language. You'll
+	// write thing we call "function recipe" and actual implementation is generated automatically
+	// when function is used.
+
+	// ? before type name indicates polymorph master type which is inferred from call
+	// side.
+	add :: fn (first: ?T, second: T) T {
+		return first + second;
+	};
+
+	// Use with integers.
+	print_log("add(10, 20) = %", add(10, 20));
+
+	// Use with floats.
+	print_log("add(10.f, 20.f) = %", add(10.f, 20.f));
+}
+
+comptime_functions :: fn () {
+	print_log("=== comptime_functions ===");
+
+	// Compile-time known expressions in the language are evaluated under the hood and
+	// replaced by constant results. We use integrated interpretter for this (the same thing
+	// used when you use 'blc -run something.bl').
+	// So we can have compile-time functions (executed during the compilation) and not
+	// existing in result executable produced by the compiler.
+
+	load_file_to_stack :: fn () []u8 #comptime { // Marked as comptime.
+		using std;
+
+		// Load current source file.
+		stream, open_err :: open_file(#file);
+		defer close_file(&stream);
+		if open_err then panic(open_err);
+
+		data: [..]u8;
+		read_err :: read_whole(&stream, &data);
+		if read_err then panic(read_err);
+
+		return data;
+	};
+
+	// Here the comptime function is executed during the compilation and its return value
+	// (content of this file in our case) becomes static string literal stored in DATA constant.
+	DATA :: load_file_to_stack();
+	print_log("Static data: %...", slice_range(DATA, 0, 32));
+}
+
+comptime_function_arguments :: fn () {
+	print_log("=== comptime_function_arguments ===");
+
+	// You can specify function arguments as comptime, this way we actually implement
+	// generic containers. You can pass types as comptime arguments.
+
+	MyArray :: fn (TValue: type #comptime, SIZE: s32 #comptime) type #comptime {
+		return struct {
+			data: [SIZE]TValue;
+			len: s32;
+		};
+	};
+
+	{ // Use for integer
+		arr: MyArray(s32, 10);
+		loop i := 0; i < 4; i += 1 {
+			arr.data[i] = i;
+			arr.len += 1;
+		}
+
+		print_log("arr = %", arr);
+	}
+
+	{ // Use for strings
+		arr: MyArray(string_view, 10);
+		loop i := 0; i < 4; i += 1 {
+			arr.data[i] = "Hello";
+			arr.len += 1;
+		}
+
+		print_log("arr = %", arr);
+	}
+}
+
+temporary_storage :: fn () {
+	print_log("=== temporary_storage ===");
+
+	// Temporary storage is preallocated memory in memory pool provided to every
+	// application implicitly in 'application_context' global variable.
+	// This might be useful in frame based applications where you need some scratch
+	// memory used each frame.
+
+	ROOT_DIR :: "/my/dir";
+
+	loop i := 0; i < 10; i += 1 {
+		// Our frame.
+
+		// tprint internally uses temporary storage to hold the resulting path here.
+		path :: tprint("%/%.txt", ROOT_DIR, i);
+		print_log("path = %", path);
+
+		// Resetting the temporary storage will keep memory preallocated, but 'path'
+		// becomes invalid after reset.
+
+		temporary_reset();
+	}
+
+	// Release the temporary storage (free preallocated pool). (this is done automatically
+	// at main function exit, but you might want to be explicit sometimes).
+	temporary_release();
+
+	// Note that the 'application_context' is muttable, and you can change various default
+	// things there (such as abort handler, log handler, global allocator, temporary allocator
+	// etc.).
+}
+

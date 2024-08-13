@@ -1,0 +1,6 @@
+// @ERR_UNKNOWN_SYMBOL@
+main :: fn () s32 {
+	i :: SYM;
+	SYM :: 10;
+	return 0;
+}

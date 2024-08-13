@@ -1,6 +1,7 @@
 src/modules
 side/*.html
 side/search.json
+side/*.bl
 *.exe
 *.obj
 *.pdb

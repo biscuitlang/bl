@@ -1,0 +1,5 @@
+// @ERR_EXPECTED_EXPR@
+main :: fn () s32 {
+	i :: if true then { 10; } else 20;
+	return 0;
+}

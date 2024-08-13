@@ -1,0 +1,5 @@
+// @ERR_INVALID_EXPR@
+main :: fn () s32 {
+	i :: if true 10 else 20;
+	return 0;
+}

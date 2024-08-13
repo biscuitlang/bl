@@ -49,27 +49,131 @@ f5 :: fn (list: *string) {
 	defer std.str_append(list, "C");
 }
 
-defer_test :: fn () #test {
-	list :: std.str_new();
-	defer std.str_delete(&list);
+f6 :: fn (list: *string) {
+	expr := false;
+	defer std.str_append(list, "C");
+	defer std.str_append(list, "B");
+	if expr then return;
 
+	defer std.str_append(list, "A");
+}
+
+f7 :: fn (list: *string) {
+	expr :: true;
+	defer std.str_append(list, "B");
+	defer std.str_append(list, "A");
+	if expr then return;
+
+	std.str_append(list, "X");
+}
+
+f8 :: fn (list: *string) {
+	expr :: false;
+	defer std.str_append(list, "C");
+	defer std.str_append(list, "B");
+	if expr then return;
+
+	std.str_append(list, "A");
+}
+
+f9 :: fn (list: *string) {
+	expr := false;
+	defer std.str_append(list, "C");
+	defer std.str_append(list, "B");
+	if expr then return;
+
+	defer std.str_append(list, "A");
+}
+
+f10 :: fn (list: *string) {
+	loop i := 0; i < 10; i += 1 {
+		defer std.str_append(list, i);
+		defer std.str_append(list, "A");
+	}
+}
+
+f11 :: fn (list: *string) s32 {
+	defer std.str_append(list, "B");
+	defer std.str_append(list, "A");
+	if true then return 0;
+
+	defer std.str_append(list, "X");
+	return 1;
+}
+
+defer_test_1 :: fn () #test {
+	list :: std.str_new();
 	f1(&list);
 	test_eq(list, "AB");
-	std.str_clear(&list);
+	std.str_delete(&list);
+}
 
+defer_test_2 :: fn () #test {
+	list :: std.str_new();
 	f2(&list);
 	test_eq(list, "ABCD");
-	std.str_clear(&list);
+	std.str_delete(&list);
+}
 
+defer_test_3 :: fn () #test {
+	list :: std.str_new();
 	f3(&list);
 	test_eq(list, "ABCDEFG");
-	std.str_clear(&list);
+	std.str_delete(&list);
+}
 
+defer_test_4 :: fn () #test {
+	list :: std.str_new();
 	f4(&list);
 	test_eq(list, "ABCDEFGH");
-	std.str_clear(&list);
+	std.str_delete(&list);
+}
 
+defer_test_5 :: fn () #test {
+	list :: std.str_new();
 	f5(&list);
 	test_eq(list, "AB");
-	std.str_clear(&list);
+	std.str_delete(&list);
+}
+
+defer_test_6 :: fn () #test {
+	list :: std.str_new();
+	f6(&list);
+	test_eq(list, "ABC");
+	std.str_delete(&list);
+}
+
+defer_test_7 :: fn () #test {
+	list :: std.str_new();
+	f7(&list);
+	test_eq(list, "AB");
+	std.str_delete(&list);
+}
+
+defer_test_8 :: fn () #test {
+	list :: std.str_new();
+	f8(&list);
+	test_eq(list, "ABC");
+	std.str_delete(&list);
+}
+
+defer_test_9 :: fn () #test {
+	list :: std.str_new();
+	f9(&list);
+	test_eq(list, "ABC");
+	std.str_delete(&list);
+}
+
+defer_test_10 :: fn () #test {
+	list :: std.str_new();
+	f10(&list);
+	test_eq(list, "A0A1A2A3A4A5A6A7A8A9");
+	std.str_delete(&list);
+}
+
+defer_test_11 :: fn () #test {
+	list :: std.str_new();
+	f11(&list);
+	test_eq(list, "AB");
+	std.str_delete(&list);
 }

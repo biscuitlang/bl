@@ -44,7 +44,7 @@ test_basic_inserting_string :: fn () #test {
 test_reserve :: fn () #test {
 	arr: [..]s32;
 	defer array_terminate(&arr);
-			
+
 	array_reserve(&arr, 1000);
 	test_eq(arr.len, 0);
 	test_not_null(arr.ptr);
@@ -54,7 +54,7 @@ test_reserve :: fn () #test {
 test_reserve_init :: fn () #test {
 	arr: [..]s32;
 	defer array_terminate(&arr);
-			
+
 	array_init(&arr, 1000);
 	test_eq(arr.len, 0);
 	test_not_null(arr.ptr);
@@ -208,7 +208,7 @@ test_custom_allocator :: fn () #test {
 
 	arr: [..]s32;
 	array_init(&arr, 0, &test_allocator);
-			
+
 	loop i := 0; i < 1000; i += 1 {
 		array_push(&arr, i);
 	}
@@ -236,7 +236,7 @@ test_insert_at_begin :: fn () #test {
 	defer array_terminate(&arr);
 
 	array_push_all(&arr, [9]s32.{ 1, 2, 3, 4, 5, 6, 7, 8, 9 });
-	
+
 	i := array_insert(&arr, 0, 666);
 	test_eq(i, 0);
 	test_eq(arr.len, 10);
@@ -252,7 +252,7 @@ test_insert_at_end :: fn () #test {
 	defer array_terminate(&arr);
 
 	array_push_all(&arr, [9]s32.{ 0, 1, 2, 3, 4, 5, 6, 7, 8 });
-	
+
 	i := array_insert(&arr, arr.len, 9);
 	test_eq(i, 9);
 	test_eq(arr.len, 10);
@@ -267,7 +267,7 @@ test_insert_mid :: fn () #test {
 	defer array_terminate(&arr);
 
 	array_push_all(&arr, [9]s32.{ 0, 1, 2, 3, 5, 6, 7, 8, 9 });
-	
+
 	i := array_insert(&arr, 4, 4);
 	test_eq(i, 4);
 	test_eq(arr.len, 10);
@@ -275,4 +275,10 @@ test_insert_mid :: fn () #test {
 	loop i := 0; i < arr.len; i += 1 {
 		test_eq(arr[i], i);
 	}
+}
+
+len_printing :: fn () #test {
+	arr: [10]s32;
+	print_log("%", arr.len);
+	print_log("%", arr.ptr);
 }
