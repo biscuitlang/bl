@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(bl VERSION 0.12.0)
+project(bl VERSION 0.11.2)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
@@ -285,7 +285,7 @@ if(MSVC)
 		$<$<CONFIG:Release>: ${MSVC_RELEASE_FLAGS} /wd4996 /wd4267 /wd4244>
 		$<$<CONFIG:Debug>:   ${MSVC_DEBUG_FLAGS} /wd4996 /wd4267 /wd4244>)
 
-	set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} /DEBUG:FULL")
+	set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS}")
 else()
 	set(THREADS_PREFER_PTHREAD_FLAG ON)
 	find_package(Threads REQUIRED)
