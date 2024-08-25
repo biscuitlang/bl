@@ -1980,7 +1980,7 @@ get_style :: fn {
 		if current_style then return current_style;
 		s :: &default_style;
 		current_style = s;
-		
+
 		edit_body :: if use_light_theme then WHITE else rgba(0x101010ff);
 
 		s.focus_color = if use_light_theme then rgba(0x99D9EAFF) else rgba(0x12678fff);
@@ -2137,14 +2137,6 @@ peek_before_position :: fn (str: string_view, position: s64) string_view {
 peek_position :: fn (str: string_view, position: s64) string_view {
 	if position < 0 || position >= str.len { return ""; }
 	return string_view.{ get_character_len(str[position]), &str[position] };
-}
-
-get_character_len :: fn (c: u8) s32 #inline {
-	if c < 0x80           { return 1; }
-	if (c & 0xE0) == 0xC0 { return 2; }
-	if (c & 0xE0) == 0xE0 { return 3; }
-	if (c & 0xF8) == 0xF0 { return 4; }
-	return 0;
 }
 
 delete_range :: fn (str: *string, start: s64, end: s64) {

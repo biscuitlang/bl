@@ -466,9 +466,9 @@ quat_to_euler :: fn (q1: quat) v3 {
 	sqy := q1.y*q1.y;
 	sqz := q1.z*q1.z;
 	return v3.{
-	atan2(2.f*q1.x*q1.w-2.f*q1.y*q1.z , 1.f - 2.f*sqx - 2.f*sqz),
+		atan2(2.f*q1.x*q1.w-2.f*q1.y*q1.z , 1.f - 2.f*sqx - 2.f*sqz),
 		atan2(2.f*q1.y*q1.w-2.f*q1.x*q1.z , 1.f - 2.f*sqy - 2.f*sqz),
-	asin(2.f*test),
+		asin(2.f*test),
 	};
 }
 

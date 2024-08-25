@@ -475,3 +475,11 @@ hsv_to_rgba :: fn (hsv: glm.v3, alpha := 1.f) glm.v4 {
 	result.z += m;
 	return result;
 }
+
+get_character_len :: fn (c: u8) s32 #inline {
+	if c < 0x80           { return 1; }
+	if (c & 0xE0) == 0xC0 { return 2; }
+	if (c & 0xE0) == 0xE0 { return 3; }
+	if (c & 0xF8) == 0xF0 { return 4; }
+	return 0;
+}

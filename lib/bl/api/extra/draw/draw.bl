@@ -337,8 +337,11 @@ code :: fn (position_x: f32, position_y: f32, code: string_view, character_color
 
 	if code.len == 0 { return; }
 
-	fixed_position_x :: std.ceil(position_x);
-	fixed_position_y :: std.ceil(position_y);
+	// fixed_position_x :: std.ceil(position_x);
+	// fixed_position_y :: std.ceil(position_y);
+
+	fixed_position_x :: std.round(position_x);
+	fixed_position_y :: std.round(position_y);
 
 	aw :: cast(f32) context.font.atlas.width;
 	ah :: cast(f32) context.font.atlas.height;
