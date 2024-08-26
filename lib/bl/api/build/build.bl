@@ -494,3 +494,4 @@ __get_default_triple :: fn (triple: *TargetTriple) #extern;
 __triple_to_string :: fn (triple: *TargetTriple, buf: *C.char, buf_len: C.int) C.int #extern;
 __builder_get_options :: fn (opt: *BuilderOptions) #extern;
 __builder_set_options :: fn (opt: *BuilderOptions) #extern;
+

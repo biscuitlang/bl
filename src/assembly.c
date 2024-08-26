@@ -307,7 +307,7 @@ static void import_source(import_elem_context_t *ctx, const char *srcfile) {
 	str_buf_t path = get_tmp_str();
 	str_buf_append_fmt(&path, "{s}/{s}", ctx->modulepath, srcfile);
 	// @Cleanup: should we pass the import_from token here?
-	assembly_add_unit_safe(ctx->assembly, str_to_c(path), NULL);
+	assembly_add_unit(ctx->assembly, str_to_c(path), NULL);
 	put_tmp_str(path);
 }
 
@@ -607,7 +607,7 @@ struct assembly *assembly_new(const struct target *target) {
 
 	// Add units from target
 	for (usize i = 0; i < arrlenu(target->files); ++i) {
-		assembly_add_unit_safe(assembly, target->files[i], NULL);
+		assembly_add_unit(assembly, target->files[i], NULL);
 	}
 
 	const char *preload_file = read_config(builder.config, assembly->target, "preload_file", "");
@@ -616,19 +616,19 @@ struct assembly *assembly_new(const struct target *target) {
 	switch (assembly->target->kind) {
 	case ASSEMBLY_EXECUTABLE:
 		if (assembly->target->no_api) break;
-		assembly_add_unit_safe(assembly, BUILTIN_FILE, NULL);
-		assembly_add_unit_safe(assembly, preload_file, NULL);
+		assembly_add_unit(assembly, BUILTIN_FILE, NULL);
+		assembly_add_unit(assembly, preload_file, NULL);
 		break;
 	case ASSEMBLY_SHARED_LIB:
 		if (assembly->target->no_api) break;
-		assembly_add_unit_safe(assembly, BUILTIN_FILE, NULL);
-		assembly_add_unit_safe(assembly, preload_file, NULL);
+		assembly_add_unit(assembly, BUILTIN_FILE, NULL);
+		assembly_add_unit(assembly, preload_file, NULL);
 		break;
 	case ASSEMBLY_BUILD_PIPELINE:
-		assembly_add_unit_safe(assembly, BUILTIN_FILE, NULL);
-		assembly_add_unit_safe(assembly, preload_file, NULL);
-		assembly_add_unit_safe(assembly, BUILD_API_FILE, NULL);
-		assembly_add_unit_safe(assembly, BUILD_SCRIPT_FILE, NULL);
+		assembly_add_unit(assembly, BUILTIN_FILE, NULL);
+		assembly_add_unit(assembly, preload_file, NULL);
+		assembly_add_unit(assembly, BUILD_API_FILE, NULL);
+		assembly_add_unit(assembly, BUILD_SCRIPT_FILE, NULL);
 		break;
 	case ASSEMBLY_DOCS:
 		break;
@@ -705,8 +705,7 @@ static inline bool assembly_has_unit(struct assembly *assembly, const hash_t has
 	return false;
 }
 
-struct unit *
-assembly_add_unit_safe(struct assembly *assembly, const char *filepath, struct token *load_from) {
+struct unit *assembly_add_unit(struct assembly *assembly, const char *filepath, struct token *load_from) {
 	zone();
 	if (!is_str_valid_nonempty(filepath)) return_zone(NULL);
 	struct unit              *unit = NULL;

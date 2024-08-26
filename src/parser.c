@@ -409,7 +409,7 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 		struct ast *load         = ast_create_node(ctx->ast_arena, AST_LOAD, tok_directive, scope_get(ctx));
 		load->data.load.filepath = tok_path->value.str.ptr;
 		if (ctx->assembly->target->kind != ASSEMBLY_DOCS) {
-			assembly_add_unit_safe(ctx->assembly, load->data.load.filepath, tok_path);
+			assembly_add_unit(ctx->assembly, load->data.load.filepath, tok_path);
 		}
 		return_zone(load);
 	}

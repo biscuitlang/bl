@@ -300,18 +300,17 @@ s32            target_triple_to_string(const struct target_triple *triple, char 
 
 struct assembly *assembly_new(const struct target *target);
 void             assembly_delete(struct assembly *assembly);
-struct unit           *
-assembly_add_unit_safe(struct assembly *assembly, const char *filepath, struct token *load_from);
-void      assembly_add_lib_path_safe(struct assembly *assembly, const char *path);
-void      assembly_append_linker_options_safe(struct assembly *assembly, const char *opt);
-void      assembly_add_native_lib_safe(struct assembly *assembly,
-                                       const char      *lib_name,
-                                       struct token    *link_token,
-                                       bool             runtime_only);
-bool      assembly_import_module(struct assembly *assembly,
-                                 const char      *modulepath,
-                                 struct token    *import_from);
-DCpointer assembly_find_extern(struct assembly *assembly, const str_t symbol);
+struct unit     *assembly_add_unit(struct assembly *assembly, const char *filepath, struct token *load_from);
+void             assembly_add_lib_path_safe(struct assembly *assembly, const char *path);
+void             assembly_append_linker_options_safe(struct assembly *assembly, const char *opt);
+void             assembly_add_native_lib_safe(struct assembly *assembly,
+                                              const char      *lib_name,
+                                              struct token    *link_token,
+                                              bool             runtime_only);
+bool             assembly_import_module(struct assembly *assembly,
+                                        const char      *modulepath,
+                                        struct token    *import_from);
+DCpointer        assembly_find_extern(struct assembly *assembly, const str_t symbol);
 
 struct mir_var *assembly_get_rtti(struct assembly *assembly, hash_t type_hash);
 void            assembly_add_rtti(struct assembly *assembly, hash_t type_hash, struct mir_var *rtti_var);

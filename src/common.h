@@ -151,9 +151,9 @@ enum { BL_RED,
 // terminated. This way we can avoid calling strlen() every time and ew can reduce amount of string
 // copying and allocations (e.g. identificators can point directly to the loaded file data).
 typedef struct {
+	s32   len;
+	s32   _; // Gap to make this ABI compatible with BL strings. Note that we also use this gap in str_buf.
 	char *ptr;
-	// Might be s64 but it cause warning in range-prints.
-	s32 len;
 } str_t;
 
 static_assert(sizeof(str_t) == 16, "Invalid size of string view type.");
@@ -170,9 +170,11 @@ s32   levenshtein(const str_t s1, const str_t s2);
 // String dynamic array buffer.
 //
 // Note it's guaranteed to be zero terminated, however use 'str_to_c' macro for safety!
+// Keep layout ABI compatible with str_t!
 struct str_buf {
+	s32   len;
+	s32   cap;
 	char *ptr;
-	s32   len, cap;
 };
 
 typedef struct str_buf str_buf_t;

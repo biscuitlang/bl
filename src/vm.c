@@ -694,8 +694,9 @@ void dyncall_cb_read_arg(struct virtual_machine       UNUSED(*vm),
 	memset(dest, 0, sizeof(*dest_value->_tmp));
 
 	switch (type->kind) {
+	case MIR_TYPE_ENUM:
 	case MIR_TYPE_INT: {
-		const usize bitcount = (usize)type->data.integer.bitcount;
+		const usize bitcount = (usize)(type->kind == MIR_TYPE_INT ? type->data.integer.bitcount : type->data.enm.base_type->size_bits);
 		u64         v        = 0;
 		switch (bitcount) {
 		case 8:
