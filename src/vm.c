@@ -2535,7 +2535,7 @@ enum vm_interp_state vm_execute_fn(struct virtual_machine *vm,
                                    vm_stack_ptr_t         *optional_return) {
 	bmagic_assert(fn);
 	vm->assembly = assembly;
-	if (optional_args) {
+	if (optional_args && optional_args->len) {
 		bassert(fn->type->data.fn.args);
 		bassert(sarrlenu(fn->type->data.fn.args) == sarrlenu(optional_args) &&
 		        "Invalid count of explicitly passed arguments");
