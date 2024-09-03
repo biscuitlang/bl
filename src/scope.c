@@ -77,34 +77,33 @@ lookup_usings(struct scope *scope, struct id *id, struct scope_entry **out_ambig
 	return_zone(found);
 }
 
-void scopes_context_init(struct scopes_context *ctx) {
-	arena_init(&ctx->arenas.scopes,
+void scope_arenas_init(struct scope_arenas *arenas) {
+	arena_init(&arenas->scopes,
 	           sizeof(struct scope),
 	           alignment_of(struct scope),
 	           256,
 	           (arena_elem_dtor_t)scope_dtor);
-	arena_init(&ctx->arenas.entries,
+	arena_init(&arenas->entries,
 	           sizeof(struct scope_entry),
 	           alignment_of(struct scope_entry),
 	           1024,
 	           NULL);
 }
 
-void scopes_context_terminate(struct scopes_context *ctx) {
-	arena_terminate(&ctx->arenas.scopes);
-	arena_terminate(&ctx->arenas.entries);
+void scope_arenas_terminate(struct scope_arenas *arenas) {
+	arena_terminate(&arenas->scopes);
+	arena_terminate(&arenas->entries);
 }
 
-struct scope *scope_create(struct scopes_context *ctx,
-                           enum scope_kind        kind,
-                           struct scope          *parent,
-                           struct location       *loc) {
+struct scope *scope_create(struct scope_arenas *arenas,
+                           enum scope_kind      kind,
+                           struct scope        *parent,
+                           struct location     *loc) {
 	bassert(kind != SCOPE_NONE && "Invalid scope kind.");
-	struct scope *scope = arena_alloc(&ctx->arenas.scopes);
+	struct scope *scope = arena_alloc(&arenas->scopes);
 	scope->parent       = parent;
 	scope->kind         = kind;
 	scope->location     = loc;
-	scope->ctx          = ctx;
 
 	// Global scopes must be thread safe!
 	if (kind == SCOPE_GLOBAL) scope->sync = sync_new();
@@ -117,12 +116,12 @@ void scope_reserve(struct scope *scope, s32 num) {
 	tbl_init(scope->entries, num);
 }
 
-struct scope_entry *scope_create_entry(struct scopes_context *ctx,
-                                       enum scope_entry_kind  kind,
-                                       struct id             *id,
-                                       struct ast            *node,
-                                       bool                   is_builtin) {
-	struct scope_entry *entry = arena_alloc(&ctx->arenas.entries);
+struct scope_entry *scope_create_entry(struct scope_arenas  *arenas,
+                                       enum scope_entry_kind kind,
+                                       struct id            *id,
+                                       struct ast           *node,
+                                       bool                  is_builtin) {
+	struct scope_entry *entry = arena_alloc(&arenas->entries);
 	entry->id                 = id;
 	entry->kind               = kind;
 	entry->node               = node;

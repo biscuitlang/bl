@@ -1559,7 +1559,7 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 	}
 
 	// no collision
-	struct scope_entry *entry = scope_create_entry(&ctx->assembly->scopes_context, SCOPE_ENTRY_INCOMPLETE, id, node, is_builtin);
+	struct scope_entry *entry = scope_create_entry(&ctx->assembly->scope_arenas, SCOPE_ENTRY_INCOMPLETE, id, node, is_builtin);
 	scope_insert(scope, layer_index, entry);
 	return entry;
 
@@ -2231,7 +2231,7 @@ struct mir_type *create_type_slice(struct context *ctx, enum mir_type_kind kind,
 
 	mir_members_t *members = arena_alloc(&ctx->assembly->arenas.sarr);
 	// Slice layout struct { s64, *T }
-	struct scope *body_scope = scope_create(&ctx->assembly->scopes_context, SCOPE_TYPE_STRUCT, ctx->assembly->gscope, NULL);
+	struct scope *body_scope = scope_create(&ctx->assembly->scope_arenas, SCOPE_TYPE_STRUCT, ctx->assembly->gscope, NULL);
 
 	struct mir_member *tmp;
 	tmp = create_member(ctx, NULL, &builtin_ids[BUILTIN_ID_ARR_LEN], 0, len_type);
@@ -2293,7 +2293,7 @@ struct mir_type *create_type_struct_dynarr(struct context *ctx, struct id *user_
 
 	mir_members_t *members = arena_alloc(&ctx->assembly->arenas.sarr);
 	// Dynamic array layout struct { s64, *T, usize, allocator }
-	struct scope *body_scope = scope_create(&ctx->assembly->scopes_context, SCOPE_TYPE_STRUCT, ctx->assembly->gscope, NULL);
+	struct scope *body_scope = scope_create(&ctx->assembly->scope_arenas, SCOPE_TYPE_STRUCT, ctx->assembly->gscope, NULL);
 
 	struct mir_member *tmp;
 	{ // .len
@@ -11768,7 +11768,7 @@ str_buf_t mir_type2str(const struct mir_type *type, bool prefer_name) {
 
 static void provide_builtin_arch(struct context *ctx) {
 	struct BuiltinTypes *bt       = ctx->builtin_types;
-	struct scope        *scope    = scope_create(&ctx->assembly->scopes_context, SCOPE_TYPE_ENUM, ctx->assembly->gscope, NULL);
+	struct scope        *scope    = scope_create(&ctx->assembly->scope_arenas, SCOPE_TYPE_ENUM, ctx->assembly->gscope, NULL);
 	mir_variants_t      *variants = arena_alloc(&ctx->assembly->arenas.sarr);
 	static struct id     ids[static_arrlenu(arch_names)];
 	for (usize i = 0; i < static_arrlenu(arch_names); ++i) {
@@ -11795,7 +11795,7 @@ static void provide_builtin_arch(struct context *ctx) {
 
 static void provide_builtin_os(struct context *ctx) {
 	struct BuiltinTypes *bt       = ctx->builtin_types;
-	struct scope        *scope    = scope_create(&ctx->assembly->scopes_context, SCOPE_TYPE_ENUM, ctx->assembly->gscope, NULL);
+	struct scope        *scope    = scope_create(&ctx->assembly->scope_arenas, SCOPE_TYPE_ENUM, ctx->assembly->gscope, NULL);
 	mir_variants_t      *variants = arena_alloc(&ctx->assembly->arenas.sarr);
 	static struct id     ids[static_arrlenu(os_names)];
 	for (usize i = 0; i < static_arrlenu(os_names); ++i) {
@@ -11822,7 +11822,7 @@ static void provide_builtin_os(struct context *ctx) {
 
 static void provide_builtin_env(struct context *ctx) {
 	struct BuiltinTypes *bt       = ctx->builtin_types;
-	struct scope        *scope    = scope_create(&ctx->assembly->scopes_context, SCOPE_TYPE_ENUM, ctx->assembly->gscope, NULL);
+	struct scope        *scope    = scope_create(&ctx->assembly->scope_arenas, SCOPE_TYPE_ENUM, ctx->assembly->gscope, NULL);
 	mir_variants_t      *variants = arena_alloc(&ctx->assembly->arenas.sarr);
 	static struct id     ids[static_arrlenu(env_names)];
 	for (usize i = 0; i < static_arrlenu(env_names); ++i) {
@@ -11995,7 +11995,7 @@ void mir_run(struct assembly *assembly) {
 
 	tbl_init(ctx.type_cache, TYPE_CACHE_PREALLOCATE);
 
-	ctx.analyze.unnamed_entry = scope_create_entry(&ctx.assembly->scopes_context, SCOPE_ENTRY_UNNAMED, NULL, NULL, true);
+	ctx.analyze.unnamed_entry = scope_create_entry(&ctx.assembly->scope_arenas, SCOPE_ENTRY_UNNAMED, NULL, NULL, true);
 
 	// initialize all builtin types
 	initialize_builtins(&ctx);

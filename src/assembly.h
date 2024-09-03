@@ -202,8 +202,8 @@ struct assembly {
 	str_buf_t            custom_linker_opt;
 	array(char *) lib_paths;
 	array(struct native_lib) libs;
-	struct string_cache  *string_cache;
-	struct scopes_context scopes_context;
+	struct string_cache *string_cache;
+	struct scope_arenas  scope_arenas;
 
 	struct {
 		struct mir_arenas mir;
