@@ -1045,13 +1045,14 @@ static inline struct mir_fn *mir_instr_owner_fn(struct mir_instr *instr) {
 	return instr->owner_block->owner_fn;
 }
 
-void           mir_init(struct assembly *assembly);
-void           mir_terminate(struct assembly *assembly);
-bool           mir_is_in_comptime_fn(struct mir_instr *instr);
-str_buf_t      mir_type2str(const struct mir_type *type, bool prefer_name);
-const char    *mir_instr_name(const struct mir_instr *instr);
-void           mir_run(struct assembly *assembly);
-struct mir_fn *mir_get_callee(const struct mir_instr_call *call);
-str_t          mir_get_fn_readable_name(struct mir_fn *fn);
+void            mir_init(struct assembly *assembly);
+void            mir_terminate(struct assembly *assembly);
+struct mir_var *mir_get_rtti(struct assembly *assembly, hash_t type_hash);
+bool            mir_is_in_comptime_fn(struct mir_instr *instr);
+str_buf_t       mir_type2str(const struct mir_type *type, bool prefer_name);
+const char     *mir_instr_name(const struct mir_instr *instr);
+void            mir_run(struct assembly *assembly);
+struct mir_fn  *mir_get_callee(const struct mir_instr_call *call);
+str_t           mir_get_fn_readable_name(struct mir_fn *fn);
 
 #endif

@@ -103,6 +103,7 @@
 struct mir_sync {
 	pthread_spinlock_t type_cache_lock;
 	pthread_spinlock_t global_instrs_lock;
+	pthread_spinlock_t rtti_table_lock;
 };
 
 struct rtti_incomplete {
@@ -179,17 +180,6 @@ struct context {
 			u8                value; // this is not used
 		}) skipped_instructions;
 	} analyze;
-
-	struct {
-		// Same as assembly->testing.cases.
-		struct mir_fn **cases;
-
-		// Expected unit test count is evaluated before analyze pass. We need this
-		// information before we analyze all test functions because metadata runtime
-		// variable must be preallocated (testcases builtin operator cannot wait for all
-		// test case functions to be analyzed). This count must match cases len.
-		s32 expected_test_count;
-	} testing;
 };
 
 enum result_state {
@@ -794,6 +784,7 @@ static void          analyze_report_skipped(struct context *ctx);
 // =================================================================================================
 //  RTTI
 // =================================================================================================
+
 static struct mir_var *_rtti_gen(struct context *ctx, struct mir_type *type);
 static struct mir_var *rtti_gen(struct context *ctx, struct mir_type *type);
 static struct mir_var *rtti_create_and_alloc_var(struct context *ctx, struct mir_type *type);
@@ -5925,7 +5916,7 @@ struct result analyze_instr_test_cases(struct context *ctx, struct mir_instr_tes
 	struct id *missing = lookup_builtins_test_cases(ctx);
 	if (missing) return_zone(WAIT(missing->hash));
 	tc->base.value.type = ctx->builtin_types->t_TestCases_slice;
-	if (ctx->testing.expected_test_count == 0) return_zone(PASS);
+	if (ctx->assembly->testing.expected_test_count == 0) return_zone(PASS);
 	testing_gen_meta(ctx);
 	return_zone(PASS);
 }
@@ -9179,7 +9170,7 @@ void analyze_report_skipped(struct context *ctx) {
 }
 
 struct mir_var *testing_gen_meta(struct context *ctx) {
-	const s32 len = ctx->testing.expected_test_count;
+	const s32 len = ctx->assembly->testing.expected_test_count;
 	if (len == 0) return NULL;
 	if (ctx->assembly->testing.meta_var) return ctx->assembly->testing.meta_var;
 	struct mir_type *type = create_type_array(ctx, NULL, ctx->builtin_types->t_TestCase, len);
@@ -9252,7 +9243,7 @@ void rtti_satisfy_incomplete(struct context *ctx, struct rtti_incomplete *incomp
 
 struct mir_var *_rtti_gen(struct context *ctx, struct mir_type *type) {
 	bassert(type);
-	struct mir_var *rtti_var = assembly_get_rtti(ctx->assembly, type->id.hash);
+	struct mir_var *rtti_var = mir_get_rtti(ctx->assembly, type->id.hash);
 	if (rtti_var) return rtti_var;
 
 	switch (type->kind) {
@@ -9322,7 +9313,14 @@ struct mir_var *_rtti_gen(struct context *ctx, struct mir_type *type) {
 
 	bassert(rtti_var);
 	bassert(type->id.hash && "Invalid type hash!");
-	assembly_add_rtti(ctx->assembly, type->id.hash, rtti_var);
+
+	{
+		struct mir_sync *sync = ctx->mir->sync;
+		pthread_spin_lock(&sync->rtti_table_lock);
+		bassert(mir_get_rtti(ctx->assembly, type->id.hash) == NULL && "RTTI variable already added for the type!");
+		hmput(ctx->mir->rtti_table, type->id.hash, rtti_var);
+		pthread_spin_unlock(&sync->rtti_table_lock);
+	}
 	return rtti_var;
 }
 
@@ -10433,7 +10431,7 @@ struct mir_instr *ast_expr_lit_fn(struct context      *ctx,
 	}
 
 	if (isflag(flags, FLAG_TEST_FN)) {
-		++ctx->testing.expected_test_count;
+		++ctx->assembly->testing.expected_test_count;
 	}
 
 	// generate body instructions
@@ -11962,12 +11960,14 @@ static struct mir_sync *sync_new(void) {
 	struct mir_sync *impl = bmalloc(sizeof(struct mir_sync));
 	pthread_spin_init(&impl->type_cache_lock, 0);
 	pthread_spin_init(&impl->global_instrs_lock, 0);
+	pthread_spin_init(&impl->rtti_table_lock, 0);
 	return impl;
 }
 
 static void sync_delete(struct mir_sync *impl) {
 	pthread_spin_destroy(&impl->type_cache_lock);
 	pthread_spin_destroy(&impl->global_instrs_lock);
+	pthread_spin_destroy(&impl->rtti_table_lock);
 	bfree(impl);
 }
 
@@ -11994,6 +11994,24 @@ void mir_terminate(struct assembly *assembly) {
 	tbl_free(mir->type_cache);
 }
 
+struct mir_var *mir_get_rtti(struct assembly *assembly, hash_t type_hash) {
+	bassert(type_hash);
+	struct mir_sync *sync      = assembly->mir.sync;
+	const bool       is_locked = pthread_spin_trylock(&sync->rtti_table_lock);
+
+	const s64 i = hmgeti(assembly->mir.rtti_table, type_hash);
+	if (i < 0) {
+		if (is_locked) pthread_spin_unlock(&sync->rtti_table_lock);
+		return NULL;
+	}
+
+	struct mir_var *result = assembly->mir.rtti_table[i].value;
+	bassert(result);
+
+	if (is_locked) pthread_spin_unlock(&sync->rtti_table_lock);
+	return result;
+}
+
 void mir_run(struct assembly *assembly) {
 	runtime_measure_begin(mir);
 	struct context ctx;
@@ -12003,7 +12021,6 @@ void mir_run(struct assembly *assembly) {
 	ctx.debug_mode                      = assembly->target->opt == ASSEMBLY_OPT_DEBUG;
 	ctx.builtin_types                   = &assembly->builtin_types;
 	ctx.vm                              = &assembly->vm;
-	ctx.testing.cases                   = assembly->testing.cases;
 	ctx.mir                             = &assembly->mir;
 	ctx.fn_generate.current_scope_layer = SCOPE_DEFAULT_LAYER;
 	ctx.ast.current_defer_stack_index   = -1;

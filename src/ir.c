@@ -1407,7 +1407,7 @@ void rtti_satisfy_incomplete(struct context *ctx, struct rtti_incomplete incompl
 LLVMValueRef _rtti_emit(struct context *ctx, struct mir_type *type) {
 	bassert(type);
 
-	struct mir_var *rtti_var = assembly_get_rtti(ctx->assembly, type->id.hash);
+	struct mir_var *rtti_var = mir_get_rtti(ctx->assembly, type->id.hash);
 	bassert(rtti_var && "RTTI variable not generated for the type!");
 	if (rtti_var->llvm_value) {
 		return rtti_var->llvm_value;

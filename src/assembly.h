@@ -206,7 +206,7 @@ struct assembly {
 	struct scope_arenas  scope_arenas;
 
 	struct {
-		struct arena      sarr;
+		struct arena sarr;
 	} arenas;
 
 	struct mir mir;
@@ -222,6 +222,12 @@ struct assembly {
 	struct {
 		array(struct mir_fn *) cases;
 		struct mir_var *meta_var;
+
+		// Expected unit test count is evaluated before analyze pass. We need this
+		// information before we analyze all test functions because metadata runtime
+		// variable must be preallocated (testcases builtin operator cannot wait for all
+		// test case functions to be analyzed). This count must match cases len in the end.
+		s32 expected_test_count;
 	} testing;
 
 	struct {
@@ -271,7 +277,7 @@ struct assembly {
 		assembly_stage_fn_t *assembly;
 	} current_pipelines;
 
-	struct asembly_sync_impl *sync;
+	struct assembly_sync *sync;
 };
 
 struct target *target_new(const char *name);
@@ -293,19 +299,16 @@ s32            target_triple_to_string(const struct target_triple *triple, char 
 struct assembly *assembly_new(const struct target *target);
 void             assembly_delete(struct assembly *assembly);
 struct unit     *assembly_add_unit(struct assembly *assembly, const char *filepath, struct token *load_from);
-void             assembly_add_lib_path_safe(struct assembly *assembly, const char *path);
-void             assembly_append_linker_options_safe(struct assembly *assembly, const char *opt);
-void             assembly_add_native_lib_safe(struct assembly *assembly,
-                                              const char      *lib_name,
-                                              struct token    *link_token,
-                                              bool             runtime_only);
+void             assembly_add_lib_path(struct assembly *assembly, const char *path);
+void             assembly_append_linker_options(struct assembly *assembly, const char *opt);
+void             assembly_add_native_lib(struct assembly *assembly,
+                                         const char      *lib_name,
+                                         struct token    *link_token,
+                                         bool             runtime_only);
 bool             assembly_import_module(struct assembly *assembly,
                                         const char      *modulepath,
                                         struct token    *import_from);
 DCpointer        assembly_find_extern(struct assembly *assembly, const str_t symbol);
-
-struct mir_var *assembly_get_rtti(struct assembly *assembly, hash_t type_hash);
-void            assembly_add_rtti(struct assembly *assembly, hash_t type_hash, struct mir_var *rtti_var);
 
 // Convert opt level to string.
 static inline const char *opt_to_str(enum assembly_opt opt) {

@@ -141,8 +141,7 @@ int compile_unit(struct unit *unit, struct assembly *assembly) {
 	array(unit_stage_fn_t) pipeline = assembly->current_pipelines.unit;
 	bassert(pipeline && "Invalid unit pipeline!");
 	if (unit->loaded_from) {
-		builder_log(
-		    "Compile: %s (loaded from '%s')", unit->name, unit->loaded_from->location.unit->name);
+		builder_log("Compile: %s (loaded from '%s')", unit->name, unit->loaded_from->location.unit->name);
 	} else {
 		builder_log("Compile: %s", unit->name);
 	}

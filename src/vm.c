@@ -1238,7 +1238,7 @@ enum vm_interp_state interp_instr(struct virtual_machine *vm, struct mir_instr *
 
 void interp_instr_toany(struct virtual_machine *vm, struct mir_instr_to_any *toany) {
 	struct mir_var *dest_var  = toany->tmp;
-	struct mir_var *type_info = assembly_get_rtti(vm->assembly, toany->rtti_type->id.hash);
+	struct mir_var *type_info = mir_get_rtti(vm->assembly, toany->rtti_type->id.hash);
 	bassert(type_info->value.is_comptime);
 
 	struct mir_type *dest_type = dest_var->value.type;
@@ -1268,7 +1268,7 @@ void interp_instr_toany(struct virtual_machine *vm, struct mir_instr_to_any *toa
 		// setup destination pointer
 		memcpy(dest_data, &dest_expr, dest_data_type->store_size_bytes);
 	} else if (toany->rtti_data) {
-		struct mir_var *rtti_data_var = assembly_get_rtti(vm->assembly, toany->rtti_data->id.hash);
+		struct mir_var *rtti_data_var = mir_get_rtti(vm->assembly, toany->rtti_data->id.hash);
 		vm_stack_ptr_t  rtti_data     = vm_read_var(vm, rtti_data_var);
 		// setup destination pointer
 		memcpy(dest_data, &rtti_data, dest_data_type->store_size_bytes);
@@ -2050,7 +2050,7 @@ void eval_instr(struct virtual_machine *vm, struct mir_instr *instr) {
 
 void eval_instr_type_info(struct virtual_machine *vm, struct mir_instr_type_info *type_info) {
 	bassert(type_info->rtti_type && "Missing RTTI type!");
-	struct mir_var *rtti_var = assembly_get_rtti(vm->assembly, type_info->rtti_type->id.hash);
+	struct mir_var *rtti_var = mir_get_rtti(vm->assembly, type_info->rtti_type->id.hash);
 #if BL_ASSERT_ENABLE
 	if (!rtti_var) {
 #	if defined(BL_DEBUG)

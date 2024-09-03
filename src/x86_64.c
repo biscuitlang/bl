@@ -1027,7 +1027,7 @@ static hash_t emit_type_info(struct context *ctx, struct thread_context *tctx, s
 		return hash;
 	}
 
-	struct mir_var *var = assembly_get_rtti(ctx->assembly, target_type->id.hash);
+	struct mir_var *var = mir_get_rtti(ctx->assembly, target_type->id.hash);
 	bassert(var);
 	const u32 dest_offset = add_data(tctx, NULL, (u32)var->value.type->store_size_bytes);
 	add_sym(tctx, SECTION_DATA, dest_offset, str_buf_view(sym_name), IMAGE_SYM_CLASS_EXTERNAL, 0);
