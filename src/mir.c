@@ -60,14 +60,6 @@
 #define IMPL_CALL_TMP cstr(".call.tmp")
 #define IMPL_TOSLICE_TMP cstr(".toslice")
 
-#define analyze_instr_rq(i)                              \
-	{                                                    \
-		const struct result r = analyze_instr(ctx, (i)); \
-		bassert(r.state == ANALYZE_PASSED);              \
-		(void)r;                                         \
-	}                                                    \
-	(void)0
-
 #define PASS                    \
 	(struct result) {           \
 		.state = ANALYZE_PASSED \
@@ -844,6 +836,12 @@ static struct mir_var *rtti_gen_fn_group(struct context *ctx, struct mir_type *t
 #define report_error_after(code, node, format, ...) _report(MSG_ERR, ERR_##code, (node), CARET_AFTER, (format), ##__VA_ARGS__)
 #define report_warning(node, format, ...) _report(MSG_WARN, 0, (node), CARET_WORD, (format), ##__VA_ARGS__)
 #define report_note(node, format, ...) _report(MSG_ERR_NOTE, 0, (node), CARET_WORD, (format), ##__VA_ARGS__)
+
+static inline void analyze_instr_rq(struct context *ctx, struct mir_instr *instr) {
+	const struct result r = analyze_instr(ctx, instr);
+	bassert(r.state == ANALYZE_PASSED);
+	(void)r;
+}
 
 static inline void _report(enum builder_msg_type type, s32 code, const struct ast *node, enum builder_cur_pos cursor_position, const char *format, ...) {
 	struct location *loc = node ? node->location : NULL;
@@ -3921,8 +3919,8 @@ struct mir_instr *append_instr_const_string(struct context *ctx, struct ast *nod
 	struct mir_instr *len = create_instr_const_int(ctx, node, ctx->builtin_types->t_s64, str.len);
 	struct mir_instr *ptr = create_instr_const_ptr(ctx, node, ctx->builtin_types->t_u8_ptr, (vm_stack_ptr_t)str.ptr);
 
-	analyze_instr_rq(len);
-	analyze_instr_rq(ptr);
+	analyze_instr_rq(ctx, len);
+	analyze_instr_rq(ctx, ptr);
 
 	sarrput(values, len);
 	sarrput(values, ptr);
@@ -4628,12 +4626,12 @@ struct result analyze_instr_unroll(struct context *ctx, struct mir_instr_unroll 
 				                                         .init = src,
 				                                     });
 				insert_instr_after(src, tmp_var);
-				analyze_instr_rq(tmp_var);
+				analyze_instr_rq(ctx, tmp_var);
 				src_call->tmp_var = tmp_var;
 			}
 			tmp_var = create_instr_decl_direct_ref(ctx, NULL, tmp_var);
 			insert_instr_before(&unroll->base, tmp_var);
-			analyze_instr_rq(tmp_var);
+			analyze_instr_rq(ctx, tmp_var);
 			unroll->src = ref_instr(tmp_var);
 			type        = create_type_ptr(ctx, mir_get_struct_elem_type(src_type, index));
 		} else if (src->kind == MIR_INSTR_CONST) {
@@ -4956,7 +4954,7 @@ struct result analyze_instr_set_initializer(struct context *ctx, struct mir_inst
 		bassert(type && "Missing variable initializer type for default global initializer!");
 		struct mir_instr *default_init = create_default_value_for_type(ctx, type);
 		insert_instr_before(&si->base, default_init);
-		analyze_instr_rq(default_init);
+		analyze_instr_rq(ctx, default_init);
 		si->src = default_init;
 	}
 
@@ -5199,14 +5197,14 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 
 			insert_instr_before(&member_ptr->base, elem_ptr);
 
-			analyze_instr_rq(index);
-			analyze_instr_rq(elem_ptr);
+			analyze_instr_rq(ctx, index);
+			analyze_instr_rq(ctx, elem_ptr);
 
 			struct mir_instr_addrof *addrof_elem = (struct mir_instr_addrof *)mutate_instr(&member_ptr->base, MIR_INSTR_ADDROF);
 			addrof_elem->base.state              = MIR_IS_PENDING;
 			addrof_elem->src                     = elem_ptr;
 
-			analyze_instr_rq(&addrof_elem->base);
+			analyze_instr_rq(ctx, &addrof_elem->base);
 		} else {
 			report_error(INVALID_MEMBER_ACCESS, ast_member_ident, "Unknown member.");
 			return_zone(FAIL);
@@ -5343,7 +5341,7 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 
 		if (additional_load_needed) {
 			member_ptr->target_ptr = insert_instr_load(ctx, member_ptr->target_ptr);
-			analyze_instr_rq(member_ptr->target_ptr);
+			analyze_instr_rq(ctx, member_ptr->target_ptr);
 		}
 
 		if (require_tmp && target_kind == MIR_INSTR_CALL) {
@@ -5356,7 +5354,7 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 				                                         .init = member_ptr->target_ptr,
 				                                     });
 				insert_instr_after(member_ptr->target_ptr, tmp_var);
-				analyze_instr_rq(tmp_var);
+				analyze_instr_rq(ctx, tmp_var);
 				call->tmp_var = tmp_var;
 			}
 			tmp_var = create_instr_decl_direct_ref(ctx, NULL, tmp_var);
@@ -5384,10 +5382,10 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 			if (is_load_needed(member_ptr->target_ptr)) {
 				member_ptr->target_ptr = insert_instr_addrof(ctx, member_ptr->target_ptr);
 
-				analyze_instr_rq(member_ptr->target_ptr);
+				analyze_instr_rq(ctx, member_ptr->target_ptr);
 			}
 			member_ptr->target_ptr = insert_instr_cast(ctx, member_ptr->target_ptr, create_type_ptr(ctx, type));
-			analyze_instr_rq(member_ptr->target_ptr);
+			analyze_instr_rq(ctx, member_ptr->target_ptr);
 		}
 
 		if (!found) {
@@ -7485,7 +7483,7 @@ struct result analyze_instr_decl_var(struct context *ctx, struct mir_instr_decl_
 		struct mir_type  *type         = var->value.type;
 		struct mir_instr *default_init = create_default_value_for_type(ctx, type);
 		insert_instr_before(&decl->base, default_init);
-		analyze_instr_rq(default_init);
+		analyze_instr_rq(ctx, default_init);
 		decl->init = default_init;
 	}
 	// @Cleanup: Duplicate?
@@ -7782,7 +7780,7 @@ static inline struct mir_instr *insert_default_argument_call_value_placeholder(s
 
 	sarrput(call->args, call_default_arg);
 	insert_instr_before(insert_location, call_default_arg);
-	analyze_instr_rq(call_default_arg);
+	analyze_instr_rq(ctx, call_default_arg);
 	return call_default_arg;
 }
 
@@ -7810,7 +7808,7 @@ static inline struct mir_instr *replace_default_argument_placeholder(struct cont
 	}
 	sarrpeek(call->args, fn_arg->index) = ref_instr(call_default_arg);
 	insert_instr_before(insert_location, call_default_arg);
-	analyze_instr_rq(call_default_arg);
+	analyze_instr_rq(ctx, call_default_arg);
 	return call_default_arg;
 }
 
@@ -7834,7 +7832,7 @@ static inline struct mir_instr *insert_default_argument_call_value(struct contex
 
 	sarrput(call->args, call_default_arg);
 	insert_instr_before(insert_location, call_default_arg);
-	analyze_instr_rq(call_default_arg);
+	analyze_instr_rq(ctx, call_default_arg);
 	return call_default_arg;
 }
 
@@ -8564,7 +8562,7 @@ enum stage_state analyze_stage_unroll(struct context *ctx, struct mir_instr **in
 		if (unroll->prev) {
 			struct mir_instr *ref = create_instr_decl_direct_ref(ctx, NULL, unroll->prev);
 			insert_instr_after(*input, ref);
-			analyze_instr_rq(ref);
+			analyze_instr_rq(ctx, ref);
 			(*input) = ref;
 		} else {
 			(*input) = unroll->src;
@@ -8647,11 +8645,11 @@ static void analyze_make_tmp_var(struct context *ctx, struct mir_instr **input, 
 	                                                           .init = *input,
 	                                                       });
 	insert_instr_after(*input, tmp_var);
-	analyze_instr_rq(tmp_var);
+	analyze_instr_rq(ctx, tmp_var);
 
 	struct mir_instr *tmp_ref = create_instr_decl_direct_ref(ctx, NULL, tmp_var);
 	insert_instr_after(tmp_var, tmp_ref);
-	analyze_instr_rq(tmp_ref);
+	analyze_instr_rq(ctx, tmp_ref);
 	*input = tmp_ref;
 }
 
@@ -8713,13 +8711,13 @@ enum stage_state analyze_stage_arrtoslice(struct context *ctx, struct mir_instr 
 	struct mir_instr *instr_ptr = create_instr_member_ptr(ctx, NULL, *input, NULL, NULL, BUILTIN_ID_ARR_PTR);
 	insert_instr_after(*input, instr_ptr);
 	*input = instr_ptr;
-	analyze_instr_rq(instr_ptr);
+	analyze_instr_rq(ctx, instr_ptr);
 
 	// Build array len constant
 	struct mir_instr *instr_len = create_instr_const_int(ctx, NULL, ctx->builtin_types->t_s64, len);
 	insert_instr_after(*input, instr_len);
 	*input = instr_len;
-	analyze_instr_rq(instr_len);
+	analyze_instr_rq(ctx, instr_len);
 
 	// push values
 	sarrput(values, instr_len);
@@ -8732,7 +8730,7 @@ enum stage_state analyze_stage_arrtoslice(struct context *ctx, struct mir_instr 
 	insert_instr_after(*input, compound);
 	*input = compound;
 
-	analyze_instr_rq(compound);
+	analyze_instr_rq(ctx, compound);
 
 	return ANALYZE_STAGE_BREAK;
 }
@@ -10839,7 +10837,7 @@ static void ast_decl_var_global_or_struct(struct context *ctx, struct ast *ast_g
 		struct mir_type *fwd_decl_type = create_type_struct_incomplete(ctx, ctx->ast.current_entity_id, false, has_base_type);
 
 		value = create_instr_const_type(ctx, ast_value, fwd_decl_type);
-		analyze_instr_rq(value);
+		analyze_instr_rq(ctx, value);
 
 		// Set current fwd decl
 		ctx->ast.current_fwd_struct_decl = value;
