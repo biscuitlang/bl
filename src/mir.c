@@ -34,6 +34,7 @@
 #include "mir_printer.h"
 #include "stb_ds.h"
 #include "table.h"
+#include "threading.h"
 #include <stdarg.h>
 
 #ifdef _MSC_VER
@@ -99,6 +100,11 @@
 #define INVALID_COMPOUND_TYPE_INFER_MESSAGE "Unknown compound expression type. In case the compound expression is untyped, the type must" \
 	                                        " be possible to infer from usage. Otherwise explicit type must be used 'Type.{ ... }'."
 
+struct mir_sync {
+	pthread_spinlock_t type_cache_lock;
+	pthread_spinlock_t global_instrs_lock;
+};
+
 struct rtti_incomplete {
 	struct mir_var  *var;
 	struct mir_type *type;
@@ -109,23 +115,16 @@ typedef sarr_t(LLVMTypeRef, 8) llvm_types_t;
 typedef sarr_t(struct rtti_incomplete, 64) rttis_t;
 typedef sarr_t(struct ast *, 16) defer_stack_t;
 
-struct type_cache_entry {
-	hash_t           hash;
-	str_t            key;
-	struct mir_type *type;
-};
-
 // Instance in run method is zero initialized, no need to set default values explicitly.
 struct context {
 	struct virtual_machine *vm;
 	struct assembly        *assembly;
+	struct mir             *mir; // Shortcut for assembly->mir
 	bool                    debug_mode;
-
-	my_hash_table(struct type_cache_entry) type_cache;
+	struct builtin_types   *builtin_types; // Shortcut for assembly->builtin_types
 
 	// Ast -> MIR generation
-	struct
-	{
+	struct {
 		struct mir_instr_block *current_block;
 		struct mir_instr_block *break_block;
 		struct mir_instr_block *continue_block;
@@ -141,8 +140,7 @@ struct context {
 		bool is_inside_fn_declaration;
 	} ast;
 
-	struct
-	{
+	struct {
 		struct mir_instr_call *call;
 		mir_types_t            replacement_queue;
 		s32                    replacement_queue_index;
@@ -151,14 +149,13 @@ struct context {
 	} fn_generate;
 
 	// Analyze MIR generated from Ast
-	struct
-	{
+	struct {
 		// Instructions waiting for analyze.
 		struct mir_instr **stack[2];
 		s32                si; // Current stack index
 
 		// Hash table of arrays. Hash is id of symbol and array contains queue of waiting
-		// instructions (DeclRefs).
+		// instructions.
 		hash_table(struct {
 			hash_t   key;
 			instrs_t value;
@@ -183,8 +180,7 @@ struct context {
 		}) skipped_instructions;
 	} analyze;
 
-	struct
-	{
+	struct {
 		// Same as assembly->testing.cases.
 		struct mir_fn **cases;
 
@@ -194,9 +190,6 @@ struct context {
 		// test case functions to be analyzed). This count must match cases len.
 		s32 expected_test_count;
 	} testing;
-
-	// Builtins
-	struct BuiltinTypes *builtin_types;
 };
 
 enum result_state {
@@ -357,9 +350,7 @@ typedef struct
 } create_type_enum_args_t;
 
 static struct mir_type *create_type_enum(struct context *ctx, create_type_enum_args_t *args);
-
 static struct mir_type *create_type_slice(struct context *ctx, enum mir_type_kind kind, struct id *user_id, struct mir_type *elem_ptr_type, bool is_string_literal);
-
 static struct mir_type *create_type_struct_dynarr(struct context *ctx, struct id *user_id, struct mir_type *elem_ptr_type);
 
 static void type_init_llvm_int(struct context *ctx, struct mir_type *type);
@@ -1032,22 +1023,34 @@ DONE:
 
 static inline struct mir_type *lookup_type(struct context *ctx, hash_t hash, str_t name) {
 	zone();
-	const s32 i = tbl_lookup_index_with_key(ctx->type_cache, hash, name);
-	if (i == -1) return_zone(NULL);
-	return_zone(ctx->type_cache[i].type);
+	struct mir_sync *sync      = ctx->mir->sync;
+	const bool       is_locked = pthread_spin_trylock(&sync->type_cache_lock); // Might be called from insert_type_into_cache
+	const s32        i         = tbl_lookup_index_with_key(ctx->mir->type_cache, hash, name);
+	if (i == -1) {
+		if (is_locked) pthread_spin_unlock(&sync->type_cache_lock);
+		return_zone(NULL);
+	}
+	struct mir_type *type = ctx->mir->type_cache[i].type;
+	if (is_locked) pthread_spin_unlock(&sync->type_cache_lock);
+	return_zone(type);
 }
 
 static inline void insert_type_into_cache(struct context *ctx, struct mir_type *type, str_t name) {
 	zone();
+	struct mir_sync *sync = ctx->mir->sync;
+	pthread_spin_trylock(&sync->type_cache_lock);
 	bassert(type);
 	bassert(type->id.hash != 0);
 	bassert(lookup_type(ctx, type->id.hash, type->id.str) == NULL);
-	struct type_cache_entry entry = {
+
+	struct mir_type_cache_entry entry = {
 	    .hash = type->id.hash,
 	    .key  = type->id.str,
 	    .type = type,
 	};
-	tbl_insert(ctx->type_cache, entry);
+	tbl_insert(ctx->mir->type_cache, entry);
+
+	pthread_spin_unlock(&sync->type_cache_lock);
 	return_zone();
 }
 
@@ -1285,7 +1288,10 @@ static inline void insert_instr_before(struct mir_instr *before, struct mir_inst
 
 static inline void push_into_gscope(struct context *ctx, struct mir_instr *instr) {
 	bassert(instr);
-	arrput(ctx->assembly->mir.global_instrs, instr);
+	struct mir_sync *sync = ctx->mir->sync;
+	pthread_spin_lock(&sync->global_instrs_lock);
+	arrput(ctx->mir->global_instrs, instr);
+	pthread_spin_unlock(&sync->global_instrs_lock);
 }
 
 static inline void add_phi_income(struct mir_instr_phi *phi, struct mir_instr *value, struct mir_instr_block *block) {
@@ -1524,7 +1530,7 @@ void ast_free_defer_stack(struct context *ctx) {
 }
 
 struct mir_type *create_type(struct context *ctx, enum mir_type_kind kind, struct id *user_id) {
-	struct mir_type *type = arena_alloc(&ctx->assembly->mir.arenas.type);
+	struct mir_type *type = arena_alloc(&ctx->mir->arenas.type);
 	bmagic_set(type);
 	type->kind    = kind;
 	type->user_id = user_id;
@@ -1623,16 +1629,18 @@ struct mir_fn *lookup_builtin_fn(struct context *ctx, enum builtin_id_kind kind)
 }
 
 struct id *lookup_builtins_rtti(struct context *ctx) {
-#define LOOKUP_TYPE(N, K)                                                              \
-	if (!ctx->builtin_types->t_Type##N) {                                              \
-		ctx->builtin_types->t_Type##N = lookup_builtin_type(ctx, BUILTIN_ID_TYPE_##K); \
-		if (!ctx->builtin_types->t_Type##N) {                                          \
-			return &builtin_ids[BUILTIN_ID_TYPE_##K];                                  \
-		}                                                                              \
-	}                                                                                  \
+#define LOOKUP_TYPE(N, K)                                              \
+	if (!bt->t_Type##N) {                                              \
+		bt->t_Type##N = lookup_builtin_type(ctx, BUILTIN_ID_TYPE_##K); \
+		if (!bt->t_Type##N) {                                          \
+			return &builtin_ids[BUILTIN_ID_TYPE_##K];                  \
+		}                                                              \
+	}                                                                  \
 	(void)0
 
 	if (ctx->builtin_types->is_rtti_ready) return NULL;
+	struct builtin_types *bt = ctx->builtin_types;
+
 	LOOKUP_TYPE(Kind, KIND);
 	LOOKUP_TYPE(Info, INFO);
 	LOOKUP_TYPE(InfoInt, INFO_INT);
@@ -1655,40 +1663,16 @@ struct id *lookup_builtins_rtti(struct context *ctx) {
 	LOOKUP_TYPE(InfoFnArg, INFO_FN_ARG);
 	LOOKUP_TYPE(InfoFnGroup, INFO_FN_GROUP);
 
-	ctx->builtin_types->t_TypeInfo_ptr   = create_type_ptr(ctx, ctx->builtin_types->t_TypeInfo);
-	ctx->builtin_types->t_TypeInfoFn_ptr = create_type_ptr(ctx, ctx->builtin_types->t_TypeInfoFn);
+	bt->t_TypeInfo_ptr   = create_type_ptr(ctx, bt->t_TypeInfo);
+	bt->t_TypeInfoFn_ptr = create_type_ptr(ctx, bt->t_TypeInfoFn);
 
-	ctx->builtin_types->t_TypeInfo_slice = create_type_slice(ctx,
-	                                                         MIR_TYPE_SLICE,
-	                                                         /* id */ NULL,
-	                                                         ctx->builtin_types->t_TypeInfo_ptr,
-	                                                         /* is_string_literal */ false);
+	bt->t_TypeInfo_slice              = create_type_slice(ctx, MIR_TYPE_SLICE, NULL, bt->t_TypeInfo_ptr, false);
+	bt->t_TypeInfoStructMembers_slice = create_type_slice(ctx, MIR_TYPE_SLICE, NULL, create_type_ptr(ctx, bt->t_TypeInfoStructMember), false);
+	bt->t_TypeInfoEnumVariants_slice  = create_type_slice(ctx, MIR_TYPE_SLICE, NULL, create_type_ptr(ctx, bt->t_TypeInfoEnumVariant), false);
+	bt->t_TypeInfoFnArgs_slice        = create_type_slice(ctx, MIR_TYPE_SLICE, NULL, create_type_ptr(ctx, bt->t_TypeInfoFnArg), false);
+	bt->t_TypeInfoFn_ptr_slice        = create_type_slice(ctx, MIR_TYPE_SLICE, NULL, create_type_ptr(ctx, bt->t_TypeInfoFn_ptr), false);
 
-	ctx->builtin_types->t_TypeInfoStructMembers_slice = create_type_slice(ctx,
-	                                                                      MIR_TYPE_SLICE,
-	                                                                      /* id */ NULL,
-	                                                                      create_type_ptr(ctx, ctx->builtin_types->t_TypeInfoStructMember),
-	                                                                      /* is_string_literal */ false);
-
-	ctx->builtin_types->t_TypeInfoEnumVariants_slice = create_type_slice(ctx,
-	                                                                     MIR_TYPE_SLICE,
-	                                                                     /* id */ NULL,
-	                                                                     create_type_ptr(ctx, ctx->builtin_types->t_TypeInfoEnumVariant),
-	                                                                     /* is_string_literal */ false);
-
-	ctx->builtin_types->t_TypeInfoFnArgs_slice = create_type_slice(ctx,
-	                                                               MIR_TYPE_SLICE,
-	                                                               /* id */ NULL,
-	                                                               create_type_ptr(ctx, ctx->builtin_types->t_TypeInfoFnArg),
-	                                                               /* is_string_literal */ false);
-
-	ctx->builtin_types->t_TypeInfoFn_ptr_slice = create_type_slice(ctx,
-	                                                               MIR_TYPE_SLICE,
-	                                                               /* id */ NULL,
-	                                                               create_type_ptr(ctx, ctx->builtin_types->t_TypeInfoFn_ptr),
-	                                                               /* is_string_literal */ false);
-
-	ctx->builtin_types->is_rtti_ready = true;
+	bt->is_rtti_ready = true;
 	return NULL;
 #undef LOOKUP_TYPE
 }
@@ -2685,7 +2669,7 @@ static inline void push_var(struct context *ctx, struct mir_var *var) {
 
 struct mir_var *create_var(struct context *ctx, create_var_args_t *args) {
 	bassert(args->id);
-	struct mir_var *tmp    = arena_alloc(&ctx->assembly->mir.arenas.var);
+	struct mir_var *tmp    = arena_alloc(&ctx->mir->arenas.var);
 	tmp->value.type        = args->alloc_type;
 	tmp->value.is_comptime = args->is_comptime;
 	tmp->id                = args->id;
@@ -2713,7 +2697,7 @@ struct mir_var *create_var(struct context *ctx, create_var_args_t *args) {
 
 static struct mir_var *create_var_impl(struct context *ctx, create_var_impl_args_t *args) {
 	bassert(args->name.len);
-	struct mir_var *tmp    = arena_alloc(&ctx->assembly->mir.arenas.var);
+	struct mir_var *tmp    = arena_alloc(&ctx->mir->arenas.var);
 	tmp->value.type        = args->alloc_type;
 	tmp->value.is_comptime = args->is_comptime;
 	tmp->linkage_name      = args->name;
@@ -2733,7 +2717,7 @@ static struct mir_var *create_var_impl(struct context *ctx, create_var_impl_args
 struct mir_fn *create_fn(struct context *ctx, create_fn_args_t *args) {
 	bassert(args->prototype);
 
-	struct mir_fn *tmp = arena_alloc(&ctx->assembly->mir.arenas.fn);
+	struct mir_fn *tmp = arena_alloc(&ctx->mir->arenas.fn);
 	bmagic_set(tmp);
 	tmp->linkage_name     = args->linkage_name;
 	tmp->id               = args->id;
@@ -2751,7 +2735,7 @@ struct mir_fn *create_fn(struct context *ctx, create_fn_args_t *args) {
 struct mir_fn_group *create_fn_group(struct context *ctx, struct ast *decl_node, mir_fns_t *variants) {
 	bassert(decl_node);
 	bassert(variants);
-	struct mir_fn_group *tmp = arena_alloc(&ctx->assembly->mir.arenas.fn_group);
+	struct mir_fn_group *tmp = arena_alloc(&ctx->mir->arenas.fn_group);
 	bmagic_set(tmp);
 	tmp->decl_node = decl_node;
 	tmp->variants  = variants;
@@ -2761,14 +2745,14 @@ struct mir_fn_group *create_fn_group(struct context *ctx, struct ast *decl_node,
 
 struct mir_fn_generated_recipe *create_fn_generation_recipe(struct context *ctx, struct ast *ast_lit_fn) {
 	bassert(ast_lit_fn && ast_lit_fn->kind == AST_EXPR_LIT_FN);
-	struct mir_fn_generated_recipe *tmp = arena_alloc(&ctx->assembly->mir.arenas.fn_generated);
+	struct mir_fn_generated_recipe *tmp = arena_alloc(&ctx->mir->arenas.fn_generated);
 	bmagic_set(tmp);
 	tmp->ast_lit_fn = ast_lit_fn;
 	return tmp;
 }
 
 struct mir_member *create_member(struct context *ctx, struct ast *node, struct id *id, s64 index, struct mir_type *type) {
-	struct mir_member *tmp = arena_alloc(&ctx->assembly->mir.arenas.member);
+	struct mir_member *tmp = arena_alloc(&ctx->mir->arenas.member);
 	bmagic_set(tmp);
 	tmp->decl_node = node;
 	tmp->id        = id;
@@ -2778,7 +2762,7 @@ struct mir_member *create_member(struct context *ctx, struct ast *node, struct i
 }
 
 struct mir_arg *create_arg(struct context *ctx, create_arg_args_t *args) {
-	struct mir_arg *tmp = arena_alloc(&ctx->assembly->mir.arenas.arg);
+	struct mir_arg *tmp = arena_alloc(&ctx->mir->arenas.arg);
 	bmagic_set(tmp);
 	tmp->decl_node             = args->node;
 	tmp->id                    = args->id;
@@ -2795,7 +2779,7 @@ struct mir_arg *create_arg(struct context *ctx, create_arg_args_t *args) {
 }
 
 struct mir_variant *create_variant(struct context *ctx, struct id *id, struct mir_type *value_type, const u64 value) {
-	struct mir_variant *tmp = arena_alloc(&ctx->assembly->mir.arenas.variant);
+	struct mir_variant *tmp = arena_alloc(&ctx->mir->arenas.variant);
 	tmp->id                 = id;
 	tmp->value_type         = value_type;
 	tmp->value              = value;
@@ -3019,7 +3003,7 @@ enum mir_cast_op get_cast_op(struct mir_type *from, struct mir_type *to) {
 
 void *create_instr(struct context *ctx, enum mir_instr_kind kind, struct ast *node) {
 	static u64        _id_counter = 1;
-	struct mir_instr *tmp         = arena_alloc(&ctx->assembly->mir.arenas.instr);
+	struct mir_instr *tmp         = arena_alloc(&ctx->mir->arenas.instr);
 	tmp->value.data               = (vm_stack_ptr_t)&tmp->value._tmp;
 	tmp->kind                     = kind;
 	tmp->node                     = node;
@@ -6163,7 +6147,7 @@ struct result analyze_instr_fn_proto(struct context *ctx, struct mir_instr_fn_pr
 		analyze_notify_provided(ctx, fn->id->hash);
 	}
 
-	if (schedule_llvm_generation) arrput(ctx->assembly->mir.exported_instrs, &fn_proto->base);
+	if (schedule_llvm_generation) arrput(ctx->mir->exported_instrs, &fn_proto->base);
 
 	return_zone(PASS);
 }
@@ -10786,18 +10770,19 @@ static void ast_decl_var_local(struct context *ctx, struct ast *ast_local) {
 		} else if (prev_var) {
 			current_value = append_instr_decl_direct_ref(ctx, NULL, prev_var);
 		}
-		struct id        *id                           = &ast_current_name->data.ident.id;
-		struct mir_instr *var                          = append_instr_decl_var(ctx,
-                                                      &(append_instr_decl_var_args_t){
-		                                                                           .node       = ast_current_name,
-		                                                                           .id         = id,
-		                                                                           .scope      = scope,
-		                                                                           .type       = type,
-		                                                                           .init       = current_value,
-		                                                                           .is_mutable = is_mutable,
-		                                                                           .flags      = ast_local->data.decl.flags,
-		                                                                           .builtin_id = builtin_id,
-                                                      });
+		struct id        *id  = &ast_current_name->data.ident.id;
+		struct mir_instr *var = append_instr_decl_var(ctx,
+		                                              &(append_instr_decl_var_args_t){
+		                                                  .node       = ast_current_name,
+		                                                  .id         = id,
+		                                                  .scope      = scope,
+		                                                  .type       = type,
+		                                                  .init       = current_value,
+		                                                  .is_mutable = is_mutable,
+		                                                  .flags      = ast_local->data.decl.flags,
+		                                                  .builtin_id = builtin_id,
+		                                              });
+
 		((struct mir_instr_decl_var *)var)->var->entry = register_symbol(ctx, ast_current_name, id, scope, is_compiler);
 
 		bassert(ast_current_name->kind == AST_IDENT);
@@ -11765,10 +11750,10 @@ str_buf_t mir_type2str(const struct mir_type *type, bool prefer_name) {
 }
 
 static void provide_builtin_arch(struct context *ctx) {
-	struct BuiltinTypes *bt       = ctx->builtin_types;
-	struct scope        *scope    = scope_create(&ctx->assembly->scope_arenas, SCOPE_TYPE_ENUM, ctx->assembly->gscope, NULL);
-	mir_variants_t      *variants = arena_alloc(&ctx->assembly->arenas.sarr);
-	static struct id     ids[static_arrlenu(arch_names)];
+	struct builtin_types *bt       = ctx->builtin_types;
+	struct scope         *scope    = scope_create(&ctx->assembly->scope_arenas, SCOPE_TYPE_ENUM, ctx->assembly->gscope, NULL);
+	mir_variants_t       *variants = arena_alloc(&ctx->assembly->arenas.sarr);
+	static struct id      ids[static_arrlenu(arch_names)];
 	for (usize i = 0; i < static_arrlenu(arch_names); ++i) {
 		str_t name = make_str_from_c(arch_names[i]);
 		name       = scdup2(&ctx->assembly->string_cache, name);
@@ -11792,10 +11777,10 @@ static void provide_builtin_arch(struct context *ctx) {
 }
 
 static void provide_builtin_os(struct context *ctx) {
-	struct BuiltinTypes *bt       = ctx->builtin_types;
-	struct scope        *scope    = scope_create(&ctx->assembly->scope_arenas, SCOPE_TYPE_ENUM, ctx->assembly->gscope, NULL);
-	mir_variants_t      *variants = arena_alloc(&ctx->assembly->arenas.sarr);
-	static struct id     ids[static_arrlenu(os_names)];
+	struct builtin_types *bt       = ctx->builtin_types;
+	struct scope         *scope    = scope_create(&ctx->assembly->scope_arenas, SCOPE_TYPE_ENUM, ctx->assembly->gscope, NULL);
+	mir_variants_t       *variants = arena_alloc(&ctx->assembly->arenas.sarr);
+	static struct id      ids[static_arrlenu(os_names)];
 	for (usize i = 0; i < static_arrlenu(os_names); ++i) {
 		str_t name = make_str_from_c(os_names[i]);
 		name       = scdup2(&ctx->assembly->string_cache, name);
@@ -11819,10 +11804,10 @@ static void provide_builtin_os(struct context *ctx) {
 }
 
 static void provide_builtin_env(struct context *ctx) {
-	struct BuiltinTypes *bt       = ctx->builtin_types;
-	struct scope        *scope    = scope_create(&ctx->assembly->scope_arenas, SCOPE_TYPE_ENUM, ctx->assembly->gscope, NULL);
-	mir_variants_t      *variants = arena_alloc(&ctx->assembly->arenas.sarr);
-	static struct id     ids[static_arrlenu(env_names)];
+	struct builtin_types *bt       = ctx->builtin_types;
+	struct scope         *scope    = scope_create(&ctx->assembly->scope_arenas, SCOPE_TYPE_ENUM, ctx->assembly->gscope, NULL);
+	mir_variants_t       *variants = arena_alloc(&ctx->assembly->arenas.sarr);
+	static struct id      ids[static_arrlenu(env_names)];
 	for (usize i = 0; i < static_arrlenu(env_names); ++i) {
 		str_t name = make_str_from_c(env_names[i]);
 		name       = scdup2(&ctx->assembly->string_cache, name);
@@ -11845,7 +11830,7 @@ static void provide_builtin_env(struct context *ctx) {
 }
 
 void initialize_builtins(struct context *ctx) {
-	struct BuiltinTypes *bt    = ctx->builtin_types;
+	struct builtin_types *bt   = ctx->builtin_types;
 	bt->t_s8                   = create_type_int(ctx, &builtin_ids[BUILTIN_ID_TYPE_S8], 8, true);
 	bt->t_s16                  = create_type_int(ctx, &builtin_ids[BUILTIN_ID_TYPE_S16], 16, true);
 	bt->t_s32                  = create_type_int(ctx, &builtin_ids[BUILTIN_ID_TYPE_S32], 32, true);
@@ -11973,21 +11958,40 @@ static void arenas_terminate(struct mir_arenas *arenas) {
 	arena_terminate(&arenas->fn_generated);
 }
 
+static struct mir_sync *sync_new(void) {
+	struct mir_sync *impl = bmalloc(sizeof(struct mir_sync));
+	pthread_spin_init(&impl->type_cache_lock, 0);
+	pthread_spin_init(&impl->global_instrs_lock, 0);
+	return impl;
+}
+
+static void sync_delete(struct mir_sync *impl) {
+	pthread_spin_destroy(&impl->type_cache_lock);
+	pthread_spin_destroy(&impl->global_instrs_lock);
+	bfree(impl);
+}
+
 void mir_init(struct assembly *assembly) {
 	struct mir *mir = &assembly->mir;
+
+	mir->type_cache = NULL;
+	tbl_init(mir->type_cache, TYPE_CACHE_PREALLOCATE);
 
 	arenas_init(&mir->arenas);
 	arrsetcap(mir->global_instrs, 4096);
 	arrsetcap(mir->exported_instrs, 256);
+	mir->sync = sync_new();
 }
 
 void mir_terminate(struct assembly *assembly) {
 	struct mir *mir = &assembly->mir;
 
+	sync_delete(mir->sync);
 	hmfree(mir->rtti_table);
 	arrfree(mir->global_instrs);
 	arrfree(mir->exported_instrs);
 	arenas_terminate(&mir->arenas);
+	tbl_free(mir->type_cache);
 }
 
 void mir_run(struct assembly *assembly) {
@@ -12000,15 +12004,13 @@ void mir_run(struct assembly *assembly) {
 	ctx.builtin_types                   = &assembly->builtin_types;
 	ctx.vm                              = &assembly->vm;
 	ctx.testing.cases                   = assembly->testing.cases;
+	ctx.mir                             = &assembly->mir;
 	ctx.fn_generate.current_scope_layer = SCOPE_DEFAULT_LAYER;
 	ctx.ast.current_defer_stack_index   = -1;
-	ctx.type_cache                      = NULL;
 
 	arrsetcap(ctx.analyze.usage_check_arr, 256);
 	arrsetcap(ctx.analyze.stack[0], 256);
 	arrsetcap(ctx.analyze.stack[1], 256);
-
-	tbl_init(ctx.type_cache, TYPE_CACHE_PREALLOCATE);
 
 	ctx.analyze.unnamed_entry = scope_create_entry(&ctx.assembly->scope_arenas, SCOPE_ENTRY_UNNAMED, NULL, NULL, true);
 
@@ -12053,6 +12055,5 @@ DONE:
 	sarrfree(&ctx.analyze.incomplete_rtti);
 	sarrfree(&ctx.fn_generate.replacement_queue);
 	sarrfree(&ctx.analyze.complete_check_type_stack);
-	tbl_free(ctx.type_cache);
 	return_zone();
 }

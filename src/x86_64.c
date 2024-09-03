@@ -160,8 +160,8 @@ struct thread_context {
 };
 
 struct context {
-	struct assembly     *assembly;
-	struct BuiltinTypes *builtin_types;
+	struct assembly      *assembly;
+	struct builtin_types *builtin_types;
 	array(struct thread_context) tctx;
 
 	struct {

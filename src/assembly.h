@@ -255,7 +255,7 @@ struct assembly {
 	struct scope *gscope;       // global scope of the assembly
 
 	/* Builtins */
-	struct BuiltinTypes {
+	struct builtin_types {
 #define GEN_BUILTIN_TYPES
 #include "assembly.def"
 #undef GEN_BUILTIN_TYPES

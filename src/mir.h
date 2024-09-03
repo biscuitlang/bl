@@ -68,6 +68,7 @@ struct mir_fn;
 struct mir_fn_group;
 struct mir_fn_generated_recipe;
 struct mir_const_expr_value;
+struct mir_sync;
 
 #define GEN_INSTR(kind, name) struct name;
 #include "mir.def"
@@ -85,6 +86,12 @@ struct mir_arenas {
 	struct arena fn_generated;
 };
 
+struct mir_type_cache_entry {
+	hash_t           hash;
+	str_t            key;
+	struct mir_type *type;
+};
+
 struct mir {
 	struct mir_arenas arenas;
 	array(struct mir_instr *) global_instrs; // All global instructions.
@@ -93,6 +100,9 @@ struct mir {
 		struct mir_var *value;
 	} *rtti_table; // Map type ids to RTTI variables.
 	array(struct mir_instr *) exported_instrs;
+	my_hash_table(struct mir_type_cache_entry) type_cache;
+
+	struct mir_sync *sync;
 };
 
 struct mir_switch_case {

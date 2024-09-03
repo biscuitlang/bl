@@ -94,8 +94,8 @@ struct context {
 	my_hash_table(struct cache_entry) llvm_fn_cache;
 	array(struct rtti_incomplete) incomplete_rtti;
 
-	struct BuiltinTypes *builtin_types;
-	bool                 generate_debug_info;
+	struct builtin_types *builtin_types;
+	bool                  generate_debug_info;
 	array(struct mir_type *) di_incomplete_types;
 
 	// intrinsics
