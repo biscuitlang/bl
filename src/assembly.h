@@ -206,18 +206,10 @@ struct assembly {
 	struct scope_arenas  scope_arenas;
 
 	struct {
-		struct mir_arenas mir;
 		struct arena      sarr;
 	} arenas;
 
-	struct {
-		array(struct mir_instr *) global_instrs; // All global instructions.
-		struct {
-			hash_t          key;
-			struct mir_var *value;
-		} *rtti_table; // Map type ids to RTTI variables.
-		array(struct mir_instr *) exported_instrs;
-	} MIR;
+	struct mir mir;
 
 	struct {
 		LLVMModuleRef        module;

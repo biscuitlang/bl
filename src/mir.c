@@ -1287,7 +1287,7 @@ static inline void insert_instr_before(struct mir_instr *before, struct mir_inst
 
 static inline void push_into_gscope(struct context *ctx, struct mir_instr *instr) {
 	bassert(instr);
-	arrput(ctx->assembly->MIR.global_instrs, instr);
+	arrput(ctx->assembly->mir.global_instrs, instr);
 }
 
 static inline void add_phi_income(struct mir_instr_phi *phi, struct mir_instr *value, struct mir_instr_block *block) {
@@ -1526,7 +1526,7 @@ void ast_free_defer_stack(struct context *ctx) {
 }
 
 struct mir_type *create_type(struct context *ctx, enum mir_type_kind kind, struct id *user_id) {
-	struct mir_type *type = arena_alloc(&ctx->assembly->arenas.mir.type);
+	struct mir_type *type = arena_alloc(&ctx->assembly->mir.arenas.type);
 	bmagic_set(type);
 	type->kind    = kind;
 	type->user_id = user_id;
@@ -2687,7 +2687,7 @@ static inline void push_var(struct context *ctx, struct mir_var *var) {
 
 struct mir_var *create_var(struct context *ctx, create_var_args_t *args) {
 	bassert(args->id);
-	struct mir_var *tmp    = arena_alloc(&ctx->assembly->arenas.mir.var);
+	struct mir_var *tmp    = arena_alloc(&ctx->assembly->mir.arenas.var);
 	tmp->value.type        = args->alloc_type;
 	tmp->value.is_comptime = args->is_comptime;
 	tmp->id                = args->id;
@@ -2715,7 +2715,7 @@ struct mir_var *create_var(struct context *ctx, create_var_args_t *args) {
 
 static struct mir_var *create_var_impl(struct context *ctx, create_var_impl_args_t *args) {
 	bassert(args->name.len);
-	struct mir_var *tmp    = arena_alloc(&ctx->assembly->arenas.mir.var);
+	struct mir_var *tmp    = arena_alloc(&ctx->assembly->mir.arenas.var);
 	tmp->value.type        = args->alloc_type;
 	tmp->value.is_comptime = args->is_comptime;
 	tmp->linkage_name      = args->name;
@@ -2735,7 +2735,7 @@ static struct mir_var *create_var_impl(struct context *ctx, create_var_impl_args
 struct mir_fn *create_fn(struct context *ctx, create_fn_args_t *args) {
 	bassert(args->prototype);
 
-	struct mir_fn *tmp = arena_alloc(&ctx->assembly->arenas.mir.fn);
+	struct mir_fn *tmp = arena_alloc(&ctx->assembly->mir.arenas.fn);
 	bmagic_set(tmp);
 	tmp->linkage_name     = args->linkage_name;
 	tmp->id               = args->id;
@@ -2753,7 +2753,7 @@ struct mir_fn *create_fn(struct context *ctx, create_fn_args_t *args) {
 struct mir_fn_group *create_fn_group(struct context *ctx, struct ast *decl_node, mir_fns_t *variants) {
 	bassert(decl_node);
 	bassert(variants);
-	struct mir_fn_group *tmp = arena_alloc(&ctx->assembly->arenas.mir.fn_group);
+	struct mir_fn_group *tmp = arena_alloc(&ctx->assembly->mir.arenas.fn_group);
 	bmagic_set(tmp);
 	tmp->decl_node = decl_node;
 	tmp->variants  = variants;
@@ -2763,14 +2763,14 @@ struct mir_fn_group *create_fn_group(struct context *ctx, struct ast *decl_node,
 
 struct mir_fn_generated_recipe *create_fn_generation_recipe(struct context *ctx, struct ast *ast_lit_fn) {
 	bassert(ast_lit_fn && ast_lit_fn->kind == AST_EXPR_LIT_FN);
-	struct mir_fn_generated_recipe *tmp = arena_alloc(&ctx->assembly->arenas.mir.fn_generated);
+	struct mir_fn_generated_recipe *tmp = arena_alloc(&ctx->assembly->mir.arenas.fn_generated);
 	bmagic_set(tmp);
 	tmp->ast_lit_fn = ast_lit_fn;
 	return tmp;
 }
 
 struct mir_member *create_member(struct context *ctx, struct ast *node, struct id *id, s64 index, struct mir_type *type) {
-	struct mir_member *tmp = arena_alloc(&ctx->assembly->arenas.mir.member);
+	struct mir_member *tmp = arena_alloc(&ctx->assembly->mir.arenas.member);
 	bmagic_set(tmp);
 	tmp->decl_node = node;
 	tmp->id        = id;
@@ -2780,7 +2780,7 @@ struct mir_member *create_member(struct context *ctx, struct ast *node, struct i
 }
 
 struct mir_arg *create_arg(struct context *ctx, create_arg_args_t *args) {
-	struct mir_arg *tmp = arena_alloc(&ctx->assembly->arenas.mir.arg);
+	struct mir_arg *tmp = arena_alloc(&ctx->assembly->mir.arenas.arg);
 	bmagic_set(tmp);
 	tmp->decl_node             = args->node;
 	tmp->id                    = args->id;
@@ -2797,7 +2797,7 @@ struct mir_arg *create_arg(struct context *ctx, create_arg_args_t *args) {
 }
 
 struct mir_variant *create_variant(struct context *ctx, struct id *id, struct mir_type *value_type, const u64 value) {
-	struct mir_variant *tmp = arena_alloc(&ctx->assembly->arenas.mir.variant);
+	struct mir_variant *tmp = arena_alloc(&ctx->assembly->mir.arenas.variant);
 	tmp->id                 = id;
 	tmp->value_type         = value_type;
 	tmp->value              = value;
@@ -3021,7 +3021,7 @@ enum mir_cast_op get_cast_op(struct mir_type *from, struct mir_type *to) {
 
 void *create_instr(struct context *ctx, enum mir_instr_kind kind, struct ast *node) {
 	static u64        _id_counter = 1;
-	struct mir_instr *tmp         = arena_alloc(&ctx->assembly->arenas.mir.instr);
+	struct mir_instr *tmp         = arena_alloc(&ctx->assembly->mir.arenas.instr);
 	tmp->value.data               = (vm_stack_ptr_t)&tmp->value._tmp;
 	tmp->kind                     = kind;
 	tmp->node                     = node;
@@ -6165,7 +6165,7 @@ struct result analyze_instr_fn_proto(struct context *ctx, struct mir_instr_fn_pr
 		analyze_notify_provided(ctx, fn->id->hash);
 	}
 
-	if (schedule_llvm_generation) arrput(ctx->assembly->MIR.exported_instrs, &fn_proto->base);
+	if (schedule_llvm_generation) arrput(ctx->assembly->mir.exported_instrs, &fn_proto->base);
 
 	return_zone(PASS);
 }
@@ -11950,7 +11950,7 @@ str_t get_intrinsic(const str_t name) {
 	return str_empty;
 }
 
-void mir_arenas_init(struct mir_arenas *arenas) {
+static void arenas_init(struct mir_arenas *arenas) {
 	const usize instr_size = SIZEOF_MIR_INSTR;
 	arena_init(&arenas->instr, instr_size, ALIGNOF_MIR_INSTR, ARENA_INSTR_CHUNK_COUNT, NULL);
 	arena_init(&arenas->type, sizeof(struct mir_type), alignment_of(struct mir_type), ARENA_CHUNK_COUNT * 8, NULL);
@@ -11963,7 +11963,7 @@ void mir_arenas_init(struct mir_arenas *arenas) {
 	arena_init(&arenas->fn_group, sizeof(struct mir_fn_group), alignment_of(struct mir_fn_group), ARENA_CHUNK_COUNT / 2, NULL);
 }
 
-void mir_arenas_terminate(struct mir_arenas *arenas) {
+static void arenas_terminate(struct mir_arenas *arenas) {
 	arena_terminate(&arenas->fn);
 	arena_terminate(&arenas->instr);
 	arena_terminate(&arenas->member);
@@ -11973,6 +11973,23 @@ void mir_arenas_terminate(struct mir_arenas *arenas) {
 	arena_terminate(&arenas->arg);
 	arena_terminate(&arenas->fn_group);
 	arena_terminate(&arenas->fn_generated);
+}
+
+void mir_init(struct assembly *assembly) {
+	struct mir *mir = &assembly->mir;
+
+	arenas_init(&mir->arenas);
+	arrsetcap(mir->global_instrs, 4096);
+	arrsetcap(mir->exported_instrs, 256);
+}
+
+void mir_terminate(struct assembly *assembly) {
+	struct mir *mir = &assembly->mir;
+
+	hmfree(mir->rtti_table);
+	arrfree(mir->global_instrs);
+	arrfree(mir->exported_instrs);
+	arenas_terminate(&mir->arenas);
 }
 
 void mir_run(struct assembly *assembly) {

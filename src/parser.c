@@ -502,8 +502,7 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 		// Parse optional message.
 		struct token *tok_message = tokens_consume_if(ctx->tokens, SYM_STRING);
 		if (!tok_message) return_zone(NULL);
-		struct ast *message =
-		    ast_create_node(ctx->ast_arena, AST_EXPR_LIT_STRING, tok_message, scope_get(ctx));
+		struct ast *message           = ast_create_node(ctx->ast_arena, AST_EXPR_LIT_STRING, tok_message, scope_get(ctx));
 		message->data.expr_string.val = tok_message->value.str;
 		return_zone(message);
 	}

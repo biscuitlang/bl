@@ -230,19 +230,6 @@ static void native_lib_terminate(struct native_lib *lib) {
 	if (lib->is_internal) return;
 }
 
-static void mir_init(struct assembly *assembly) {
-	mir_arenas_init(&assembly->arenas.mir);
-	arrsetcap(assembly->MIR.global_instrs, 4096);
-	arrsetcap(assembly->MIR.exported_instrs, 256);
-}
-
-static inline void mir_terminate(struct assembly *assembly) {
-	hmfree(assembly->MIR.rtti_table);
-	arrfree(assembly->MIR.global_instrs);
-	arrfree(assembly->MIR.exported_instrs);
-	mir_arenas_terminate(&assembly->arenas.mir);
-}
-
 // Create directory tree and set out_path.
 static bool create_auxiliary_dir_tree_if_not_exist(const char *_path, str_buf_t *out_path) {
 	bassert(_path);
@@ -871,9 +858,9 @@ DCpointer assembly_find_extern(struct assembly *assembly, const str_t symbol) {
 
 struct mir_var *assembly_get_rtti(struct assembly *assembly, hash_t type_hash) {
 	bassert(type_hash);
-	const s64 i = hmgeti(assembly->MIR.rtti_table, type_hash);
+	const s64 i = hmgeti(assembly->mir.rtti_table, type_hash);
 	if (i < 0) return NULL;
-	struct mir_var *result = assembly->MIR.rtti_table[i].value;
+	struct mir_var *result = assembly->mir.rtti_table[i].value;
 	bassert(result);
 	return result;
 }
@@ -883,5 +870,5 @@ void assembly_add_rtti(struct assembly *assembly, hash_t type_hash, struct mir_v
 	bassert(type_hash);
 	bassert(assembly_get_rtti(assembly, type_hash) == NULL &&
 	        "RTTI variable already added for the type!");
-	hmput(assembly->MIR.rtti_table, type_hash, rtti_var);
+	hmput(assembly->mir.rtti_table, type_hash, rtti_var);
 }

@@ -85,6 +85,16 @@ struct mir_arenas {
 	struct arena fn_generated;
 };
 
+struct mir {
+	struct mir_arenas arenas;
+	array(struct mir_instr *) global_instrs; // All global instructions.
+	struct {
+		hash_t          key;
+		struct mir_var *value;
+	} *rtti_table; // Map type ids to RTTI variables.
+	array(struct mir_instr *) exported_instrs;
+};
+
 struct mir_switch_case {
 	struct mir_instr       *on_value;
 	struct mir_instr_block *block;
@@ -1025,9 +1035,9 @@ static inline struct mir_fn *mir_instr_owner_fn(struct mir_instr *instr) {
 	return instr->owner_block->owner_fn;
 }
 
+void           mir_init(struct assembly *assembly);
+void           mir_terminate(struct assembly *assembly);
 bool           mir_is_in_comptime_fn(struct mir_instr *instr);
-void           mir_arenas_init(struct mir_arenas *arenas);
-void           mir_arenas_terminate(struct mir_arenas *arenas);
 str_buf_t      mir_type2str(const struct mir_type *type, bool prefer_name);
 const char    *mir_instr_name(const struct mir_instr *instr);
 void           mir_run(struct assembly *assembly);

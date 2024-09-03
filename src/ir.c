@@ -3287,8 +3287,8 @@ void ir_run(struct assembly *assembly) {
 	ctx.llvm_const_i8_zero  = LLVMConstInt(get_type(&ctx, ctx.builtin_types->t_u8), 0, false);
 
 	intrinsics_init(&ctx);
-	for (usize i = 0; i < arrlenu(assembly->MIR.exported_instrs); ++i) {
-		qpush_back(&ctx.queue, assembly->MIR.exported_instrs[i]);
+	for (usize i = 0; i < arrlenu(assembly->mir.exported_instrs); ++i) {
+		qpush_back(&ctx.queue, assembly->mir.exported_instrs[i]);
 	}
 	process_queue(&ctx);
 	emit_incomplete(&ctx);

@@ -672,7 +672,7 @@ BL_EXPORT void *__dlib_symbol(DLLib *lib, const char *symname) {
 
 	// Create function for the found symbol.
 
-	struct mir_fn *fn = arena_alloc(&assembly->arenas.mir.fn);
+	struct mir_fn *fn = arena_alloc(&assembly->mir.arenas.fn);
 	bmagic_set(fn);
 	fn->flags                = FLAG_EXTERN;
 	fn->is_global            = true;
