@@ -92,6 +92,44 @@ struct mir_type_cache_entry {
 	struct mir_type *type;
 };
 
+struct rtti_incomplete {
+	struct mir_var  *var;
+	struct mir_type *type;
+};
+
+typedef sarr_t(struct mir_instr *, 32) instrs_t;
+typedef sarr_t(struct rtti_incomplete, 64) rttis_t;
+
+struct mir_analyze {
+	// Instructions waiting for analyze.
+	array(struct mir_instr *) stack[2];
+	s32 si; // Current stack index
+	// Hash table of arrays. Hash is id of symbol and array contains queue of waiting
+	// instructions.
+	hash_table(struct {
+		hash_t   key;
+		instrs_t value;
+	}) waiting;
+
+	// Structure members can sometimes point to self, in such case we end up with
+	// endless looping RTTI generation, to solve this problem we create dummy RTTI
+	// variable for all pointer types and store them in this array. When structure RTTI
+	// is complete we can fill missing pointer RTTIs in second generation pass.
+	rttis_t incomplete_rtti;
+
+	// Incomplete type check stack.
+	mir_types_t          complete_check_type_stack;
+	struct scope_entry **usage_check_arr;
+	struct scope_entry  *unnamed_entry;
+
+	// Table of instruction being skipped in analyze pass, this should be empty at the end
+	// of analyze!
+	hash_table(struct {
+		struct mir_instr *key;
+		u8                value; // this is not used
+	}) skipped_instructions;
+};
+
 struct mir {
 	struct mir_arenas arenas;
 	array(struct mir_instr *) global_instrs; // All global instructions.
@@ -102,7 +140,8 @@ struct mir {
 	array(struct mir_instr *) exported_instrs;
 	my_hash_table(struct mir_type_cache_entry) type_cache;
 
-	struct mir_sync *sync;
+	struct mir_analyze analyze;
+	struct mir_sync   *sync;
 };
 
 struct mir_switch_case {

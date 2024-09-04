@@ -104,23 +104,18 @@ struct mir_sync {
 	pthread_spinlock_t type_cache_lock;
 	pthread_spinlock_t global_instrs_lock;
 	pthread_spinlock_t rtti_table_lock;
+	pthread_spinlock_t exported_instrs_lock; // @Incomplete: Maybe not needed?
 };
 
-struct rtti_incomplete {
-	struct mir_var  *var;
-	struct mir_type *type;
-};
-
-typedef sarr_t(struct mir_instr *, 32) instrs_t;
 typedef sarr_t(LLVMTypeRef, 8) llvm_types_t;
-typedef sarr_t(struct rtti_incomplete, 64) rttis_t;
 typedef sarr_t(struct ast *, 16) defer_stack_t;
 
 // Instance in run method is zero initialized, no need to set default values explicitly.
 struct context {
 	struct virtual_machine *vm;
 	struct assembly        *assembly;
-	struct mir             *mir; // Shortcut for assembly->mir
+	struct mir             *mir;     // Shortcut for assembly->mir
+	struct mir_analyze     *analyze; // Shortcut for assembly->mir->analyze
 	bool                    debug_mode;
 	struct builtin_types   *builtin_types; // Shortcut for assembly->builtin_types
 
@@ -148,38 +143,6 @@ struct context {
 		hash_t                 current_scope_layer;
 		bool                   is_generation_active;
 	} fn_generate;
-
-	// Analyze MIR generated from Ast
-	struct {
-		// Instructions waiting for analyze.
-		struct mir_instr **stack[2];
-		s32                si; // Current stack index
-
-		// Hash table of arrays. Hash is id of symbol and array contains queue of waiting
-		// instructions.
-		hash_table(struct {
-			hash_t   key;
-			instrs_t value;
-		}) waiting;
-
-		// Structure members can sometimes point to self, in such case we end up with
-		// endless looping RTTI generation, to solve this problem we create dummy RTTI
-		// variable for all pointer types and store them in this array. When structure RTTI
-		// is complete we can fill missing pointer RTTIs in second generation pass.
-		rttis_t incomplete_rtti;
-
-		// Incomplete type check stack.
-		mir_types_t          complete_check_type_stack;
-		struct scope_entry **usage_check_arr;
-		struct scope_entry  *unnamed_entry;
-
-		// Table of instruction being skipped in analyze pass, this should be empty at the end
-		// of analyze!
-		hash_table(struct {
-			struct mir_instr *key;
-			u8                value; // this is not used
-		}) skipped_instructions;
-	} analyze;
 };
 
 enum result_state {
@@ -1015,7 +978,7 @@ DONE:
 static inline struct mir_type *lookup_type(struct context *ctx, hash_t hash, str_t name) {
 	zone();
 	struct mir_sync *sync      = ctx->mir->sync;
-	const bool       is_locked = pthread_spin_trylock(&sync->type_cache_lock); // Might be called from insert_type_into_cache
+	const bool       is_locked = pthread_spin_trylock(&sync->type_cache_lock) == 0; // Might be called from insert_type_into_cache
 	const s32        i         = tbl_lookup_index_with_key(ctx->mir->type_cache, hash, name);
 	if (i == -1) {
 		if (is_locked) pthread_spin_unlock(&sync->type_cache_lock);
@@ -1029,7 +992,7 @@ static inline struct mir_type *lookup_type(struct context *ctx, hash_t hash, str
 static inline void insert_type_into_cache(struct context *ctx, struct mir_type *type, str_t name) {
 	zone();
 	struct mir_sync *sync = ctx->mir->sync;
-	pthread_spin_trylock(&sync->type_cache_lock);
+	pthread_spin_lock(&sync->type_cache_lock);
 	bassert(type);
 	bassert(type->id.hash != 0);
 	bassert(lookup_type(ctx, type->id.hash, type->id.str) == NULL);
@@ -6138,7 +6101,12 @@ struct result analyze_instr_fn_proto(struct context *ctx, struct mir_instr_fn_pr
 		analyze_notify_provided(ctx, fn->id->hash);
 	}
 
-	if (schedule_llvm_generation) arrput(ctx->mir->exported_instrs, &fn_proto->base);
+	if (schedule_llvm_generation) {
+		struct mir_sync *sync = ctx->mir->sync;
+		pthread_spin_lock(&sync->exported_instrs_lock);
+		arrput(ctx->mir->exported_instrs, &fn_proto->base);
+		pthread_spin_unlock(&sync->exported_instrs_lock);
+	}
 
 	return_zone(PASS);
 }
@@ -11961,6 +11929,7 @@ static struct mir_sync *sync_new(void) {
 	pthread_spin_init(&impl->type_cache_lock, 0);
 	pthread_spin_init(&impl->global_instrs_lock, 0);
 	pthread_spin_init(&impl->rtti_table_lock, 0);
+	pthread_spin_init(&impl->exported_instrs_lock, 0);
 	return impl;
 }
 
@@ -11968,6 +11937,7 @@ static void sync_delete(struct mir_sync *impl) {
 	pthread_spin_destroy(&impl->type_cache_lock);
 	pthread_spin_destroy(&impl->global_instrs_lock);
 	pthread_spin_destroy(&impl->rtti_table_lock);
+	pthread_spin_destroy(&impl->exported_instrs_lock);
 	bfree(impl);
 }
 
@@ -11997,7 +11967,7 @@ void mir_terminate(struct assembly *assembly) {
 struct mir_var *mir_get_rtti(struct assembly *assembly, hash_t type_hash) {
 	bassert(type_hash);
 	struct mir_sync *sync      = assembly->mir.sync;
-	const bool       is_locked = pthread_spin_trylock(&sync->rtti_table_lock);
+	const bool       is_locked = pthread_spin_trylock(&sync->rtti_table_lock) == 0;
 
 	const s64 i = hmgeti(assembly->mir.rtti_table, type_hash);
 	if (i < 0) {
@@ -12022,6 +11992,7 @@ void mir_run(struct assembly *assembly) {
 	ctx.builtin_types                   = &assembly->builtin_types;
 	ctx.vm                              = &assembly->vm;
 	ctx.mir                             = &assembly->mir;
+	ctx.analyze                         = &assembly->mir.analyze;
 	ctx.fn_generate.current_scope_layer = SCOPE_DEFAULT_LAYER;
 	ctx.ast.current_defer_stack_index   = -1;
 
