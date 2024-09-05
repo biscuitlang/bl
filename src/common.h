@@ -33,11 +33,13 @@
 #include "blmemory.h"
 // clang-format on
 #include "TracyC.h"
+#include "atomics.h"
 #include "basic_types.h"
 #include "bldebug.h"
 #include "config.h"
 #include "error.h"
 #include "math.h"
+
 #include <limits.h>
 #include <stddef.h>
 #include <string.h>

@@ -212,7 +212,7 @@ static void setup_assembly_pipeline(struct assembly *assembly) {
 	}
 	if (t->syntax_only) return;
 	arrput(*stages, &linker_run);
-	arrput(*stages, &mir_run);
+	arrput(*stages, &mir_analyze_run);
 	if (t->vmdbg_enabled) arrput(*stages, &attach_dbg);
 	if (t->run) arrput(*stages, &entry_run);
 	if (t->kind == ASSEMBLY_BUILD_PIPELINE) arrput(*stages, build_entry_run);
@@ -242,9 +242,25 @@ static void setup_assembly_pipeline(struct assembly *assembly) {
 
 static void print_stats(struct assembly *assembly) {
 
-	const f64 total_s = assembly->stats.parsing_lexing_s + assembly->stats.mir_s +
-	                    assembly->stats.llvm_s + assembly->stats.linking_s +
-	                    assembly->stats.llvm_obj_s;
+	batomic_int *values[] = {
+	    &assembly->stats.parsing_ms,
+	    &assembly->stats.lexing_ms,
+	    &assembly->stats.mir_ms,
+	    &assembly->stats.llvm_ms,
+	    &assembly->stats.llvm_obj_ms,
+	    &assembly->stats.linking_ms,
+	    &assembly->stats.polymorph_ms,
+	    NULL,
+	};
+
+	s32 total_ms = 0;
+	for (s32 i = 0; values[i]; ++i) {
+		total_ms += batomic_load(values[i]);
+	}
+
+	const s32 total_ms = assembly->stats.parsing_ms + assembly->stats.lexing_ms + assembly->stats.mir_s +
+	                     assembly->stats.llvm_s + assembly->stats.linking_s +
+	                     assembly->stats.llvm_obj_s;
 
 	builder_info(
 	    "--------------------------------------------------------------------------------\n"

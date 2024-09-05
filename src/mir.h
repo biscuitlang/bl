@@ -92,13 +92,13 @@ struct mir_type_cache_entry {
 	struct mir_type *type;
 };
 
-struct rtti_incomplete {
+struct mir_rtti_incomplete {
 	struct mir_var  *var;
 	struct mir_type *type;
 };
 
 typedef sarr_t(struct mir_instr *, 32) instrs_t;
-typedef sarr_t(struct rtti_incomplete, 64) rttis_t;
+typedef sarr_t(struct mir_rtti_incomplete, 64) mir_rttis_t;
 
 struct mir_analyze {
 	// Instructions waiting for analyze.
@@ -115,7 +115,7 @@ struct mir_analyze {
 	// endless looping RTTI generation, to solve this problem we create dummy RTTI
 	// variable for all pointer types and store them in this array. When structure RTTI
 	// is complete we can fill missing pointer RTTIs in second generation pass.
-	rttis_t incomplete_rtti;
+	mir_rttis_t incomplete_rtti;
 
 	// Incomplete type check stack.
 	mir_types_t          complete_check_type_stack;
@@ -1090,7 +1090,8 @@ struct mir_var *mir_get_rtti(struct assembly *assembly, hash_t type_hash);
 bool            mir_is_in_comptime_fn(struct mir_instr *instr);
 str_buf_t       mir_type2str(const struct mir_type *type, bool prefer_name);
 const char     *mir_instr_name(const struct mir_instr *instr);
-void            mir_run(struct assembly *assembly);
+void            mir_unit_run(struct assembly *assembly, struct unit *unit);
+void            mir_analyze_run(struct assembly *assembly);
 struct mir_fn  *mir_get_callee(const struct mir_instr_call *call);
 str_t           mir_get_fn_readable_name(struct mir_fn *fn);
 

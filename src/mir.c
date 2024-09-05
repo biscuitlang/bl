@@ -194,7 +194,6 @@ static void fn_poly_dtor(struct mir_fn_generated_recipe *recipe) {
 // FW decls
 static void            report_poly(struct mir_instr *instr);
 static void            report_invalid_call_argument_count(struct context *ctx, struct ast *node, usize expected, usize got);
-static void            initialize_builtins(struct context *ctx);
 static void            testing_add_test_case(struct context *ctx, struct mir_fn *fn);
 static struct mir_var *testing_gen_meta(struct context *ctx);
 
@@ -751,7 +750,7 @@ static void          analyze_report_skipped(struct context *ctx);
 static struct mir_var *_rtti_gen(struct context *ctx, struct mir_type *type);
 static struct mir_var *rtti_gen(struct context *ctx, struct mir_type *type);
 static struct mir_var *rtti_create_and_alloc_var(struct context *ctx, struct mir_type *type);
-static void            rtti_satisfy_incomplete(struct context *ctx, struct rtti_incomplete *incomplete);
+static void            rtti_satisfy_incomplete(struct context *ctx, struct mir_rtti_incomplete *incomplete);
 static struct mir_var *rtti_gen_integer(struct context *ctx, struct mir_type *type);
 static struct mir_var *rtti_gen_real(struct context *ctx, struct mir_type *type);
 static struct mir_var *rtti_gen_ptr(struct context *ctx, struct mir_type *type, struct mir_var *incomplete);
@@ -840,7 +839,7 @@ static inline void usage_check_push(struct context *ctx, struct scope_entry *ent
 	if (!scope_is_subtree_of_kind(scope, SCOPE_FN) && !scope_is_subtree_of_kind(scope, SCOPE_PRIVATE)) {
 		return;
 	}
-	arrpush(ctx->analyze.usage_check_arr, entry);
+	arrpush(ctx->analyze->usage_check_arr, entry);
 }
 
 static inline bool can_mutate_comptime_to_const(struct context *ctx, struct mir_instr *instr) {
@@ -920,7 +919,7 @@ static bool is_incomplete_type(struct context *ctx, struct mir_type *type, struc
 		u8               value; // this is not used
 	}) visited = NULL;
 
-	mir_types_t *stack = &ctx->analyze.complete_check_type_stack;
+	mir_types_t *stack = &ctx->analyze->complete_check_type_stack;
 	sarrput(stack, type);
 	struct mir_type *first_incomplete_type = NULL;
 	while (sarrlenu(stack)) {
@@ -1265,10 +1264,10 @@ static inline void add_phi_income(struct mir_instr_phi *phi, struct mir_instr *v
 // =================================================================================================
 
 // Get current analyze stack.
-#define analyze_current(ctx) ((ctx)->analyze.stack[(ctx)->analyze.si])
+#define analyze_current(ctx) ((ctx)->analyze->stack[(ctx)->analyze->si])
 // Swap analyze stacks and return previous index.
-#define analyze_swap(ctx) ((ctx)->analyze.si ^= 1, (ctx)->analyze.si ^ 1)
-#define analyze_pending_count(ctx) (arrlenu((ctx)->analyze.stack[0]) + arrlenu((ctx)->analyze.stack[1]))
+#define analyze_swap(ctx) ((ctx)->analyze->si ^= 1, (ctx)->analyze->si ^ 1)
+#define analyze_pending_count(ctx) (arrlenu((ctx)->analyze->stack[0]) + arrlenu((ctx)->analyze->stack[1]))
 
 static int         push_count = 0;
 static inline void analyze_schedule(struct context *ctx, struct mir_instr *instr) {
@@ -1278,10 +1277,10 @@ static inline void analyze_schedule(struct context *ctx, struct mir_instr *instr
 }
 
 static inline void analyze_notify_provided(struct context *ctx, hash_t hash) {
-	const s64 index = hmgeti(ctx->analyze.waiting, hash);
+	const s64 index = hmgeti(ctx->analyze->waiting, hash);
 	if (index == -1) return; // No one is waiting for this...
 
-	instrs_t *wq = &ctx->analyze.waiting[index].value;
+	instrs_t *wq = &ctx->analyze->waiting[index].value;
 	bassert(wq);
 
 	for (usize i = 0; i < sarrlenu(wq); ++i) {
@@ -1290,7 +1289,7 @@ static inline void analyze_notify_provided(struct context *ctx, hash_t hash) {
 
 	// Also clear element content!
 	sarrfree(wq);
-	hmdel(ctx->analyze.waiting, hash);
+	hmdel(ctx->analyze->waiting, hash);
 }
 // =================================================================================================
 
@@ -1497,7 +1496,7 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 	// Do not register explicitly unused symbol!!!
 	if (is_ignored_id(id)) {
 		bassert(!is_builtin);
-		return ctx->analyze.unnamed_entry;
+		return ctx->analyze->unnamed_entry;
 	}
 	const bool          is_private  = scope->kind == SCOPE_PRIVATE;
 	const hash_t        layer_index = ctx->fn_generate.current_scope_layer;
@@ -5222,7 +5221,7 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 			return_zone(PASS);
 		} else if (sub_type->kind == MIR_TYPE_POLY) {
 			// @Hack
-			member_ptr->scope_entry            = ctx->analyze.unnamed_entry;
+			member_ptr->scope_entry            = ctx->analyze->unnamed_entry;
 			member_ptr->base.value.type        = ctx->builtin_types->t_type;
 			member_ptr->base.value.addr_mode   = target_addr_mode;
 			member_ptr->base.value.is_comptime = true;
@@ -5248,7 +5247,7 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 			bassert(found->data.member && found->data.member->type);
 
 			// @Hack
-			member_ptr->scope_entry            = ctx->analyze.unnamed_entry;
+			member_ptr->scope_entry            = ctx->analyze->unnamed_entry;
 			member_ptr->base.value.addr_mode   = target_addr_mode;
 			member_ptr->base.value.is_comptime = true;
 			member_ptr->base.value.type        = ctx->builtin_types->t_type;
@@ -8921,7 +8920,7 @@ struct result analyze_instr(struct context *ctx, struct mir_instr *instr) {
 			(*analyze_state) = MIR_IS_ANALYZED;
 			if (instr->kind == MIR_INSTR_COMPOUND) {
 				// Supported only for compounds right now!
-				hmdel(ctx->analyze.skipped_instructions, instr);
+				hmdel(ctx->analyze->skipped_instructions, instr);
 			}
 		} else if (state.state == ANALYZE_FAILED) {
 			(*analyze_state) = MIR_IS_FAILED;
@@ -8933,10 +8932,10 @@ struct result analyze_instr(struct context *ctx, struct mir_instr *instr) {
 		} else if (state.state == ANALYZE_SKIP) {
 #if defined(BL_ASSERT_ENABLE)
 			bassert(instr->kind == MIR_INSTR_COMPOUND && "ANALYZE_SKIP is supported only for compounds right now!");
-			const s64 index = hmgeti(ctx->analyze.skipped_instructions, instr);
+			const s64 index = hmgeti(ctx->analyze->skipped_instructions, instr);
 			bassert(index == -1);
 #endif
-			hmput(ctx->analyze.skipped_instructions, instr, 0);
+			hmput(ctx->analyze->skipped_instructions, instr, 0);
 		}
 	} // PENDING
 
@@ -9010,14 +9009,14 @@ void analyze(struct context *ctx) {
 		// Remove unused instructions here!
 		if (pip && (pip->state == MIR_IS_COMPLETE) && pip->ref_count == 0) erase_instr_tree(pip, false, false);
 		if (ip == NULL) {
-			if (i >= arrlenu(ctx->analyze.stack[si])) {
+			if (i >= arrlenu(ctx->analyze->stack[si])) {
 				// No other instructions in current analyzed stack, let's try the other one.
-				arrsetlen(ctx->analyze.stack[si], 0);
+				arrsetlen(ctx->analyze->stack[si], 0);
 				i  = 0;
 				si = analyze_swap(ctx);
-				if (arrlenu(ctx->analyze.stack[si]) == 0) break;
+				if (arrlenu(ctx->analyze->stack[si]) == 0) break;
 			}
-			ip   = ctx->analyze.stack[si][i++];
+			ip   = ctx->analyze->stack[si][i++];
 			skip = false;
 		}
 		bmagic_assert(ip);
@@ -9046,14 +9045,14 @@ void analyze(struct context *ctx) {
 		case ANALYZE_WAIT: {
 			instrs_t    *wq;
 			const hash_t hash  = result.waiting_for;
-			s64          index = hmgeti(ctx->analyze.waiting, hash);
+			s64          index = hmgeti(ctx->analyze->waiting, hash);
 			if (index == -1) {
-				hmput(ctx->analyze.waiting, hash, ((instrs_t)SARR_ZERO));
-				index = hmgeti(ctx->analyze.waiting, hash);
+				hmput(ctx->analyze->waiting, hash, ((instrs_t)SARR_ZERO));
+				index = hmgeti(ctx->analyze->waiting, hash);
 				bassert(index >= -1);
-				wq = &ctx->analyze.waiting[index].value;
+				wq = &ctx->analyze->waiting[index].value;
 			} else {
-				wq = &ctx->analyze.waiting[index].value;
+				wq = &ctx->analyze->waiting[index].value;
 			}
 			bassert(wq);
 			sarrput(wq, ip);
@@ -9068,8 +9067,8 @@ void analyze(struct context *ctx) {
 void analyze_report_unresolved(struct context *ctx) {
 	s32 reported = 0;
 
-	for (usize i = 0; i < hmlenu(ctx->analyze.waiting); ++i) {
-		instrs_t *wq = &ctx->analyze.waiting[i].value;
+	for (usize i = 0; i < hmlenu(ctx->analyze->waiting); ++i) {
+		instrs_t *wq = &ctx->analyze->waiting[i].value;
 		bassert(wq);
 		for (usize j = 0; j < sarrlenu(wq); ++j) {
 			struct mir_instr *instr = sarrpeek(wq, j);
@@ -9096,14 +9095,14 @@ void analyze_report_unresolved(struct context *ctx) {
 			++reported;
 		}
 	}
-	if (hmlen(ctx->analyze.waiting) && !reported) {
+	if (hmlen(ctx->analyze->waiting) && !reported) {
 		report_error(UNKNOWN_SYMBOL, NULL, "Unknown symbol/s detected but not correctly reported, this is compiler bug!");
 	}
 }
 
 void analyze_report_unused(struct context *ctx) {
-	for (usize i = 0; i < arrlenu(ctx->analyze.usage_check_arr); ++i) {
-		struct scope_entry *entry = ctx->analyze.usage_check_arr[i];
+	for (usize i = 0; i < arrlenu(ctx->analyze->usage_check_arr); ++i) {
+		struct scope_entry *entry = ctx->analyze->usage_check_arr[i];
 		if (entry->ref_count > 0) continue;
 		if (!entry->node || !entry->id) continue;
 		bassert(entry->node->location);
@@ -9130,8 +9129,8 @@ void analyze_report_unused(struct context *ctx) {
 }
 
 void analyze_report_skipped(struct context *ctx) {
-	for (s64 i = 0; i < hmlen(ctx->analyze.skipped_instructions); ++i) {
-		struct mir_instr *instr = ctx->analyze.skipped_instructions[i].key;
+	for (s64 i = 0; i < hmlen(ctx->analyze->skipped_instructions); ++i) {
+		struct mir_instr *instr = ctx->analyze->skipped_instructions[i].key;
 		bassert(instr->kind == MIR_INSTR_COMPOUND);
 		report_error(INVALID_TYPE, instr->node, INVALID_COMPOUND_TYPE_INFER_MESSAGE);
 	}
@@ -9192,16 +9191,16 @@ inline void testing_add_test_case(struct context *ctx, struct mir_fn *fn) {
 // Top-level rtti generation.
 inline struct mir_var *rtti_gen(struct context *ctx, struct mir_type *type) {
 	struct mir_var *tmp     = _rtti_gen(ctx, type);
-	rttis_t        *pending = &ctx->analyze.incomplete_rtti;
+	mir_rttis_t    *pending = &ctx->analyze->incomplete_rtti;
 	while (sarrlenu(pending)) {
-		struct rtti_incomplete incomplete = sarrpop(pending);
+		struct mir_rtti_incomplete incomplete = sarrpop(pending);
 		rtti_satisfy_incomplete(ctx, &incomplete);
 	}
 	sarrclear(pending);
 	return tmp;
 }
 
-void rtti_satisfy_incomplete(struct context *ctx, struct rtti_incomplete *incomplete) {
+void rtti_satisfy_incomplete(struct context *ctx, struct mir_rtti_incomplete *incomplete) {
 	struct mir_type *type     = incomplete->type;
 	struct mir_var  *rtti_var = incomplete->var;
 
@@ -9251,7 +9250,7 @@ struct mir_var *_rtti_gen(struct context *ctx, struct mir_type *type) {
 		// We generate dummy pointer RTTI when incomplete is enabled and complete
 		// this in second pass to prove endless looping.
 		rtti_var = rtti_gen_ptr(ctx, ctx->builtin_types->t_u8_ptr, NULL);
-		sarrput(&ctx->analyze.incomplete_rtti, ((struct rtti_incomplete){.var = rtti_var, .type = type}));
+		sarrput(&ctx->analyze->incomplete_rtti, ((struct mir_rtti_incomplete){.var = rtti_var, .type = type}));
 		break;
 
 	case MIR_TYPE_ARRAY:
@@ -11795,71 +11794,6 @@ static void provide_builtin_env(struct context *ctx) {
 	add_global_int(ctx, &builtin_ids[BUILTIN_ID_ENV], false, t_env, ctx->assembly->target->triple.env);
 }
 
-void initialize_builtins(struct context *ctx) {
-	struct builtin_types *bt   = ctx->builtin_types;
-	bt->t_s8                   = create_type_int(ctx, &builtin_ids[BUILTIN_ID_TYPE_S8], 8, true);
-	bt->t_s16                  = create_type_int(ctx, &builtin_ids[BUILTIN_ID_TYPE_S16], 16, true);
-	bt->t_s32                  = create_type_int(ctx, &builtin_ids[BUILTIN_ID_TYPE_S32], 32, true);
-	bt->t_s64                  = create_type_int(ctx, &builtin_ids[BUILTIN_ID_TYPE_S64], 64, true);
-	bt->t_u8                   = create_type_int(ctx, &builtin_ids[BUILTIN_ID_TYPE_U8], 8, false);
-	bt->t_u16                  = create_type_int(ctx, &builtin_ids[BUILTIN_ID_TYPE_U16], 16, false);
-	bt->t_u32                  = create_type_int(ctx, &builtin_ids[BUILTIN_ID_TYPE_U32], 32, false);
-	bt->t_u64                  = create_type_int(ctx, &builtin_ids[BUILTIN_ID_TYPE_U64], 64, false);
-	bt->t_usize                = create_type_int(ctx, &builtin_ids[BUILTIN_ID_TYPE_USIZE], 64, false);
-	bt->t_bool                 = create_type_bool(ctx);
-	bt->t_f32                  = create_type_real(ctx, &builtin_ids[BUILTIN_ID_TYPE_F32], 32);
-	bt->t_f64                  = create_type_real(ctx, &builtin_ids[BUILTIN_ID_TYPE_F64], 64);
-	bt->t_dummy_ptr            = create_type_ptr(ctx, bt->t_u8);
-	bt->t_type                 = create_type_type(ctx);
-	bt->t_scope                = create_type_named_scope(ctx);
-	bt->t_void                 = create_type_void(ctx);
-	bt->t_u8_ptr               = create_type_ptr(ctx, bt->t_u8);
-	bt->t_string               = create_type_slice(ctx, MIR_TYPE_STRING, &builtin_ids[BUILTIN_ID_TYPE_STRING], bt->t_u8_ptr, false);
-	bt->t_string_literal       = create_type_slice(ctx, MIR_TYPE_SLICE, NULL, bt->t_u8_ptr, true);
-	bt->t_resolve_type_fn      = create_type_fn(ctx, &(create_type_fn_args_t){.ret_type = bt->t_type});
-	bt->t_resolve_bool_expr_fn = create_type_fn(ctx, &(create_type_fn_args_t){.ret_type = bt->t_bool});
-	bt->t_placeholer           = create_type_placeholder(ctx);
-
-	provide_builtin_arch(ctx);
-	provide_builtin_os(ctx);
-	provide_builtin_env(ctx);
-
-	// Provide types into global scope
-	provide_builtin_type(ctx, bt->t_type);
-	provide_builtin_type(ctx, bt->t_s8);
-	provide_builtin_type(ctx, bt->t_s16);
-	provide_builtin_type(ctx, bt->t_s32);
-	provide_builtin_type(ctx, bt->t_s64);
-	provide_builtin_type(ctx, bt->t_u8);
-	provide_builtin_type(ctx, bt->t_u16);
-	provide_builtin_type(ctx, bt->t_u32);
-	provide_builtin_type(ctx, bt->t_u64);
-	provide_builtin_type(ctx, bt->t_usize);
-	provide_builtin_type(ctx, bt->t_bool);
-	provide_builtin_type(ctx, bt->t_f32);
-	provide_builtin_type(ctx, bt->t_f64);
-	provide_builtin_type(ctx, bt->t_string);
-
-	// Add IS_DEBUG immutable into the global scope to provide information about enabled
-	// debug mode.
-	add_global_bool(ctx, &builtin_ids[BUILTIN_ID_IS_DEBUG], false, ctx->debug_mode);
-
-	// Add IS_COMPTIME_RUN immutable into the global scope to provide information about compile
-	// time run.
-	ctx->assembly->vm_run.is_comptime_run = add_global_bool(ctx, &builtin_ids[BUILTIN_ID_IS_COMPTIME_RUN], true, false);
-
-	// Compiler version.
-	add_global_int(ctx, &builtin_ids[BUILTIN_ID_BLC_VER_MAJOR], false, bt->t_s32, BL_VERSION_MAJOR);
-	add_global_int(ctx, &builtin_ids[BUILTIN_ID_BLC_VER_MINOR], false, bt->t_s32, BL_VERSION_MINOR);
-	add_global_int(ctx, &builtin_ids[BUILTIN_ID_BLC_VER_PATCH], false, bt->t_s32, BL_VERSION_PATCH);
-
-	// Register all compiler builtin helper functions to report eventual collisions with user
-	// code.
-	for (u32 i = BUILTIN_ID_SIZEOF; i < static_arrlenu(builtin_ids); ++i) {
-		register_symbol(ctx, NULL, &builtin_ids[i], ctx->assembly->gscope, true);
-	}
-}
-
 str_t get_intrinsic(const str_t name) {
 	if (!name.len) return str_empty;
 	// clang-format off
@@ -11941,6 +11875,93 @@ static void sync_delete(struct mir_sync *impl) {
 	bfree(impl);
 }
 
+static void init_context(struct context *ctx, struct assembly *assembly) {
+	memset(ctx, 0, sizeof(struct context));
+	ctx->assembly                        = assembly;
+	ctx->debug_mode                      = assembly->target->opt == ASSEMBLY_OPT_DEBUG;
+	ctx->builtin_types                   = &assembly->builtin_types;
+	ctx->vm                              = &assembly->vm;
+	ctx->mir                             = &assembly->mir;
+	ctx->analyze                         = &assembly->mir.analyze;
+	ctx->fn_generate.current_scope_layer = SCOPE_DEFAULT_LAYER;
+	ctx->ast.current_defer_stack_index   = -1;
+}
+
+static void terminate_context(struct context *ctx) {
+	ast_free_defer_stack(ctx);
+	sarrfree(&ctx->fn_generate.replacement_queue);
+}
+
+static void initialize_builtins(struct assembly *assembly) {
+	struct context ctx;
+	init_context(&ctx, assembly);
+
+	struct builtin_types *bt   = &assembly->builtin_types;
+	bt->t_s8                   = create_type_int(&ctx, &builtin_ids[BUILTIN_ID_TYPE_S8], 8, true);
+	bt->t_s16                  = create_type_int(&ctx, &builtin_ids[BUILTIN_ID_TYPE_S16], 16, true);
+	bt->t_s32                  = create_type_int(&ctx, &builtin_ids[BUILTIN_ID_TYPE_S32], 32, true);
+	bt->t_s64                  = create_type_int(&ctx, &builtin_ids[BUILTIN_ID_TYPE_S64], 64, true);
+	bt->t_u8                   = create_type_int(&ctx, &builtin_ids[BUILTIN_ID_TYPE_U8], 8, false);
+	bt->t_u16                  = create_type_int(&ctx, &builtin_ids[BUILTIN_ID_TYPE_U16], 16, false);
+	bt->t_u32                  = create_type_int(&ctx, &builtin_ids[BUILTIN_ID_TYPE_U32], 32, false);
+	bt->t_u64                  = create_type_int(&ctx, &builtin_ids[BUILTIN_ID_TYPE_U64], 64, false);
+	bt->t_usize                = create_type_int(&ctx, &builtin_ids[BUILTIN_ID_TYPE_USIZE], 64, false);
+	bt->t_bool                 = create_type_bool(&ctx);
+	bt->t_f32                  = create_type_real(&ctx, &builtin_ids[BUILTIN_ID_TYPE_F32], 32);
+	bt->t_f64                  = create_type_real(&ctx, &builtin_ids[BUILTIN_ID_TYPE_F64], 64);
+	bt->t_dummy_ptr            = create_type_ptr(&ctx, bt->t_u8);
+	bt->t_type                 = create_type_type(&ctx);
+	bt->t_scope                = create_type_named_scope(&ctx);
+	bt->t_void                 = create_type_void(&ctx);
+	bt->t_u8_ptr               = create_type_ptr(&ctx, bt->t_u8);
+	bt->t_string               = create_type_slice(&ctx, MIR_TYPE_STRING, &builtin_ids[BUILTIN_ID_TYPE_STRING], bt->t_u8_ptr, false);
+	bt->t_string_literal       = create_type_slice(&ctx, MIR_TYPE_SLICE, NULL, bt->t_u8_ptr, true);
+	bt->t_resolve_type_fn      = create_type_fn(&ctx, &(create_type_fn_args_t){.ret_type = bt->t_type});
+	bt->t_resolve_bool_expr_fn = create_type_fn(&ctx, &(create_type_fn_args_t){.ret_type = bt->t_bool});
+	bt->t_placeholer           = create_type_placeholder(&ctx);
+
+	provide_builtin_arch(&ctx);
+	provide_builtin_os(&ctx);
+	provide_builtin_env(&ctx);
+
+	// Provide types into global scope
+	provide_builtin_type(&ctx, bt->t_type);
+	provide_builtin_type(&ctx, bt->t_s8);
+	provide_builtin_type(&ctx, bt->t_s16);
+	provide_builtin_type(&ctx, bt->t_s32);
+	provide_builtin_type(&ctx, bt->t_s64);
+	provide_builtin_type(&ctx, bt->t_u8);
+	provide_builtin_type(&ctx, bt->t_u16);
+	provide_builtin_type(&ctx, bt->t_u32);
+	provide_builtin_type(&ctx, bt->t_u64);
+	provide_builtin_type(&ctx, bt->t_usize);
+	provide_builtin_type(&ctx, bt->t_bool);
+	provide_builtin_type(&ctx, bt->t_f32);
+	provide_builtin_type(&ctx, bt->t_f64);
+	provide_builtin_type(&ctx, bt->t_string);
+
+	// Add IS_DEBUG immutable into the global scope to provide information about enabled
+	// debug mode.
+	add_global_bool(&ctx, &builtin_ids[BUILTIN_ID_IS_DEBUG], false, ctx.debug_mode);
+
+	// Add IS_COMPTIME_RUN immutable into the global scope to provide information about compile
+	// time run.
+	assembly->vm_run.is_comptime_run = add_global_bool(&ctx, &builtin_ids[BUILTIN_ID_IS_COMPTIME_RUN], true, false);
+
+	// Compiler version.
+	add_global_int(&ctx, &builtin_ids[BUILTIN_ID_BLC_VER_MAJOR], false, bt->t_s32, BL_VERSION_MAJOR);
+	add_global_int(&ctx, &builtin_ids[BUILTIN_ID_BLC_VER_MINOR], false, bt->t_s32, BL_VERSION_MINOR);
+	add_global_int(&ctx, &builtin_ids[BUILTIN_ID_BLC_VER_PATCH], false, bt->t_s32, BL_VERSION_PATCH);
+
+	// Register all compiler builtin helper functions to report eventual collisions with user
+	// code.
+	for (u32 i = BUILTIN_ID_SIZEOF; i < static_arrlenu(builtin_ids); ++i) {
+		register_symbol(&ctx, NULL, &builtin_ids[i], ctx.assembly->gscope, true);
+	}
+
+	terminate_context(&ctx);
+}
+
 void mir_init(struct assembly *assembly) {
 	struct mir *mir = &assembly->mir;
 
@@ -11950,7 +11971,14 @@ void mir_init(struct assembly *assembly) {
 	arenas_init(&mir->arenas);
 	arrsetcap(mir->global_instrs, 4096);
 	arrsetcap(mir->exported_instrs, 256);
+	arrsetcap(mir->analyze.usage_check_arr, 256);
+	arrsetcap(mir->analyze.stack[0], 256);
+	arrsetcap(mir->analyze.stack[1], 256);
+	mir->analyze.unnamed_entry = scope_create_entry(&assembly->scope_arenas, SCOPE_ENTRY_UNNAMED, NULL, NULL, true);
+
 	mir->sync = sync_new();
+
+	initialize_builtins(assembly);
 }
 
 void mir_terminate(struct assembly *assembly) {
@@ -11962,6 +11990,13 @@ void mir_terminate(struct assembly *assembly) {
 	arrfree(mir->exported_instrs);
 	arenas_terminate(&mir->arenas);
 	tbl_free(mir->type_cache);
+	arrfree(mir->analyze.stack[0]);
+	arrfree(mir->analyze.stack[1]);
+	hmfree(mir->analyze.skipped_instructions);
+	hmfree(mir->analyze.waiting);
+	arrfree(mir->analyze.usage_check_arr);
+	sarrfree(&mir->analyze.incomplete_rtti);
+	sarrfree(&mir->analyze.complete_check_type_stack);
 }
 
 struct mir_var *mir_get_rtti(struct assembly *assembly, hash_t type_hash) {
@@ -11982,33 +12017,30 @@ struct mir_var *mir_get_rtti(struct assembly *assembly, hash_t type_hash) {
 	return result;
 }
 
-void mir_run(struct assembly *assembly) {
-	runtime_measure_begin(mir);
-	struct context ctx;
+void mir_unit_run(struct assembly *assembly, struct unit *unit) {
 	zone();
-	memset(&ctx, 0, sizeof(struct context));
-	ctx.assembly                        = assembly;
-	ctx.debug_mode                      = assembly->target->opt == ASSEMBLY_OPT_DEBUG;
-	ctx.builtin_types                   = &assembly->builtin_types;
-	ctx.vm                              = &assembly->vm;
-	ctx.mir                             = &assembly->mir;
-	ctx.analyze                         = &assembly->mir.analyze;
-	ctx.fn_generate.current_scope_layer = SCOPE_DEFAULT_LAYER;
-	ctx.ast.current_defer_stack_index   = -1;
+	runtime_measure_begin(mir_unit);
 
-	arrsetcap(ctx.analyze.usage_check_arr, 256);
-	arrsetcap(ctx.analyze.stack[0], 256);
-	arrsetcap(ctx.analyze.stack[1], 256);
+	struct context ctx;
+	init_context(&ctx, assembly);
 
-	ctx.analyze.unnamed_entry = scope_create_entry(&ctx.assembly->scope_arenas, SCOPE_ENTRY_UNNAMED, NULL, NULL, true);
+	ast(&ctx, unit->ast);
 
-	// initialize all builtin types
-	initialize_builtins(&ctx);
+	terminate_context(&ctx);
+
+	assembly->stats.mir_s += runtime_measure_end(mir_unit);
+	return_zone();
+}
+
+void mir_analyze_run(struct assembly *assembly) {
+	runtime_measure_begin(mir_analyze);
+	zone();
 
 	// Gen MIR from ast pass
 	for (usize i = 0; i < arrlenu(assembly->units); ++i) {
 		struct unit *unit = assembly->units[i];
-		ast(&ctx, unit->ast);
+		mir_unit_run(assembly, unit);
+		// ast(&ctx, unit->ast);
 	}
 
 	if (builder.errorc) goto DONE;
@@ -12017,31 +12049,27 @@ void mir_run(struct assembly *assembly) {
 	if (assembly->target->no_analyze) goto DONE;
 
 	// Analyze pass
+	struct context ctx;
+	init_context(&ctx, assembly);
+
 	analyze(&ctx);
 	if (builder.errorc) goto DONE;
-	bassert(arrlen(ctx.analyze.stack[0]) == 0 && arrlen(ctx.analyze.stack[1]) == 0);
+
+	bassert(arrlen(ctx.analyze->stack[0]) == 0 && arrlen(ctx.analyze->stack[1]) == 0);
 	analyze_report_skipped(&ctx);
 	if (builder.errorc) goto DONE;
+
 	analyze_report_unresolved(&ctx);
 	if (builder.errorc) goto DONE;
+
 	analyze_report_unused(&ctx);
 
 	blog("Analyze queue push count: %i", push_count);
 
 DONE:
-	assembly->stats.mir_s = runtime_measure_end(mir);
+	assembly->stats.mir_s += runtime_measure_end(mir_analyze);
 
 	if (!builder.options->do_cleanup_when_done) return_zone();
-
-	ast_free_defer_stack(&ctx);
-	arrfree(ctx.analyze.stack[0]);
-	arrfree(ctx.analyze.stack[1]);
-	hmfree(ctx.analyze.skipped_instructions);
-	hmfree(ctx.analyze.waiting);
-
-	arrfree(ctx.analyze.usage_check_arr);
-	sarrfree(&ctx.analyze.incomplete_rtti);
-	sarrfree(&ctx.fn_generate.replacement_queue);
-	sarrfree(&ctx.analyze.complete_check_type_stack);
+	terminate_context(&ctx);
 	return_zone();
 }

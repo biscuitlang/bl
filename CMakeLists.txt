@@ -172,6 +172,7 @@ set(HEADER_FILES
 	src/arena.h
 	src/assembly.h
 	src/ast.h
+	src/atomics.h
 	src/basic_types.h
 	src/bldebug.h
 	src/blmemory.h
