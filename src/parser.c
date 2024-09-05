@@ -2625,6 +2625,8 @@ void parser_run(struct assembly *assembly, struct unit *unit) {
 	bassert(assembly->gscope && "Missing global scope for assembly.");
 
 	zone();
+	runtime_measure_begin(parse);
+
 	struct context ctx = {
 	    .assembly     = assembly,
 	    .unit         = unit,
@@ -2649,5 +2651,7 @@ void parser_run(struct assembly *assembly, struct unit *unit) {
 	arrfree(ctx.scope_stack);
 	arrfree(ctx.fn_type_stack);
 	arrfree(ctx.block_stack);
+
+	batomic_fetch_add(&assembly->stats.parsing_ms, runtime_measure_end(parse));
 	return_zone();
 }

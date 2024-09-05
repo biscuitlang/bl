@@ -3311,7 +3311,7 @@ void ir_run(struct assembly *assembly) {
 	}
 
 	blog("Generated %d instructions.", ctx.emit_instruction_count);
-	assembly->stats.llvm_s = runtime_measure_end(llvm);
+	batomic_fetch_add(&assembly->stats.llvm_ms, runtime_measure_end(llvm));
 
 	if (!builder.options->do_cleanup_when_done) return_zone();
 

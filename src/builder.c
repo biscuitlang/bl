@@ -241,60 +241,57 @@ static void setup_assembly_pipeline(struct assembly *assembly) {
 }
 
 static void print_stats(struct assembly *assembly) {
+#define SECONDS(t) ((f32)t / 1000.f)
+#define PERC(t, total) ((f32)t / (f32)total * 100.f)
 
-	batomic_int *values[] = {
-	    &assembly->stats.parsing_ms,
-	    &assembly->stats.lexing_ms,
-	    &assembly->stats.mir_ms,
-	    &assembly->stats.llvm_ms,
-	    &assembly->stats.llvm_obj_ms,
-	    &assembly->stats.linking_ms,
-	    &assembly->stats.polymorph_ms,
-	    NULL,
-	};
-
-	s32 total_ms = 0;
-	for (s32 i = 0; values[i]; ++i) {
-		total_ms += batomic_load(values[i]);
-	}
-
-	const s32 total_ms = assembly->stats.parsing_ms + assembly->stats.lexing_ms + assembly->stats.mir_s +
-	                     assembly->stats.llvm_s + assembly->stats.linking_s +
-	                     assembly->stats.llvm_obj_s;
+	const s32 total_ms =
+	    assembly->stats.parsing_ms +
+	    assembly->stats.lexing_ms +
+	    assembly->stats.mir_ms +
+	    assembly->stats.llvm_ms +
+	    assembly->stats.llvm_obj_ms +
+	    assembly->stats.linking_ms +
+	    assembly->stats.polymorph_ms;
 
 	builder_info(
 	    "--------------------------------------------------------------------------------\n"
 	    "Compilation stats for '%s'\n"
 	    "--------------------------------------------------------------------------------\n"
 	    "Time:\n"
-	    "  Lexing & Parsing: %10.3f seconds    %3.0f%%\n"
+	    "  Lexing:           %10.3f seconds    %3.0f%%\n"
+	    "  Parsing:          %10.3f seconds    %3.0f%%\n"
 	    "  MIR:              %10.3f seconds    %3.0f%%\n"
 	    "  LLVM IR:          %10.3f seconds    %3.0f%%\n"
 	    "  LLVM Obj:         %10.3f seconds    %3.0f%%\n"
 	    "  Linking:          %10.3f seconds    %3.0f%%\n\n"
-	    "  Polymorph:        %10lld generated in %.3f seconds\n\n"
+	    "  Polymorph:        %10d generated in %.3f seconds\n\n"
 	    "  Total:            %10.3f seconds\n"
 	    "  Lines:              %8d\n"
 	    "  Speed:            %10.0f lines/second\n\n"
 	    "MISC:\n"
-	    "  Allocated stack snapshot count: %lld\n",
+	    "  Allocated stack snapshot count: %d\n",
 	    assembly->target->name,
-	    assembly->stats.parsing_lexing_s,
-	    assembly->stats.parsing_lexing_s / total_s * 100.,
-	    assembly->stats.mir_s,
-	    assembly->stats.mir_s / total_s * 100.,
-	    assembly->stats.llvm_s,
-	    assembly->stats.llvm_s / total_s * 100.,
-	    assembly->stats.llvm_obj_s,
-	    assembly->stats.llvm_obj_s / total_s * 100.,
-	    assembly->stats.linking_s,
-	    assembly->stats.linking_s / total_s * 100.,
+	    SECONDS(assembly->stats.lexing_ms),
+	    PERC(assembly->stats.lexing_ms, total_ms),
+	    SECONDS(assembly->stats.parsing_ms),
+	    PERC(assembly->stats.parsing_ms, total_ms),
+	    SECONDS(assembly->stats.mir_ms),
+	    PERC(assembly->stats.mir_ms, total_ms),
+	    SECONDS(assembly->stats.llvm_ms),
+	    PERC(assembly->stats.llvm_ms, total_ms),
+	    SECONDS(assembly->stats.llvm_obj_ms),
+	    PERC(assembly->stats.llvm_obj_ms, total_ms),
+	    SECONDS(assembly->stats.linking_ms),
+	    PERC(assembly->stats.linking_ms, total_ms),
 	    assembly->stats.polymorph_count,
-	    assembly->stats.polymorph_s,
-	    total_s,
+	    SECONDS(assembly->stats.polymorph_ms),
+	    SECONDS(total_ms),
 	    builder.total_lines,
-	    ((f64)builder.total_lines) / total_s,
+	    ((f32)builder.total_lines) / SECONDS(total_ms),
 	    assembly->stats.comptime_call_stacks_count);
+
+#undef SECONDS
+#undef PERC
 }
 
 static void clear_stats(struct assembly *assembly) {
@@ -314,7 +311,6 @@ static int compile(struct assembly *assembly) {
 	if (builder.options->no_jobs) blog("Running in single thread mode!");
 
 	{
-		runtime_measure_begin(process_unit);
 		builder.auto_submit = true;
 
 		// !!! we modify original array while compiling !!!
@@ -329,8 +325,7 @@ static int compile(struct assembly *assembly) {
 		bfree(dup);
 		wait_threads();
 
-		builder.auto_submit              = false;
-		assembly->stats.parsing_lexing_s = runtime_measure_end(process_unit);
+		builder.auto_submit               = false;
 	}
 
 	// Compile assembly using pipeline.

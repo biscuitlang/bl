@@ -106,7 +106,7 @@ enum { BL_RED,
 	   BL_NO_COLOR = -1 };
 
 #define runtime_measure_begin(name) f64 __##name = get_tick_ms()
-#define runtime_measure_end(name) ((get_tick_ms() - __##name) / 1000.)
+#define runtime_measure_end(name) ((s32)(get_tick_ms() - __##name))
 
 #define LIB_NAME_MAX 256
 

@@ -557,6 +557,8 @@ PUSH_TOKEN:
 }
 
 void lexer_run(struct assembly *assembly, struct unit *unit) {
+	runtime_measure_begin(lex);
+
 	struct context ctx = {
 	    .assembly = assembly,
 	    .tokens   = &unit->tokens,
@@ -571,6 +573,7 @@ void lexer_run(struct assembly *assembly, struct unit *unit) {
 	s32 error = 0;
 	if ((error = setjmp(ctx.jmp_error))) {
 		sarrfree(&ctx.strtmp);
+		batomic_fetch_add(&assembly->stats.lexing_ms, runtime_measure_end(lex));
 		return_zone();
 	}
 
@@ -578,5 +581,6 @@ void lexer_run(struct assembly *assembly, struct unit *unit) {
 	sarrfree(&ctx.strtmp);
 
 	builder.total_lines += ctx.line;
+	batomic_fetch_add(&assembly->stats.lexing_ms, runtime_measure_end(lex));
 	return_zone();
 }

@@ -2605,7 +2605,7 @@ static struct get_snapshot_result get_snapshot(struct virtual_machine *vm,
 		bassert(result.stack && result.stack->allocated_bytes == VM_COMPTIME_CALL_STACK_SIZE);
 	} else {
 		result.stack = create_stack(VM_COMPTIME_CALL_STACK_SIZE);
-		vm->assembly->stats.comptime_call_stacks_count += 1;
+		batomic_fetch_add(&vm->assembly->stats.comptime_call_stacks_count, 1);
 	}
 	bassert(result.stack);
 	return result;

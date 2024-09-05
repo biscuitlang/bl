@@ -4,23 +4,6 @@
 */
 
 main :: fn () s32 {
-	// print("%", NO_SERIALIZE);
-
-	NO_SERIALIZE : u64 : 1;
-
-	a: BOO;
-
-	// Entity :: struct {
-	// 	position: Point;
-	// 	id: u32;
-	// 	render_data: *u8 #tag NO_SERIALIZE;
-	// };
-
-	// Point :: struct {
-	// 	x: s32;
-	// 	y: s32;
-	// };
-
 	return 0;
 }
 

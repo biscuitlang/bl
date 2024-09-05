@@ -8131,7 +8131,7 @@ struct result analyze_call_stage_generate(struct context *ctx, struct mir_instr_
 			hmput(recipe->entries, replacement_hash, replacement_fn);
 		}
 
-		ctx->assembly->stats.polymorph_count += 1;
+		batomic_fetch_add(&ctx->assembly->stats.polymorph_count, 1);
 	} else {
 		replacement_fn = recipe->entries[index].value;
 	}
@@ -8139,7 +8139,7 @@ struct result analyze_call_stage_generate(struct context *ctx, struct mir_instr_
 DONE:
 	reset_poly_replacement_queue(ctx);
 	put_tmp_str(debug_replacement_str);
-	ctx->assembly->stats.polymorph_s += runtime_measure_end(generated);
+	batomic_fetch_add(&ctx->assembly->stats.polymorph_ms, runtime_measure_end(generated));
 
 	if (!replacement_fn) return_zone(FAIL);
 
@@ -12028,7 +12028,7 @@ void mir_unit_run(struct assembly *assembly, struct unit *unit) {
 
 	terminate_context(&ctx);
 
-	assembly->stats.mir_s += runtime_measure_end(mir_unit);
+	batomic_fetch_add(&assembly->stats.mir_ms, runtime_measure_end(mir_unit));
 	return_zone();
 }
 
@@ -12067,7 +12067,7 @@ void mir_analyze_run(struct assembly *assembly) {
 	blog("Analyze queue push count: %i", push_count);
 
 DONE:
-	assembly->stats.mir_s += runtime_measure_end(mir_analyze);
+	batomic_fetch_add(&assembly->stats.mir_ms, runtime_measure_end(mir_analyze));
 
 	if (!builder.options->do_cleanup_when_done) return_zone();
 	terminate_context(&ctx);
