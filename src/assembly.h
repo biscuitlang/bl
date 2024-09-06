@@ -30,6 +30,7 @@
 #define BL_ASSEMBLY_BL
 
 #include "arena.h"
+#include "atomics.h"
 #include "common.h"
 #include "mir.h"
 #include "scope.h"
