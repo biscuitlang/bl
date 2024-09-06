@@ -31,6 +31,7 @@
 
 #include "common.h"
 #include "config.h"
+#include "tinycthread.h"
 
 struct context;
 struct mir_instr;

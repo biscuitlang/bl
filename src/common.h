@@ -38,7 +38,6 @@
 #include "config.h"
 #include "error.h"
 #include "math.h"
-#include "tinycthread.h"
 
 #include <limits.h>
 #include <stddef.h>

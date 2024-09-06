@@ -30,6 +30,7 @@
 #define BL_ARENA_H
 
 #include "common.h"
+#include "tinycthread.h"
 
 typedef void (*arena_elem_dtor_t)(void *);
 
