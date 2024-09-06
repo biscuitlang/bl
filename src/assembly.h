@@ -30,9 +30,12 @@
 #define BL_ASSEMBLY_BL
 
 #include "arena.h"
+#include "common.h"
 #include "mir.h"
 #include "scope.h"
+#include "threading.h"
 #include "unit.h"
+
 #include <dyncall.h>
 #include <dynload.h>
 
@@ -200,8 +203,14 @@ struct target {
 struct assembly {
 	const struct target *target;
 	str_buf_t            custom_linker_opt;
+	spl_t                custom_linker_opt_lock;
+
 	array(char *) lib_paths;
+	spl_t lib_paths_lock;
+
 	array(struct native_lib) libs;
+	spl_t libs_lock;
+
 	struct string_cache *string_cache;
 	struct scope_arenas  scope_arenas;
 
@@ -245,7 +254,8 @@ struct assembly {
 	struct {
 		batomic_int lexing_ms;
 		batomic_int parsing_ms;
-		batomic_int mir_ms;
+		batomic_int mir_generate_ms;
+		batomic_int mir_analyze_ms;
 		batomic_int llvm_ms;
 		batomic_int llvm_obj_ms;
 		batomic_int linking_ms;
@@ -260,7 +270,9 @@ struct assembly {
 	struct virtual_machine vm;
 
 	array(struct unit *) units; // array of all units in assembly
-	struct scope *gscope;       // global scope of the assembly
+	mtx_t units_lock;
+
+	struct scope *gscope; // global scope of the assembly
 
 	/* Builtins */
 	struct builtin_types {
@@ -278,8 +290,6 @@ struct assembly {
 		unit_stage_fn_t     *unit;
 		assembly_stage_fn_t *assembly;
 	} current_pipelines;
-
-	struct assembly_sync *sync;
 };
 
 struct target *target_new(const char *name);

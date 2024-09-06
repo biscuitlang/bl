@@ -2,7 +2,7 @@ BasedOnStyle: LLVM
 IndentWidth: 4
 TabWidth: 4
 AccessModifierOffset: -4
-UseTab: ForIndentation 
+UseTab: ForIndentation
 BreakBeforeBraces: Attach
 IndentCaseLabels: false
 ColumnLimit: 0
@@ -18,4 +18,4 @@ BinPackParameters: false
 BinPackArguments: false
 AllowAllParametersOfDeclarationOnNextLine: false
 AlwaysBreakAfterReturnType: None
-IndentPPDirectives: AfterHash
+IndentPPDirectives: BeforeHash

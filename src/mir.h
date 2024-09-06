@@ -47,7 +47,7 @@
 #ifdef BL_DEBUG
 vm_stack_ptr_t _mir_cev_read(struct mir_const_expr_value *value);
 #else
-#	define _mir_cev_read(expr) (expr)->data
+	#define _mir_cev_read(expr) (expr)->data
 #endif
 
 // Helper macro for reading Const Expression Values of fundamental types.
@@ -68,7 +68,6 @@ struct mir_fn;
 struct mir_fn_group;
 struct mir_fn_generated_recipe;
 struct mir_const_expr_value;
-struct mir_sync;
 
 #define GEN_INSTR(kind, name) struct name;
 #include "mir.def"
@@ -133,12 +132,19 @@ struct mir_analyze {
 struct mir {
 	struct mir_arenas arenas;
 	array(struct mir_instr *) global_instrs; // All global instructions.
+	spl_t global_instrs_lock;
+
 	struct {
 		hash_t          key;
 		struct mir_var *value;
-	} *rtti_table; // Map type ids to RTTI variables.
+	}    *rtti_table; // Map type ids to RTTI variables.
+	spl_t rtti_table_lock;
+
 	array(struct mir_instr *) exported_instrs;
+	spl_t exported_instrs_lock;
+
 	my_hash_table(struct mir_type_cache_entry) type_cache;
+	spl_t type_cache_lock;
 
 	struct mir_analyze analyze;
 	struct mir_sync   *sync;

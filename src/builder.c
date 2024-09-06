@@ -76,24 +76,10 @@ const char *supported_targets_experimental[] = {
 #undef GEN_EXPERIMENTAL
 };
 
-struct builder_sync_impl {
-	pthread_mutex_t log_mutex;
-};
-
-static struct builder_sync_impl *sync_new(void) {
-	struct builder_sync_impl *impl = bmalloc(sizeof(struct builder_sync_impl));
-	pthread_mutex_init(&impl->log_mutex, NULL);
-	return impl;
-}
-
-static void sync_delete(struct builder_sync_impl *impl) {
-	pthread_mutex_destroy(&impl->log_mutex);
-	bfree(impl);
-}
-
 // =================================================================================================
 // Builder
 // =================================================================================================
+
 static int  compile_unit(struct unit *unit, struct assembly *assembly);
 static int  compile_assembly(struct assembly *assembly);
 static bool llvm_initialized = false;
@@ -247,7 +233,8 @@ static void print_stats(struct assembly *assembly) {
 	const s32 total_ms =
 	    assembly->stats.parsing_ms +
 	    assembly->stats.lexing_ms +
-	    assembly->stats.mir_ms +
+	    assembly->stats.mir_generate_ms +
+	    assembly->stats.mir_analyze_ms +
 	    assembly->stats.llvm_ms +
 	    assembly->stats.llvm_obj_ms +
 	    assembly->stats.linking_ms +
@@ -260,7 +247,8 @@ static void print_stats(struct assembly *assembly) {
 	    "Time:\n"
 	    "  Lexing:           %10.3f seconds    %3.0f%%\n"
 	    "  Parsing:          %10.3f seconds    %3.0f%%\n"
-	    "  MIR:              %10.3f seconds    %3.0f%%\n"
+	    "  MIR Generate:     %10.3f seconds    %3.0f%%\n"
+	    "  MIR Analyze:      %10.3f seconds    %3.0f%%\n"
 	    "  LLVM IR:          %10.3f seconds    %3.0f%%\n"
 	    "  LLVM Obj:         %10.3f seconds    %3.0f%%\n"
 	    "  Linking:          %10.3f seconds    %3.0f%%\n\n"
@@ -275,8 +263,10 @@ static void print_stats(struct assembly *assembly) {
 	    PERC(assembly->stats.lexing_ms, total_ms),
 	    SECONDS(assembly->stats.parsing_ms),
 	    PERC(assembly->stats.parsing_ms, total_ms),
-	    SECONDS(assembly->stats.mir_ms),
-	    PERC(assembly->stats.mir_ms, total_ms),
+	    SECONDS(assembly->stats.mir_generate_ms),
+	    PERC(assembly->stats.mir_generate_ms, total_ms),
+	    SECONDS(assembly->stats.mir_analyze_ms),
+	    PERC(assembly->stats.mir_analyze_ms, total_ms),
 	    SECONDS(assembly->stats.llvm_ms),
 	    PERC(assembly->stats.llvm_ms, total_ms),
 	    SECONDS(assembly->stats.llvm_obj_ms),
@@ -325,7 +315,7 @@ static int compile(struct assembly *assembly) {
 		bfree(dup);
 		wait_threads();
 
-		builder.auto_submit               = false;
+		builder.auto_submit = false;
 	}
 
 	// Compile assembly using pipeline.
@@ -378,7 +368,7 @@ void builder_init(struct builder_options *options, const char *exec_dir) {
 		builtin_ids[i].hash = strhash(builtin_ids[i].str);
 	}
 
-	builder.sync = sync_new();
+	mtx_init(&builder.log_mutex, mtx_plain);
 
 	init_thread_local_storage();
 	start_threads(cpu_thread_count());
@@ -390,7 +380,7 @@ void builder_terminate(void) {
 	stop_threads();
 	terminate_thread_local_storage();
 
-	sync_delete(builder.sync);
+	mtx_destroy(&builder.log_mutex);
 
 	for (usize i = 0; i < arrlenu(builder.targets); ++i) {
 		target_delete(builder.targets[i]);
@@ -548,7 +538,7 @@ void builder_vmsg(enum builder_msg_type type,
                   enum builder_cur_pos  pos,
                   const char           *format,
                   va_list               args) {
-	pthread_mutex_lock(&builder.sync->log_mutex);
+	mtx_lock(&builder.log_mutex);
 	if (!should_report(type)) goto DONE;
 
 	FILE *stream = stdout;
@@ -618,7 +608,7 @@ void builder_vmsg(enum builder_msg_type type,
 		fprintf(stream, "\n");
 	}
 DONE:
-	pthread_mutex_unlock(&builder.sync->log_mutex);
+	mtx_unlock(&builder.log_mutex);
 
 #if ASSERT_ON_CMP_ERROR
 	if (type == MSG_ERR) bassert(false);

@@ -101,11 +101,11 @@ enum scope_kind {
 #define SCOPE_DEFAULT_LAYER 0
 
 struct scope {
-	enum scope_kind         kind;
-	str_t                   name; // optional
-	struct scope           *parent;
-	struct scope_sync_impl *sync;
-	struct location        *location;
+	enum scope_kind  kind;
+	str_t            name; // optional
+	struct scope    *parent;
+	mtx_t            lock;
+	struct location *location;
 	array(struct scope *) usings;
 	LLVMMetadataRef llvm_meta;
 	my_hash_table(struct scope_tbl_entry) entries;

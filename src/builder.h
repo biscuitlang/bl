@@ -65,14 +65,13 @@ struct builder {
 	struct config          *config;
 	array(struct target *) targets;
 
-	struct assembly          *current_executed_assembly;
-	struct builder_sync_impl *sync;
+	struct assembly *current_executed_assembly;
 
 	// Used for multithreaded compiling, in case new unit is added while parsing,
 	// new job for it is submitted.
-	bool auto_submit;
-
-	bool is_initialized;
+	bool  auto_submit;
+	mtx_t log_mutex;
+	bool  is_initialized;
 };
 
 // struct builder global instance.

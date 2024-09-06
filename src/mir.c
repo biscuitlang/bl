@@ -38,7 +38,7 @@
 #include <stdarg.h>
 
 #ifdef _MSC_VER
-#	pragma warning(disable : 6001)
+	#pragma warning(disable : 6001)
 #endif
 
 #define ARENA_CHUNK_COUNT 1024
@@ -99,13 +99,6 @@
 
 #define INVALID_COMPOUND_TYPE_INFER_MESSAGE "Unknown compound expression type. In case the compound expression is untyped, the type must" \
 	                                        " be possible to infer from usage. Otherwise explicit type must be used 'Type.{ ... }'."
-
-struct mir_sync {
-	pthread_spinlock_t type_cache_lock;
-	pthread_spinlock_t global_instrs_lock;
-	pthread_spinlock_t rtti_table_lock;
-	pthread_spinlock_t exported_instrs_lock; // @Incomplete: Maybe not needed?
-};
 
 typedef sarr_t(LLVMTypeRef, 8) llvm_types_t;
 typedef sarr_t(struct ast *, 16) defer_stack_t;
@@ -747,6 +740,7 @@ static void          analyze_report_skipped(struct context *ctx);
 //  RTTI
 // =================================================================================================
 
+static struct mir_var *get_rtti_no_lock(struct assembly *assembly, hash_t type_hash);
 static struct mir_var *_rtti_gen(struct context *ctx, struct mir_type *type);
 static struct mir_var *rtti_gen(struct context *ctx, struct mir_type *type);
 static struct mir_var *rtti_create_and_alloc_var(struct context *ctx, struct mir_type *type);
@@ -974,27 +968,29 @@ DONE:
 	return_zone(first_incomplete_type);
 }
 
-static inline struct mir_type *lookup_type(struct context *ctx, hash_t hash, str_t name) {
+static inline struct mir_type *lookup_type_no_lock(struct context *ctx, hash_t hash, str_t name) {
 	zone();
-	struct mir_sync *sync      = ctx->mir->sync;
-	const bool       is_locked = pthread_spin_trylock(&sync->type_cache_lock) == 0; // Might be called from insert_type_into_cache
-	const s32        i         = tbl_lookup_index_with_key(ctx->mir->type_cache, hash, name);
+	const s32 i = tbl_lookup_index_with_key(ctx->mir->type_cache, hash, name);
 	if (i == -1) {
-		if (is_locked) pthread_spin_unlock(&sync->type_cache_lock);
 		return_zone(NULL);
 	}
 	struct mir_type *type = ctx->mir->type_cache[i].type;
-	if (is_locked) pthread_spin_unlock(&sync->type_cache_lock);
 	return_zone(type);
+}
+
+static inline struct mir_type *lookup_type(struct context *ctx, hash_t hash, str_t name) {
+	spl_lock(&ctx->mir->type_cache_lock);
+	struct mir_type *result = lookup_type_no_lock(ctx, hash, name);
+	spl_unlock(&ctx->mir->type_cache_lock);
+	return result;
 }
 
 static inline void insert_type_into_cache(struct context *ctx, struct mir_type *type, str_t name) {
 	zone();
-	struct mir_sync *sync = ctx->mir->sync;
-	pthread_spin_lock(&sync->type_cache_lock);
+	spl_lock(&ctx->mir->type_cache_lock);
 	bassert(type);
 	bassert(type->id.hash != 0);
-	bassert(lookup_type(ctx, type->id.hash, type->id.str) == NULL);
+	bassert(lookup_type_no_lock(ctx, type->id.hash, type->id.str) == NULL);
 
 	struct mir_type_cache_entry entry = {
 	    .hash = type->id.hash,
@@ -1003,7 +999,7 @@ static inline void insert_type_into_cache(struct context *ctx, struct mir_type *
 	};
 	tbl_insert(ctx->mir->type_cache, entry);
 
-	pthread_spin_unlock(&sync->type_cache_lock);
+	spl_unlock(&ctx->mir->type_cache_lock);
 	return_zone();
 }
 
@@ -1241,10 +1237,9 @@ static inline void insert_instr_before(struct mir_instr *before, struct mir_inst
 
 static inline void push_into_gscope(struct context *ctx, struct mir_instr *instr) {
 	bassert(instr);
-	struct mir_sync *sync = ctx->mir->sync;
-	pthread_spin_lock(&sync->global_instrs_lock);
+	spl_lock(&ctx->mir->global_instrs_lock);
 	arrput(ctx->mir->global_instrs, instr);
-	pthread_spin_unlock(&sync->global_instrs_lock);
+	spl_unlock(&ctx->mir->global_instrs_lock);
 }
 
 static inline void add_phi_income(struct mir_instr_phi *phi, struct mir_instr *value, struct mir_instr_block *block) {
@@ -2857,8 +2852,8 @@ enum mir_cast_op get_cast_op(struct mir_type *from, struct mir_type *to) {
 	if (to->kind == MIR_TYPE_PLACEHOLDER) return MIR_CAST_NONE;
 	if (from->kind == MIR_TYPE_PLACEHOLDER) return MIR_CAST_NONE;
 #ifndef _MSC_VER
-#	pragma GCC diagnostic push
-#	pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+	#pragma GCC diagnostic push
+	#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 #endif
 
 	switch (from->kind) {
@@ -2950,7 +2945,7 @@ enum mir_cast_op get_cast_op(struct mir_type *from, struct mir_type *to) {
 	}
 
 #ifndef _MSC_VER
-#	pragma GCC diagnostic pop
+	#pragma GCC diagnostic pop
 #endif
 }
 
@@ -6101,10 +6096,9 @@ struct result analyze_instr_fn_proto(struct context *ctx, struct mir_instr_fn_pr
 	}
 
 	if (schedule_llvm_generation) {
-		struct mir_sync *sync = ctx->mir->sync;
-		pthread_spin_lock(&sync->exported_instrs_lock);
+		spl_lock(&ctx->mir->exported_instrs_lock);
 		arrput(ctx->mir->exported_instrs, &fn_proto->base);
-		pthread_spin_unlock(&sync->exported_instrs_lock);
+		spl_unlock(&ctx->mir->exported_instrs_lock);
 	}
 
 	return_zone(PASS);
@@ -9208,6 +9202,15 @@ void rtti_satisfy_incomplete(struct context *ctx, struct mir_rtti_incomplete *in
 	rtti_gen_ptr(ctx, type, rtti_var);
 }
 
+struct mir_var *get_rtti_no_lock(struct assembly *assembly, hash_t type_hash) {
+	bassert(type_hash);
+	const s64 i = hmgeti(assembly->mir.rtti_table, type_hash);
+	if (i < 0) return NULL;
+	struct mir_var *result = assembly->mir.rtti_table[i].value;
+	bassert(result);
+	return result;
+}
+
 struct mir_var *_rtti_gen(struct context *ctx, struct mir_type *type) {
 	bassert(type);
 	struct mir_var *rtti_var = mir_get_rtti(ctx->assembly, type->id.hash);
@@ -9281,13 +9284,11 @@ struct mir_var *_rtti_gen(struct context *ctx, struct mir_type *type) {
 	bassert(rtti_var);
 	bassert(type->id.hash && "Invalid type hash!");
 
-	{
-		struct mir_sync *sync = ctx->mir->sync;
-		pthread_spin_lock(&sync->rtti_table_lock);
-		bassert(mir_get_rtti(ctx->assembly, type->id.hash) == NULL && "RTTI variable already added for the type!");
-		hmput(ctx->mir->rtti_table, type->id.hash, rtti_var);
-		pthread_spin_unlock(&sync->rtti_table_lock);
-	}
+	spl_lock(&ctx->mir->rtti_table_lock);
+	bassert(get_rtti_no_lock(ctx->assembly, type->id.hash) == NULL && "RTTI variable already added for the type!");
+	hmput(ctx->mir->rtti_table, type->id.hash, rtti_var);
+	spl_unlock(&ctx->mir->rtti_table_lock);
+
 	return rtti_var;
 }
 
@@ -11858,23 +11859,6 @@ static void arenas_terminate(struct mir_arenas *arenas) {
 	arena_terminate(&arenas->fn_generated);
 }
 
-static struct mir_sync *sync_new(void) {
-	struct mir_sync *impl = bmalloc(sizeof(struct mir_sync));
-	pthread_spin_init(&impl->type_cache_lock, 0);
-	pthread_spin_init(&impl->global_instrs_lock, 0);
-	pthread_spin_init(&impl->rtti_table_lock, 0);
-	pthread_spin_init(&impl->exported_instrs_lock, 0);
-	return impl;
-}
-
-static void sync_delete(struct mir_sync *impl) {
-	pthread_spin_destroy(&impl->type_cache_lock);
-	pthread_spin_destroy(&impl->global_instrs_lock);
-	pthread_spin_destroy(&impl->rtti_table_lock);
-	pthread_spin_destroy(&impl->exported_instrs_lock);
-	bfree(impl);
-}
-
 static void init_context(struct context *ctx, struct assembly *assembly) {
 	memset(ctx, 0, sizeof(struct context));
 	ctx->assembly                        = assembly;
@@ -11976,7 +11960,10 @@ void mir_init(struct assembly *assembly) {
 	arrsetcap(mir->analyze.stack[1], 256);
 	mir->analyze.unnamed_entry = scope_create_entry(&assembly->scope_arenas, SCOPE_ENTRY_UNNAMED, NULL, NULL, true);
 
-	mir->sync = sync_new();
+	spl_init(&mir->type_cache_lock);
+	spl_init(&mir->global_instrs_lock);
+	spl_init(&mir->rtti_table_lock);
+	spl_init(&mir->exported_instrs_lock);
 
 	initialize_builtins(assembly);
 }
@@ -11984,7 +11971,11 @@ void mir_init(struct assembly *assembly) {
 void mir_terminate(struct assembly *assembly) {
 	struct mir *mir = &assembly->mir;
 
-	sync_delete(mir->sync);
+	spl_destroy(&mir->type_cache_lock);
+	spl_destroy(&mir->global_instrs_lock);
+	spl_destroy(&mir->rtti_table_lock);
+	spl_destroy(&mir->exported_instrs_lock);
+
 	hmfree(mir->rtti_table);
 	arrfree(mir->global_instrs);
 	arrfree(mir->exported_instrs);
@@ -12001,19 +11992,9 @@ void mir_terminate(struct assembly *assembly) {
 
 struct mir_var *mir_get_rtti(struct assembly *assembly, hash_t type_hash) {
 	bassert(type_hash);
-	struct mir_sync *sync      = assembly->mir.sync;
-	const bool       is_locked = pthread_spin_trylock(&sync->rtti_table_lock) == 0;
-
-	const s64 i = hmgeti(assembly->mir.rtti_table, type_hash);
-	if (i < 0) {
-		if (is_locked) pthread_spin_unlock(&sync->rtti_table_lock);
-		return NULL;
-	}
-
-	struct mir_var *result = assembly->mir.rtti_table[i].value;
-	bassert(result);
-
-	if (is_locked) pthread_spin_unlock(&sync->rtti_table_lock);
+	spl_lock(&assembly->mir.rtti_table_lock);
+	struct mir_var *result = get_rtti_no_lock(assembly, type_hash);
+	spl_unlock(&assembly->mir.rtti_table_lock);
 	return result;
 }
 
@@ -12028,7 +12009,7 @@ void mir_unit_run(struct assembly *assembly, struct unit *unit) {
 
 	terminate_context(&ctx);
 
-	batomic_fetch_add(&assembly->stats.mir_ms, runtime_measure_end(mir_unit));
+	batomic_fetch_add(&assembly->stats.mir_generate_ms, runtime_measure_end(mir_unit));
 	return_zone();
 }
 
@@ -12067,7 +12048,7 @@ void mir_analyze_run(struct assembly *assembly) {
 	blog("Analyze queue push count: %i", push_count);
 
 DONE:
-	batomic_fetch_add(&assembly->stats.mir_ms, runtime_measure_end(mir_analyze));
+	batomic_fetch_add(&assembly->stats.mir_analyze_ms, runtime_measure_end(mir_analyze));
 
 	if (!builder.options->do_cleanup_when_done) return_zone();
 	terminate_context(&ctx);

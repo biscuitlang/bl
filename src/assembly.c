@@ -28,9 +28,8 @@
 
 #include "assembly.h"
 #include "conf.h"
-#include "threading.h"
 #if !BL_PLATFORM_WIN
-#	include <errno.h>
+	#include <errno.h>
 #endif
 
 #include "builder.h"
@@ -73,30 +72,6 @@ const char *env_names[] = {
 
 static void sarr_dtor(sarr_any_t *arr) {
 	sarrfree(arr);
-}
-
-struct assembly_sync {
-	pthread_spinlock_t units_lock;
-	pthread_spinlock_t linker_opt_lock;
-	pthread_spinlock_t lib_path_lock;
-	pthread_spinlock_t link_lock;
-};
-
-static struct assembly_sync *sync_new(void) {
-	struct assembly_sync *impl = bmalloc(sizeof(struct assembly_sync));
-	pthread_spin_init(&impl->units_lock, 0);
-	pthread_spin_init(&impl->linker_opt_lock, 0);
-	pthread_spin_init(&impl->lib_path_lock, 0);
-	pthread_spin_init(&impl->link_lock, 0);
-	return impl;
-}
-
-static void sync_delete(struct assembly_sync *impl) {
-	pthread_spin_destroy(&impl->units_lock);
-	pthread_spin_destroy(&impl->linker_opt_lock);
-	pthread_spin_destroy(&impl->lib_path_lock);
-	pthread_spin_destroy(&impl->link_lock);
-	bfree(impl);
 }
 
 static void dl_init(struct assembly *assembly) {
@@ -571,7 +546,11 @@ struct assembly *assembly_new(const struct target *target) {
 	struct assembly *assembly = bmalloc(sizeof(struct assembly));
 	memset(assembly, 0, sizeof(struct assembly));
 	assembly->target = target;
-	assembly->sync   = sync_new();
+
+	mtx_init(&assembly->units_lock, mtx_plain);
+	spl_init(&assembly->custom_linker_opt_lock);
+	spl_init(&assembly->lib_paths_lock);
+	spl_init(&assembly->libs_lock);
 
 	llvm_init(assembly);
 	arrsetcap(assembly->units, 64);
@@ -649,6 +628,11 @@ void assembly_delete(struct assembly *assembly) {
 	arrfree(assembly->testing.cases);
 	arrfree(assembly->units);
 
+	mtx_destroy(&assembly->units_lock);
+	spl_destroy(&assembly->custom_linker_opt_lock);
+	spl_destroy(&assembly->lib_paths_lock);
+	spl_destroy(&assembly->libs_lock);
+
 	str_buf_free(&assembly->custom_linker_opt);
 	vm_terminate(&assembly->vm);
 	arena_terminate(&assembly->arenas.sarr);
@@ -656,7 +640,6 @@ void assembly_delete(struct assembly *assembly) {
 	llvm_terminate(assembly);
 	dl_terminate(assembly);
 	mir_terminate(assembly);
-	sync_delete(assembly->sync);
 	scfree(&assembly->string_cache);
 	bfree(assembly);
 	return_zone();
@@ -666,20 +649,18 @@ void assembly_add_lib_path(struct assembly *assembly, const char *path) {
 	if (!path) return;
 	char *tmp = strdup(path);
 	if (!tmp) return;
-	struct assembly_sync *sync = assembly->sync;
-	pthread_spin_lock(&sync->lib_path_lock);
+	spl_lock(&assembly->lib_paths_lock);
 	arrput(assembly->lib_paths, tmp);
-	pthread_spin_unlock(&sync->lib_path_lock);
+	spl_unlock(&assembly->lib_paths_lock);
 }
 
 void assembly_append_linker_options(struct assembly *assembly, const char *opt) {
 	if (!opt) return;
 	if (opt[0] == '\0') return;
 
-	struct assembly_sync *sync = assembly->sync;
-	pthread_spin_lock(&sync->linker_opt_lock);
+	spl_lock(&assembly->custom_linker_opt_lock);
 	str_buf_append_fmt(&assembly->custom_linker_opt, "{s} ", opt);
-	pthread_spin_unlock(&sync->linker_opt_lock);
+	spl_unlock(&assembly->custom_linker_opt_lock);
 }
 
 static inline bool assembly_has_unit(struct assembly *assembly, const hash_t hash) {
@@ -695,10 +676,9 @@ static inline bool assembly_has_unit(struct assembly *assembly, const hash_t has
 struct unit *assembly_add_unit(struct assembly *assembly, const char *filepath, struct token *load_from) {
 	zone();
 	if (!is_str_valid_nonempty(filepath)) return_zone(NULL);
-	struct unit          *unit = NULL;
-	const hash_t          hash = unit_hash(filepath, load_from);
-	struct assembly_sync *sync = assembly->sync;
-	pthread_spin_lock(&sync->units_lock);
+	struct unit *unit = NULL;
+	const hash_t hash = unit_hash(filepath, load_from);
+	mtx_lock(&assembly->units_lock);
 	if (assembly_has_unit(assembly, hash)) goto DONE;
 	unit = unit_new(filepath, load_from);
 	arrput(assembly->units, unit);
@@ -706,7 +686,7 @@ struct unit *assembly_add_unit(struct assembly *assembly, const char *filepath, 
 	builder_submit_unit(assembly, unit);
 
 DONE:
-	pthread_spin_unlock(&sync->units_lock);
+	mtx_unlock(&assembly->units_lock);
 	return_zone(unit);
 }
 
@@ -714,8 +694,7 @@ void assembly_add_native_lib(struct assembly *assembly,
                              const char      *lib_name,
                              struct token    *link_token,
                              bool             runtime_only) {
-	struct assembly_sync *sync = assembly->sync;
-	pthread_spin_lock(&sync->link_lock);
+	spl_lock(&assembly->libs_lock);
 	const hash_t hash = strhash(make_str_from_c(lib_name));
 	{ // Search for duplicity.
 		for (usize i = 0; i < arrlenu(assembly->libs); ++i) {
@@ -730,7 +709,7 @@ void assembly_add_native_lib(struct assembly *assembly,
 	lib.runtime_only      = runtime_only;
 	arrput(assembly->libs, lib);
 DONE:
-	pthread_spin_unlock(&sync->link_lock);
+	spl_unlock(&assembly->libs_lock);
 }
 
 static inline bool module_exist(const char *module_dir, const char *modulepath) {

@@ -37,13 +37,13 @@ struct arena_chunk;
 
 // 2024-08-10 Arenas are by default thread safe.
 struct arena {
-	struct arena_chunk     *first_chunk;
-	struct arena_chunk     *current_chunk;
-	usize                   elem_size_bytes;
-	s32                     elem_alignment;
-	s32                     elems_per_chunk;
-	arena_elem_dtor_t       elem_dtor;
-	struct arena_sync_impl *sync;
+	struct arena_chunk *first_chunk;
+	struct arena_chunk *current_chunk;
+	usize               elem_size_bytes;
+	s32                 elem_alignment;
+	s32                 elems_per_chunk;
+	arena_elem_dtor_t   elem_dtor;
+	mtx_t               lock;
 };
 
 void arena_init(struct arena     *arena,

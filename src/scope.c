@@ -35,27 +35,11 @@ BL_STATIC_ASSERT(sizeof(BL_TBL_HASH_T) == sizeof(u64), "Scope require hash value
 
 #define entry_hash(id, layer) ((((u64)layer) << 32) | (u64)id)
 
-typedef struct scope_sync_impl {
-	pthread_spinlock_t lock;
-} scope_sync_impl;
-
-static scope_sync_impl *sync_new(void) {
-	scope_sync_impl *impl = bmalloc(sizeof(scope_sync_impl));
-	pthread_spin_init(&impl->lock, 0);
-	return impl;
-}
-
-static void sync_delete(scope_sync_impl *impl) {
-	if (!impl) return;
-	pthread_spin_destroy(&impl->lock);
-	bfree(impl);
-}
-
 static void scope_dtor(struct scope *scope) {
 	bmagic_assert(scope);
 	tbl_free(scope->entries);
 	arrfree(scope->usings);
-	sync_delete(scope->sync);
+	mtx_destroy(&scope->lock);
 }
 
 static inline struct scope_entry *
@@ -105,8 +89,7 @@ struct scope *scope_create(struct scope_arenas *arenas,
 	scope->kind         = kind;
 	scope->location     = loc;
 
-	// Global scopes must be thread safe!
-	if (kind == SCOPE_GLOBAL) scope->sync = sync_new();
+	mtx_init(&scope->lock, mtx_plain);
 	bmagic_set(scope);
 	return scope;
 }
@@ -214,13 +197,11 @@ void scope_dirty_clear_tree(struct scope *scope) {
 }
 
 void scope_lock(struct scope *scope) {
-	bassert(scope && scope->sync);
-	pthread_spin_lock(&scope->sync->lock);
+	mtx_lock(&scope->lock);
 }
 
 void scope_unlock(struct scope *scope) {
-	bassert(scope && scope->sync);
-	pthread_spin_unlock(&scope->sync->lock);
+	mtx_unlock(&scope->lock);
 }
 
 bool scope_using_add(struct scope *scope, struct scope *other) {
