@@ -255,7 +255,7 @@ int mtx_unlock(mtx_t *mtx);
 #if defined(_TTHREAD_WIN32_)
 typedef volatile LONG spl_t;
 #else
-typedef atomic_flag spl_t
+typedef atomic_flag spl_t;
 #endif
 
 int spl_init(spl_t *spl);
