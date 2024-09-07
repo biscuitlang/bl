@@ -224,11 +224,10 @@ struct assembly {
 
 	struct {
 		LLVMModuleRef        module;
-		LLVMContextRef       ctx;
+		llvm_context_ref_t   ctx;
 		LLVMTargetDataRef    TD;
 		LLVMTargetMachineRef TM;
 		char                *triple;
-		mtx_t                ctx_lock;
 	} llvm;
 
 	struct {

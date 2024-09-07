@@ -168,8 +168,7 @@ static void llvm_init(struct assembly *assembly) {
 		}
 		babort("Cannot get target");
 	}
-	LLVMContextRef llvm_context = LLVMContextCreate();
-	LLVMRelocMode  reloc_mode   = LLVMRelocDefault;
+	LLVMRelocMode reloc_mode = LLVMRelocDefault;
 	switch (assembly->target->kind) {
 	case ASSEMBLY_SHARED_LIB:
 		reloc_mode = LLVMRelocPIC;
@@ -186,20 +185,17 @@ static void llvm_init(struct assembly *assembly) {
 	                                                       LLVMCodeModelDefault);
 
 	LLVMTargetDataRef llvm_td = LLVMCreateTargetDataLayout(llvm_tm);
-	assembly->llvm.ctx        = llvm_context;
+	assembly->llvm.ctx        = llvm_context_create();
 	assembly->llvm.TM         = llvm_tm;
 	assembly->llvm.TD         = llvm_td;
 	assembly->llvm.triple     = triple;
-
-	mtx_init(&assembly->llvm.ctx_lock, mtx_plain);
 }
 
 static void llvm_terminate(struct assembly *assembly) {
-	mtx_destroy(&assembly->llvm.ctx_lock);
 	LLVMDisposeModule(assembly->llvm.module);
 	LLVMDisposeTargetMachine(assembly->llvm.TM);
 	LLVMDisposeTargetData(assembly->llvm.TD);
-	LLVMContextDispose(assembly->llvm.ctx);
+	llvm_context_dispose(assembly->llvm.ctx);
 	bfree(assembly->llvm.triple);
 }
 
@@ -217,7 +213,7 @@ static bool create_auxiliary_dir_tree_if_not_exist(const char *_path, str_buf_t 
 	if (!path) babort("Invalid directory copy.");
 	win_path_to_unix(path, strlen(path));
 #else
-	const char *path  = _path;
+	const char *path = _path;
 #endif
 	if (!dir_exists(path)) {
 		if (!create_dir_tree(path)) {

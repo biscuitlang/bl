@@ -1523,7 +1523,7 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 
 	return entry;
 
-COLLIDE : {
+COLLIDE: {
 	scope_unlock(ctx->assembly->gscope);
 	char *err_msg = (collision->is_builtin || is_builtin) ? "Symbol name collision with compiler builtin '%.*s'." : "Duplicate symbol";
 	report_error(DUPLICATE_SYMBOL, node, err_msg, id->str.len, id->str.ptr);
@@ -2348,27 +2348,27 @@ DONE:
 }
 
 void type_init_llvm_int(struct context *ctx, struct mir_type *type) {
-	mtx_lock(&ctx->assembly->llvm.ctx_lock);
-	type->llvm_type        = LLVMIntTypeInContext(ctx->assembly->llvm.ctx, (unsigned int)type->data.integer.bitcount);
+	llvm_lock_context(ctx->assembly->llvm.ctx);
+	type->llvm_type        = llvm_int_type_in_context(ctx->assembly->llvm.ctx, type->data.integer.bitcount);
 	type->size_bits        = LLVMSizeOfTypeInBits(ctx->assembly->llvm.TD, type->llvm_type);
 	type->store_size_bytes = LLVMStoreSizeOfType(ctx->assembly->llvm.TD, type->llvm_type);
 	type->alignment        = (s8)LLVMABIAlignmentOfType(ctx->assembly->llvm.TD, type->llvm_type);
-	mtx_unlock(&ctx->assembly->llvm.ctx_lock);
+	llvm_unlock_context(ctx->assembly->llvm.ctx);
 }
 
 void type_init_llvm_real(struct context *ctx, struct mir_type *type) {
-	mtx_lock(&ctx->assembly->llvm.ctx_lock);
+	llvm_lock_context(ctx->assembly->llvm.ctx);
 	if (type->data.real.bitcount == 32)
-		type->llvm_type = LLVMFloatTypeInContext(ctx->assembly->llvm.ctx);
+		type->llvm_type = llvm_float_type_in_context(ctx->assembly->llvm.ctx);
 	else if (type->data.real.bitcount == 64)
-		type->llvm_type = LLVMDoubleTypeInContext(ctx->assembly->llvm.ctx);
+		type->llvm_type = llvm_double_type_in_context(ctx->assembly->llvm.ctx);
 	else
 		babort("invalid floating point type");
 
 	type->size_bits        = LLVMSizeOfTypeInBits(ctx->assembly->llvm.TD, type->llvm_type);
 	type->store_size_bytes = LLVMStoreSizeOfType(ctx->assembly->llvm.TD, type->llvm_type);
 	type->alignment        = (s8)LLVMABIAlignmentOfType(ctx->assembly->llvm.TD, type->llvm_type);
-	mtx_unlock(&ctx->assembly->llvm.ctx_lock);
+	llvm_unlock_context(ctx->assembly->llvm.ctx);
 }
 
 void type_init_llvm_ptr(struct context *ctx, struct mir_type *type) {
@@ -2382,12 +2382,12 @@ void type_init_llvm_ptr(struct context *ctx, struct mir_type *type) {
 }
 
 void type_init_llvm_void(struct context *ctx, struct mir_type *type) {
+	llvm_lock_context(ctx->assembly->llvm.ctx);
 	type->alignment        = 0;
 	type->size_bits        = 0;
 	type->store_size_bytes = 0;
-	mtx_lock(&ctx->assembly->llvm.ctx_lock);
-	type->llvm_type        = LLVMVoidTypeInContext(ctx->assembly->llvm.ctx);
-	mtx_unlock(&ctx->assembly->llvm.ctx_lock);
+	type->llvm_type        = llvm_void_type_in_context(ctx->assembly->llvm.ctx);
+	llvm_unlock_context(ctx->assembly->llvm.ctx);
 }
 
 void type_init_llvm_dummy(struct context *ctx, struct mir_type *type) {
@@ -2410,12 +2410,12 @@ void type_init_llvm_null(struct context UNUSED(*ctx), struct mir_type *type) {
 }
 
 void type_init_llvm_bool(struct context *ctx, struct mir_type *type) {
-	mtx_lock(&ctx->assembly->llvm.ctx_lock);
-	type->llvm_type        = LLVMIntTypeInContext(ctx->assembly->llvm.ctx, 1);
+	llvm_lock_context(ctx->assembly->llvm.ctx);
+	type->llvm_type        = llvm_int_type_in_context(ctx->assembly->llvm.ctx, 1);
 	type->size_bits        = LLVMSizeOfTypeInBits(ctx->assembly->llvm.TD, type->llvm_type);
 	type->store_size_bytes = LLVMStoreSizeOfType(ctx->assembly->llvm.TD, type->llvm_type);
 	type->alignment        = (s8)LLVMABIAlignmentOfType(ctx->assembly->llvm.TD, type->llvm_type);
-	mtx_unlock(&ctx->assembly->llvm.ctx_lock);
+	llvm_unlock_context(ctx->assembly->llvm.ctx);
 }
 
 static inline usize struct_split_fit(struct context *ctx, struct mir_type *struct_type, u32 bound, u32 *start) {
@@ -2446,19 +2446,19 @@ void type_init_llvm_fn(struct context *ctx, struct mir_type *type) {
 		return;
 	}
 
-	mtx_lock(&ctx->assembly->llvm.ctx_lock);
+	llvm_lock_context(ctx->assembly->llvm.ctx);
 
 	llvm_types_t llvm_args = SARR_ZERO;
 	if (has_ret) {
 		if (ctx->assembly->target->reg_split && mir_is_composite_type(ret_type) && ret_type->store_size_bytes >= 16) {
 			type->data.fn.has_sret = true;
 			sarrput(&llvm_args, LLVMPointerType(ret_type->llvm_type, 0));
-			llvm_ret = LLVMVoidTypeInContext(ctx->assembly->llvm.ctx);
+			llvm_ret = llvm_void_type_in_context(ctx->assembly->llvm.ctx);
 		} else {
 			llvm_ret = ret_type->llvm_type;
 		}
 	} else {
-		llvm_ret = LLVMVoidTypeInContext(ctx->assembly->llvm.ctx);
+		llvm_ret = llvm_void_type_in_context(ctx->assembly->llvm.ctx);
 	}
 
 	bassert(llvm_ret);
@@ -2472,7 +2472,7 @@ void type_init_llvm_fn(struct context *ctx, struct mir_type *type) {
 
 		// Composite types.
 		if (ctx->assembly->target->reg_split && mir_is_composite_type(arg->type)) {
-			LLVMContextRef llvm_cnt = ctx->assembly->llvm.ctx;
+			llvm_context_ref_t llvm_cnt = ctx->assembly->llvm.ctx;
 
 			u32   start = 0;
 			usize low   = 0;
@@ -2493,41 +2493,41 @@ void type_init_llvm_fn(struct context *ctx, struct mir_type *type) {
 				switch (low) {
 				case 1:
 					arg->llvm_easgm = LLVM_EASGM_8;
-					sarrput(&llvm_args, LLVMInt8TypeInContext(llvm_cnt));
+					sarrput(&llvm_args, llvm_int_type_in_context(llvm_cnt, 8));
 					break;
 				case 2:
 					arg->llvm_easgm = LLVM_EASGM_16;
-					sarrput(&llvm_args, LLVMInt16TypeInContext(llvm_cnt));
+					sarrput(&llvm_args, llvm_int_type_in_context(llvm_cnt, 16));
 					break;
 				case 4:
 					arg->llvm_easgm = LLVM_EASGM_32;
-					sarrput(&llvm_args, LLVMInt32TypeInContext(llvm_cnt));
+					sarrput(&llvm_args, llvm_int_type_in_context(llvm_cnt, 32));
 					break;
 				case 8: {
 					switch (high) {
 					case 0:
 						arg->llvm_easgm = LLVM_EASGM_64;
-						sarrput(&llvm_args, LLVMInt64TypeInContext(llvm_cnt));
+						sarrput(&llvm_args, llvm_int_type_in_context(llvm_cnt, 64));
 						break;
 					case 1:
 						arg->llvm_easgm = LLVM_EASGM_64_8;
-						sarrput(&llvm_args, LLVMInt64TypeInContext(llvm_cnt));
-						sarrput(&llvm_args, LLVMInt8TypeInContext(llvm_cnt));
+						sarrput(&llvm_args, llvm_int_type_in_context(llvm_cnt, 64));
+						sarrput(&llvm_args, llvm_int_type_in_context(llvm_cnt, 8));
 						break;
 					case 2:
 						arg->llvm_easgm = LLVM_EASGM_64_16;
-						sarrput(&llvm_args, LLVMInt64TypeInContext(llvm_cnt));
-						sarrput(&llvm_args, LLVMInt16TypeInContext(llvm_cnt));
+						sarrput(&llvm_args, llvm_int_type_in_context(llvm_cnt, 64));
+						sarrput(&llvm_args, llvm_int_type_in_context(llvm_cnt, 16));
 						break;
 					case 4:
 						arg->llvm_easgm = LLVM_EASGM_64_32;
-						sarrput(&llvm_args, LLVMInt64TypeInContext(llvm_cnt));
-						sarrput(&llvm_args, LLVMInt32TypeInContext(llvm_cnt));
+						sarrput(&llvm_args, llvm_int_type_in_context(llvm_cnt, 64));
+						sarrput(&llvm_args, llvm_int_type_in_context(llvm_cnt, 32));
 						break;
 					case 8:
 						arg->llvm_easgm = LLVM_EASGM_64_64;
-						sarrput(&llvm_args, LLVMInt64TypeInContext(llvm_cnt));
-						sarrput(&llvm_args, LLVMInt64TypeInContext(llvm_cnt));
+						sarrput(&llvm_args, llvm_int_type_in_context(llvm_cnt, 64));
+						sarrput(&llvm_args, llvm_int_type_in_context(llvm_cnt, 64));
 						break;
 					default:
 						bassert(false);
@@ -2551,8 +2551,9 @@ void type_init_llvm_fn(struct context *ctx, struct mir_type *type) {
 	type->size_bits         = sizeof(struct mir_fn *) * 8;
 	type->store_size_bytes  = sizeof(struct mir_fn *);
 	type->data.fn.has_byval = has_byval;
-	mtx_unlock(&ctx->assembly->llvm.ctx_lock);
 	sarrfree(&llvm_args);
+
+	llvm_unlock_context(ctx->assembly->llvm.ctx);
 }
 
 void type_init_llvm_array(struct context *ctx, struct mir_type *type) {
@@ -2567,12 +2568,12 @@ void type_init_llvm_array(struct context *ctx, struct mir_type *type) {
 }
 
 void type_init_llvm_struct(struct context *ctx, struct mir_type *type) {
-	mtx_lock(&ctx->assembly->llvm.ctx_lock);
+	llvm_lock_context(ctx->assembly->llvm.ctx);
 
 	if (type->data.strct.is_incomplete_fwd_struct) {
 		bassert(type->user_id && "Missing user id for incomplete struct type.");
 		type->llvm_type = llvm_struct_create_named(ctx->assembly->llvm.ctx, type->user_id->str);
-		mtx_unlock(&ctx->assembly->llvm.ctx_lock);
+		llvm_unlock_context(ctx->assembly->llvm.ctx);
 		return;
 	}
 
@@ -2616,7 +2617,7 @@ void type_init_llvm_struct(struct context *ctx, struct mir_type *type) {
 
 		LLVMStructSetBody(type->llvm_type, sarrdata(&llvm_members), (unsigned)sarrlenu(&llvm_members), is_packed);
 	} else {
-		type->llvm_type = LLVMStructTypeInContext(ctx->assembly->llvm.ctx, sarrdata(&llvm_members), (unsigned)sarrlenu(&llvm_members), is_packed);
+		type->llvm_type = llvm_struct_type_in_context(ctx->assembly->llvm.ctx, sarrdata(&llvm_members), sarrlenu(&llvm_members), is_packed);
 	}
 	type->size_bits        = LLVMSizeOfTypeInBits(ctx->assembly->llvm.TD, type->llvm_type);
 	type->store_size_bytes = LLVMStoreSizeOfType(ctx->assembly->llvm.TD, type->llvm_type);
@@ -2629,7 +2630,8 @@ void type_init_llvm_struct(struct context *ctx, struct mir_type *type) {
 		// Note: Union members has 0 offset.
 		member->offset_bytes = (s32)vm_get_struct_elem_offset(ctx->assembly, type, (u32)i);
 	}
-	mtx_unlock(&ctx->assembly->llvm.ctx_lock);
+
+	llvm_unlock_context(ctx->assembly->llvm.ctx);
 }
 
 void type_init_llvm_enum(struct context *ctx, struct mir_type *type) {
@@ -6390,7 +6392,7 @@ struct result analyze_instr_load(struct context *ctx, struct mir_instr_load *loa
 
 	return_zone(PASS);
 
-INVALID_SRC : {
+INVALID_SRC: {
 	bassert(err_type);
 	str_buf_t type_name = mir_type2str(err_type, /* prefer_name */ true);
 	report_error(INVALID_TYPE, src->node, "Expected value of pointer type, got '%.*s'.", type_name.len, type_name.ptr);
