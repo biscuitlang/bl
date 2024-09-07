@@ -42,8 +42,7 @@ static void scope_dtor(struct scope *scope) {
 	mtx_destroy(&scope->lock);
 }
 
-static inline struct scope_entry *
-lookup_usings(struct scope *scope, struct id *id, struct scope_entry **out_ambiguous) {
+static inline struct scope_entry *lookup_usings(struct scope *scope, struct id *id, struct scope_entry **out_ambiguous) {
 	zone();
 	bassert(scope && id && out_ambiguous);
 	struct scope_entry *found = NULL;
@@ -89,7 +88,8 @@ struct scope *scope_create(struct scope_arenas *arenas,
 	scope->kind         = kind;
 	scope->location     = loc;
 
-	mtx_init(&scope->lock, mtx_plain);
+	if (kind == SCOPE_GLOBAL) mtx_init(&scope->lock, mtx_recursive);
+
 	bmagic_set(scope);
 	return scope;
 }
@@ -133,6 +133,7 @@ void scope_insert(struct scope *scope, hash_t layer, struct scope_entry *entry) 
 struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args) {
 	zone();
 	bassert(scope && args->id);
+
 	struct scope_entry *found       = NULL;
 	struct scope_entry *found_using = NULL;
 	struct scope_entry *ambiguous   = NULL;
@@ -192,15 +193,13 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 	return_zone(found);
 }
 
-void scope_dirty_clear_tree(struct scope *scope) {
-	bassert(scope);
-}
-
 void scope_lock(struct scope *scope) {
+	bassert(scope->kind == SCOPE_GLOBAL);
 	mtx_lock(&scope->lock);
 }
 
 void scope_unlock(struct scope *scope) {
+	bassert(scope->kind == SCOPE_GLOBAL);
 	mtx_unlock(&scope->lock);
 }
 
@@ -209,6 +208,7 @@ bool scope_using_add(struct scope *scope, struct scope *other) {
 	bmagic_assert(other);
 	for (usize i = 0; i < arrlenu(scope->usings); ++i) {
 		if (other == scope->usings[i]) {
+			mtx_unlock(&scope->lock);
 			return false;
 		}
 	}

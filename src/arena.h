@@ -53,7 +53,9 @@ void arena_init(struct arena     *arena,
                 s32               elems_per_chunk,
                 arena_elem_dtor_t elem_dtor);
 
-void  arena_terminate(struct arena *arena);
+void arena_terminate(struct arena *arena);
+
+// Allocated memory is zero initialized.
 void *arena_alloc(struct arena *arena);
 
 #endif

@@ -228,6 +228,7 @@ struct assembly {
 		LLVMTargetDataRef    TD;
 		LLVMTargetMachineRef TM;
 		char                *triple;
+		mtx_t                ctx_lock;
 	} llvm;
 
 	struct {

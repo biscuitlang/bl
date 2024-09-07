@@ -226,8 +226,7 @@ static inline vm_stack_ptr_t stack_push_empty(struct virtual_machine *vm, struct
 	return tmp;
 }
 
-static inline vm_stack_ptr_t
-stack_push(struct virtual_machine *vm, void *value, struct mir_type *type) {
+static inline vm_stack_ptr_t stack_push(struct virtual_machine *vm, void *value, struct mir_type *type) {
 	bassert(value && "try to push NULL value");
 	vm_stack_ptr_t tmp = stack_push_empty(vm, type);
 	memcpy(tmp, value, type->store_size_bytes);
@@ -2053,11 +2052,11 @@ void eval_instr_type_info(struct virtual_machine *vm, struct mir_instr_type_info
 	struct mir_var *rtti_var = mir_get_rtti(vm->assembly, type_info->rtti_type->id.hash);
 #if BL_ASSERT_ENABLE
 	if (!rtti_var) {
-#	if defined(BL_DEBUG)
+	#if defined(BL_DEBUG)
 		const str_t  name = type_info->rtti_type->id.str;
 		const hash_t hash = type_info->rtti_type->id.hash;
 		blog("Rtti type %.*s [%lu] not found!", name.len, name.ptr, hash);
-#	endif
+	#endif
 		bassert(rtti_var);
 	}
 #endif
@@ -2431,10 +2430,12 @@ void eval_instr_decl_direct_ref(struct virtual_machine            UNUSED(*vm),
 void vm_init(struct virtual_machine *vm, usize stack_size) {
 	vm->main_stack = create_stack(stack_size);
 	swap_current_stack(vm, vm->main_stack);
+	mtx_init(&vm->lock, mtx_recursive); // recursive here, we might nest some locking calls...
 }
 
 void vm_terminate(struct virtual_machine *vm) {
 	data_free(vm);
+	mtx_destroy(&vm->lock);
 	arrfree(vm->dcsigtmp);
 	for (u64 i = 0; i < arrlenu(vm->available_comptime_call_stacks); ++i) {
 		terminate_stack(vm->available_comptime_call_stacks[i]);
@@ -2448,11 +2449,17 @@ void vm_terminate(struct virtual_machine *vm) {
 }
 
 void vm_print_backtrace(struct virtual_machine *vm) {
+	mtx_lock(&vm->lock);
+
 	builder_note("\nBacktrace:");
 	struct mir_instr *instr = vm->stack->pc;
 	struct vm_frame  *fr    = vm->stack->ra;
 	usize             n     = 0;
-	if (!instr) return;
+	if (!instr) {
+		mtx_unlock(&vm->lock);
+		return;
+	}
+
 	// Print the last instruction
 	builder_msg(MSG_ERR_NOTE, 0, instr->node->location, CARET_NONE, "Last called:");
 	while (fr) {
@@ -2478,24 +2485,31 @@ void vm_print_backtrace(struct virtual_machine *vm) {
 		}
 		++n;
 	}
+	mtx_unlock(&vm->lock);
 }
 
 void vm_abort(struct virtual_machine *vm) {
+	mtx_lock(&vm->lock);
 	vm_print_backtrace(vm);
 	vm->aborted = true;
+	mtx_unlock(&vm->lock);
 }
 
 bool vm_eval_instr(struct virtual_machine *vm, struct assembly *assembly, struct mir_instr *instr) {
 	zone();
+	mtx_lock(&vm->lock);
 	vm->aborted  = false;
 	vm->assembly = assembly;
 	eval_instr(vm, instr);
+	mtx_unlock(&vm->lock);
 	return_zone(!vm->aborted);
 }
 
 void vm_provide_command_line_arguments(struct virtual_machine *vm, const s32 argc, char *argv[]) {
 	bassert(argc > 0 && "At least one command line argument must be provided!");
 	bassert(argv && "Invalid arguments value pointer!");
+	mtx_lock(&vm->lock);
+
 	struct mir_type *slice_type;
 	vm_stack_ptr_t   slice_dest;
 	vm_stack_ptr_t   args_dest;
@@ -2519,6 +2533,7 @@ void vm_provide_command_line_arguments(struct virtual_machine *vm, const s32 arg
 	}
 
 	vm_write_slice(vm, slice_type, slice_dest, args_dest, argc);
+	mtx_unlock(&vm->lock);
 }
 
 void vm_override_var(struct virtual_machine *vm, struct mir_var *var, const u64 value) {
@@ -2535,6 +2550,8 @@ enum vm_interp_state vm_execute_fn(struct virtual_machine *vm,
                                    mir_const_values_t     *optional_args,
                                    vm_stack_ptr_t         *optional_return) {
 	bmagic_assert(fn);
+	mtx_lock(&vm->lock);
+
 	vm->assembly = assembly;
 	if (optional_args && optional_args->len) {
 		bassert(fn->type->data.fn.args);
@@ -2562,6 +2579,8 @@ enum vm_interp_state vm_execute_fn(struct virtual_machine *vm,
 			}
 		}
 	}
+	mtx_unlock(&vm->lock);
+
 	return state;
 }
 
@@ -2615,6 +2634,7 @@ enum vm_interp_state vm_execute_comptime_call(struct virtual_machine *vm,
                                               struct assembly        *assembly,
                                               struct mir_instr_call  *call) {
 	zone();
+	mtx_lock(&vm->lock);
 	vm->assembly = assembly;
 	bassert(call && isflag(call->base.state, MIR_IS_ANALYZED));
 	bassert(mir_is_comptime(&call->base) && "Top level call is expected to be comptime.");
@@ -2672,10 +2692,14 @@ enum vm_interp_state vm_execute_comptime_call(struct virtual_machine *vm,
 	}
 
 	swap_current_stack(vm, previous_stack);
+	mtx_unlock(&vm->lock);
+
 	return_zone(state);
 }
 
 void vm_alloc_global(struct virtual_machine *vm, struct assembly *assembly, struct mir_var *var) {
+	mtx_lock(&vm->lock);
+
 	vm->assembly = assembly;
 	bassert(var);
 	bassert(isflag(var->iflags, MIR_VAR_GLOBAL) &&
@@ -2691,15 +2715,21 @@ void vm_alloc_global(struct virtual_machine *vm, struct assembly *assembly, stru
 	} else {
 		var->vm_ptr.global = data_alloc(vm, type);
 	}
+
+	mtx_unlock(&vm->lock);
 }
 
-vm_stack_ptr_t
-vm_alloc_raw(struct virtual_machine *vm, struct assembly UNUSED(*assembly), struct mir_type *type) {
-	return data_alloc(vm, type);
+vm_stack_ptr_t vm_alloc_raw(struct virtual_machine *vm, struct assembly UNUSED(*assembly), struct mir_type *type) {
+	mtx_lock(&vm->lock);
+	vm_stack_ptr_t result = data_alloc(vm, type);
+	mtx_unlock(&vm->lock);
+	return result;
 }
 
 // Try to fetch variable allocation pointer.
 vm_stack_ptr_t vm_read_var(struct virtual_machine *vm, const struct mir_var *var) {
+	mtx_lock(&vm->lock);
+
 	vm_stack_ptr_t ptr = NULL;
 	if (var->value.is_comptime) {
 		ptr = var->value.data;
@@ -2710,6 +2740,8 @@ vm_stack_ptr_t vm_read_var(struct virtual_machine *vm, const struct mir_var *var
 		ptr = stack_rel_to_abs_ptr(vm, var->vm_ptr.local);
 	}
 	bassert(ptr && "Attempt to get allocation pointer of unallocated variable!");
+	mtx_unlock(&vm->lock);
+
 	return ptr;
 }
 

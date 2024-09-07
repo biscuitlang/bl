@@ -190,9 +190,12 @@ static void llvm_init(struct assembly *assembly) {
 	assembly->llvm.TM         = llvm_tm;
 	assembly->llvm.TD         = llvm_td;
 	assembly->llvm.triple     = triple;
+
+	mtx_init(&assembly->llvm.ctx_lock, mtx_plain);
 }
 
 static void llvm_terminate(struct assembly *assembly) {
+	mtx_destroy(&assembly->llvm.ctx_lock);
 	LLVMDisposeModule(assembly->llvm.module);
 	LLVMDisposeTargetMachine(assembly->llvm.TM);
 	LLVMDisposeTargetData(assembly->llvm.TD);

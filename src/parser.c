@@ -537,8 +537,7 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 		// and it is visible only from such unit.
 		// Private scope contains only global entity declarations with 'private' flag set
 		// in ast node.
-		struct scope *scope = scope_create(
-		    ctx->scope_arenas, SCOPE_PRIVATE, scope_get(ctx), &tok_directive->location);
+		struct scope *scope = scope_create(ctx->scope_arenas, SCOPE_PRIVATE, scope_get(ctx), &tok_directive->location);
 
 		ctx->current_private_scope = scope;
 		ctx->unit->private_scope   = scope;
@@ -558,24 +557,19 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 			             "Expected scope name after #scope directive.");
 			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_directive, scope_get(ctx)));
 		}
-		struct ast *scope =
-		    ast_create_node(ctx->ast_arena, AST_SCOPE, tok_directive, scope_get(ctx));
+		struct ast *scope       = ast_create_node(ctx->ast_arena, AST_SCOPE, tok_directive, scope_get(ctx));
 		scope->data.scope.ident = ident;
 		struct id *id           = &ident->data.ident.id;
 
 		// Perform lookup of named scope here, in case named scope already exist in global scope
 		// we can reuse it!.
 		if (scope_get(ctx)->kind == SCOPE_GLOBAL) scope_lock(scope_get(ctx));
-		struct scope_entry *scope_entry =
-		    scope_lookup(scope_get(ctx), &(scope_lookup_args_t){.id = id});
+		struct scope_entry *scope_entry = scope_lookup(scope_get(ctx), &(scope_lookup_args_t){.id = id});
 		if (scope_entry) {
-			bassert(scope_entry->kind == SCOPE_ENTRY_NAMED_SCOPE &&
-			        "Found scope entry is expected to be named scope!");
+			bassert(scope_entry->kind == SCOPE_ENTRY_NAMED_SCOPE && "Found scope entry is expected to be named scope!");
 			bassert(scope_entry->data.scope && scope_entry->data.scope->kind == SCOPE_NAMED);
 		} else {
-			scope_entry = scope_create_entry(
-			    &ctx->assembly->scope_arenas, SCOPE_ENTRY_NAMED_SCOPE, id, scope, false);
-
+			scope_entry = scope_create_entry(&ctx->assembly->scope_arenas, SCOPE_ENTRY_NAMED_SCOPE, id, scope, false);
 			scope_insert(scope_get(ctx), SCOPE_DEFAULT_LAYER, scope_entry);
 
 			struct scope *named_scope = scope_create(

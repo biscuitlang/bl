@@ -34,7 +34,7 @@
 #include <stdarg.h>
 
 #if !BL_PLATFORM_WIN
-#	include <unistd.h>
+	#include <unistd.h>
 #endif
 
 struct builder builder;
@@ -113,9 +113,7 @@ static void llvm_init(void) {
 	LLVMInitializeAArch64TargetMC();
 	LLVMInitializeAArch64AsmPrinter();
 
-	bassert(LLVMIsMultithreaded() &&
-	        "LLVM must be compiled in multi-thread mode with flag 'LLVM_ENABLE_THREADS'");
-
+	bassert(LLVMIsMultithreaded() && "LLVM must be compiled in multi-thread mode with flag 'LLVM_ENABLE_THREADS'");
 	llvm_initialized = true;
 }
 
@@ -182,6 +180,7 @@ static void setup_unit_pipeline(struct assembly *assembly) {
 	arrput(*stages, &lexer_run);
 	if (t->print_tokens) arrput(*stages, &token_printer_run);
 	arrput(*stages, &parser_run);
+	if (!t->syntax_only) arrput(*stages, &mir_unit_run);
 }
 
 static void setup_assembly_pipeline(struct assembly *assembly) {
@@ -198,6 +197,7 @@ static void setup_assembly_pipeline(struct assembly *assembly) {
 	}
 	if (t->syntax_only) return;
 	arrput(*stages, &linker_run);
+	if (t->no_analyze) return;
 	arrput(*stages, &mir_analyze_run);
 	if (t->vmdbg_enabled) arrput(*stages, &attach_dbg);
 	if (t->run) arrput(*stages, &entry_run);

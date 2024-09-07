@@ -35,9 +35,9 @@
 #include "llvm-c/Types.h"
 
 #ifdef BL_DEBUG
-#	define NAMED_VARS true
+	#define NAMED_VARS true
 #else
-#	define NAMED_VARS false
+	#define NAMED_VARS false
 #endif
 
 #define STORE_MAX_SIZE_BYTES 16
@@ -3148,9 +3148,8 @@ enum state emit_instr(struct context *ctx, struct mir_instr *instr) {
 }
 
 static void init_llvm_module(struct context *ctx) {
-	struct assembly *assembly = ctx->assembly;
-	LLVMModuleRef    llvm_module =
-	    LLVMModuleCreateWithNameInContext(assembly->target->name, assembly->llvm.ctx);
+	struct assembly *assembly    = ctx->assembly;
+	LLVMModuleRef    llvm_module = LLVMModuleCreateWithNameInContext(assembly->target->name, ctx->llvm_cnt);
 	LLVMSetTarget(llvm_module, assembly->llvm.triple);
 	LLVMSetModuleDataLayout(llvm_module, assembly->llvm.TD);
 	ctx->llvm_module = assembly->llvm.module = llvm_module;
@@ -3269,7 +3268,7 @@ void ir_run(struct assembly *assembly) {
 	                          assembly->target->opt == ASSEMBLY_OPT_RELEASE_WITH_DEBUG_INFO;
 	ctx.llvm_cnt     = assembly->llvm.ctx;
 	ctx.llvm_td      = assembly->llvm.TD;
-	ctx.llvm_builder = LLVMCreateBuilderInContext(assembly->llvm.ctx);
+	ctx.llvm_builder = LLVMCreateBuilderInContext(ctx.llvm_cnt);
 
 	qsetcap(&ctx.incomplete_queue, 256);
 	qsetcap(&ctx.queue, 256);

@@ -29,6 +29,8 @@
 #include "threading.h"
 #include "stb_ds.h"
 
+thrd_t MAIN_THREAD = (thrd_t)0;
+
 static _Thread_local struct thread_local_storage thread_data;
 
 struct job {

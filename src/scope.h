@@ -104,11 +104,12 @@ struct scope {
 	enum scope_kind  kind;
 	str_t            name; // optional
 	struct scope    *parent;
-	mtx_t            lock;
 	struct location *location;
 	array(struct scope *) usings;
 	LLVMMetadataRef llvm_meta;
 	my_hash_table(struct scope_tbl_entry) entries;
+
+	mtx_t lock;
 
 	bmagic_member
 };
@@ -128,9 +129,7 @@ struct scope_entry *scope_create_entry(struct scope_arenas  *arenas,
                                        bool                  is_builtin);
 
 void scope_reserve(struct scope *scope, s32 num);
-
 void scope_insert(struct scope *scope, hash_t layer, struct scope_entry *entry);
-
 void scope_lock(struct scope *scope);
 void scope_unlock(struct scope *scope);
 

@@ -111,6 +111,7 @@ struct context {
 	struct mir_analyze     *analyze; // Shortcut for assembly->mir->analyze
 	bool                    debug_mode;
 	struct builtin_types   *builtin_types; // Shortcut for assembly->builtin_types
+	struct string_cache    *string_cache;
 
 	// Ast -> MIR generation
 	struct {
@@ -1267,11 +1268,14 @@ static inline void add_phi_income(struct mir_instr_phi *phi, struct mir_instr *v
 static int         push_count = 0;
 static inline void analyze_schedule(struct context *ctx, struct mir_instr *instr) {
 	bassert(instr);
+	mtx_lock(&ctx->analyze->stack_lock);
 	++push_count;
 	arrput(analyze_current(ctx), instr);
+	mtx_unlock(&ctx->analyze->stack_lock);
 }
 
 static inline void analyze_notify_provided(struct context *ctx, hash_t hash) {
+	bcheck_main_thread();
 	const s64 index = hmgeti(ctx->analyze->waiting, hash);
 	if (index == -1) return; // No one is waiting for this...
 
@@ -1293,7 +1297,7 @@ static inline str_t _unique_name(struct context *ctx, char *prefix_ptr, s32 pref
 	zone();
 	static u64  ui  = 0;
 	const str_t tmp = make_str(prefix_ptr, prefix_len);
-	return_zone(scprint(&ctx->assembly->string_cache, "{str}.{u64}", tmp, ui++));
+	return_zone(scprint(&ctx->string_cache, "{str}.{u64}", tmp, ui++));
 }
 
 static inline bool is_builtin(struct ast *ident, enum builtin_id_kind kind) {
@@ -1493,6 +1497,8 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 		bassert(!is_builtin);
 		return ctx->analyze->unnamed_entry;
 	}
+
+	scope_lock(ctx->assembly->gscope);
 	const bool          is_private  = scope->kind == SCOPE_PRIVATE;
 	const hash_t        layer_index = ctx->fn_generate.current_scope_layer;
 	struct scope_entry *collision   = scope_lookup(scope,
@@ -1513,9 +1519,12 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 	// no collision
 	struct scope_entry *entry = scope_create_entry(&ctx->assembly->scope_arenas, SCOPE_ENTRY_INCOMPLETE, id, node, is_builtin);
 	scope_insert(scope, layer_index, entry);
+	scope_unlock(ctx->assembly->gscope);
+
 	return entry;
 
 COLLIDE : {
+	scope_unlock(ctx->assembly->gscope);
 	char *err_msg = (collision->is_builtin || is_builtin) ? "Symbol name collision with compiler builtin '%.*s'." : "Duplicate symbol";
 	report_error(DUPLICATE_SYMBOL, node, err_msg, id->str.len, id->str.ptr);
 	if (collision->node) {
@@ -1526,13 +1535,17 @@ COLLIDE : {
 }
 
 struct mir_type *lookup_builtin_type(struct context *ctx, enum builtin_id_kind kind) {
-	struct id          *id    = &builtin_ids[kind];
-	struct scope       *scope = ctx->assembly->gscope;
+	bcheck_main_thread();
+
+	struct id    *id    = &builtin_ids[kind];
+	struct scope *scope = ctx->assembly->gscope;
+	// scope_lock(scope); // Scope is global everytime here!
 	struct scope_entry *found = scope_lookup(scope,
 	                                         &(scope_lookup_args_t){
 	                                             .id      = id,
 	                                             .in_tree = true,
 	                                         });
+	// scope_unlock(scope);
 
 	if (!found) babort("Missing compiler internal symbol '%.*s'", id->str.len, id->str.ptr);
 	if (found->kind == SCOPE_ENTRY_INCOMPLETE) return NULL;
@@ -1556,13 +1569,18 @@ struct mir_type *lookup_builtin_type(struct context *ctx, enum builtin_id_kind k
 }
 
 struct mir_fn *lookup_builtin_fn(struct context *ctx, enum builtin_id_kind kind) {
-	struct id          *id    = &builtin_ids[kind];
-	struct scope       *scope = ctx->assembly->gscope;
+	bcheck_main_thread();
+
+	struct id    *id    = &builtin_ids[kind];
+	struct scope *scope = ctx->assembly->gscope;
+
+	// scope_lock(scope); // Scope is global everytime here!
 	struct scope_entry *found = scope_lookup(scope,
 	                                         &(scope_lookup_args_t){
 	                                             .id      = id,
 	                                             .in_tree = true,
 	                                         });
+	// scope_unlock(scope);
 
 	if (!found) babort("Missing compiler internal symbol '%.*s'", id->str.len, id->str.ptr);
 	if (found->kind == SCOPE_ENTRY_INCOMPLETE) return NULL;
@@ -1657,6 +1675,8 @@ struct id *lookup_builtins_code_loc(struct context *ctx) {
 }
 
 struct scope_entry *lookup_composit_member(struct mir_type *type, struct id *rid, struct mir_type **out_base_type) {
+	bcheck_main_thread();
+
 	bassert(type);
 	bassert(mir_is_composite_type(type) && "Expected composite type!");
 
@@ -1796,7 +1816,7 @@ struct mir_type *create_type_null(struct context *ctx, struct mir_type *base_typ
 	}
 
 	tmp                      = create_type(ctx, MIR_TYPE_NULL, &builtin_ids[BUILTIN_ID_NULL]);
-	tmp->id.str              = scdup2(&ctx->assembly->string_cache, name);
+	tmp->id.str              = scdup2(&ctx->string_cache, name);
 	tmp->id.hash             = hash;
 	tmp->data.null.base_type = base_type;
 	tmp->can_use_cache       = base_type->can_use_cache;
@@ -1829,7 +1849,7 @@ struct mir_type *create_type_ptr(struct context *ctx, struct mir_type *src_type)
 	}
 
 	tmp                = create_type(ctx, MIR_TYPE_PTR, NULL);
-	tmp->id.str        = scdup2(&ctx->assembly->string_cache, name);
+	tmp->id.str        = scdup2(&ctx->string_cache, name);
 	tmp->id.hash       = hash;
 	tmp->data.ptr.expr = src_type;
 	tmp->can_use_cache = src_type->can_use_cache;
@@ -1858,7 +1878,7 @@ struct mir_type *create_type_poly(struct context *ctx, struct id *user_id, bool 
 	}
 
 	tmp          = create_type(ctx, MIR_TYPE_POLY, user_id);
-	tmp->id.str  = scdup2(&ctx->assembly->string_cache, name);
+	tmp->id.str  = scdup2(&ctx->string_cache, name);
 	tmp->id.hash = hash;
 
 	// We need to distinguish polymorph types as masters and slaves + we have unique user name for
@@ -1881,7 +1901,7 @@ struct mir_type *create_type_placeholder(struct context *ctx) {
 	hash_t hash = strhash(name);
 
 	struct mir_type *tmp = create_type(ctx, MIR_TYPE_PLACEHOLDER, &builtin_ids[BUILTIN_ID_TYPE_PLACEHOLDER]);
-	tmp->id.str          = scdup2(&ctx->assembly->string_cache, name);
+	tmp->id.str          = scdup2(&ctx->string_cache, name);
 	tmp->id.hash         = hash;
 
 	type_init_llvm_dummy(ctx, tmp);
@@ -1907,7 +1927,7 @@ struct mir_type *create_type_fn(struct context *ctx, create_type_fn_args_t *args
 	const hash_t hash = strhash(name);
 
 	struct mir_type *tmp          = create_type(ctx, MIR_TYPE_FN, args->id);
-	tmp->id.str                   = scdup2(&ctx->assembly->string_cache, name);
+	tmp->id.str                   = scdup2(&ctx->string_cache, name);
 	tmp->id.hash                  = hash;
 	tmp->data.fn.args             = args->args;
 	tmp->data.fn.ret_type         = ret_type;
@@ -1941,7 +1961,7 @@ struct mir_type *create_type_fn_group(struct context *ctx, struct id *user_id, m
 
 	struct mir_type *tmp        = create_type(ctx, MIR_TYPE_FN_GROUP, user_id);
 	tmp->id.hash                = strhash(name);
-	tmp->id.str                 = scdup2(&ctx->assembly->string_cache, name);
+	tmp->id.str                 = scdup2(&ctx->string_cache, name);
 	tmp->data.fn_group.variants = variants;
 
 	type_init_llvm_dummy(ctx, tmp);
@@ -1974,7 +1994,7 @@ struct mir_type *create_type_array(struct context *ctx, struct id *user_id, stru
 
 	result                       = create_type(ctx, MIR_TYPE_ARRAY, user_id);
 	result->id.hash              = hash;
-	result->id.str               = scdup2(&ctx->assembly->string_cache, name);
+	result->id.str               = scdup2(&ctx->string_cache, name);
 	result->data.array.elem_type = elem_type;
 	result->data.array.len       = len;
 
@@ -2028,7 +2048,7 @@ struct mir_type *create_type_struct_incomplete(struct context *ctx, struct id *u
 	result = create_type(ctx, MIR_TYPE_STRUCT, user_id);
 
 	result->id.hash                             = hash;
-	result->id.str                              = scdup2(&ctx->assembly->string_cache, name);
+	result->id.str                              = scdup2(&ctx->string_cache, name);
 	result->can_use_cache                       = true;
 	result->data.strct.is_incomplete_fwd_struct = true;
 	result->data.strct.is_union                 = is_union;
@@ -2061,7 +2081,7 @@ struct mir_type *create_type_struct(struct context *ctx, create_type_struct_args
 		}
 
 		id.hash = hash;
-		id.str  = scdup2(&ctx->assembly->string_cache, name);
+		id.str  = scdup2(&ctx->string_cache, name);
 
 	} else {
 		id = *args->id;
@@ -2092,6 +2112,8 @@ DONE:
 }
 
 static struct mir_type *complete_type_struct(struct context *ctx, complete_type_struct_args_t *args) {
+	bcheck_main_thread();
+
 	bassert(args->fwd_decl && "Invalid fwd_decl pointer!");
 	bassert(args->fwd_decl->value.type->kind == MIR_TYPE_TYPE && "Forward struct declaration does not point to type definition!");
 
@@ -2173,7 +2195,7 @@ struct mir_type *create_type_slice(struct context *ctx, enum mir_type_kind kind,
 
 	struct id id;
 	id.hash = hash;
-	id.str  = scdup2(&ctx->assembly->string_cache, name);
+	id.str  = scdup2(&ctx->string_cache, name);
 
 	sarrput(members, tmp);
 	provide_builtin_member(ctx, body_scope, tmp);
@@ -2256,7 +2278,7 @@ struct mir_type *create_type_struct_dynarr(struct context *ctx, struct id *user_
 
 	struct id id;
 	id.hash = hash;
-	id.str  = scdup2(&ctx->assembly->string_cache, name);
+	id.str  = scdup2(&ctx->string_cache, name);
 
 	result = create_type_struct(ctx,
 	                            &(create_type_struct_args_t){
@@ -2302,7 +2324,7 @@ static struct mir_type *create_type_enum(struct context *ctx, create_type_enum_a
 
 	result                     = create_type(ctx, MIR_TYPE_ENUM, args->user_id);
 	result->id.hash            = hash;
-	result->id.str             = scdup2(&ctx->assembly->string_cache, name);
+	result->id.str             = scdup2(&ctx->string_cache, name);
 	result->data.enm.scope     = args->scope;
 	result->data.enm.base_type = args->base_type;
 	result->data.enm.variants  = args->variants;
@@ -2326,13 +2348,16 @@ DONE:
 }
 
 void type_init_llvm_int(struct context *ctx, struct mir_type *type) {
+	mtx_lock(&ctx->assembly->llvm.ctx_lock);
 	type->llvm_type        = LLVMIntTypeInContext(ctx->assembly->llvm.ctx, (unsigned int)type->data.integer.bitcount);
 	type->size_bits        = LLVMSizeOfTypeInBits(ctx->assembly->llvm.TD, type->llvm_type);
 	type->store_size_bytes = LLVMStoreSizeOfType(ctx->assembly->llvm.TD, type->llvm_type);
 	type->alignment        = (s8)LLVMABIAlignmentOfType(ctx->assembly->llvm.TD, type->llvm_type);
+	mtx_unlock(&ctx->assembly->llvm.ctx_lock);
 }
 
 void type_init_llvm_real(struct context *ctx, struct mir_type *type) {
+	mtx_lock(&ctx->assembly->llvm.ctx_lock);
 	if (type->data.real.bitcount == 32)
 		type->llvm_type = LLVMFloatTypeInContext(ctx->assembly->llvm.ctx);
 	else if (type->data.real.bitcount == 64)
@@ -2343,6 +2368,7 @@ void type_init_llvm_real(struct context *ctx, struct mir_type *type) {
 	type->size_bits        = LLVMSizeOfTypeInBits(ctx->assembly->llvm.TD, type->llvm_type);
 	type->store_size_bytes = LLVMStoreSizeOfType(ctx->assembly->llvm.TD, type->llvm_type);
 	type->alignment        = (s8)LLVMABIAlignmentOfType(ctx->assembly->llvm.TD, type->llvm_type);
+	mtx_unlock(&ctx->assembly->llvm.ctx_lock);
 }
 
 void type_init_llvm_ptr(struct context *ctx, struct mir_type *type) {
@@ -2359,7 +2385,9 @@ void type_init_llvm_void(struct context *ctx, struct mir_type *type) {
 	type->alignment        = 0;
 	type->size_bits        = 0;
 	type->store_size_bytes = 0;
+	mtx_lock(&ctx->assembly->llvm.ctx_lock);
 	type->llvm_type        = LLVMVoidTypeInContext(ctx->assembly->llvm.ctx);
+	mtx_unlock(&ctx->assembly->llvm.ctx_lock);
 }
 
 void type_init_llvm_dummy(struct context *ctx, struct mir_type *type) {
@@ -2382,10 +2410,12 @@ void type_init_llvm_null(struct context UNUSED(*ctx), struct mir_type *type) {
 }
 
 void type_init_llvm_bool(struct context *ctx, struct mir_type *type) {
+	mtx_lock(&ctx->assembly->llvm.ctx_lock);
 	type->llvm_type        = LLVMIntTypeInContext(ctx->assembly->llvm.ctx, 1);
 	type->size_bits        = LLVMSizeOfTypeInBits(ctx->assembly->llvm.TD, type->llvm_type);
 	type->store_size_bytes = LLVMStoreSizeOfType(ctx->assembly->llvm.TD, type->llvm_type);
 	type->alignment        = (s8)LLVMABIAlignmentOfType(ctx->assembly->llvm.TD, type->llvm_type);
+	mtx_unlock(&ctx->assembly->llvm.ctx_lock);
 }
 
 static inline usize struct_split_fit(struct context *ctx, struct mir_type *struct_type, u32 bound, u32 *start) {
@@ -2415,6 +2445,8 @@ void type_init_llvm_fn(struct context *ctx, struct mir_type *type) {
 	if (has_ret && ret_type->kind == MIR_TYPE_TYPE) {
 		return;
 	}
+
+	mtx_lock(&ctx->assembly->llvm.ctx_lock);
 
 	llvm_types_t llvm_args = SARR_ZERO;
 	if (has_ret) {
@@ -2519,6 +2551,7 @@ void type_init_llvm_fn(struct context *ctx, struct mir_type *type) {
 	type->size_bits         = sizeof(struct mir_fn *) * 8;
 	type->store_size_bytes  = sizeof(struct mir_fn *);
 	type->data.fn.has_byval = has_byval;
+	mtx_unlock(&ctx->assembly->llvm.ctx_lock);
 	sarrfree(&llvm_args);
 }
 
@@ -2534,9 +2567,12 @@ void type_init_llvm_array(struct context *ctx, struct mir_type *type) {
 }
 
 void type_init_llvm_struct(struct context *ctx, struct mir_type *type) {
+	mtx_lock(&ctx->assembly->llvm.ctx_lock);
+
 	if (type->data.strct.is_incomplete_fwd_struct) {
 		bassert(type->user_id && "Missing user id for incomplete struct type.");
 		type->llvm_type = llvm_struct_create_named(ctx->assembly->llvm.ctx, type->user_id->str);
+		mtx_unlock(&ctx->assembly->llvm.ctx_lock);
 		return;
 	}
 
@@ -2593,6 +2629,7 @@ void type_init_llvm_struct(struct context *ctx, struct mir_type *type) {
 		// Note: Union members has 0 offset.
 		member->offset_bytes = (s32)vm_get_struct_elem_offset(ctx->assembly, type, (u32)i);
 	}
+	mtx_unlock(&ctx->assembly->llvm.ctx_lock);
 }
 
 void type_init_llvm_enum(struct context *ctx, struct mir_type *type) {
@@ -4588,6 +4625,7 @@ struct result analyze_instr_unroll(struct context *ctx, struct mir_instr_unroll 
 
 static struct result analyze_instr_compound_regular(struct context *ctx, struct mir_instr_compound *cmp) {
 	zone();
+	bcheck_main_thread();
 
 	if (cmp->is_multiple_return_value) {
 		bassert(cmp->base.value.type == NULL && "Multi-return compound expression is supposed to have type of the return type of the "
@@ -5593,6 +5631,8 @@ struct result analyze_instr_type_info(struct context *ctx, struct mir_instr_type
 static struct result lookup_ref(struct context *ctx, const struct mir_instr_decl_ref *ref, struct scope_entry **out_found, bool *out_of_local) {
 	zone();
 	bassert(out_found);
+	bcheck_main_thread();
+
 	struct scope_entry *found         = NULL;
 	struct scope_entry *ambiguous     = NULL;
 	struct scope       *private_scope = ref->parent_unit->private_scope;
@@ -5960,7 +6000,7 @@ struct result analyze_instr_fn_proto(struct context *ctx, struct mir_instr_fn_pr
 	if (fn->id && !fn->linkage_name.len) { // Has ID and has no linkage name specified.
 		// Setup function full name.
 		if (name_prefix.len) {
-			fn->full_name = scprint(&ctx->assembly->string_cache, "{str}.{str}", name_prefix, fn->id->str);
+			fn->full_name = scprint(&ctx->string_cache, "{str}.{str}", name_prefix, fn->id->str);
 		} else {
 			fn->full_name = fn->id->str;
 		}
@@ -8109,7 +8149,7 @@ struct result analyze_call_stage_generate(struct context *ctx, struct mir_instr_
 
 		replacement_fn->generated.first_call_node = call->base.node;
 		if (debug_replacement_str.len) {
-			str_t debug_replacement_str_dup = scdup2(&ctx->assembly->string_cache, debug_replacement_str);
+			str_t debug_replacement_str_dup = scdup2(&ctx->string_cache, debug_replacement_str);
 
 			replacement_fn->generated.debug_replacement_types = debug_replacement_str_dup;
 		} else {
@@ -8992,6 +9032,8 @@ static inline struct mir_instr *analyze_try_get_next(struct mir_instr *instr) {
 
 void analyze(struct context *ctx) {
 	zone();
+	bcheck_main_thread();
+
 	struct result     result;
 	usize             pc = 0, i = 0, si = analyze_swap(ctx);
 	struct mir_instr *ip = NULL, *pip = NULL;
@@ -11722,7 +11764,7 @@ static void provide_builtin_arch(struct context *ctx) {
 	static struct id      ids[static_arrlenu(arch_names)];
 	for (usize i = 0; i < static_arrlenu(arch_names); ++i) {
 		str_t name = make_str_from_c(arch_names[i]);
-		name       = scdup2(&ctx->assembly->string_cache, name);
+		name       = scdup2(&ctx->string_cache, name);
 		name       = str_toupper(name);
 
 		struct mir_variant *variant = create_variant(ctx, id_init(&ids[i], name), bt->t_s32, i);
@@ -11749,7 +11791,7 @@ static void provide_builtin_os(struct context *ctx) {
 	static struct id      ids[static_arrlenu(os_names)];
 	for (usize i = 0; i < static_arrlenu(os_names); ++i) {
 		str_t name = make_str_from_c(os_names[i]);
-		name       = scdup2(&ctx->assembly->string_cache, name);
+		name       = scdup2(&ctx->string_cache, name);
 		name       = str_toupper(name);
 
 		struct mir_variant *variant = create_variant(ctx, id_init(&ids[i], name), bt->t_s32, i);
@@ -11776,7 +11818,7 @@ static void provide_builtin_env(struct context *ctx) {
 	static struct id      ids[static_arrlenu(env_names)];
 	for (usize i = 0; i < static_arrlenu(env_names); ++i) {
 		str_t name = make_str_from_c(env_names[i]);
-		name       = scdup2(&ctx->assembly->string_cache, name);
+		name       = scdup2(&ctx->string_cache, name);
 		name       = str_toupper(name);
 
 		struct mir_variant *variant = create_variant(ctx, id_init(&ids[i], name), bt->t_s32, i);
@@ -11859,7 +11901,7 @@ static void arenas_terminate(struct mir_arenas *arenas) {
 	arena_terminate(&arenas->fn_generated);
 }
 
-static void init_context(struct context *ctx, struct assembly *assembly) {
+static void init_context(struct context *ctx, struct assembly *assembly, struct string_cache *string_cache) {
 	memset(ctx, 0, sizeof(struct context));
 	ctx->assembly                        = assembly;
 	ctx->debug_mode                      = assembly->target->opt == ASSEMBLY_OPT_DEBUG;
@@ -11867,6 +11909,7 @@ static void init_context(struct context *ctx, struct assembly *assembly) {
 	ctx->vm                              = &assembly->vm;
 	ctx->mir                             = &assembly->mir;
 	ctx->analyze                         = &assembly->mir.analyze;
+	ctx->string_cache                    = string_cache;
 	ctx->fn_generate.current_scope_layer = SCOPE_DEFAULT_LAYER;
 	ctx->ast.current_defer_stack_index   = -1;
 }
@@ -11878,7 +11921,7 @@ static void terminate_context(struct context *ctx) {
 
 static void initialize_builtins(struct assembly *assembly) {
 	struct context ctx;
-	init_context(&ctx, assembly);
+	init_context(&ctx, assembly, assembly->string_cache);
 
 	struct builtin_types *bt   = &assembly->builtin_types;
 	bt->t_s8                   = create_type_int(&ctx, &builtin_ids[BUILTIN_ID_TYPE_S8], 8, true);
@@ -11958,6 +12001,9 @@ void mir_init(struct assembly *assembly) {
 	arrsetcap(mir->analyze.usage_check_arr, 256);
 	arrsetcap(mir->analyze.stack[0], 256);
 	arrsetcap(mir->analyze.stack[1], 256);
+
+	mtx_init(&mir->analyze.stack_lock, mtx_plain);
+
 	mir->analyze.unnamed_entry = scope_create_entry(&assembly->scope_arenas, SCOPE_ENTRY_UNNAMED, NULL, NULL, true);
 
 	spl_init(&mir->type_cache_lock);
@@ -11981,6 +12027,9 @@ void mir_terminate(struct assembly *assembly) {
 	arrfree(mir->exported_instrs);
 	arenas_terminate(&mir->arenas);
 	tbl_free(mir->type_cache);
+
+	mtx_destroy(&mir->analyze.stack_lock);
+
 	arrfree(mir->analyze.stack[0]);
 	arrfree(mir->analyze.stack[1]);
 	hmfree(mir->analyze.skipped_instructions);
@@ -12003,7 +12052,7 @@ void mir_unit_run(struct assembly *assembly, struct unit *unit) {
 	runtime_measure_begin(mir_unit);
 
 	struct context ctx;
-	init_context(&ctx, assembly);
+	init_context(&ctx, assembly, unit->string_cache);
 
 	ast(&ctx, unit->ast);
 
@@ -12018,20 +12067,18 @@ void mir_analyze_run(struct assembly *assembly) {
 	zone();
 
 	// Gen MIR from ast pass
-	for (usize i = 0; i < arrlenu(assembly->units); ++i) {
-		struct unit *unit = assembly->units[i];
-		mir_unit_run(assembly, unit);
-		// ast(&ctx, unit->ast);
-	}
-
-	if (builder.errorc) goto DONE;
+	// for (usize i = 0; i < arrlenu(assembly->units); ++i) {
+	// 	struct unit *unit = assembly->units[i];
+	// 	mir_unit_run(assembly, unit);
+	// }
+	// if (builder.errorc) goto DONE;
 
 	// Skip analyze if no_analyze is set by user.
-	if (assembly->target->no_analyze) goto DONE;
+	// if (assembly->target->no_analyze) goto DONE;
 
 	// Analyze pass
 	struct context ctx;
-	init_context(&ctx, assembly);
+	init_context(&ctx, assembly, assembly->string_cache);
 
 	analyze(&ctx);
 	if (builder.errorc) goto DONE;

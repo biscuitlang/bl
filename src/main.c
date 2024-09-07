@@ -317,6 +317,8 @@ void print_supported(FILE *stream) {
 int main(s32 argc, char *argv[]) {
 	// _crtBreakAlloc = 1782;
 
+	MAIN_THREAD = thrd_current();
+
 #define EXIT(_state) \
 	state = _state;  \
 	goto RELEASE;

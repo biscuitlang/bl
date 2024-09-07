@@ -33,6 +33,8 @@
 #include "config.h"
 #include "tinycthread.h"
 
+extern thrd_t MAIN_THREAD;
+
 struct context;
 struct mir_instr;
 
