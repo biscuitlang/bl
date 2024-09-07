@@ -30,7 +30,6 @@
 #define BL_LLVM_API_H
 
 #include "common.h"
-#include "tinycthread.h"
 
 _SHUT_UP_BEGIN
 #include <llvm-c/Analysis.h>
