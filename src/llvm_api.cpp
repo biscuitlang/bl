@@ -82,7 +82,7 @@ LLVMTypeRef llvm_int_type_in_context(llvm_context_ref_t ctx, s32 bitcount) {
 }
 
 LLVMTypeRef llvm_struct_create_named(llvm_context_ref_t ctx, const str_t Name) {
-	StringRef                    sName(Name.ptr, (size_t)Name.len);
+	StringRef sName(Name.ptr, (size_t)Name.len);
 	return wrap(StructType::create(ctx->ctx, sName));
 }
 
@@ -108,7 +108,7 @@ LLVMValueRef llvm_build_alloca(LLVMBuilderRef B, LLVMTypeRef Ty, const str_t Nam
 }
 
 LLVMBasicBlockRef llvm_append_basic_block_in_context(llvm_context_ref_t ctx, LLVMValueRef Fn, const str_t Name) {
-	StringRef                    sName(Name.ptr, (size_t)Name.len);
+	StringRef sName(Name.ptr, (size_t)Name.len);
 	return wrap(BasicBlock::Create(ctx->ctx, sName, unwrap<Function>(Fn)));
 }
 
@@ -117,12 +117,12 @@ u32 llvm_get_md_kind_id_in_context(llvm_context_ref_t ctx, const str_t name) {
 }
 
 LLVMAttributeRef llvm_create_enum_attribute(llvm_context_ref_t ctx, u32 kind, u64 val) {
-	auto                         AttrKind = (Attribute::AttrKind)kind;
+	auto AttrKind = (Attribute::AttrKind)kind;
 	return wrap(Attribute::get(ctx->ctx, AttrKind, val));
 }
 
 LLVMAttributeRef llvm_create_type_attribute(llvm_context_ref_t ctx, u32 kind, LLVMTypeRef type_ref) {
-	auto                         AttrKind = (Attribute::AttrKind)kind;
+	auto AttrKind = (Attribute::AttrKind)kind;
 	return wrap(Attribute::get(ctx->ctx, AttrKind, unwrap(type_ref)));
 }
 
@@ -131,7 +131,7 @@ LLVMValueRef llvm_const_string_in_context(llvm_context_ref_t ctx, const str_t st
 }
 
 LLVMTypeRef llvm_struct_type_in_context(llvm_context_ref_t ctx, LLVMTypeRef *elems, u32 elem_num, LLVMBool packed) {
-	ArrayRef<Type *>             Tys(unwrap(elems), elem_num);
+	ArrayRef<Type *> Tys(unwrap(elems), elem_num);
 	return wrap(StructType::get(ctx->ctx, Tys, packed != 0));
 }
 
@@ -145,8 +145,8 @@ static Intrinsic::ID llvm_map_to_intrinsic_id(unsigned ID) {
 }
 
 LLVMTypeRef llvm_intrinsic_get_type(llvm_context_ref_t ctx, u32 id, LLVMTypeRef *types, size_t types_num) {
-	const auto                   IID = llvm_map_to_intrinsic_id(id);
-	const ArrayRef<Type *>       Tys(unwrap(types), types_num);
+	const auto             IID = llvm_map_to_intrinsic_id(id);
+	const ArrayRef<Type *> Tys(unwrap(types), types_num);
 	return wrap(Intrinsic::getType(ctx->ctx, IID, Tys));
 }
 
