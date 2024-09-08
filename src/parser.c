@@ -27,6 +27,7 @@
 // =================================================================================================
 
 #include "builder.h"
+#include "table.h"
 #include "tokens_inline_utils.h"
 #include <setjmp.h>
 
@@ -65,11 +66,13 @@ enum hash_directive_flags {
 #undef HD_GEN
 };
 
+struct hash_directive_entry {
+	hash_t                    hash;
+	enum hash_directive_flags value;
+};
+
 struct context {
-	struct {
-		hash_t                    key;
-		enum hash_directive_flags value;
-	} *hash_directive_table;
+	my_hash_table(struct hash_directive_entry) hash_directive_table;
 
 	struct assembly     *assembly;
 	struct unit         *unit;
@@ -364,7 +367,7 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 
 	const str_t  directive = tok_directive->value.str;
 	const hash_t hash      = strhash(directive);
-	const s64    index     = hmgeti(ctx->hash_directive_table, hash);
+	const s64    index     = tbl_lookup_index(ctx->hash_directive_table, hash);
 	if (index == -1) goto INVALID;
 	const enum hash_directive_flags hd_flag = ctx->hash_directive_table[index].value;
 	bassert(directive.len);
@@ -2609,8 +2612,12 @@ void init_hash_directives(struct context *ctx) {
 	};
 
 	for (usize i = 0; i < static_arrlenu(hash_directive_names); ++i) {
-		const hash_t hash = strhash(make_str_from_c(hash_directive_names[i]));
-		hmput(ctx->hash_directive_table, hash, hash_directive_flags[i]);
+		const hash_t                hash  = strhash(make_str_from_c(hash_directive_names[i]));
+		struct hash_directive_entry entry = (struct hash_directive_entry){
+		    .hash  = hash,
+		    .value = hash_directive_flags[i],
+		};
+		tbl_insert(ctx->hash_directive_table, entry);
 	}
 }
 
@@ -2640,7 +2647,7 @@ void parser_run(struct assembly *assembly, struct unit *unit) {
 	parse_ublock_content(&ctx, unit->ast);
 	unit->ast->docs = str_buf_view(unit->file_docs_cache);
 
-	hmfree(ctx.hash_directive_table);
+	tbl_free(ctx.hash_directive_table);
 	arrfree(ctx.decl_stack);
 	arrfree(ctx.scope_stack);
 	arrfree(ctx.fn_type_stack);
