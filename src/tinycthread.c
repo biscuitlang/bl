@@ -285,7 +285,7 @@ int spl_init(spl_t *spl)
   #if defined(_TTHREAD_WIN32_)
   *spl = 0;
   #else
-  *spl = (spl_t)ATOMIC_FLAG_INIT;
+  atomic_flag_clear(spl);
   #endif
   return 0;
 }
@@ -299,12 +299,13 @@ int spl_lock(spl_t *spl)
 {
   #if defined(_TTHREAD_WIN32_)
   while (InterlockedCompareExchange(spl, 1, 0) != 0) {
-    while (*spl)
-      ;
+    while (*spl) {
+      YieldProcessor();
+	}
   }
   #else
-  while (atomic_flag_test_and_set_explicit(spl, memory_order_acquire))
-    ;
+  while (atomic_flag_test_and_set(spl))
+    thrd_yield();
   #endif
   return 0;
 }
@@ -314,7 +315,7 @@ int spl_unlock(spl_t *spl)
   #if defined(_TTHREAD_WIN32_)
   InterlockedExchange(spl, 0);
   #else
-  atomic_flag_clear_explicit(spl, memory_order_release);
+  atomic_flag_clear(spl);
   #endif
   return 0;
 }
