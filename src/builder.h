@@ -57,7 +57,7 @@ struct builder {
 	struct builder_options *options;
 	const struct target    *default_target;
 	char                   *exec_dir;
-	volatile s32            total_lines;
+	batomic_s32             total_lines;
 	s32                     errorc;
 	s32                     max_error;
 	s32                     test_failc;
