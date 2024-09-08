@@ -42,7 +42,7 @@ allocation_default_copy :: fn () #test {
 
 allocation_1 :: fn () #test {
 	using std;
-	defer test_allocator_reset();
+	test_allocator_reset();
 
 	pool :: pool_make(&test_allocator, POOL_DEFAULT_SIZE);
 	test_true(pool.allocator == &test_allocator);
@@ -71,7 +71,7 @@ allocation_1 :: fn () #test {
 
 allocation_2 :: fn () #test {
 	using std;
-	defer test_allocator_reset();
+	test_allocator_reset();
 
 	pool :: pool_make(&test_allocator, POOL_DEFAULT_SIZE);
 
@@ -116,7 +116,7 @@ allocation_2 :: fn () #test {
 
 reallocation :: fn () #test {
 	using std;
-	defer test_allocator_reset();
+	test_allocator_reset();
 
 	pool :: pool_make(&test_allocator, POOL_DEFAULT_SIZE);
 	defer release_allocator(&pool);
@@ -130,7 +130,7 @@ reallocation :: fn () #test {
 		data :: cast(*Data) mem;
 		data.i = 666;
 		ptr = mem;
-	} 
+	}
 
 	{
 		mem, err :: realloc(ptr, sizeof(Data) * 2, alignof(Data), &pool);
@@ -139,7 +139,7 @@ reallocation :: fn () #test {
 
 		data :: cast(*Data) mem;
 		test_eq(data.i, 666);
-	} 
+	}
 }
 
 allocation_with_custom_alignment :: fn () #test {
@@ -151,17 +151,17 @@ allocation_with_custom_alignment :: fn () #test {
 		mem, err :: alloc(sizeof(s32), alignof(s32), &pool);
 		test_ok(err);
 		test_true(is_aligned(mem, alignof(s32)));
-	} 
+	}
 	{
 		mem, err :: alloc(sizeof(s32), alignof(u8), &pool);
 		test_ok(err);
 		test_true(is_aligned(mem, alignof(u8)));
-	} 
+	}
 	{
 		mem, err :: alloc(sizeof(u8), alignof(u64), &pool);
 		test_ok(err);
 		test_true(is_aligned(mem, alignof(u64)));
-	} 
+	}
 	{
 		mem, err :: alloc(sizeof(u8), 16, &pool);
 		test_ok(err);
