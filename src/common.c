@@ -954,7 +954,11 @@ s32 cpu_thread_count(void) {
 	GetSystemInfo(&sysinfo);
 	return sysinfo.dwNumberOfProcessors;
 #else
-	return 8; // @Incomplete: Detect for platform.
+	s32 nprocs = sysconf(_SC_NPROCESSORS_ONLN);
+	if (nprocs < 1) {
+		return 8; // ehm
+	}
+	return nprocs;
 #endif
 }
 
