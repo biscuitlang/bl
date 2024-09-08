@@ -133,7 +133,7 @@ struct mir_analyze {
 
 struct mir {
 	struct mir_arenas arenas;
-	
+
 	array(struct mir_instr *) global_instrs; // All global instructions.
 	spl_t global_instrs_lock;
 
@@ -147,7 +147,7 @@ struct mir {
 	spl_t exported_instrs_lock;
 
 	my_hash_table(struct mir_type_cache_entry) type_cache;
-	spl_t type_cache_lock;
+	mtx_t type_cache_lock;
 
 	struct mir_analyze analyze;
 };
