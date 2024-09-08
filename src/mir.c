@@ -2715,7 +2715,6 @@ struct mir_fn *create_fn(struct context *ctx, create_fn_args_t *args) {
 	tmp->is_global        = args->is_global;
 	tmp->builtin_id       = args->builtin_id;
 	tmp->generated_flavor = args->generated_flags;
-	// arrsetcap(tmp->variables, 8);
 
 	return tmp;
 }
