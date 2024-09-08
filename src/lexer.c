@@ -34,8 +34,8 @@
 #include <string.h>
 
 #ifdef BL_USE_SIMD
-#	include <emmintrin.h>
-#	include <intrin.h>
+	#include <emmintrin.h>
+	#include <intrin.h>
 #endif
 
 #define is_ident(c) (isalnum(c) || (c) == '_')
@@ -320,8 +320,8 @@ bool scan_char(struct context *ctx, struct token *tok) {
 
 inline s32 c_to_number(char c, s32 base) {
 #ifndef _MSC_VER
-#	pragma GCC diagnostic push
-#	pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+	#pragma GCC diagnostic push
+	#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 #endif
 	switch (base) {
 	case 16:
@@ -347,7 +347,7 @@ inline s32 c_to_number(char c, s32 base) {
 
 	return -1;
 #ifndef _MSC_VER
-#	pragma GCC diagnostic pop
+	#pragma GCC diagnostic pop
 #endif
 }
 
@@ -501,8 +501,8 @@ SCAN:
 			}
 
 #ifndef _MSC_VER
-#	pragma GCC diagnostic push
-#	pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+	#pragma GCC diagnostic push
+	#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 #endif
 			switch (tok.sym) {
 			case SYM_DCOMMENT:
@@ -530,7 +530,7 @@ SCAN:
 				goto PUSH_TOKEN;
 			}
 #ifndef _MSC_VER
-#	pragma GCC diagnostic pop
+	#pragma GCC diagnostic pop
 #endif
 		}
 	}
@@ -573,14 +573,14 @@ void lexer_run(struct assembly *assembly, struct unit *unit) {
 	s32 error = 0;
 	if ((error = setjmp(ctx.jmp_error))) {
 		sarrfree(&ctx.strtmp);
-		batomic_fetch_add(&assembly->stats.lexing_ms, runtime_measure_end(lex));
+		batomic_fetch_add_32(&assembly->stats.lexing_ms, runtime_measure_end(lex));
 		return_zone();
 	}
 
 	scan(&ctx);
 	sarrfree(&ctx.strtmp);
 
-	builder.total_lines += ctx.line;
-	batomic_fetch_add(&assembly->stats.lexing_ms, runtime_measure_end(lex));
+	batomic_fetch_add_32(&builder.total_lines, ctx.line);
+	batomic_fetch_add_32(&assembly->stats.lexing_ms, runtime_measure_end(lex));
 	return_zone();
 }

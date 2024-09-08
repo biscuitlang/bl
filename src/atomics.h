@@ -33,28 +33,28 @@
 #if BL_PLATFORM_WIN
 	#include <Windows.h>
 
-	#define batomic_store(a, val) InterlockedExchange((a), (val));
-	#define batomic_load(a) InterlockedCompareExchange((a), 0, 0)
-	#define batomic_fetch_add(a, val) InterlockedAdd((a), (val))
+	#define batomic_store_32(a, val) InterlockedExchange((a), (val));
+	#define batomic_load_32(a) InterlockedCompareExchange((a), 0, 0)
+	#define batomic_fetch_add_32(a, val) InterlockedAdd((a), (val))
 	#define batomic_store_64(a, val) InterlockedExchange64((a), (val));
 	#define batomic_load_64(a) InterlockedCompareExchange64((a), 0, 0)
 	#define batomic_fetch_add_64(a, val) InterlockedAdd64((a), (val))
 
-typedef volatile s32 batomic_s32;
-typedef volatile u64 batomic_u64;
+typedef volatile LONG   batomic_s32;
+typedef volatile LONG64 batomic_s64;
 
 #else
 	#include <stdatomic.h>
 
-	#define batomic_store(a, val) atomic_store((a), (val))
-	#define batomic_load(a) atomic_load((a))
-	#define batomic_fetch_add(a, val) atomic_fetch_add((a), (val))
+	#define batomic_store_32(a, val) atomic_store((a), (val))
+	#define batomic_load_32(a) atomic_load((a))
+	#define batomic_fetch_add_32(a, val) atomic_fetch_add((a), (val))
 	#define batomic_store_64(a, val) atomic_store((a), (val))
 	#define batomic_load_64(a) atomic_load((a))
 	#define batomic_fetch_add_64(a, val) atomic_fetch_add((a), (val))
 
-typedef atomic_int    batomic_s32;
-typedef atomic_ullong batomic_u64;
+typedef atomic_int   batomic_s32;
+typedef atomic_llong batomic_s64;
 
 #endif
 
