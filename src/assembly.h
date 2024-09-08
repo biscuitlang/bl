@@ -254,17 +254,17 @@ struct assembly {
 
 	// Some compilation time related runtimes, this data are reset for every compilation.
 	struct {
-		batomic_int lexing_ms;
-		batomic_int parsing_ms;
-		batomic_int mir_generate_ms;
-		batomic_int mir_analyze_ms;
-		batomic_int llvm_ms;
-		batomic_int llvm_obj_ms;
-		batomic_int linking_ms;
-		batomic_int polymorph_ms;
+		batomic_s32 lexing_ms;
+		batomic_s32 parsing_ms;
+		batomic_s32 mir_generate_ms;
+		batomic_s32 mir_analyze_ms;
+		batomic_s32 llvm_ms;
+		batomic_s32 llvm_obj_ms;
+		batomic_s32 linking_ms;
+		batomic_s32 polymorph_ms;
 
-		batomic_int polymorph_count; // @Incomplete: rename to generated.
-		batomic_int comptime_call_stacks_count;
+		batomic_s32 polymorph_count; // @Incomplete: rename to generated.
+		batomic_s32 comptime_call_stacks_count;
 	} stats;
 
 	// DynCall/Lib data used for external method execution in compile time

@@ -1523,7 +1523,7 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 
 	return entry;
 
-COLLIDE: {
+COLLIDE : {
 	scope_unlock(ctx->assembly->gscope);
 	char *err_msg = (collision->is_builtin || is_builtin) ? "Symbol name collision with compiler builtin '%.*s'." : "Duplicate symbol";
 	report_error(DUPLICATE_SYMBOL, node, err_msg, id->str.len, id->str.ptr);
@@ -2989,12 +2989,13 @@ enum mir_cast_op get_cast_op(struct mir_type *from, struct mir_type *to) {
 }
 
 void *create_instr(struct context *ctx, enum mir_instr_kind kind, struct ast *node) {
-	static u64        _id_counter = 1;
-	struct mir_instr *tmp         = arena_alloc(&ctx->mir->arenas.instr);
-	tmp->value.data               = (vm_stack_ptr_t)&tmp->value._tmp;
-	tmp->kind                     = kind;
-	tmp->node                     = node;
-	tmp->id                       = _id_counter++;
+	static batomic_u64 _id_counter = 1;
+
+	struct mir_instr *tmp = arena_alloc(&ctx->mir->arenas.instr);
+	tmp->value.data       = (vm_stack_ptr_t)&tmp->value._tmp;
+	tmp->kind             = kind;
+	tmp->node             = node;
+	tmp->id               = batomic_fetch_add_64(&_id_counter, 1);
 	bmagic_set(tmp);
 	return tmp;
 }
@@ -6392,7 +6393,7 @@ struct result analyze_instr_load(struct context *ctx, struct mir_instr_load *loa
 
 	return_zone(PASS);
 
-INVALID_SRC: {
+INVALID_SRC : {
 	bassert(err_type);
 	str_buf_t type_name = mir_type2str(err_type, /* prefer_name */ true);
 	report_error(INVALID_TYPE, src->node, "Expected value of pointer type, got '%.*s'.", type_name.len, type_name.ptr);
