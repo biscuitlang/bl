@@ -2011,10 +2011,11 @@ DONE:
 }
 
 static void generate_struct_signature(str_buf_t *name, create_type_struct_args_t *args) {
-	static u64 serial = 0;
+	static batomic_s64 serial = 0;
 	if (args->user_id) {
 		const str_t user_name = args->user_id->str;
-		str_buf_append_fmt(name, "{s}.{u64}.{str}", args->is_union ? "u" : "s", serial++, user_name);
+		const s64   s         = batomic_fetch_add_64(&serial, 1);
+		str_buf_append_fmt(name, "{s}.{s64}.{str}", args->is_union ? "u" : "s", s, user_name);
 		return;
 	}
 	// Implicit struct type...
