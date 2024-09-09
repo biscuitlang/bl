@@ -29,7 +29,7 @@
 #include "assembly.h"
 #include "conf.h"
 #if !BL_PLATFORM_WIN
-	#include <errno.h>
+#include <errno.h>
 #endif
 
 #include "builder.h"
@@ -213,7 +213,7 @@ static bool create_auxiliary_dir_tree_if_not_exist(const char *_path, str_buf_t 
 	if (!path) babort("Invalid directory copy.");
 	win_path_to_unix(path, strlen(path));
 #else
-	const char *path = _path;
+	const char *path  = _path;
 #endif
 	if (!dir_exists(path)) {
 		if (!create_dir_tree(path)) {
@@ -540,6 +540,23 @@ s32 target_triple_to_string(const struct target_triple *triple, char *buf, s32 b
 	return len;
 }
 
+static void arenas_init(struct assembly *assembly) {
+	const u32 thread_count = get_thread_count();
+	arrsetlen(assembly->thread_local_arenas, thread_count);
+	for (u32 i = 0; i < thread_count; ++i) {
+		scope_arenas_init(&assembly->thread_local_arenas[i].scope_arenas);
+		mir_arenas_init(&assembly->thread_local_arenas[i].mir_arenas);
+	}
+}
+
+static void arenas_terminate(struct assembly *assembly) {
+	for (u32 i = 0; i < arrlenu(assembly->thread_local_arenas); ++i) {
+		scope_arenas_terminate(&assembly->thread_local_arenas[i].scope_arenas);
+		mir_arenas_terminate(&assembly->thread_local_arenas[i].mir_arenas);
+	}
+	arrfree(assembly->thread_local_arenas);
+}
+
 struct assembly *assembly_new(const struct target *target) {
 	bmagic_assert(target);
 	struct assembly *assembly = bmalloc(sizeof(struct assembly));
@@ -556,16 +573,13 @@ struct assembly *assembly_new(const struct target *target) {
 	str_buf_setcap(&assembly->custom_linker_opt, 128);
 	vm_init(&assembly->vm, VM_STACK_SIZE);
 
+	arenas_init(assembly);
+
 	// set defaults
 	scope_arenas_init(&assembly->scope_arenas);
-	arena_init(&assembly->arenas.sarr,
-	           sarr_total_size,
-	           16, // Is this correct?
-	           EXPECTED_ARRAY_COUNT,
-	           (arena_elem_dtor_t)sarr_dtor);
-
+	arena_init(&assembly->arenas.sarr, sarr_total_size, 16, EXPECTED_ARRAY_COUNT, (arena_elem_dtor_t)sarr_dtor);
 	assembly->gscope = scope_create(&assembly->scope_arenas, SCOPE_GLOBAL, NULL, NULL);
-	scope_reserve(assembly->gscope, 2048);
+	scope_reserve(assembly->gscope, 8192);
 
 	dl_init(assembly);
 	mir_init(assembly);
@@ -640,6 +654,7 @@ void assembly_delete(struct assembly *assembly) {
 	dl_terminate(assembly);
 	mir_terminate(assembly);
 	scfree(&assembly->string_cache);
+	arenas_terminate(assembly);
 	bfree(assembly);
 	return_zone();
 }

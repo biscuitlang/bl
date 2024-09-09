@@ -61,16 +61,8 @@ static inline struct scope_entry *lookup_usings(struct scope *scope, struct id *
 }
 
 void scope_arenas_init(struct scope_arenas *arenas) {
-	arena_init(&arenas->scopes,
-	           sizeof(struct scope),
-	           alignment_of(struct scope),
-	           256,
-	           (arena_elem_dtor_t)scope_dtor);
-	arena_init(&arenas->entries,
-	           sizeof(struct scope_entry),
-	           alignment_of(struct scope_entry),
-	           1024,
-	           NULL);
+	arena_init(&arenas->scopes, sizeof(struct scope), alignment_of(struct scope), 256, (arena_elem_dtor_t)scope_dtor);
+	arena_init(&arenas->entries, sizeof(struct scope_entry), alignment_of(struct scope_entry), 1024, NULL);
 }
 
 void scope_arenas_terminate(struct scope_arenas *arenas) {

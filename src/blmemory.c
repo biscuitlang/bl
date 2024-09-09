@@ -30,7 +30,7 @@
 #include "common.h"
 
 #if BL_RPMALLOC_ENABLE
-#	include "rpmalloc.h"
+#include "rpmalloc.h"
 
 void *bl_realloc_impl(void *ptr, const size_t size, const char UNUSED(*filename), s32 UNUSED(line)) {
 	zone();
@@ -72,10 +72,10 @@ void bl_alloc_thread_terminate(void) {
 
 #else
 
-#	include "TracyC.h"
-#	include <memory.h>
-#	include <stdio.h>
-#	include <stdlib.h>
+#include "TracyC.h"
+#include <memory.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 void *bl_realloc_impl(void *ptr, const size_t size, const char UNUSED(*filename), s32 UNUSED(line)) {
 	zone();

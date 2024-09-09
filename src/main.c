@@ -490,7 +490,7 @@ int main(s32 argc, char *argv[]) {
 		{
 		    .name       = "--no-jobs",
 		    .property.b = &opt.builder.no_jobs,
-		    .help       = "Enable single-thread mode.",
+		    .help       = "Enable single-thread mode. This is mainly useful for compiler debugging.",
 		},
 		{
 		    .name       = "--no-warning",

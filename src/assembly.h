@@ -202,6 +202,11 @@ struct target {
 	bmagic_member
 };
 
+struct assembly_arenas {
+	struct scope_arenas scope_arenas;
+	struct mir_arenas   mir_arenas;
+};
+
 struct assembly {
 	const struct target *target;
 	str_buf_t            custom_linker_opt;
@@ -218,7 +223,10 @@ struct assembly {
 
 	struct {
 		struct arena sarr;
-	} arenas;
+	} arenas; // @Cleanup 2024-09-09 move to assembly arenas.
+
+	// We have group of arenas for each worker thread to prevent locking.
+	array(struct assembly_arenas) thread_local_arenas;
 
 	struct mir mir;
 

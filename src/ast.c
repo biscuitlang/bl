@@ -41,7 +41,7 @@ ast_create_node(struct arena *arena, enum ast_kind c, struct token *tok, struct 
 	node->location    = tok ? &tok->location : NULL;
 #ifdef BL_DEBUG
 	static batomic_s64 serial = 0;
-	node->_serial             = batomic_fetch_add_64(&serial, 1);
+	node->_serial             = batomic_fetch_add_s64(&serial, 1);
 #endif
 	return node;
 }

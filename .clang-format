@@ -18,4 +18,4 @@ BinPackParameters: false
 BinPackArguments: false
 AllowAllParametersOfDeclarationOnNextLine: false
 AlwaysBreakAfterReturnType: None
-IndentPPDirectives: BeforeHash
+IndentPPDirectives: None

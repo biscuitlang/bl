@@ -41,28 +41,29 @@
 #include "assembly.h"
 #include "builder.h"
 
-#if BL_WINDOWS
+#if BL_PLATFORM_WIN
 
-#	include "common.h"
-#	include "stb_ds.h"
-#	include "threading.h"
-#	include "x86_64_instructions.h"
+#include "common.h"
+#include "stb_ds.h"
+#include "threading.h"
+#include "tinycthread.h"
+#include "x86_64_instructions.h"
 
-#	define UNUSED_REGISTER_MAP_VALUE -1
-#	define RESERVED_REGISTER_MAP_VALUE -2
+#define UNUSED_REGISTER_MAP_VALUE -1
+#define RESERVED_REGISTER_MAP_VALUE -2
 
-#	define SECTION_EXTERN 0
-#	define SECTION_TEXT 1
-#	define SECTION_DATA 2
+#define SECTION_EXTERN 0
+#define SECTION_TEXT 1
+#define SECTION_DATA 2
 
-#	define DT_FUNCTION 0x20
+#define DT_FUNCTION 0x20
 
-#	define MEMCPY_BUILTIN cstr("__bl_memcpy")
+#define MEMCPY_BUILTIN cstr("__bl_memcpy")
 hash_t MEMCPY_BUILTIN_HASH = 0;
-#	define MEMSET_BUILTIN cstr("__bl_memset")
+#define MEMSET_BUILTIN cstr("__bl_memset")
 hash_t MEMSET_BUILTIN_HASH = 0;
 
-#	define data_ptr_s32(data, p) ((s32 *)&(data)[p])
+#define data_ptr_s32(data, p) ((s32 *)&(data)[p])
 
 // @Performance: internal functions can support more arguments passed through registers.
 static const enum x64_register CALL_ABI[4] = {RCX, RDX, R8, R9};
@@ -105,13 +106,13 @@ struct x64_value {
 	};
 };
 
-#	define peek(index) (tctx->values[(index)])
-#	define peek_immediate(index) (tctx->values[(index)].imm)
-#	define peek_relocation(index) (tctx->values[(index)].reloc)
-#	define peek_offset(index) (tctx->values[(index)].offset)
-#	define peek_register(index) (tctx->values[(index)].reg)
-#	define peek_register_offset(index) (tctx->values[(index)].reg_off_addr)
-#	define peek_register_address(index) (tctx->values[(index)].reg_off_addr)
+#define peek(index) (tctx->values[(index)])
+#define peek_immediate(index) (tctx->values[(index)].imm)
+#define peek_relocation(index) (tctx->values[(index)].reloc)
+#define peek_offset(index) (tctx->values[(index)].offset)
+#define peek_register(index) (tctx->values[(index)].reg)
+#define peek_register_offset(index) (tctx->values[(index)].reg_off_addr)
+#define peek_register_address(index) (tctx->values[(index)].reg_off_addr)
 
 struct sym_patch {
 	s32               target_section;
@@ -178,17 +179,17 @@ struct context {
 	array(char) strs;
 
 	hash_table(struct rtti_entry) rtti;
-	pthread_spinlock_t rtti_lock;
+	spl_t rtti_lock;
 
 	hash_table(struct symbol_table_entry) symbol_table;
 
 	hash_table(struct scheduled_entry) scheduled_for_generation;
-	pthread_spinlock_t schedule_for_generation_lock;
+	spl_t schedule_for_generation_lock;
 
 	array(struct sym_patch) patches;
 
-	pthread_mutex_t    mutex;
-	pthread_spinlock_t uq_name_lock;
+	mtx_t mutex;
+	spl_t uq_name_lock;
 };
 
 // Resources:
@@ -231,8 +232,8 @@ static inline enum x64_type_kind get_type_kind(struct mir_type *type) {
 	}
 }
 
-#	define op(value_kind, type_kind) ((value_kind << 4) | get_type_kind(type_kind))
-#	define op_combined(a, b) ((((u64)a) << 8) | ((u64)b))
+#define op(value_kind, type_kind) ((value_kind << 4) | get_type_kind(type_kind))
+#define op_combined(a, b) ((((u64)a) << 8) | ((u64)b))
 
 enum op_kind {
 	// FFFF value_kind | FFFF type_kind
@@ -268,7 +269,7 @@ static inline u32 get_position(struct thread_context *tctx, s32 section_number) 
 	}
 }
 
-#	ifdef BL_DEBUG
+#ifdef BL_DEBUG
 static void check_dangling_registers(struct thread_context *tctx) {
 	// Check for dangling registers
 	for (s32 i = 0; i < REGISTER_COUNT; ++i) {
@@ -278,17 +279,17 @@ static void check_dangling_registers(struct thread_context *tctx) {
 		}
 	}
 }
-#	else
-#		define check_dangling_registers(tctx) (void)0
-#	endif
+#else
+#define check_dangling_registers(tctx) (void)0
+#endif
 
 static inline void unique_name(struct context *ctx, str_buf_t *dest, const char *prefix, const str_t name) {
 	static u64 n = 0;
 
 	u64 serial;
-	pthread_spin_lock(&ctx->uq_name_lock);
+	spl_lock(&ctx->uq_name_lock);
 	serial = n++;
-	pthread_spin_unlock(&ctx->uq_name_lock);
+	spl_unlock(&ctx->uq_name_lock);
 
 	str_buf_clr(dest);
 	str_buf_append_fmt(dest, "{s}{str}{u64}", prefix, name, serial);
@@ -326,12 +327,12 @@ static inline u32 add_data(struct thread_context *tctx, const void *buf, s32 len
 }
 
 static inline void submit_instr(struct context *ctx, hash_t hash, struct mir_instr *instr) {
-	pthread_spin_lock(&ctx->schedule_for_generation_lock);
+	spl_lock(&ctx->schedule_for_generation_lock);
 	if (hmgeti(ctx->scheduled_for_generation, hash) == -1) {
 		hmputs(ctx->scheduled_for_generation, (struct scheduled_entry){hash});
 		submit_job(&job, &(struct job_context){.x64 = {.ctx = ctx, .top_instr = instr}});
 	}
-	pthread_spin_unlock(&ctx->schedule_for_generation_lock);
+	spl_unlock(&ctx->schedule_for_generation_lock);
 }
 
 static inline hash_t submit_function_generation(struct context *ctx, struct mir_fn *fn) {
@@ -567,13 +568,13 @@ static inline void set_value(struct thread_context *tctx, struct mir_instr *inst
 	instr->backend_value = add_value(tctx, value);
 }
 
-#	define get_value(tctx, V) _Generic((V),                \
-		                                struct mir_instr *  \
-		                                : _get_value_instr, \
-		                                  struct mir_arg *  \
-		                                : _get_value_arg,   \
-		                                  struct mir_var *  \
-		                                : _get_value_var)((tctx), (V))
+#define get_value(tctx, V) _Generic((V),                \
+	                                struct mir_instr *  \
+	                                : _get_value_instr, \
+	                                  struct mir_arg *  \
+	                                : _get_value_arg,   \
+	                                  struct mir_var *  \
+	                                : _get_value_var)((tctx), (V))
 
 static inline u64 _get_value_instr(struct thread_context *tctx, struct mir_instr *instr) {
 	bassert(instr->backend_value);
@@ -590,11 +591,11 @@ static inline u64 _get_value_arg(struct thread_context *tctx, struct mir_arg *ar
 	return arg->backend_value - 1;
 }
 
-#	define release_value(tctx, V) _Generic((V),                    \
-		                                    u64                     \
-		                                    : _release_value_index, \
-		                                      struct mir_instr *    \
-		                                    : _release_value_instr)((tctx), (V))
+#define release_value(tctx, V) _Generic((V),                    \
+	                                    u64                     \
+	                                    : _release_value_index, \
+	                                      struct mir_instr *    \
+	                                    : _release_value_instr)((tctx), (V))
 
 static inline void _release_value_index(struct thread_context *tctx, u64 index) {
 	const struct x64_value value = tctx->values[index];
@@ -1014,14 +1015,14 @@ static hash_t emit_type_info(struct context *ctx, struct thread_context *tctx, s
 	const hash_t hash = strhash(sym_name);
 
 	bool should_generate = false;
-	pthread_spin_lock(&ctx->rtti_lock);
+	spl_lock(&ctx->rtti_lock);
 	if (hmgeti(ctx->rtti, hash) == -1) {
 		// Note that the type info for this hash was generated.
 		struct rtti_entry entry = {hash};
 		hmputs(ctx->rtti, entry);
 		should_generate = true;
 	}
-	pthread_spin_unlock(&ctx->rtti_lock);
+	spl_unlock(&ctx->rtti_lock);
 	if (!should_generate) {
 		put_tmp_str(sym_name);
 		return hash;
@@ -1032,8 +1033,8 @@ static hash_t emit_type_info(struct context *ctx, struct thread_context *tctx, s
 	const u32 dest_offset = add_data(tctx, NULL, (u32)var->value.type->store_size_bytes);
 	add_sym(tctx, SECTION_DATA, dest_offset, str_buf_view(sym_name), IMAGE_SYM_CLASS_EXTERNAL, 0);
 
-#	define write_member(offset, type, index, value) \
-		memcpy(vm_get_struct_elem_ptr(ctx->assembly, type, &tctx->data[offset], index), value, mir_get_struct_elem_type(type, index)->store_size_bytes);
+#define write_member(offset, type, index, value) \
+	memcpy(vm_get_struct_elem_ptr(ctx->assembly, type, &tctx->data[offset], index), value, mir_get_struct_elem_type(type, index)->store_size_bytes);
 
 	struct mir_type *type = var->value.type;
 	{ // base
@@ -1076,7 +1077,7 @@ static hash_t emit_type_info(struct context *ctx, struct thread_context *tctx, s
 	put_tmp_str(sym_name);
 	return hash;
 
-#	undef write_member
+#undef write_member
 }
 
 static inline bool is_relational_binop(enum binop_kind op) {
@@ -1276,11 +1277,11 @@ static void emit_instr(struct context *ctx, struct thread_context *tctx, struct 
 			bassert(block->base.value.is_comptime);
 		} else {
 			str_buf_t name = get_tmp_str();
-#	ifdef BL_DEBUG
+#ifdef BL_DEBUG
 			unique_name(ctx, &name, ".", block->name);
-#	else
+#else
 			unique_name(ctx, &name, ".", cstr("B"));
-#	endif
+#endif
 
 			block->base.backend_value = add_block(tctx, str_buf_view(name));
 			put_tmp_str(name);
@@ -2310,7 +2311,7 @@ static void emit_instr(struct context *ctx, struct thread_context *tctx, struct 
 		struct mir_instr_set_initializer *si   = (struct mir_instr_set_initializer *)instr;
 		struct mir_instr                 *dest = si->dest;
 		struct mir_var                   *var  = ((struct mir_instr_decl_var *)dest)->var;
-		if (!var->ref_count) continue;
+		if (!var->ref_count) break;
 
 		const usize value_size  = var->value.type->store_size_bytes;
 		const u32   data_offset = add_data(tctx, NULL, (s32)value_size);
@@ -2599,7 +2600,7 @@ void job(struct job_context *job_ctx) {
 	const usize strs_len = arrlenu(tctx->strs);
 
 	{
-		pthread_mutex_lock(&ctx->mutex);
+		mtx_lock(&ctx->mutex);
 
 		// Write top-level function generated code into the code section if there is any generated code
 		// present.
@@ -2677,7 +2678,7 @@ void job(struct job_context *job_ctx) {
 		arrsetlen(ctx->strs, gstrs_len + strs_len);
 		memcpy(&ctx->strs[gstrs_len], tctx->strs, strs_len);
 
-		pthread_mutex_unlock(&ctx->mutex);
+		mtx_unlock(&ctx->mutex);
 	}
 	return_zone();
 }
@@ -2780,18 +2781,17 @@ void x86_64run(struct assembly *assembly) {
 		return;
 	}
 
-	const u32 thread_count = get_thread_count();
-
 	struct context ctx = {
 	    .assembly      = assembly,
 	    .builtin_types = &assembly->builtin_types,
 	};
 
-	pthread_mutex_init(&ctx.mutex, NULL);
-	pthread_spin_init(&ctx.uq_name_lock, 0);
-	pthread_spin_init(&ctx.schedule_for_generation_lock, 0);
-	pthread_spin_init(&ctx.rtti_lock, 0);
+	mtx_init(&ctx.mutex, mtx_plain);
+	spl_init(&ctx.uq_name_lock);
+	spl_init(&ctx.schedule_for_generation_lock);
+	spl_init(&ctx.rtti_lock);
 
+	const u32 thread_count = get_thread_count();
 	arrsetlen(ctx.tctx, thread_count);
 	bl_zeromem(ctx.tctx, thread_count * sizeof(struct thread_context));
 
@@ -2807,8 +2807,8 @@ void x86_64run(struct assembly *assembly) {
 	MEMSET_BUILTIN_HASH = add_global_external_sym(&ctx, MEMSET_BUILTIN, DT_FUNCTION);
 
 	// Submit top level instructions...
-	for (usize i = 0; i < arrlenu(assembly->MIR.exported_instrs); ++i) {
-		struct job_context job_ctx = {.x64 = {.ctx = &ctx, .top_instr = assembly->MIR.exported_instrs[i]}};
+	for (usize i = 0; i < arrlenu(assembly->mir.exported_instrs); ++i) {
+		struct job_context job_ctx = {.x64 = {.ctx = &ctx, .top_instr = assembly->mir.exported_instrs[i]}};
 		submit_job(&job, &job_ctx);
 	}
 	wait_threads();
@@ -2880,10 +2880,10 @@ void x86_64run(struct assembly *assembly) {
 		hmfree(ctx.rtti);
 	}
 
-	pthread_spin_destroy(&ctx.schedule_for_generation_lock);
-	pthread_spin_destroy(&ctx.rtti_lock);
-	pthread_spin_destroy(&ctx.uq_name_lock);
-	pthread_mutex_destroy(&ctx.mutex);
+	spl_destroy(&ctx.schedule_for_generation_lock);
+	spl_destroy(&ctx.rtti_lock);
+	spl_destroy(&ctx.uq_name_lock);
+	mtx_destroy(&ctx.mutex);
 }
 #else
 void x86_64run(struct assembly *assembly) {

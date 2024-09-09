@@ -51,42 +51,42 @@ struct target;
 struct config;
 
 #if BL_PLATFORM_WIN
-	#include <Shlwapi.h>
-	#define PATH_MAX MAX_PATH
-	#ifndef strtok_r
-		#define strtok_r strtok_s
-	#endif
+#include <Shlwapi.h>
+#define PATH_MAX MAX_PATH
+#ifndef strtok_r
+#define strtok_r strtok_s
+#endif
 #endif
 
 #if BL_COMPILER_CLANG || BL_COMPILER_GNUC
 
-	// clang-format off
+// clang-format off
 	#define _SHUT_UP_BEGIN \
 		_Pragma("GCC diagnostic push") \
         _Pragma("GCC diagnostic ignored \"-Wcast-qual\"") \
 		_Pragma("GCC diagnostic ignored \"-Wpedantic\"") \
 		_Pragma("GCC diagnostic ignored \"-Wsign-conversion\"")
-	// clang-format on
+// clang-format on
 
-	#define _SHUT_UP_END _Pragma("GCC diagnostic pop")
-	#define UNUSED(x) __attribute__((unused)) x
-	#define _Thread_local __thread
+#define _SHUT_UP_END _Pragma("GCC diagnostic pop")
+#define UNUSED(x) __attribute__((unused)) x
+#define _Thread_local __thread
 
 #elif BL_COMPILER_MSVC
 
-	#define _SHUT_UP_BEGIN __pragma(warning(push, 0))
-	#define _SHUT_UP_END __pragma(warning(pop))
-	#define UNUSED(x) __pragma(warning(suppress : 4100)) x
-	#define _Thread_local __declspec(thread)
+#define _SHUT_UP_BEGIN __pragma(warning(push, 0))
+#define _SHUT_UP_END __pragma(warning(pop))
+#define UNUSED(x) __pragma(warning(suppress : 4100)) x
+#define _Thread_local __declspec(thread)
 
 #else
-	#error "Unsuported compiler!"
+#error "Unsuported compiler!"
 #endif
 
 #if BL_PLATFORM_WIN
-	#define OBJ_EXT "obj"
+#define OBJ_EXT "obj"
 #else
-	#define OBJ_EXT "o"
+#define OBJ_EXT "o"
 #endif
 
 #define alignment_of(T) _Alignof(T)
@@ -115,13 +115,13 @@ enum { BL_RED,
 #define is_str_valid_nonempty(S) ((S) && (S)[0] != '\0')
 
 #ifndef MIN
-	#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 #ifndef MAX
-	#define MAX(a, b) (((a) > (b)) ? (a) : (b))
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #endif
 #ifndef CLAMP
-	#define CLAMP(v, min, max) ((v) < (min) ? (v) = (min) : ((v) > (max) ? (v) = (max) : (v)))
+#define CLAMP(v, min, max) ((v) < (min) ? (v) = (min) : ((v) > (max) ? (v) = (max) : (v)))
 #endif
 
 // =================================================================================================
@@ -380,7 +380,7 @@ static inline bool is_ignored_id(struct id *id) {
 // Utils
 // =================================================================================================
 
-typedef void (*unit_stage_fn_t)(struct assembly *, struct unit *);
+typedef void (*unit_stage_fn_t)(struct assembly *, struct unit *, u32);
 typedef void (*assembly_stage_fn_t)(struct assembly *);
 
 enum search_flags {

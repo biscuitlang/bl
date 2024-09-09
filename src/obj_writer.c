@@ -53,6 +53,6 @@ void obj_writer_run(struct assembly *assembly) {
 	LLVMDisposeMessage(error_msg);
 	put_tmp_str(buf);
 
-	batomic_fetch_add_32(&assembly->stats.llvm_obj_ms, runtime_measure_end(llvm_obj_generation));
+	batomic_fetch_add_s32(&assembly->stats.llvm_obj_ms, runtime_measure_end(llvm_obj_generation));
 	return_zone();
 }

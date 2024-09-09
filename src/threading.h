@@ -61,10 +61,21 @@ typedef void (*job_fn_t)(struct job_context *ctx);
 
 void start_threads(const s32 n);
 void stop_threads(void);
+
+// In single thread mode, all jobs are executed on caller thread (main thread) directly.
 void wait_threads(void);
+
 void submit_job(job_fn_t fn, struct job_context *ctx);
+
+// Keeps all threads running, but process future jobs only on the main thread.
 void set_single_thread_mode(const bool is_single);
-u32  get_thread_count(void);
+
+// Returns 1 in single-thread mode and do not include main thread in multi-thread mode (main
+// thread is just waiting for the rest to complete...).
+//
+// @Note 2024-09-09 This might change in future in case we implement processing of jobs on main
+// thread while waiting for others.
+u32 get_thread_count(void);
 
 struct thread_local_storage *get_thread_local_storage(void);
 void                         init_thread_local_storage(void);

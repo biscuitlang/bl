@@ -38,7 +38,7 @@
 #include <stdarg.h>
 
 #ifdef _MSC_VER
-	#pragma warning(disable : 6001)
+#pragma warning(disable : 6001)
 #endif
 
 #define ARENA_CHUNK_COUNT 1024
@@ -112,6 +112,8 @@ struct context {
 	bool                    debug_mode;
 	struct builtin_types   *builtin_types; // Shortcut for assembly->builtin_types
 	struct string_cache    *string_cache;
+
+	struct mir_arenas *mir_arenas;
 
 	// Ast -> MIR generation
 	struct {
@@ -1485,7 +1487,7 @@ void ast_free_defer_stack(struct context *ctx) {
 }
 
 struct mir_type *create_type(struct context *ctx, enum mir_type_kind kind, struct id *user_id) {
-	struct mir_type *type = arena_alloc(&ctx->mir->arenas.type);
+	struct mir_type *type = arena_alloc(&ctx->mir_arenas->type);
 	bmagic_set(type);
 	type->kind    = kind;
 	type->user_id = user_id;
@@ -1493,12 +1495,13 @@ struct mir_type *create_type(struct context *ctx, enum mir_type_kind kind, struc
 }
 
 struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struct id *id, struct scope *scope, bool is_builtin) {
+	zone();
 	bassert(id && "Missing symbol ID.");
 	bassert(scope && "Missing entry scope.");
 	// Do not register explicitly unused symbol!!!
 	if (is_ignored_id(id)) {
 		bassert(!is_builtin);
-		return ctx->analyze->unnamed_entry;
+		return_zone(ctx->analyze->unnamed_entry);
 	}
 
 	scope_lock(ctx->assembly->gscope);
@@ -1524,16 +1527,16 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 	scope_insert(scope, layer_index, entry);
 	scope_unlock(ctx->assembly->gscope);
 
-	return entry;
+	return_zone(entry);
 
-COLLIDE: {
+COLLIDE : {
 	scope_unlock(ctx->assembly->gscope);
 	char *err_msg = (collision->is_builtin || is_builtin) ? "Symbol name collision with compiler builtin '%.*s'." : "Duplicate symbol";
 	report_error(DUPLICATE_SYMBOL, node, err_msg, id->str.len, id->str.ptr);
 	if (collision->node) {
 		report_note(collision->node, "Previous declaration found here.");
 	}
-	return NULL;
+	return_zone(NULL);
 }
 }
 
@@ -2032,7 +2035,7 @@ static void generate_struct_signature(str_buf_t *name, create_type_struct_args_t
 	static batomic_s64 serial = 0;
 	if (args->user_id) {
 		const str_t user_name = args->user_id->str;
-		const s64   s         = batomic_fetch_add_64(&serial, 1);
+		const s64   s         = batomic_fetch_add_s64(&serial, 1);
 		str_buf_append_fmt(name, "{s}.{s64}.{str}", args->is_union ? "u" : "s", s, user_name);
 		return;
 	}
@@ -2686,7 +2689,7 @@ static inline void push_var(struct context *ctx, struct mir_var *var) {
 
 struct mir_var *create_var(struct context *ctx, create_var_args_t *args) {
 	bassert(args->id);
-	struct mir_var *tmp    = arena_alloc(&ctx->mir->arenas.var);
+	struct mir_var *tmp    = arena_alloc(&ctx->mir_arenas->var);
 	tmp->value.type        = args->alloc_type;
 	tmp->value.is_comptime = args->is_comptime;
 	tmp->id                = args->id;
@@ -2714,7 +2717,7 @@ struct mir_var *create_var(struct context *ctx, create_var_args_t *args) {
 
 static struct mir_var *create_var_impl(struct context *ctx, create_var_impl_args_t *args) {
 	bassert(args->name.len);
-	struct mir_var *tmp    = arena_alloc(&ctx->mir->arenas.var);
+	struct mir_var *tmp    = arena_alloc(&ctx->mir_arenas->var);
 	tmp->value.type        = args->alloc_type;
 	tmp->value.is_comptime = args->is_comptime;
 	tmp->linkage_name      = args->name;
@@ -2734,7 +2737,7 @@ static struct mir_var *create_var_impl(struct context *ctx, create_var_impl_args
 struct mir_fn *create_fn(struct context *ctx, create_fn_args_t *args) {
 	bassert(args->prototype);
 
-	struct mir_fn *tmp = arena_alloc(&ctx->mir->arenas.fn);
+	struct mir_fn *tmp = arena_alloc(&ctx->mir_arenas->fn);
 	bmagic_set(tmp);
 	tmp->linkage_name     = args->linkage_name;
 	tmp->id               = args->id;
@@ -2751,7 +2754,7 @@ struct mir_fn *create_fn(struct context *ctx, create_fn_args_t *args) {
 struct mir_fn_group *create_fn_group(struct context *ctx, struct ast *decl_node, mir_fns_t *variants) {
 	bassert(decl_node);
 	bassert(variants);
-	struct mir_fn_group *tmp = arena_alloc(&ctx->mir->arenas.fn_group);
+	struct mir_fn_group *tmp = arena_alloc(&ctx->mir_arenas->fn_group);
 	bmagic_set(tmp);
 	tmp->decl_node = decl_node;
 	tmp->variants  = variants;
@@ -2761,14 +2764,14 @@ struct mir_fn_group *create_fn_group(struct context *ctx, struct ast *decl_node,
 
 struct mir_fn_generated_recipe *create_fn_generation_recipe(struct context *ctx, struct ast *ast_lit_fn) {
 	bassert(ast_lit_fn && ast_lit_fn->kind == AST_EXPR_LIT_FN);
-	struct mir_fn_generated_recipe *tmp = arena_alloc(&ctx->mir->arenas.fn_generated);
+	struct mir_fn_generated_recipe *tmp = arena_alloc(&ctx->mir_arenas->fn_generated);
 	bmagic_set(tmp);
 	tmp->ast_lit_fn = ast_lit_fn;
 	return tmp;
 }
 
 struct mir_member *create_member(struct context *ctx, struct ast *node, struct id *id, s64 index, struct mir_type *type) {
-	struct mir_member *tmp = arena_alloc(&ctx->mir->arenas.member);
+	struct mir_member *tmp = arena_alloc(&ctx->mir_arenas->member);
 	bmagic_set(tmp);
 	tmp->decl_node = node;
 	tmp->id        = id;
@@ -2778,7 +2781,7 @@ struct mir_member *create_member(struct context *ctx, struct ast *node, struct i
 }
 
 struct mir_arg *create_arg(struct context *ctx, create_arg_args_t *args) {
-	struct mir_arg *tmp = arena_alloc(&ctx->mir->arenas.arg);
+	struct mir_arg *tmp = arena_alloc(&ctx->mir_arenas->arg);
 	bmagic_set(tmp);
 	tmp->decl_node             = args->node;
 	tmp->id                    = args->id;
@@ -2795,7 +2798,7 @@ struct mir_arg *create_arg(struct context *ctx, create_arg_args_t *args) {
 }
 
 struct mir_variant *create_variant(struct context *ctx, struct id *id, struct mir_type *value_type, const u64 value) {
-	struct mir_variant *tmp = arena_alloc(&ctx->mir->arenas.variant);
+	struct mir_variant *tmp = arena_alloc(&ctx->mir_arenas->variant);
 	tmp->id                 = id;
 	tmp->value_type         = value_type;
 	tmp->value              = value;
@@ -2920,8 +2923,8 @@ enum mir_cast_op get_cast_op(struct mir_type *from, struct mir_type *to) {
 	if (to->kind == MIR_TYPE_PLACEHOLDER) return MIR_CAST_NONE;
 	if (from->kind == MIR_TYPE_PLACEHOLDER) return MIR_CAST_NONE;
 #ifndef _MSC_VER
-	#pragma GCC diagnostic push
-	#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 #endif
 
 	switch (from->kind) {
@@ -3013,18 +3016,18 @@ enum mir_cast_op get_cast_op(struct mir_type *from, struct mir_type *to) {
 	}
 
 #ifndef _MSC_VER
-	#pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
 #endif
 }
 
 void *create_instr(struct context *ctx, enum mir_instr_kind kind, struct ast *node) {
 	static batomic_s64 _id_counter = 1;
 
-	struct mir_instr *tmp = arena_alloc(&ctx->mir->arenas.instr);
+	struct mir_instr *tmp = arena_alloc(&ctx->mir_arenas->instr);
 	tmp->value.data       = (vm_stack_ptr_t)&tmp->value._tmp;
 	tmp->kind             = kind;
 	tmp->node             = node;
-	tmp->id               = batomic_fetch_add_64(&_id_counter, 1);
+	tmp->id               = batomic_fetch_add_s64(&_id_counter, 1);
 	bmagic_set(tmp);
 	return tmp;
 }
@@ -6422,7 +6425,7 @@ struct result analyze_instr_load(struct context *ctx, struct mir_instr_load *loa
 
 	return_zone(PASS);
 
-INVALID_SRC: {
+INVALID_SRC : {
 	bassert(err_type);
 	str_buf_t type_name = mir_type2str(err_type, /* prefer_name */ true);
 	report_error(INVALID_TYPE, src->node, "Expected value of pointer type, got '%.*s'.", type_name.len, type_name.ptr);
@@ -8197,7 +8200,7 @@ struct result analyze_call_stage_generate(struct context *ctx, struct mir_instr_
 			hmput(recipe->entries, replacement_hash, replacement_fn);
 		}
 
-		batomic_fetch_add_32(&ctx->assembly->stats.polymorph_count, 1);
+		batomic_fetch_add_s32(&ctx->assembly->stats.polymorph_count, 1);
 	} else {
 		replacement_fn = recipe->entries[index].value;
 	}
@@ -8205,7 +8208,7 @@ struct result analyze_call_stage_generate(struct context *ctx, struct mir_instr_
 DONE:
 	reset_poly_replacement_queue(ctx);
 	put_tmp_str(debug_replacement_str);
-	batomic_fetch_add_32(&ctx->assembly->stats.polymorph_ms, runtime_measure_end(generated));
+	batomic_fetch_add_s32(&ctx->assembly->stats.polymorph_ms, runtime_measure_end(generated));
 
 	if (!replacement_fn) return_zone(FAIL);
 
@@ -11908,7 +11911,7 @@ str_t get_intrinsic(const str_t name) {
 	return str_empty;
 }
 
-static void arenas_init(struct mir_arenas *arenas) {
+void mir_arenas_init(struct mir_arenas *arenas) {
 	const usize instr_size = SIZEOF_MIR_INSTR;
 	arena_init(&arenas->instr, instr_size, ALIGNOF_MIR_INSTR, ARENA_INSTR_CHUNK_COUNT, NULL);
 	arena_init(&arenas->type, sizeof(struct mir_type), alignment_of(struct mir_type), ARENA_CHUNK_COUNT * 8, NULL);
@@ -11921,7 +11924,7 @@ static void arenas_init(struct mir_arenas *arenas) {
 	arena_init(&arenas->fn_group, sizeof(struct mir_fn_group), alignment_of(struct mir_fn_group), ARENA_CHUNK_COUNT / 2, NULL);
 }
 
-static void arenas_terminate(struct mir_arenas *arenas) {
+void mir_arenas_terminate(struct mir_arenas *arenas) {
 	arena_terminate(&arenas->fn);
 	arena_terminate(&arenas->instr);
 	arena_terminate(&arenas->member);
@@ -11933,7 +11936,7 @@ static void arenas_terminate(struct mir_arenas *arenas) {
 	arena_terminate(&arenas->fn_generated);
 }
 
-static void init_context(struct context *ctx, struct assembly *assembly, struct string_cache *string_cache) {
+static void init_context(struct context *ctx, struct assembly *assembly, struct string_cache *string_cache, u32 thread_index) {
 	memset(ctx, 0, sizeof(struct context));
 	ctx->assembly                        = assembly;
 	ctx->debug_mode                      = assembly->target->opt == ASSEMBLY_OPT_DEBUG;
@@ -11944,6 +11947,8 @@ static void init_context(struct context *ctx, struct assembly *assembly, struct 
 	ctx->string_cache                    = string_cache;
 	ctx->fn_generate.current_scope_layer = SCOPE_DEFAULT_LAYER;
 	ctx->ast.current_defer_stack_index   = -1;
+	// ctx->mir_arenas                      = &assembly->thread_local_arenas[thread_index].mir_arenas;
+	ctx->mir_arenas                      = &assembly->mir.arenas;
 }
 
 static void terminate_context(struct context *ctx) {
@@ -11953,7 +11958,7 @@ static void terminate_context(struct context *ctx) {
 
 static void initialize_builtins(struct assembly *assembly) {
 	struct context ctx;
-	init_context(&ctx, assembly, assembly->string_cache);
+	init_context(&ctx, assembly, assembly->string_cache, 0);
 
 	struct builtin_types *bt   = &assembly->builtin_types;
 	bt->t_s8                   = create_type_int(&ctx, &builtin_ids[BUILTIN_ID_TYPE_S8], 8, true);
@@ -12027,7 +12032,8 @@ void mir_init(struct assembly *assembly) {
 	mir->type_cache = NULL;
 	tbl_init(mir->type_cache, TYPE_CACHE_PREALLOCATE);
 
-	arenas_init(&mir->arenas);
+	mir_arenas_init(&mir->arenas);
+
 	arrsetcap(mir->global_instrs, 4096);
 	arrsetcap(mir->exported_instrs, 256);
 	arrsetcap(mir->analyze.usage_check_arr, 256);
@@ -12057,7 +12063,7 @@ void mir_terminate(struct assembly *assembly) {
 	hmfree(mir->rtti_table);
 	arrfree(mir->global_instrs);
 	arrfree(mir->exported_instrs);
-	arenas_terminate(&mir->arenas);
+	mir_arenas_terminate(&mir->arenas); // @Cleanup
 	tbl_free(mir->type_cache);
 
 	mtx_destroy(&mir->analyze.stack_lock);
@@ -12079,18 +12085,20 @@ struct mir_var *mir_get_rtti(struct assembly *assembly, hash_t type_hash) {
 	return result;
 }
 
-void mir_unit_run(struct assembly *assembly, struct unit *unit) {
+void mir_unit_run(struct assembly *assembly, struct unit *unit, const u32 thread_index) {
 	zone();
 	runtime_measure_begin(mir_unit);
 
+	blog("THREAD: %u", thread_index);
+
 	struct context ctx;
-	init_context(&ctx, assembly, unit->string_cache);
+	init_context(&ctx, assembly, unit->string_cache, thread_index);
 
 	ast(&ctx, unit->ast);
 
 	terminate_context(&ctx);
 
-	batomic_fetch_add_32(&assembly->stats.mir_generate_ms, runtime_measure_end(mir_unit));
+	batomic_fetch_add_s32(&assembly->stats.mir_generate_ms, runtime_measure_end(mir_unit));
 	return_zone();
 }
 
@@ -12098,19 +12106,9 @@ void mir_analyze_run(struct assembly *assembly) {
 	runtime_measure_begin(mir_analyze);
 	zone();
 
-	// Gen MIR from ast pass
-	// for (usize i = 0; i < arrlenu(assembly->units); ++i) {
-	// 	struct unit *unit = assembly->units[i];
-	// 	mir_unit_run(assembly, unit);
-	// }
-	// if (builder.errorc) goto DONE;
-
-	// Skip analyze if no_analyze is set by user.
-	// if (assembly->target->no_analyze) goto DONE;
-
 	// Analyze pass
 	struct context ctx;
-	init_context(&ctx, assembly, assembly->string_cache);
+	init_context(&ctx, assembly, assembly->string_cache, 0);
 
 	analyze(&ctx);
 	if (builder.errorc) goto DONE;
@@ -12127,7 +12125,7 @@ void mir_analyze_run(struct assembly *assembly) {
 	blog("Analyze queue push count: %i", push_count);
 
 DONE:
-	batomic_fetch_add_32(&assembly->stats.mir_analyze_ms, runtime_measure_end(mir_analyze));
+	batomic_fetch_add_s32(&assembly->stats.mir_analyze_ms, runtime_measure_end(mir_analyze));
 
 	if (!builder.options->do_cleanup_when_done) return_zone();
 	terminate_context(&ctx);

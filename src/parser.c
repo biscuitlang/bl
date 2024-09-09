@@ -2621,7 +2621,7 @@ void init_hash_directives(struct context *ctx) {
 	}
 }
 
-void parser_run(struct assembly *assembly, struct unit *unit) {
+void parser_run(struct assembly *assembly, struct unit *unit, u32 UNUSED(thread_index)) {
 	bassert(assembly);
 	bassert(assembly->gscope && "Missing global scope for assembly.");
 
@@ -2653,6 +2653,6 @@ void parser_run(struct assembly *assembly, struct unit *unit) {
 	arrfree(ctx.fn_type_stack);
 	arrfree(ctx.block_stack);
 
-	batomic_fetch_add_32(&assembly->stats.parsing_ms, runtime_measure_end(parse));
+	batomic_fetch_add_s32(&assembly->stats.parsing_ms, runtime_measure_end(parse));
 	return_zone();
 }

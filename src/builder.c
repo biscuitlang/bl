@@ -34,7 +34,7 @@
 #include <stdarg.h>
 
 #if !BL_PLATFORM_WIN
-	#include <unistd.h>
+#include <unistd.h>
 #endif
 
 struct builder builder;
@@ -43,10 +43,10 @@ struct builder builder;
 // Stages
 // =================================================================================================
 
-void file_loader_run(struct assembly *assembly, struct unit *unit);
-void lexer_run(struct assembly *assembly, struct unit *unit);
-void token_printer_run(struct assembly *assembly, struct unit *unit);
-void parser_run(struct assembly *assembly, struct unit *unit);
+void file_loader_run(struct assembly *assembly, struct unit *unit, u32 thread_index);
+void lexer_run(struct assembly *assembly, struct unit *unit, u32 thread_index);
+void token_printer_run(struct assembly *assembly, struct unit *unit, u32 thread_index);
+void parser_run(struct assembly *assembly, struct unit *unit, u32 thread_index);
 void ast_printer_run(struct assembly *assembly);
 void docs_run(struct assembly *assembly);
 void ir_run(struct assembly *assembly);
@@ -80,13 +80,27 @@ const char *supported_targets_experimental[] = {
 // Builder
 // =================================================================================================
 
-static int  compile_unit(struct unit *unit, struct assembly *assembly);
 static int  compile_assembly(struct assembly *assembly);
 static bool llvm_initialized = false;
 
 static void unit_job(struct job_context *ctx) {
 	bassert(ctx);
-	compile_unit(ctx->unit.unit, ctx->unit.assembly);
+
+	struct assembly *assembly     = ctx->unit.assembly;
+	struct unit     *unit         = ctx->unit.unit;
+	const u32        thread_index = ctx->thread_index;
+
+	array(unit_stage_fn_t) pipeline = assembly->current_pipelines.unit;
+	bassert(pipeline && "Invalid unit pipeline!");
+	if (unit->loaded_from) {
+		builder_log("Compile: %s (loaded from '%s')", unit->name, unit->loaded_from->location.unit->name);
+	} else {
+		builder_log("Compile: %s", unit->name);
+	}
+	for (usize i = 0; i < arrlenu(pipeline); ++i) {
+		pipeline[i](assembly, unit, thread_index);
+		if (builder.errorc) return;
+	}
 }
 
 static void submit_unit(struct assembly *assembly, struct unit *unit) {
@@ -119,21 +133,6 @@ static void llvm_init(void) {
 
 static void llvm_terminate(void) {
 	LLVMShutdown();
-}
-
-int compile_unit(struct unit *unit, struct assembly *assembly) {
-	array(unit_stage_fn_t) pipeline = assembly->current_pipelines.unit;
-	bassert(pipeline && "Invalid unit pipeline!");
-	if (unit->loaded_from) {
-		builder_log("Compile: %s (loaded from '%s')", unit->name, unit->loaded_from->location.unit->name);
-	} else {
-		builder_log("Compile: %s", unit->name);
-	}
-	for (usize i = 0; i < arrlenu(pipeline); ++i) {
-		pipeline[i](assembly, unit);
-		if (builder.errorc) return COMPILE_FAIL;
-	}
-	return COMPILE_OK;
 }
 
 int compile_assembly(struct assembly *assembly) {
@@ -297,9 +296,6 @@ static int compile(struct assembly *assembly) {
 	setup_unit_pipeline(assembly);
 	setup_assembly_pipeline(assembly);
 
-	set_single_thread_mode(builder.options->no_jobs);
-	if (builder.options->no_jobs) blog("Running in single thread mode!");
-
 	{
 		builder.auto_submit = true;
 
@@ -371,7 +367,7 @@ void builder_init(struct builder_options *options, const char *exec_dir) {
 	mtx_init(&builder.log_mutex, mtx_plain);
 
 	init_thread_local_storage();
-	start_threads(cpu_thread_count());
+	start_threads(MAX(cpu_thread_count(), 2));
 
 	builder.is_initialized = true;
 }
@@ -467,10 +463,20 @@ int builder_compile_all(void) {
 
 s32 builder_compile(const struct target *target) {
 	bmagic_assert(target);
+
+	set_single_thread_mode(builder.options->no_jobs);
+	if (builder.options->no_jobs) {
+		builder_warning("Compiling target '%s' in single-thread mode.", target->name);
+	}
+
+	// Each invocation creates new assembly, this way we can compile the same target multiple times.
 	struct assembly *assembly = assembly_new(target);
 
-	s32 state = compile(assembly);
+	const s32 state = compile(assembly);
 
+	// @Note 2024-09-09 This might be problematic in case we compile lot of targets, however in such
+	// case programmer can decide and enable do_cleanup_when_done to reduce memory usage, but lost a
+	// bit of speed...
 	if (builder.options->do_cleanup_when_done) {
 		assembly_delete(assembly);
 	}

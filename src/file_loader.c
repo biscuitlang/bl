@@ -31,7 +31,7 @@
 #include <string.h>
 
 #if BL_PLATFORM_WIN
-void file_loader_run(struct assembly *UNUSED(assembly), struct unit *unit) {
+void file_loader_run(struct assembly *UNUSED(assembly), struct unit *unit, u32 UNUSED(thread_index)) {
 	char error_buf[256];
 	zone();
 	const char *path = unit->filepath;

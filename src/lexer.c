@@ -556,7 +556,7 @@ PUSH_TOKEN:
 	goto SCAN;
 }
 
-void lexer_run(struct assembly *assembly, struct unit *unit) {
+void lexer_run(struct assembly *assembly, struct unit *unit, u32 UNUSED(thread_index)) {
 	runtime_measure_begin(lex);
 
 	struct context ctx = {
@@ -573,14 +573,14 @@ void lexer_run(struct assembly *assembly, struct unit *unit) {
 	s32 error = 0;
 	if ((error = setjmp(ctx.jmp_error))) {
 		sarrfree(&ctx.strtmp);
-		batomic_fetch_add_32(&assembly->stats.lexing_ms, runtime_measure_end(lex));
+		batomic_fetch_add_s32(&assembly->stats.lexing_ms, runtime_measure_end(lex));
 		return_zone();
 	}
 
 	scan(&ctx);
 	sarrfree(&ctx.strtmp);
 
-	batomic_fetch_add_32(&builder.total_lines, ctx.line);
-	batomic_fetch_add_32(&assembly->stats.lexing_ms, runtime_measure_end(lex));
+	batomic_fetch_add_s32(&builder.total_lines, ctx.line);
+	batomic_fetch_add_s32(&assembly->stats.lexing_ms, runtime_measure_end(lex));
 	return_zone();
 }

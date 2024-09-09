@@ -109,6 +109,7 @@ static s32 worker(void *args) {
 
 void start_threads(const s32 n) {
 	bassert(n > 1);
+	bassert(thread_count == 0 && "Thread pool is already running!");
 	thread_count     = n;
 	is_single_thread = false;
 
@@ -137,6 +138,8 @@ void stop_threads(void) {
 	mtx_destroy(&jobs_mutex);
 
 	arrfree(jobs);
+
+	thread_count = 0;
 }
 
 void wait_threads(void) {
