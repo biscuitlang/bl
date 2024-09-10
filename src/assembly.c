@@ -552,6 +552,7 @@ s32 target_triple_to_string(const struct target_triple *triple, char *buf, s32 b
 }
 
 static void thread_local_init(struct assembly *assembly) {
+	zone();
 	const u32 thread_count = get_thread_count();
 	arrsetlen(assembly->thread_local_contexts, thread_count);
 	for (u32 i = 0; i < thread_count; ++i) {
@@ -560,9 +561,11 @@ static void thread_local_init(struct assembly *assembly) {
 		ast_arena_init(&assembly->thread_local_contexts[i].ast_arena, i);
 		arena_init(&assembly->thread_local_contexts[i].small_array, SARR_TOTAL_SIZE, 16, 2048, i, (arena_elem_dtor_t)sarr_dtor);
 	}
+	return_zone();
 }
 
 static void thread_local_terminate(struct assembly *assembly) {
+	zone();
 	for (u32 i = 0; i < arrlenu(assembly->thread_local_contexts); ++i) {
 		scope_arenas_terminate(&assembly->thread_local_contexts[i].scope_arenas);
 		mir_arenas_terminate(&assembly->thread_local_contexts[i].mir_arenas);
@@ -572,6 +575,7 @@ static void thread_local_terminate(struct assembly *assembly) {
 	}
 
 	arrfree(assembly->thread_local_contexts);
+	return_zone();
 }
 
 struct assembly *assembly_new(const struct target *target) {

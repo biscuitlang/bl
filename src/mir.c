@@ -11915,15 +11915,18 @@ str_t get_intrinsic(const str_t name) {
 
 void mir_arenas_init(struct mir_arenas *arenas, u32 owner_thread_index) {
 	const usize instr_size = SIZEOF_MIR_INSTR;
-	arena_init(&arenas->instr, instr_size, ALIGNOF_MIR_INSTR, owner_thread_index == 0 ? 16384 : 2048, owner_thread_index, NULL);
-	arena_init(&arenas->type, sizeof(struct mir_type), alignment_of(struct mir_type), owner_thread_index == 0 ? 2048 : 256, owner_thread_index, NULL);
-	arena_init(&arenas->var, sizeof(struct mir_var), alignment_of(struct mir_var), 2048, owner_thread_index, NULL);
-	arena_init(&arenas->fn_generated, sizeof(struct mir_fn_generated_recipe), alignment_of(struct mir_fn_generated_recipe), 512, owner_thread_index, (arena_elem_dtor_t)&fn_poly_dtor);
-	arena_init(&arenas->fn, sizeof(struct mir_fn), alignment_of(struct mir_fn), 2048, owner_thread_index, (arena_elem_dtor_t)&fn_dtor);
-	arena_init(&arenas->member, sizeof(struct mir_member), alignment_of(struct mir_member), 2048, owner_thread_index, NULL);
-	arena_init(&arenas->variant, sizeof(struct mir_variant), alignment_of(struct mir_variant), 2048, owner_thread_index, NULL);
-	arena_init(&arenas->arg, sizeof(struct mir_arg), alignment_of(struct mir_arg), 1024, owner_thread_index, NULL);
-	arena_init(&arenas->fn_group, sizeof(struct mir_fn_group), alignment_of(struct mir_fn_group), 512, owner_thread_index, NULL);
+
+	const s32 PREALLOC_BASE = 1024;
+
+	arena_init(&arenas->instr, instr_size, ALIGNOF_MIR_INSTR, owner_thread_index == 0 ? PREALLOC_BASE * 10 : PREALLOC_BASE * 4, owner_thread_index, NULL);
+	arena_init(&arenas->type, sizeof(struct mir_type), alignment_of(struct mir_type), owner_thread_index == 0 ? PREALLOC_BASE * 2 : PREALLOC_BASE, owner_thread_index, NULL);
+	arena_init(&arenas->var, sizeof(struct mir_var), alignment_of(struct mir_var), PREALLOC_BASE * 2, owner_thread_index, NULL);
+	arena_init(&arenas->fn_generated, sizeof(struct mir_fn_generated_recipe), alignment_of(struct mir_fn_generated_recipe), PREALLOC_BASE, owner_thread_index, (arena_elem_dtor_t)&fn_poly_dtor);
+	arena_init(&arenas->fn, sizeof(struct mir_fn), alignment_of(struct mir_fn), PREALLOC_BASE * 2, owner_thread_index, (arena_elem_dtor_t)&fn_dtor);
+	arena_init(&arenas->member, sizeof(struct mir_member), alignment_of(struct mir_member), PREALLOC_BASE * 4, owner_thread_index, NULL);
+	arena_init(&arenas->variant, sizeof(struct mir_variant), alignment_of(struct mir_variant), PREALLOC_BASE * 4, owner_thread_index, NULL);
+	arena_init(&arenas->arg, sizeof(struct mir_arg), alignment_of(struct mir_arg), PREALLOC_BASE * 2, owner_thread_index, NULL);
+	arena_init(&arenas->fn_group, sizeof(struct mir_fn_group), alignment_of(struct mir_fn_group), PREALLOC_BASE, owner_thread_index, NULL);
 }
 
 void mir_arenas_terminate(struct mir_arenas *arenas) {
