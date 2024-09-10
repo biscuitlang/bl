@@ -1503,7 +1503,11 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 		return_zone(ctx->analyze->unnamed_entry);
 	}
 
-	scope_lock(ctx->assembly->gscope);
+	// Only global scope needs to be thread safe (each unit is processed on a separate thread). However global scope might
+	// be internally locked in scope_lookup in case we reach it while searching even if we're about to insert into any other
+	// scope kind.
+	if (!scope_is_local(scope)) scope_lock(scope);
+
 	const bool          is_private  = scope->kind == SCOPE_PRIVATE;
 	const hash_t        layer_index = ctx->fn_generate.current_scope_layer;
 	struct scope_entry *collision   = scope_lookup(scope,
@@ -1524,12 +1528,12 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 	// no collision
 	struct scope_entry *entry = scope_create_entry(ctx->scope_arenas, SCOPE_ENTRY_INCOMPLETE, id, node, is_builtin);
 	scope_insert(scope, layer_index, entry);
-	scope_unlock(ctx->assembly->gscope);
 
+	if (!scope_is_local(scope)) scope_unlock(scope);
 	return_zone(entry);
 
 COLLIDE : {
-	scope_unlock(ctx->assembly->gscope);
+	if (!scope_is_local(scope)) scope_unlock(scope);
 	char *err_msg = (collision->is_builtin || is_builtin) ? "Symbol name collision with compiler builtin '%.*s'." : "Duplicate symbol";
 	report_error(DUPLICATE_SYMBOL, node, err_msg, id->str.len, id->str.ptr);
 	if (collision->node) {
@@ -11910,13 +11914,13 @@ str_t get_intrinsic(const str_t name) {
 	return str_empty;
 }
 
-void mir_arenas_init(struct mir_arenas *arenas) {
+void mir_arenas_init(struct mir_arenas *arenas, bool is_used_for_main_thread) {
 	const usize instr_size = SIZEOF_MIR_INSTR;
-	arena_init(&arenas->instr, instr_size, ALIGNOF_MIR_INSTR, 4096, NULL);
+	arena_init(&arenas->instr, instr_size, ALIGNOF_MIR_INSTR, is_used_for_main_thread ? 16384 : 2048, NULL);
 	arena_init(&arenas->type, sizeof(struct mir_type), alignment_of(struct mir_type), 2048, NULL);
-	arena_init(&arenas->var, sizeof(struct mir_var), alignment_of(struct mir_var), 1024, NULL);
+	arena_init(&arenas->var, sizeof(struct mir_var), alignment_of(struct mir_var), 2048, NULL);
 	arena_init(&arenas->fn_generated, sizeof(struct mir_fn_generated_recipe), alignment_of(struct mir_fn_generated_recipe), 512, (arena_elem_dtor_t)&fn_poly_dtor);
-	arena_init(&arenas->fn, sizeof(struct mir_fn), alignment_of(struct mir_fn), 1024, (arena_elem_dtor_t)&fn_dtor);
+	arena_init(&arenas->fn, sizeof(struct mir_fn), alignment_of(struct mir_fn), 2048, (arena_elem_dtor_t)&fn_dtor);
 	arena_init(&arenas->member, sizeof(struct mir_member), alignment_of(struct mir_member), 2048, NULL);
 	arena_init(&arenas->variant, sizeof(struct mir_variant), alignment_of(struct mir_variant), 2048, NULL);
 	arena_init(&arenas->arg, sizeof(struct mir_arg), alignment_of(struct mir_arg), 1024, NULL);

@@ -43,6 +43,7 @@ struct arena {
 	usize               elem_size_bytes;
 	s32                 elem_alignment;
 	s32                 elems_per_chunk;
+	usize               num_allocations;
 	arena_elem_dtor_t   elem_dtor;
 	mtx_t               lock;
 };

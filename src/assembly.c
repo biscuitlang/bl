@@ -36,8 +36,6 @@
 #include "stb_ds.h"
 #include <string.h>
 
-#define EXPECTED_ARRAY_COUNT 2048
-
 // Total size of all small arrays allocated later in a single arena.
 static const usize SARR_TOTAL_SIZE = sizeof(union {
 	ast_nodes_t        _1;
@@ -558,9 +556,9 @@ static void thread_local_init(struct assembly *assembly) {
 	arrsetlen(assembly->thread_local_contexts, thread_count);
 	for (u32 i = 0; i < thread_count; ++i) {
 		scope_arenas_init(&assembly->thread_local_contexts[i].scope_arenas);
-		mir_arenas_init(&assembly->thread_local_contexts[i].mir_arenas);
+		mir_arenas_init(&assembly->thread_local_contexts[i].mir_arenas, i == 0);
 		ast_arena_init(&assembly->thread_local_contexts[i].ast_arena);
-		arena_init(&assembly->thread_local_contexts[i].small_array, SARR_TOTAL_SIZE, 16, EXPECTED_ARRAY_COUNT, (arena_elem_dtor_t)sarr_dtor);
+		arena_init(&assembly->thread_local_contexts[i].small_array, SARR_TOTAL_SIZE, 16, 2048, (arena_elem_dtor_t)sarr_dtor);
 	}
 }
 

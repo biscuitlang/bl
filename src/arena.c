@@ -38,9 +38,8 @@ struct arena_chunk {
 
 static inline struct arena_chunk *alloc_chunk(struct arena *arena) {
 	zone();
-	const usize chunk_size =
-	    sizeof(struct arena_chunk) + total_elem_size(arena) * arena->elems_per_chunk;
-	struct arena_chunk *chunk = bmalloc(chunk_size);
+	const usize         chunk_size = sizeof(struct arena_chunk) + total_elem_size(arena) * arena->elems_per_chunk;
+	struct arena_chunk *chunk      = bmalloc(chunk_size);
 	if (!chunk) babort("bad alloc");
 	bl_zeromem(chunk, chunk_size);
 	return_zone(chunk);
@@ -78,6 +77,7 @@ void arena_init(struct arena     *arena,
 	arena->first_chunk     = NULL;
 	arena->current_chunk   = NULL;
 	arena->elem_dtor       = elem_dtor;
+	arena->num_allocations = 0;
 
 	mtx_init(&arena->lock, mtx_plain);
 }
@@ -108,6 +108,7 @@ void *arena_alloc(struct arena *arena) {
 
 	void *elem = get_from_chunk(arena, arena->current_chunk, arena->current_chunk->count++);
 	bassert(is_aligned(elem, arena->elem_alignment) && "Unaligned allocation of arena element!");
+	++arena->num_allocations;
 	mtx_unlock(&arena->lock);
 	return_zone(elem);
 }

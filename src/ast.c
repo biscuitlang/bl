@@ -46,7 +46,7 @@ ast_create_node(struct arena *arena, enum ast_kind c, struct token *tok, struct 
 
 // public
 void ast_arena_init(struct arena *arena) {
-	arena_init(arena, sizeof(struct ast), alignment_of(struct ast), 4096, NULL);
+	arena_init(arena, sizeof(struct ast), alignment_of(struct ast), 8192, NULL);
 }
 
 void ast_arena_terminate(struct arena *arena) {
