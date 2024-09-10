@@ -224,7 +224,7 @@ static bool create_auxiliary_dir_tree_if_not_exist(const char *_path, str_buf_t 
 	if (!path) babort("Invalid directory copy.");
 	win_path_to_unix(path, strlen(path));
 #else
-	const char *path  = _path;
+	const char *path = _path;
 #endif
 	if (!dir_exists(path)) {
 		if (!create_dir_tree(path)) {
@@ -555,10 +555,10 @@ static void thread_local_init(struct assembly *assembly) {
 	const u32 thread_count = get_thread_count();
 	arrsetlen(assembly->thread_local_contexts, thread_count);
 	for (u32 i = 0; i < thread_count; ++i) {
-		scope_arenas_init(&assembly->thread_local_contexts[i].scope_arenas);
-		mir_arenas_init(&assembly->thread_local_contexts[i].mir_arenas, i == 0);
-		ast_arena_init(&assembly->thread_local_contexts[i].ast_arena);
-		arena_init(&assembly->thread_local_contexts[i].small_array, SARR_TOTAL_SIZE, 16, 2048, (arena_elem_dtor_t)sarr_dtor);
+		scope_arenas_init(&assembly->thread_local_contexts[i].scope_arenas, i);
+		mir_arenas_init(&assembly->thread_local_contexts[i].mir_arenas, i);
+		ast_arena_init(&assembly->thread_local_contexts[i].ast_arena, i);
+		arena_init(&assembly->thread_local_contexts[i].small_array, SARR_TOTAL_SIZE, 16, 2048, i, (arena_elem_dtor_t)sarr_dtor);
 	}
 }
 
@@ -594,7 +594,7 @@ struct assembly *assembly_new(const struct target *target) {
 
 	// set defaults
 	const u32 thread_index = get_worker_index();
-	assembly->gscope = scope_create(&assembly->thread_local_contexts[thread_index].scope_arenas, SCOPE_GLOBAL, NULL, NULL);
+	assembly->gscope       = scope_create(&assembly->thread_local_contexts[thread_index].scope_arenas, SCOPE_GLOBAL, NULL, NULL);
 	scope_reserve(assembly->gscope, 8192);
 
 	dl_init(assembly);
@@ -705,15 +705,15 @@ struct unit *assembly_add_unit(struct assembly *assembly, const char *filepath, 
 	if (!is_str_valid_nonempty(filepath)) return_zone(NULL);
 	struct unit *unit = NULL;
 	const hash_t hash = unit_hash(filepath, load_from);
+
 	mtx_lock(&assembly->units_lock);
-	if (assembly_has_unit(assembly, hash)) goto DONE;
-	unit = unit_new(filepath, load_from);
-	arrput(assembly->units, unit);
-
-	builder_submit_unit(assembly, unit);
-
-DONE:
+	if (!assembly_has_unit(assembly, hash)) {
+		unit = unit_new(filepath, load_from);
+		arrput(assembly->units, unit);
+	}
 	mtx_unlock(&assembly->units_lock);
+
+	if (unit) builder_submit_unit(assembly, unit);
 	return_zone(unit);
 }
 

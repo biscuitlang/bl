@@ -37,7 +37,7 @@
 
 struct slot {
 	HASH_T hash;
-	s32 index;
+	s32    index;
 };
 
 struct header {
@@ -66,7 +66,7 @@ void *_tbl_init(void *ptr, u32 elem_size, u32 elem_count) {
 	struct header *tbl = get_header(ptr);
 	bassert(tbl == NULL && "Table already allocated.");
 	elem_count = MAX(elem_count, DEFAULT_ELEM_COUNT);
-	tbl = ensure_capacity(tbl, elem_size, elem_count);
+	tbl        = ensure_capacity(tbl, elem_size, elem_count);
 	resize(tbl, next_pow_2(elem_count * 2));
 	return tbl->data;
 }
@@ -152,7 +152,8 @@ u32 find_free_slot_index(struct header *tbl, HASH_T hash) {
 		}
 		index += increment;
 		increment += 1;
-		while (index >= tbl->slots_num) index -= tbl->slots_num;
+		while (index >= tbl->slots_num)
+			index -= tbl->slots_num;
 	}
 	bassert(index < tbl->slots_num);
 	return index;
@@ -207,7 +208,8 @@ bool lookup_indices(struct header *tbl, HASH_T hash, str_t key, u32 entry_size, 
 		}
 		index += increment;
 		increment += 1;
-		while (index >= tbl->slots_num) index -= tbl->slots_num;
+		while (index >= tbl->slots_num)
+			index -= tbl->slots_num;
 	}
 	return false;
 }

@@ -576,13 +576,11 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 			scope_entry = scope_create_entry(ctx->scope_arenas, SCOPE_ENTRY_NAMED_SCOPE, id, scope, false);
 			scope_insert(scope_get(ctx), SCOPE_DEFAULT_LAYER, scope_entry);
 
-			struct scope *named_scope = scope_create(
-			    ctx->scope_arenas, SCOPE_NAMED, scope_get(ctx), &tok_directive->location);
+			struct scope *named_scope = scope_create(ctx->scope_arenas, SCOPE_NAMED, scope_get(ctx), &tok_directive->location);
+			scope_reserve(named_scope, 2048);
 
 			named_scope->name       = id->str;
 			scope_entry->data.scope = named_scope;
-
-			scope_reserve(named_scope, 2048);
 		}
 		if (scope_get(ctx)->kind == SCOPE_GLOBAL) scope_unlock(scope_get(ctx));
 		if (ctx->current_named_scope) {
@@ -1030,8 +1028,7 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 		} else if (is_expression) {
 			true_branch = parse_single_block_stmt_or_expr(ctx, NULL);
 		} else {
-			struct scope *scope =
-			    scope_create(ctx->scope_arenas, SCOPE_LEXICAL, scope_get(ctx), &tok_then->location);
+			struct scope *scope = scope_create(ctx->scope_arenas, SCOPE_LEXICAL, scope_get(ctx), &tok_then->location);
 			scope_push(ctx, scope);
 			struct ast *block       = ast_create_node(ctx->ast_arena, AST_BLOCK, tok_then, scope_get(ctx));
 			block->data.block.nodes = arena_alloc(ctx->sarr_arena);
@@ -1076,8 +1073,7 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 			} else if (is_expression) {
 				false_branch = parse_single_block_stmt_or_expr(ctx, NULL);
 			} else {
-				struct scope *scope =
-				    scope_create(ctx->scope_arenas, SCOPE_LEXICAL, scope_get(ctx), &tok_then->location);
+				struct scope *scope = scope_create(ctx->scope_arenas, SCOPE_LEXICAL, scope_get(ctx), &tok_then->location);
 				scope_push(ctx, scope);
 				struct ast *block       = ast_create_node(ctx->ast_arena, AST_BLOCK, tok_then, scope_get(ctx));
 				block->data.block.nodes = arena_alloc(ctx->sarr_arena);
@@ -1247,8 +1243,7 @@ struct ast *parse_stmt_loop(struct context *ctx) {
 	const bool  prev_in_loop = ctx->is_inside_loop;
 	ctx->is_inside_loop      = true;
 
-	struct scope *scope =
-	    scope_create(ctx->scope_arenas, SCOPE_LEXICAL, scope_get(ctx), &tok_begin->location);
+	struct scope *scope = scope_create(ctx->scope_arenas, SCOPE_LEXICAL, scope_get(ctx), &tok_begin->location);
 
 	scope_push(ctx, scope);
 
@@ -1579,8 +1574,7 @@ struct ast *parse_expr_lit_fn(struct context *ctx) {
 	ctx->is_inside_expression            = false;
 
 	// Create function scope for function signature.
-	scope_push(ctx,
-	           scope_create(ctx->scope_arenas, SCOPE_FN, scope_get(ctx), &tok_fn->location));
+	scope_push(ctx, scope_create(ctx->scope_arenas, SCOPE_FN, scope_get(ctx), &tok_fn->location));
 
 	struct ast *type = parse_type_fn(ctx, /* named_args */ true, /* create_scope */ false);
 	bassert(type);
@@ -1790,8 +1784,9 @@ struct ast *parse_type_enum(struct context *ctx) {
 		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok, scope_get(ctx)));
 	}
 
-	struct scope *scope =
-	    scope_create(ctx->scope_arenas, SCOPE_TYPE_ENUM, scope_get(ctx), &tok->location);
+	struct scope *scope = scope_create(ctx->scope_arenas, SCOPE_TYPE_ENUM, scope_get(ctx), &tok->location);
+	scope_reserve(scope, 256);
+	
 	enm->data.type_enm.scope = scope;
 	scope_push(ctx, scope);
 
@@ -2030,8 +2025,7 @@ struct ast *parse_type_fn_return(struct context *ctx) {
 		// multiple return type ( T1, T2 )
 		// eat (
 		struct token *tok_begin = tokens_consume(ctx->tokens);
-		struct scope *scope     = scope_create(
-            ctx->scope_arenas, SCOPE_TYPE_STRUCT, scope_get(ctx), &tok_begin->location);
+		struct scope *scope     = scope_create(ctx->scope_arenas, SCOPE_TYPE_STRUCT, scope_get(ctx), &tok_begin->location);
 		scope_push(ctx, scope);
 
 		struct ast *type_struct =
@@ -2083,9 +2077,7 @@ struct ast *parse_type_fn(struct context *ctx, bool named_args, bool create_scop
 	struct ast *fn = ast_create_node(ctx->ast_arena, AST_TYPE_FN, tok_fn, scope_get(ctx));
 
 	if (create_scope) {
-		scope_push(
-		    ctx,
-		    scope_create(ctx->scope_arenas, SCOPE_FN, scope_get(ctx), &tok_fn->location));
+		scope_push(ctx, scope_create(ctx->scope_arenas, SCOPE_FN, scope_get(ctx), &tok_fn->location));
 	}
 
 	// parse arg types
@@ -2204,8 +2196,7 @@ struct ast *parse_type_struct(struct context *ctx) {
 		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_struct, scope_get(ctx)));
 	}
 
-	struct scope *scope =
-	    scope_create(ctx->scope_arenas, SCOPE_TYPE_STRUCT, scope_get(ctx), &tok->location);
+	struct scope *scope = scope_create(ctx->scope_arenas, SCOPE_TYPE_STRUCT, scope_get(ctx), &tok->location);
 	scope_push(ctx, scope);
 
 	struct ast *type_struct =
@@ -2515,8 +2506,7 @@ struct ast *parse_block(struct context *ctx, enum scope_kind scope_kind) {
 		bassert((scope_kind == SCOPE_LEXICAL || scope_kind == SCOPE_FN_BODY) &&
 		        "Unexpected scope kind, extend this assert in case it's intentional.");
 
-		struct scope *scope = scope_create(
-		    ctx->scope_arenas, scope_kind, scope_get(ctx), &tok_begin->location);
+		struct scope *scope = scope_create(ctx->scope_arenas, scope_kind, scope_get(ctx), &tok_begin->location);
 
 		scope_push(ctx, scope);
 		scope_created = true;

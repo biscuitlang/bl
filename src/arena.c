@@ -41,7 +41,8 @@ static inline struct arena_chunk *alloc_chunk(struct arena *arena) {
 	const usize         chunk_size = sizeof(struct arena_chunk) + total_elem_size(arena) * arena->elems_per_chunk;
 	struct arena_chunk *chunk      = bmalloc(chunk_size);
 	if (!chunk) babort("bad alloc");
-	bl_zeromem(chunk, chunk_size);
+	chunk->count = 0;
+	chunk->next = NULL;
 	return_zone(chunk);
 }
 
@@ -70,6 +71,7 @@ void arena_init(struct arena     *arena,
                 usize             elem_size_bytes,
                 s32               elem_alignment,
                 s32               elems_per_chunk,
+                u32               owner_thread_index,
                 arena_elem_dtor_t elem_dtor) {
 	arena->elem_size_bytes = elem_size_bytes;
 	arena->elems_per_chunk = elems_per_chunk;
@@ -78,8 +80,7 @@ void arena_init(struct arena     *arena,
 	arena->current_chunk   = NULL;
 	arena->elem_dtor       = elem_dtor;
 	arena->num_allocations = 0;
-
-	mtx_init(&arena->lock, mtx_plain);
+	arena->owner_thread_index = owner_thread_index;
 }
 
 void arena_terminate(struct arena *arena) {
@@ -87,13 +88,11 @@ void arena_terminate(struct arena *arena) {
 	while (chunk) {
 		chunk = free_chunk(arena, chunk);
 	}
-
-	mtx_destroy(&arena->lock);
 }
 
 void *arena_alloc(struct arena *arena) {
 	zone();
-	mtx_lock(&arena->lock);
+	bassert(arena->owner_thread_index == get_worker_index() && "Arena is supposed to be used from its initialization thread!");
 	if (!arena->current_chunk) {
 		arena->current_chunk = alloc_chunk(arena);
 		arena->first_chunk   = arena->current_chunk;
@@ -109,6 +108,8 @@ void *arena_alloc(struct arena *arena) {
 	void *elem = get_from_chunk(arena, arena->current_chunk, arena->current_chunk->count++);
 	bassert(is_aligned(elem, arena->elem_alignment) && "Unaligned allocation of arena element!");
 	++arena->num_allocations;
-	mtx_unlock(&arena->lock);
+
+	bl_zeromem(elem, arena->elem_size_bytes);
+
 	return_zone(elem);
 }

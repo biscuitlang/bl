@@ -114,7 +114,7 @@ struct scope {
 	bmagic_member
 };
 
-void scope_arenas_init(struct scope_arenas *arenas);
+void scope_arenas_init(struct scope_arenas *arenas, u32 owner_thread_index);
 void scope_arenas_terminate(struct scope_arenas *arenas);
 
 struct scope *scope_create(struct scope_arenas *arenas,

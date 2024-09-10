@@ -1091,7 +1091,7 @@ static inline struct mir_fn *mir_instr_owner_fn(struct mir_instr *instr) {
 }
 
 void            mir_init(struct assembly *assembly);
-void            mir_arenas_init(struct mir_arenas *arenas, bool is_used_for_main_thread);
+void            mir_arenas_init(struct mir_arenas *arenas, u32 owner_thread_index);
 void            mir_arenas_terminate(struct mir_arenas *arenas);
 void            mir_terminate(struct assembly *assembly);
 struct mir_var *mir_get_rtti(struct assembly *assembly, hash_t type_hash);

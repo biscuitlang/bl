@@ -60,9 +60,9 @@ static inline struct scope_entry *lookup_usings(struct scope *scope, struct id *
 	return_zone(found);
 }
 
-void scope_arenas_init(struct scope_arenas *arenas) {
-	arena_init(&arenas->scopes, sizeof(struct scope), alignment_of(struct scope), 256, (arena_elem_dtor_t)scope_dtor);
-	arena_init(&arenas->entries, sizeof(struct scope_entry), alignment_of(struct scope_entry), 8192, NULL);
+void scope_arenas_init(struct scope_arenas *arenas, u32 owner_thread_index) {
+	arena_init(&arenas->scopes, sizeof(struct scope), alignment_of(struct scope), 256, owner_thread_index, (arena_elem_dtor_t)scope_dtor);
+	arena_init(&arenas->entries, sizeof(struct scope_entry), alignment_of(struct scope_entry), 8192, owner_thread_index, NULL);
 }
 
 void scope_arenas_terminate(struct scope_arenas *arenas) {

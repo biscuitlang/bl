@@ -673,9 +673,9 @@ BL_EXPORT void *__dlib_symbol(DLLib *lib, const char *symname) {
 
 	// Create function for the found symbol.
 
-	const u32 thread_index = get_worker_index();
-	struct mir_arenas *arenas = &assembly->thread_local_contexts[thread_index].mir_arenas;
-	struct mir_fn     *fn     = arena_alloc(&arenas->fn);
+	const u32          thread_index = get_worker_index();
+	struct mir_arenas *arenas       = &assembly->thread_local_contexts[thread_index].mir_arenas;
+	struct mir_fn     *fn           = arena_alloc(&arenas->fn);
 	bmagic_set(fn);
 	fn->flags                = FLAG_EXTERN;
 	fn->is_global            = true;
@@ -2610,8 +2610,7 @@ struct get_snapshot_result {
 
 // Tries to find stack used for previous execution (in case the call was postponed). If there is
 // no such stack, new one is created or reused from cache.
-static struct get_snapshot_result get_snapshot(struct virtual_machine *vm,
-                                               struct mir_instr_call  *call) {
+static struct get_snapshot_result get_snapshot(struct virtual_machine *vm, struct mir_instr_call *call) {
 	bassert(call);
 	struct get_snapshot_result result = {0};
 
@@ -2634,9 +2633,7 @@ static struct get_snapshot_result get_snapshot(struct virtual_machine *vm,
 	return result;
 }
 
-enum vm_interp_state vm_execute_comptime_call(struct virtual_machine *vm,
-                                              struct assembly        *assembly,
-                                              struct mir_instr_call  *call) {
+enum vm_interp_state vm_execute_comptime_call(struct virtual_machine *vm, struct assembly *assembly, struct mir_instr_call *call) {
 	zone();
 	mtx_lock(&vm->lock);
 	vm->assembly = assembly;

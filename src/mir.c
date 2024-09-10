@@ -1532,7 +1532,7 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 	if (!scope_is_local(scope)) scope_unlock(scope);
 	return_zone(entry);
 
-COLLIDE : {
+COLLIDE: {
 	if (!scope_is_local(scope)) scope_unlock(scope);
 	char *err_msg = (collision->is_builtin || is_builtin) ? "Symbol name collision with compiler builtin '%.*s'." : "Duplicate symbol";
 	report_error(DUPLICATE_SYMBOL, node, err_msg, id->str.len, id->str.ptr);
@@ -6428,7 +6428,7 @@ struct result analyze_instr_load(struct context *ctx, struct mir_instr_load *loa
 
 	return_zone(PASS);
 
-INVALID_SRC : {
+INVALID_SRC: {
 	bassert(err_type);
 	str_buf_t type_name = mir_type2str(err_type, /* prefer_name */ true);
 	report_error(INVALID_TYPE, src->node, "Expected value of pointer type, got '%.*s'.", type_name.len, type_name.ptr);
@@ -8170,8 +8170,7 @@ struct result analyze_call_stage_generate(struct context *ctx, struct mir_instr_
 
 		const s32 prev_errorc = builder.errorc;
 		// Generate new function.
-		struct mir_instr *instr_fn_proto =
-		    ast_expr_lit_fn(ctx, recipe->ast_lit_fn, recipe_fn->decl_node, unique_name(ctx, original_fn_name), recipe_fn->is_global, recipe_fn->flags, BUILTIN_ID_NONE);
+		struct mir_instr *instr_fn_proto = ast_expr_lit_fn(ctx, recipe->ast_lit_fn, recipe_fn->decl_node, unique_name(ctx, original_fn_name), recipe_fn->is_global, recipe_fn->flags, BUILTIN_ID_NONE);
 
 		// Handle invalid AST generation.
 		// @Incomplete: Use FATAL analyze state!!!!
@@ -11914,17 +11913,17 @@ str_t get_intrinsic(const str_t name) {
 	return str_empty;
 }
 
-void mir_arenas_init(struct mir_arenas *arenas, bool is_used_for_main_thread) {
+void mir_arenas_init(struct mir_arenas *arenas, u32 owner_thread_index) {
 	const usize instr_size = SIZEOF_MIR_INSTR;
-	arena_init(&arenas->instr, instr_size, ALIGNOF_MIR_INSTR, is_used_for_main_thread ? 16384 : 2048, NULL);
-	arena_init(&arenas->type, sizeof(struct mir_type), alignment_of(struct mir_type), 2048, NULL);
-	arena_init(&arenas->var, sizeof(struct mir_var), alignment_of(struct mir_var), 2048, NULL);
-	arena_init(&arenas->fn_generated, sizeof(struct mir_fn_generated_recipe), alignment_of(struct mir_fn_generated_recipe), 512, (arena_elem_dtor_t)&fn_poly_dtor);
-	arena_init(&arenas->fn, sizeof(struct mir_fn), alignment_of(struct mir_fn), 2048, (arena_elem_dtor_t)&fn_dtor);
-	arena_init(&arenas->member, sizeof(struct mir_member), alignment_of(struct mir_member), 2048, NULL);
-	arena_init(&arenas->variant, sizeof(struct mir_variant), alignment_of(struct mir_variant), 2048, NULL);
-	arena_init(&arenas->arg, sizeof(struct mir_arg), alignment_of(struct mir_arg), 1024, NULL);
-	arena_init(&arenas->fn_group, sizeof(struct mir_fn_group), alignment_of(struct mir_fn_group), 512, NULL);
+	arena_init(&arenas->instr, instr_size, ALIGNOF_MIR_INSTR, owner_thread_index == 0 ? 16384 : 2048, owner_thread_index, NULL);
+	arena_init(&arenas->type, sizeof(struct mir_type), alignment_of(struct mir_type), owner_thread_index == 0 ? 2048 : 256, owner_thread_index, NULL);
+	arena_init(&arenas->var, sizeof(struct mir_var), alignment_of(struct mir_var), 2048, owner_thread_index, NULL);
+	arena_init(&arenas->fn_generated, sizeof(struct mir_fn_generated_recipe), alignment_of(struct mir_fn_generated_recipe), 512, owner_thread_index, (arena_elem_dtor_t)&fn_poly_dtor);
+	arena_init(&arenas->fn, sizeof(struct mir_fn), alignment_of(struct mir_fn), 2048, owner_thread_index, (arena_elem_dtor_t)&fn_dtor);
+	arena_init(&arenas->member, sizeof(struct mir_member), alignment_of(struct mir_member), 2048, owner_thread_index, NULL);
+	arena_init(&arenas->variant, sizeof(struct mir_variant), alignment_of(struct mir_variant), 2048, owner_thread_index, NULL);
+	arena_init(&arenas->arg, sizeof(struct mir_arg), alignment_of(struct mir_arg), 1024, owner_thread_index, NULL);
+	arena_init(&arenas->fn_group, sizeof(struct mir_fn_group), alignment_of(struct mir_fn_group), 512, owner_thread_index, NULL);
 }
 
 void mir_arenas_terminate(struct mir_arenas *arenas) {
@@ -12122,6 +12121,19 @@ void mir_analyze_run(struct assembly *assembly) {
 	analyze_report_unused(&ctx);
 
 	blog("Analyze queue push count: %i", push_count);
+
+#if 1
+	for (u32 i = 0; i < arrlenu(assembly->thread_local_contexts); ++i) {
+		struct assembly_thread_local_context *tl = &assembly->thread_local_contexts[i];
+		blog("Arena 'ast'         [%d] allocated %llu", i, tl->ast_arena.num_allocations);
+		blog("Arena 'small_array' [%d] allocated %llu", i, tl->small_array.num_allocations);
+		blog("Arena 'instr'       [%d] allocated %llu", i, tl->mir_arenas.instr.num_allocations);
+		blog("Arena 'type'        [%d] allocated %llu", i, tl->mir_arenas.type.num_allocations);
+		blog("Arena 'var'         [%d] allocated %llu", i, tl->mir_arenas.var.num_allocations);
+		blog("Arena 'fn'          [%d] allocated %llu", i, tl->mir_arenas.fn.num_allocations);
+		blog("Arena 'arg'         [%d] allocated %llu", i, tl->mir_arenas.arg.num_allocations);
+	}
+#endif
 
 DONE:
 	batomic_fetch_add_s32(&assembly->stats.mir_analyze_ms, runtime_measure_end(mir_analyze));

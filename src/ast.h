@@ -400,7 +400,7 @@ struct ast {
 #endif
 };
 
-void        ast_arena_init(struct arena *arena);
+void        ast_arena_init(struct arena *arena, u32 owner_thread_index);
 void        ast_arena_terminate(struct arena *arena);
 struct ast *ast_create_node(struct arena *arena,
                             enum ast_kind c,

@@ -138,7 +138,6 @@ int compile_assembly(struct assembly *assembly) {
 	bassert(assembly);
 	array(assembly_stage_fn_t) pipeline = assembly->current_pipelines.assembly;
 	bassert(pipeline && "Invalid assembly pipeline!");
-
 	for (usize i = 0; i < arrlenu(pipeline); ++i) {
 		if (builder.errorc) return COMPILE_FAIL;
 		pipeline[i](assembly);
