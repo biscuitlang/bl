@@ -74,12 +74,13 @@ struct hash_directive_entry {
 struct context {
 	my_hash_table(struct hash_directive_entry) hash_directive_table;
 
-	struct assembly     *assembly;
-	struct unit         *unit;
-	struct arena        *ast_arena;
-	struct arena        *sarr_arena;
-	struct scope_arenas *scope_arenas;
-	struct tokens       *tokens;
+	struct assembly      *assembly;
+	struct unit          *unit;
+	struct arena         *ast_arena;
+	struct arena         *sarr_arena;
+	struct scope_arenas  *scope_arenas;
+	struct tokens        *tokens;
+	struct string_cache **string_cache;
 
 	// tmps
 	array(struct scope *) scope_stack;
@@ -309,7 +310,7 @@ bool parse_docs(struct context *ctx) {
 		while ((tok = tokens_consume_if(ctx->tokens, SYM_DCOMMENT))) {
 			str_buf_append_fmt(&tmp, "{str}\n", tok->value.str);
 		}
-		str = scdup2(&ctx->unit->string_cache, tmp);
+		str = scdup2(ctx->string_cache, tmp);
 		put_tmp_str(tmp);
 	}
 
@@ -572,7 +573,7 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 			bassert(scope_entry->kind == SCOPE_ENTRY_NAMED_SCOPE && "Found scope entry is expected to be named scope!");
 			bassert(scope_entry->data.scope && scope_entry->data.scope->kind == SCOPE_NAMED);
 		} else {
-			scope_entry = scope_create_entry(&ctx->assembly->scope_arenas, SCOPE_ENTRY_NAMED_SCOPE, id, scope, false);
+			scope_entry = scope_create_entry(ctx->scope_arenas, SCOPE_ENTRY_NAMED_SCOPE, id, scope, false);
 			scope_insert(scope_get(ctx), SCOPE_DEFAULT_LAYER, scope_entry);
 
 			struct scope *named_scope = scope_create(
@@ -767,7 +768,7 @@ struct ast *parse_decl_member(struct context *ctx, s32 UNUSED(index)) {
 		char      buf[64]; // More than enough.
 		const s32 len = snprintf(buf, static_arrlenu(buf), "_%d", index);
 		bassert(len >= 0 && len < (s32)static_arrlenu(buf) && "Buffer overflow!");
-		const str_t ident = scdup2(&ctx->unit->string_cache, make_str(buf, len));
+		const str_t ident = scdup2(ctx->string_cache, make_str(buf, len));
 		name              = ast_create_node(ctx->ast_arena, AST_IDENT, tok_begin, scope_get(ctx));
 		id_init(&name->data.ident.id, ident);
 	}
@@ -1548,7 +1549,7 @@ struct ast *parse_expr_lit(struct context *ctx) {
 			while ((tok = tokens_consume_if(ctx->tokens, SYM_STRING))) {
 				str_buf_append(&tmp, tok->value.str);
 			}
-			const str_t dup = scdup2(&ctx->unit->string_cache, tmp);
+			const str_t dup = scdup2(ctx->string_cache, tmp);
 			put_tmp_str(tmp);
 
 			lit->data.expr_string.val = dup;
@@ -2621,20 +2622,24 @@ void init_hash_directives(struct context *ctx) {
 	}
 }
 
-void parser_run(struct assembly *assembly, struct unit *unit, u32 UNUSED(thread_index)) {
+void parser_run(struct assembly *assembly, struct unit *unit) {
 	bassert(assembly);
 	bassert(assembly->gscope && "Missing global scope for assembly.");
+
+	const u32 thread_index = get_worker_index();
 
 	zone();
 	runtime_measure_begin(parse);
 
 	struct context ctx = {
-	    .assembly     = assembly,
-	    .unit         = unit,
-	    .ast_arena    = &unit->ast_arena,
-	    .sarr_arena   = &unit->sarr_arena,
-	    .scope_arenas = &assembly->scope_arenas,
-	    .tokens       = &unit->tokens,
+	    .assembly = assembly,
+	    .unit     = unit,
+	    .tokens   = &unit->tokens,
+
+	    .ast_arena    = &assembly->thread_local_contexts[thread_index].ast_arena,
+	    .scope_arenas = &assembly->thread_local_contexts[thread_index].scope_arenas,
+	    .sarr_arena   = &assembly->thread_local_contexts[thread_index].small_array,
+	    .string_cache = &assembly->thread_local_contexts[thread_index].string_cache,
 	};
 
 	init_hash_directives(&ctx);

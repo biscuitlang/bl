@@ -2553,7 +2553,7 @@ static void patch_jump_offsets(struct thread_context *tctx) {
 void job(struct job_context *job_ctx) {
 	zone();
 	struct context        *ctx          = job_ctx->x64.ctx;
-	const u32              thread_index = job_ctx->thread_index;
+	const u32              thread_index = get_worker_index();
 	struct thread_context *tctx         = &ctx->tctx[thread_index];
 
 	// Preallocate buffers

@@ -380,7 +380,7 @@ static inline bool is_ignored_id(struct id *id) {
 // Utils
 // =================================================================================================
 
-typedef void (*unit_stage_fn_t)(struct assembly *, struct unit *, u32);
+typedef void (*unit_stage_fn_t)(struct assembly *, struct unit *);
 typedef void (*assembly_stage_fn_t)(struct assembly *);
 
 enum search_flags {

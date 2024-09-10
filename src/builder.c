@@ -43,10 +43,10 @@ struct builder builder;
 // Stages
 // =================================================================================================
 
-void file_loader_run(struct assembly *assembly, struct unit *unit, u32 thread_index);
-void lexer_run(struct assembly *assembly, struct unit *unit, u32 thread_index);
-void token_printer_run(struct assembly *assembly, struct unit *unit, u32 thread_index);
-void parser_run(struct assembly *assembly, struct unit *unit, u32 thread_index);
+void file_loader_run(struct assembly *assembly, struct unit *unit);
+void lexer_run(struct assembly *assembly, struct unit *unit);
+void token_printer_run(struct assembly *assembly, struct unit *unit);
+void parser_run(struct assembly *assembly, struct unit *unit);
 void ast_printer_run(struct assembly *assembly);
 void docs_run(struct assembly *assembly);
 void ir_run(struct assembly *assembly);
@@ -86,9 +86,8 @@ static bool llvm_initialized = false;
 static void unit_job(struct job_context *ctx) {
 	bassert(ctx);
 
-	struct assembly *assembly     = ctx->unit.assembly;
-	struct unit     *unit         = ctx->unit.unit;
-	const u32        thread_index = ctx->thread_index;
+	struct assembly *assembly = ctx->unit.assembly;
+	struct unit     *unit     = ctx->unit.unit;
 
 	array(unit_stage_fn_t) pipeline = assembly->current_pipelines.unit;
 	bassert(pipeline && "Invalid unit pipeline!");
@@ -98,7 +97,7 @@ static void unit_job(struct job_context *ctx) {
 		builder_log("Compile: %s", unit->name);
 	}
 	for (usize i = 0; i < arrlenu(pipeline); ++i) {
-		pipeline[i](assembly, unit, thread_index);
+		pipeline[i](assembly, unit);
 		if (builder.errorc) return;
 	}
 }

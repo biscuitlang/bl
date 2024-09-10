@@ -32,6 +32,7 @@
 thrd_t MAIN_THREAD = (thrd_t)0;
 
 static _Thread_local struct thread_local_storage thread_data;
+static _Thread_local u32                         worker_index = 0; // By default 0 for main thread.
 
 struct job {
 	struct job_context ctx;
@@ -58,7 +59,8 @@ static bool pop_job(struct job *job) {
 }
 
 static s32 worker(void *args) {
-	const u32 thread_index = (u32)(u64)args;
+	worker_index = (u32)(u64)args;
+
 	bl_alloc_thread_init();
 	init_thread_local_storage();
 	struct job job;
@@ -77,10 +79,7 @@ static s32 worker(void *args) {
 		mtx_unlock(&jobs_mutex);
 
 		// Execute the job
-		if (has_job) {
-			job.ctx.thread_index = thread_index;
-			job.fn(&job.ctx);
-		}
+		if (has_job) job.fn(&job.ctx);
 
 		mtx_lock(&jobs_mutex);
 		--jobs_running;
@@ -203,4 +202,8 @@ void terminate_thread_local_storage(void) {
 		str_buf_free(&thread_data.temporary_strings[i]);
 	}
 	arrfree(thread_data.temporary_strings);
+}
+
+u32 get_worker_index(void) {
+	return worker_index;
 }

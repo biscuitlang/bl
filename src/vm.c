@@ -649,8 +649,10 @@ void calculate_unop(vm_stack_ptr_t dest, vm_stack_ptr_t v, enum unop_kind op, st
 // execution linked static library (exporting these functions) is used.
 
 BL_EXPORT void *__dlib_open(const char *libname) {
+#if BL_ASSERT_ENABLE
 	struct assembly *assembly = builder.current_executed_assembly;
 	bassert(assembly);
+#endif
 	return dlLoadLibrary(libname);
 }
 
@@ -671,7 +673,9 @@ BL_EXPORT void *__dlib_symbol(DLLib *lib, const char *symname) {
 
 	// Create function for the found symbol.
 
-	struct mir_fn *fn = arena_alloc(&assembly->mir.arenas.fn);
+	const u32 thread_index = get_worker_index();
+	struct mir_arenas *arenas = &assembly->thread_local_contexts[thread_index].mir_arenas;
+	struct mir_fn     *fn     = arena_alloc(&arenas->fn);
 	bmagic_set(fn);
 	fn->flags                = FLAG_EXTERN;
 	fn->is_global            = true;
@@ -2052,11 +2056,11 @@ void eval_instr_type_info(struct virtual_machine *vm, struct mir_instr_type_info
 	struct mir_var *rtti_var = mir_get_rtti(vm->assembly, type_info->rtti_type->id.hash);
 #if BL_ASSERT_ENABLE
 	if (!rtti_var) {
-	#if defined(BL_DEBUG)
+#if defined(BL_DEBUG)
 		const str_t  name = type_info->rtti_type->id.str;
 		const hash_t hash = type_info->rtti_type->id.hash;
 		blog("Rtti type %.*s [%lu] not found!", name.len, name.ptr, hash);
-	#endif
+#endif
 		bassert(rtti_var);
 	}
 #endif

@@ -38,6 +38,19 @@
 
 #define EXPECTED_ARRAY_COUNT 2048
 
+// Total size of all small arrays allocated later in a single arena.
+static const usize SARR_TOTAL_SIZE = sizeof(union {
+	ast_nodes_t        _1;
+	mir_args_t         _2;
+	mir_fns_t          _3;
+	mir_types_t        _4;
+	mir_members_t      _5;
+	mir_variants_t     _6;
+	mir_instrs_t       _7;
+	mir_switch_cases_t _8;
+	ints_t             _9;
+});
+
 const char *arch_names[] = {
 #define GEN_ARCH
 #define entry(X) #X,
@@ -540,21 +553,27 @@ s32 target_triple_to_string(const struct target_triple *triple, char *buf, s32 b
 	return len;
 }
 
-static void arenas_init(struct assembly *assembly) {
+static void thread_local_init(struct assembly *assembly) {
 	const u32 thread_count = get_thread_count();
-	arrsetlen(assembly->thread_local_arenas, thread_count);
+	arrsetlen(assembly->thread_local_contexts, thread_count);
 	for (u32 i = 0; i < thread_count; ++i) {
-		scope_arenas_init(&assembly->thread_local_arenas[i].scope_arenas);
-		mir_arenas_init(&assembly->thread_local_arenas[i].mir_arenas);
+		scope_arenas_init(&assembly->thread_local_contexts[i].scope_arenas);
+		mir_arenas_init(&assembly->thread_local_contexts[i].mir_arenas);
+		ast_arena_init(&assembly->thread_local_contexts[i].ast_arena);
+		arena_init(&assembly->thread_local_contexts[i].small_array, SARR_TOTAL_SIZE, 16, EXPECTED_ARRAY_COUNT, (arena_elem_dtor_t)sarr_dtor);
 	}
 }
 
-static void arenas_terminate(struct assembly *assembly) {
-	for (u32 i = 0; i < arrlenu(assembly->thread_local_arenas); ++i) {
-		scope_arenas_terminate(&assembly->thread_local_arenas[i].scope_arenas);
-		mir_arenas_terminate(&assembly->thread_local_arenas[i].mir_arenas);
+static void thread_local_terminate(struct assembly *assembly) {
+	for (u32 i = 0; i < arrlenu(assembly->thread_local_contexts); ++i) {
+		scope_arenas_terminate(&assembly->thread_local_contexts[i].scope_arenas);
+		mir_arenas_terminate(&assembly->thread_local_contexts[i].mir_arenas);
+		ast_arena_terminate(&assembly->thread_local_contexts[i].ast_arena);
+		arena_terminate(&assembly->thread_local_contexts[i].small_array);
+		scfree(&assembly->thread_local_contexts[i].string_cache);
 	}
-	arrfree(assembly->thread_local_arenas);
+
+	arrfree(assembly->thread_local_contexts);
 }
 
 struct assembly *assembly_new(const struct target *target) {
@@ -573,12 +592,11 @@ struct assembly *assembly_new(const struct target *target) {
 	str_buf_setcap(&assembly->custom_linker_opt, 128);
 	vm_init(&assembly->vm, VM_STACK_SIZE);
 
-	arenas_init(assembly);
+	thread_local_init(assembly);
 
 	// set defaults
-	scope_arenas_init(&assembly->scope_arenas);
-	arena_init(&assembly->arenas.sarr, sarr_total_size, 16, EXPECTED_ARRAY_COUNT, (arena_elem_dtor_t)sarr_dtor);
-	assembly->gscope = scope_create(&assembly->scope_arenas, SCOPE_GLOBAL, NULL, NULL);
+	const u32 thread_index = get_worker_index();
+	assembly->gscope = scope_create(&assembly->thread_local_contexts[thread_index].scope_arenas, SCOPE_GLOBAL, NULL, NULL);
 	scope_reserve(assembly->gscope, 8192);
 
 	dl_init(assembly);
@@ -648,13 +666,10 @@ void assembly_delete(struct assembly *assembly) {
 
 	str_buf_free(&assembly->custom_linker_opt);
 	vm_terminate(&assembly->vm);
-	arena_terminate(&assembly->arenas.sarr);
-	scope_arenas_terminate(&assembly->scope_arenas);
 	llvm_terminate(assembly);
 	dl_terminate(assembly);
 	mir_terminate(assembly);
-	scfree(&assembly->string_cache);
-	arenas_terminate(assembly);
+	thread_local_terminate(assembly);
 	bfree(assembly);
 	return_zone();
 }
@@ -708,6 +723,8 @@ void assembly_add_native_lib(struct assembly *assembly,
                              const char      *lib_name,
                              struct token    *link_token,
                              bool             runtime_only) {
+	const u32 thread_index = get_worker_index();
+
 	spl_lock(&assembly->libs_lock);
 	const hash_t hash = strhash(make_str_from_c(lib_name));
 	{ // Search for duplicity.
@@ -718,7 +735,7 @@ void assembly_add_native_lib(struct assembly *assembly,
 	}
 	struct native_lib lib = {0};
 	lib.hash              = hash;
-	lib.user_name         = scdup2(&assembly->string_cache, make_str_from_c(lib_name));
+	lib.user_name         = scdup2(&assembly->thread_local_contexts[thread_index].string_cache, make_str_from_c(lib_name));
 	lib.linked_from       = link_token;
 	lib.runtime_only      = runtime_only;
 	arrput(assembly->libs, lib);

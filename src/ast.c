@@ -31,8 +31,6 @@
 #include "stb_ds.h"
 #include "tokens.h"
 
-#define ARENA_CHUNK_COUNT 2048
-
 struct ast *
 ast_create_node(struct arena *arena, enum ast_kind c, struct token *tok, struct scope *parent_scope) {
 	struct ast *node  = arena_alloc(arena);
@@ -48,7 +46,7 @@ ast_create_node(struct arena *arena, enum ast_kind c, struct token *tok, struct 
 
 // public
 void ast_arena_init(struct arena *arena) {
-	arena_init(arena, sizeof(struct ast), alignment_of(struct ast), ARENA_CHUNK_COUNT, NULL);
+	arena_init(arena, sizeof(struct ast), alignment_of(struct ast), 4096, NULL);
 }
 
 void ast_arena_terminate(struct arena *arena) {

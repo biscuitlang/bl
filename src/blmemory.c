@@ -29,6 +29,12 @@
 #include "blmemory.h"
 #include "common.h"
 
+#ifdef BL_USE_SIMD
+#include <emmintrin.h>
+#include <intrin.h>
+#include <nmmintrin.h>
+#endif
+
 #if BL_RPMALLOC_ENABLE
 #include "rpmalloc.h"
 
@@ -110,3 +116,37 @@ void bl_alloc_thread_terminate(void) {
 }
 
 #endif
+
+void *bl_zeromem(void *dest, usize size) {
+#ifdef BL_USE_SIMD
+	u8     *ptr             = (u8 *)dest;
+	__m128i zero            = _mm_setzero_si128();
+	usize   simd_chunk_size = sizeof(__m128i);
+	usize   simd_iterations = size / simd_chunk_size;
+	for (usize i = 0; i < simd_iterations; ++i) {
+		_mm_storeu_si128((__m128i *)(ptr + i * simd_chunk_size), zero);
+	}
+	usize remaining_bytes = size % simd_chunk_size;
+	if (remaining_bytes > 0) {
+		uint8_t *remaining_ptr = ptr + simd_iterations * simd_chunk_size;
+		for (size_t i = 0; i < remaining_bytes; ++i) {
+			remaining_ptr[i] = 0;
+		}
+	}
+	return dest;
+#else
+	void       *orig = dest;
+	const usize m    = size / sizeof(usize);
+	const usize d    = size - m * sizeof(usize);
+	usize       i;
+	for (i = 0; i < m; ++i) {
+		(*(usize *)dest) = 0;
+		dest             = (usize *)dest + 1;
+	}
+	for (i = 0; i < d; ++i) {
+		(*(u8 *)dest) = 0;
+		dest          = (u8 *)dest + 1;
+	}
+	return orig;
+#endif
+}

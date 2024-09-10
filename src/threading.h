@@ -39,7 +39,6 @@ struct context;
 struct mir_instr;
 
 struct job_context {
-	u32 thread_index;
 	union {
 		struct {
 			struct assembly *assembly;
@@ -76,6 +75,9 @@ void set_single_thread_mode(const bool is_single);
 // @Note 2024-09-09 This might change in future in case we implement processing of jobs on main
 // thread while waiting for others.
 u32 get_thread_count(void);
+
+// Resolve index used for the current worker thread.
+u32 get_worker_index(void);
 
 struct thread_local_storage *get_thread_local_storage(void);
 void                         init_thread_local_storage(void);

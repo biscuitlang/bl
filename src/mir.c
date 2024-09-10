@@ -41,9 +41,6 @@
 #pragma warning(disable : 6001)
 #endif
 
-#define ARENA_CHUNK_COUNT 1024
-#define ARENA_INSTR_CHUNK_COUNT 2048
-#define TYPE_CACHE_PREALLOCATE 2048
 #define RESOLVE_TYPE_FN_NAME cstr(".type")
 #define RESOLVE_EXPR_FN_NAME cstr(".expr")
 #define INIT_VALUE_FN_NAME cstr(".init")
@@ -111,9 +108,11 @@ struct context {
 	struct mir_analyze     *analyze; // Shortcut for assembly->mir->analyze
 	bool                    debug_mode;
 	struct builtin_types   *builtin_types; // Shortcut for assembly->builtin_types
-	struct string_cache    *string_cache;
+	struct string_cache   **string_cache;
 
-	struct mir_arenas *mir_arenas;
+	struct mir_arenas   *mir_arenas;
+	struct scope_arenas *scope_arenas;
+	struct arena        *small_array_arena;
 
 	// Ast -> MIR generation
 	struct {
@@ -1302,7 +1301,7 @@ static inline str_t _unique_name(struct context *ctx, char *prefix_ptr, s32 pref
 	zone();
 	static u64  ui  = 0;
 	const str_t tmp = make_str(prefix_ptr, prefix_len);
-	return_zone(scprint(&ctx->string_cache, "{str}.{u64}", tmp, ui++));
+	return_zone(scprint(ctx->string_cache, "{str}.{u64}", tmp, ui++));
 }
 
 static inline bool is_builtin(struct ast *ident, enum builtin_id_kind kind) {
@@ -1523,7 +1522,7 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 	}
 
 	// no collision
-	struct scope_entry *entry = scope_create_entry(&ctx->assembly->scope_arenas, SCOPE_ENTRY_INCOMPLETE, id, node, is_builtin);
+	struct scope_entry *entry = scope_create_entry(ctx->scope_arenas, SCOPE_ENTRY_INCOMPLETE, id, node, is_builtin);
 	scope_insert(scope, layer_index, entry);
 	scope_unlock(ctx->assembly->gscope);
 
@@ -1824,7 +1823,7 @@ struct mir_type *create_type_null(struct context *ctx, struct mir_type *base_typ
 	}
 
 	tmp                      = create_type(ctx, MIR_TYPE_NULL, &builtin_ids[BUILTIN_ID_NULL]);
-	tmp->id.str              = scdup2(&ctx->string_cache, name);
+	tmp->id.str              = scdup2(ctx->string_cache, name);
 	tmp->id.hash             = hash;
 	tmp->data.null.base_type = base_type;
 	tmp->can_use_cache       = base_type->can_use_cache;
@@ -1862,7 +1861,7 @@ struct mir_type *create_type_ptr(struct context *ctx, struct mir_type *src_type)
 	}
 
 	tmp                = create_type(ctx, MIR_TYPE_PTR, NULL);
-	tmp->id.str        = scdup2(&ctx->string_cache, name);
+	tmp->id.str        = scdup2(ctx->string_cache, name);
 	tmp->id.hash       = hash;
 	tmp->data.ptr.expr = src_type;
 	tmp->can_use_cache = src_type->can_use_cache;
@@ -1895,7 +1894,7 @@ struct mir_type *create_type_poly(struct context *ctx, struct id *user_id, bool 
 	}
 
 	tmp          = create_type(ctx, MIR_TYPE_POLY, user_id);
-	tmp->id.str  = scdup2(&ctx->string_cache, name);
+	tmp->id.str  = scdup2(ctx->string_cache, name);
 	tmp->id.hash = hash;
 
 	// We need to distinguish polymorph types as masters and slaves + we have unique user name for
@@ -1919,7 +1918,7 @@ struct mir_type *create_type_placeholder(struct context *ctx) {
 	hash_t hash = strhash(name);
 
 	struct mir_type *tmp = create_type(ctx, MIR_TYPE_PLACEHOLDER, &builtin_ids[BUILTIN_ID_TYPE_PLACEHOLDER]);
-	tmp->id.str          = scdup2(&ctx->string_cache, name);
+	tmp->id.str          = scdup2(ctx->string_cache, name);
 	tmp->id.hash         = hash;
 
 	type_init_llvm_dummy(ctx, tmp);
@@ -1945,7 +1944,7 @@ struct mir_type *create_type_fn(struct context *ctx, create_type_fn_args_t *args
 	const hash_t hash = strhash(name);
 
 	struct mir_type *tmp          = create_type(ctx, MIR_TYPE_FN, args->id);
-	tmp->id.str                   = scdup2(&ctx->string_cache, name);
+	tmp->id.str                   = scdup2(ctx->string_cache, name);
 	tmp->id.hash                  = hash;
 	tmp->data.fn.args             = args->args;
 	tmp->data.fn.ret_type         = ret_type;
@@ -1979,7 +1978,7 @@ struct mir_type *create_type_fn_group(struct context *ctx, struct id *user_id, m
 
 	struct mir_type *tmp        = create_type(ctx, MIR_TYPE_FN_GROUP, user_id);
 	tmp->id.hash                = strhash(name);
-	tmp->id.str                 = scdup2(&ctx->string_cache, name);
+	tmp->id.str                 = scdup2(ctx->string_cache, name);
 	tmp->data.fn_group.variants = variants;
 
 	type_init_llvm_dummy(ctx, tmp);
@@ -2014,7 +2013,7 @@ struct mir_type *create_type_array(struct context *ctx, struct id *user_id, stru
 
 	result                       = create_type(ctx, MIR_TYPE_ARRAY, user_id);
 	result->id.hash              = hash;
-	result->id.str               = scdup2(&ctx->string_cache, name);
+	result->id.str               = scdup2(ctx->string_cache, name);
 	result->data.array.elem_type = elem_type;
 	result->data.array.len       = len;
 
@@ -2070,7 +2069,7 @@ struct mir_type *create_type_struct_incomplete(struct context *ctx, struct id *u
 	result = create_type(ctx, MIR_TYPE_STRUCT, user_id);
 
 	result->id.hash                             = hash;
-	result->id.str                              = scdup2(&ctx->string_cache, name);
+	result->id.str                              = scdup2(ctx->string_cache, name);
 	result->can_use_cache                       = true;
 	result->data.strct.is_incomplete_fwd_struct = true;
 	result->data.strct.is_union                 = is_union;
@@ -2105,7 +2104,7 @@ struct mir_type *create_type_struct(struct context *ctx, create_type_struct_args
 		}
 
 		id.hash = hash;
-		id.str  = scdup2(&ctx->string_cache, name);
+		id.str  = scdup2(ctx->string_cache, name);
 
 	} else {
 		id = *args->id;
@@ -2208,9 +2207,9 @@ struct mir_type *create_type_slice(struct context *ctx, enum mir_type_kind kind,
 		}
 	}
 
-	mir_members_t *members = arena_alloc(&ctx->assembly->arenas.sarr);
+	mir_members_t *members = arena_alloc(ctx->small_array_arena);
 	// Slice layout struct { s64, *T }
-	struct scope *body_scope = scope_create(&ctx->assembly->scope_arenas, SCOPE_TYPE_STRUCT, ctx->assembly->gscope, NULL);
+	struct scope *body_scope = scope_create(ctx->scope_arenas, SCOPE_TYPE_STRUCT, ctx->assembly->gscope, NULL);
 
 	struct mir_member *tmp;
 	tmp = create_member(ctx, NULL, &builtin_ids[BUILTIN_ID_ARR_LEN], 0, len_type);
@@ -2222,7 +2221,7 @@ struct mir_type *create_type_slice(struct context *ctx, enum mir_type_kind kind,
 
 	struct id id;
 	id.hash = hash;
-	id.str  = scdup2(&ctx->string_cache, name);
+	id.str  = scdup2(ctx->string_cache, name);
 
 	sarrput(members, tmp);
 	provide_builtin_member(ctx, body_scope, tmp);
@@ -2273,9 +2272,9 @@ struct mir_type *create_type_struct_dynarr(struct context *ctx, struct id *user_
 		}
 	}
 
-	mir_members_t *members = arena_alloc(&ctx->assembly->arenas.sarr);
+	mir_members_t *members = arena_alloc(ctx->small_array_arena);
 	// Dynamic array layout struct { s64, *T, usize, allocator }
-	struct scope *body_scope = scope_create(&ctx->assembly->scope_arenas, SCOPE_TYPE_STRUCT, ctx->assembly->gscope, NULL);
+	struct scope *body_scope = scope_create(ctx->scope_arenas, SCOPE_TYPE_STRUCT, ctx->assembly->gscope, NULL);
 
 	struct mir_member *tmp;
 	{ // .len
@@ -2308,7 +2307,7 @@ struct mir_type *create_type_struct_dynarr(struct context *ctx, struct id *user_
 
 	struct id id;
 	id.hash = hash;
-	id.str  = scdup2(&ctx->string_cache, name);
+	id.str  = scdup2(ctx->string_cache, name);
 
 	result = create_type_struct(ctx,
 	                            &(create_type_struct_args_t){
@@ -2356,7 +2355,7 @@ static struct mir_type *create_type_enum(struct context *ctx, create_type_enum_a
 
 	result                     = create_type(ctx, MIR_TYPE_ENUM, args->user_id);
 	result->id.hash            = hash;
-	result->id.str             = scdup2(&ctx->string_cache, name);
+	result->id.str             = scdup2(ctx->string_cache, name);
 	result->data.enm.scope     = args->scope;
 	result->data.enm.base_type = args->base_type;
 	result->data.enm.variants  = args->variants;
@@ -3918,7 +3917,7 @@ inline struct mir_instr *append_instr_const_bool(struct context *ctx, struct ast
 
 struct mir_instr *append_instr_const_string(struct context *ctx, struct ast *node, str_t str) {
 	// Build up string as compound expression of length and pointer to data.
-	mir_instrs_t *values = arena_alloc(&ctx->assembly->arenas.sarr);
+	mir_instrs_t *values = arena_alloc(ctx->small_array_arena);
 
 	struct mir_instr *len = create_instr_const_int(ctx, node, ctx->builtin_types->t_s64, str.len);
 	struct mir_instr *ptr = create_instr_const_ptr(ctx, node, ctx->builtin_types->t_u8_ptr, (vm_stack_ptr_t)str.ptr);
@@ -4759,7 +4758,7 @@ static struct result analyze_instr_compound_regular(struct context *ctx, struct 
 		}
 
 		// Else iterate over values and do the mapping
-		ints_t     *value_member_mapping = arena_alloc(&ctx->assembly->arenas.sarr);
+		ints_t     *value_member_mapping = arena_alloc(ctx->small_array_arena);
 		ast_nodes_t initialized_members  = SARR_ZERO;
 		sarraddn(&initialized_members, memc);
 		memset(sarrdata(&initialized_members), 0, sizeof(void *) * sarrlenu(&initialized_members));
@@ -6035,7 +6034,7 @@ struct result analyze_instr_fn_proto(struct context *ctx, struct mir_instr_fn_pr
 	if (fn->id && !fn->linkage_name.len) { // Has ID and has no linkage name specified.
 		// Setup function full name.
 		if (name_prefix.len) {
-			fn->full_name = scprint(&ctx->string_cache, "{str}.{str}", name_prefix, fn->id->str);
+			fn->full_name = scprint(ctx->string_cache, "{str}.{str}", name_prefix, fn->id->str);
 		} else {
 			fn->full_name = fn->id->str;
 		}
@@ -6202,8 +6201,8 @@ struct result analyze_instr_fn_group(struct context *ctx, struct mir_instr_fn_gr
 		}
 	}
 	struct result result           = PASS;
-	mir_types_t  *variant_types    = arena_alloc(&ctx->assembly->arenas.sarr);
-	mir_fns_t    *variant_fns      = arena_alloc(&ctx->assembly->arenas.sarr);
+	mir_types_t  *variant_types    = arena_alloc(ctx->small_array_arena);
+	mir_fns_t    *variant_fns      = arena_alloc(ctx->small_array_arena);
 	mir_fns_t     validation_queue = SARR_ZERO;
 	sarrsetlen(variant_types, vc);
 	sarrsetlen(variant_fns, vc);
@@ -6460,7 +6459,7 @@ struct result analyze_instr_type_fn(struct context *ctx, struct mir_instr_type_f
 			}
 		}
 
-		args = arena_alloc(&ctx->assembly->arenas.sarr);
+		args = arena_alloc(ctx->small_array_arena);
 		for (usize i = 0; i < argc; ++i) {
 			bassert(sarrpeek(type_fn->args, i)->kind == MIR_INSTR_DECL_ARG);
 			struct mir_instr_decl_arg **arg_ref = (struct mir_instr_decl_arg **)&sarrpeek(type_fn->args, i);
@@ -6567,7 +6566,7 @@ struct result analyze_instr_type_fn_group(struct context *ctx, struct mir_instr_
 		report_error(INVALID_TYPE, group->base.node, "Function group type must contain one function type at least.");
 		return_zone(FAIL);
 	}
-	mir_types_t *variant_types = arena_alloc(&ctx->assembly->arenas.sarr);
+	mir_types_t *variant_types = arena_alloc(ctx->small_array_arena);
 	sarrsetlen(variant_types, varc);
 	for (usize i = 0; i < varc; ++i) {
 		struct mir_instr **variant_ref = &sarrpeek(variants, i);
@@ -6796,7 +6795,7 @@ struct result analyze_instr_type_struct(struct context *ctx, struct mir_instr_ty
 		struct mir_instr            **member_instr;
 		struct mir_instr_decl_member *decl_member;
 		struct mir_type              *member_type;
-		members = arena_alloc(&ctx->assembly->arenas.sarr);
+		members = arena_alloc(ctx->small_array_arena);
 		for (usize i = 0; i < sarrlenu(type_struct->members); ++i) {
 			member_instr = &sarrpeek(type_struct->members, i);
 			if (analyze_slot(ctx, analyze_slot_conf_basic, member_instr, NULL) != ANALYZE_PASSED) {
@@ -7085,7 +7084,7 @@ struct result analyze_instr_type_enum(struct context *ctx, struct mir_instr_type
 		base_type = is_flags ? ctx->builtin_types->t_u32 : ctx->builtin_types->t_s32;
 	}
 	bassert(base_type && "Invalid enum base type.");
-	mir_variants_t *variants = arena_alloc(&ctx->assembly->arenas.sarr);
+	mir_variants_t *variants = arena_alloc(ctx->small_array_arena);
 	for (usize i = 0; i < sarrlenu(variant_instrs); ++i) {
 		struct mir_instr              *it            = sarrpeek(variant_instrs, i);
 		struct mir_instr_decl_variant *variant_instr = (struct mir_instr_decl_variant *)it;
@@ -8184,7 +8183,7 @@ struct result analyze_call_stage_generate(struct context *ctx, struct mir_instr_
 
 		replacement_fn->generated.first_call_node = call->base.node;
 		if (debug_replacement_str.len) {
-			str_t debug_replacement_str_dup = scdup2(&ctx->string_cache, debug_replacement_str);
+			str_t debug_replacement_str_dup = scdup2(ctx->string_cache, debug_replacement_str);
 
 			replacement_fn->generated.debug_replacement_types = debug_replacement_str_dup;
 		} else {
@@ -8380,7 +8379,7 @@ struct result analyze_call_stage_finalize(struct context *ctx, struct mir_instr_
 			const s32 vargsc = (s32)(call_argc - (func_argc - 1));
 			bassert(vargsc >= 0);
 
-			mir_instrs_t *values = arena_alloc(&ctx->assembly->arenas.sarr);
+			mir_instrs_t *values = arena_alloc(ctx->small_array_arena);
 
 			struct mir_instr *vargs = ref_instr(create_instr_vargs_impl(ctx, call->base.node, expected_vargs_elem_type, values));
 
@@ -8712,7 +8711,7 @@ enum stage_state analyze_stage_arrtoslice(struct context *ctx, struct mir_instr 
 	if (!can_impl_convert_to(ctx, from_type, slot_type)) return ANALYZE_STAGE_CONTINUE;
 
 	const s64     len    = from_type->data.array.len;
-	mir_instrs_t *values = arena_alloc(&ctx->assembly->arenas.sarr);
+	mir_instrs_t *values = arena_alloc(ctx->small_array_arena);
 
 	if (!is_reference) {
 		analyze_make_tmp_var(ctx, input, IMPL_TOSLICE_TMP);
@@ -9949,7 +9948,7 @@ void ast_stmt_switch(struct context *ctx, struct ast *stmt_switch) {
 	ast_nodes_t *ast_cases = stmt_switch->data.stmt_switch.cases;
 	bassert(ast_cases);
 
-	mir_switch_cases_t *cases = arena_alloc(&ctx->assembly->arenas.sarr);
+	mir_switch_cases_t *cases = arena_alloc(ctx->small_array_arena);
 
 	struct mir_fn *fn = ast_current_fn(ctx);
 	bassert(fn);
@@ -10024,7 +10023,7 @@ void ast_stmt_return(struct context *ctx, struct ast *ret) {
 	if (is_multireturn) {
 		// Generate multi-return compound expression to group all values into single one.
 		const usize   valc   = sarrlenu(ast_values);
-		mir_instrs_t *values = arena_alloc(&ctx->assembly->arenas.sarr);
+		mir_instrs_t *values = arena_alloc(ctx->small_array_arena);
 		sarrsetlen(values, valc);
 		struct ast *ast_value = NULL;
 		for (usize i = valc; i-- > 0;) {
@@ -10099,7 +10098,7 @@ struct mir_instr *ast_expr_compound(struct context *ctx, struct ast *cmp) {
 
 	if (!ast_values) return append_instr_compound(ctx, cmp, type, NULL, false);
 
-	mir_instrs_t *values = arena_alloc(&ctx->assembly->arenas.sarr);
+	mir_instrs_t *values = arena_alloc(ctx->small_array_arena);
 	sarrsetlen(values, valc);
 	struct ast       *ast_value;
 	struct mir_instr *value;
@@ -10255,7 +10254,7 @@ struct mir_instr *ast_expr_call(struct context *ctx, struct ast *call) {
 		}
 	}
 
-	mir_instrs_t *args = arena_alloc(&ctx->assembly->arenas.sarr);
+	mir_instrs_t *args = arena_alloc(ctx->small_array_arena);
 
 	// arguments need to be generated into reverse order due to bytecode call
 	// conventions
@@ -10492,7 +10491,7 @@ struct mir_instr *ast_expr_lit_fn_group(struct context *ctx, struct ast *group) 
 	ast_nodes_t *ast_variants = group->data.expr_fn_group.variants;
 	bassert(ast_variants);
 	bassert(sarrlenu(ast_variants));
-	mir_instrs_t *variants = arena_alloc(&ctx->assembly->arenas.sarr);
+	mir_instrs_t *variants = arena_alloc(ctx->small_array_arena);
 	sarrsetlen(variants, sarrlenu(ast_variants));
 	for (usize i = 0; i < sarrlenu(ast_variants); ++i) {
 		struct ast       *it = sarrpeek(ast_variants, i);
@@ -11084,7 +11083,7 @@ struct mir_instr *ast_type_fn(struct context *ctx, struct ast *type_fn) {
 	mir_instrs_t *args = NULL;
 	const usize   argc = sarrlenu(ast_arg_types);
 	if (argc) {
-		args = arena_alloc(&ctx->assembly->arenas.sarr);
+		args = arena_alloc(ctx->small_array_arena);
 		sarrsetlen(args, argc);
 
 		// Argument types are appended in original order (in general it does not matter, they
@@ -11119,7 +11118,7 @@ struct mir_instr *ast_type_fn(struct context *ctx, struct ast *type_fn) {
 struct mir_instr *ast_type_fn_group(struct context *ctx, struct ast *group) {
 	ast_nodes_t *ast_variants = group->data.type_fn_group.variants;
 	bassert(ast_variants);
-	mir_instrs_t *variants = arena_alloc(&ctx->assembly->arenas.sarr);
+	mir_instrs_t *variants = arena_alloc(ctx->small_array_arena);
 	sarrsetlen(variants, sarrlenu(ast_variants));
 
 	for (usize i = 0; i < sarrlenu(ast_variants); ++i) {
@@ -11209,7 +11208,7 @@ struct mir_instr *ast_type_enum(struct context *ctx, struct ast *type_enum) {
 	struct mir_instr *base_type = ast(ctx, ast_base_type);
 
 	struct scope *scope    = type_enum->data.type_enm.scope;
-	mir_instrs_t *variants = arena_alloc(&ctx->assembly->arenas.sarr);
+	mir_instrs_t *variants = arena_alloc(ctx->small_array_arena);
 
 	// Build variant instructions
 	struct mir_instr   *variant;
@@ -11244,7 +11243,7 @@ struct mir_instr *ast_type_struct(struct context *ctx, struct ast *type_struct) 
 	bassert(ast_members);
 	struct ast *ast_base_type = type_struct->data.type_strct.base_type;
 
-	mir_instrs_t *members = arena_alloc(&ctx->assembly->arenas.sarr);
+	mir_instrs_t *members = arena_alloc(ctx->small_array_arena);
 	struct scope *scope   = type_struct->data.type_strct.scope;
 	bassert(scope);
 
@@ -11794,12 +11793,12 @@ str_buf_t mir_type2str(const struct mir_type *type, bool prefer_name) {
 
 static void provide_builtin_arch(struct context *ctx) {
 	struct builtin_types *bt       = ctx->builtin_types;
-	struct scope         *scope    = scope_create(&ctx->assembly->scope_arenas, SCOPE_TYPE_ENUM, ctx->assembly->gscope, NULL);
-	mir_variants_t       *variants = arena_alloc(&ctx->assembly->arenas.sarr);
+	struct scope         *scope    = scope_create(ctx->scope_arenas, SCOPE_TYPE_ENUM, ctx->assembly->gscope, NULL);
+	mir_variants_t       *variants = arena_alloc(ctx->small_array_arena);
 	static struct id      ids[static_arrlenu(arch_names)];
 	for (usize i = 0; i < static_arrlenu(arch_names); ++i) {
 		str_t name = make_str_from_c(arch_names[i]);
-		name       = scdup2(&ctx->string_cache, name);
+		name       = scdup2(ctx->string_cache, name);
 		name       = str_toupper(name);
 
 		struct mir_variant *variant = create_variant(ctx, id_init(&ids[i], name), bt->t_s32, i);
@@ -11821,12 +11820,12 @@ static void provide_builtin_arch(struct context *ctx) {
 
 static void provide_builtin_os(struct context *ctx) {
 	struct builtin_types *bt       = ctx->builtin_types;
-	struct scope         *scope    = scope_create(&ctx->assembly->scope_arenas, SCOPE_TYPE_ENUM, ctx->assembly->gscope, NULL);
-	mir_variants_t       *variants = arena_alloc(&ctx->assembly->arenas.sarr);
+	struct scope         *scope    = scope_create(ctx->scope_arenas, SCOPE_TYPE_ENUM, ctx->assembly->gscope, NULL);
+	mir_variants_t       *variants = arena_alloc(ctx->small_array_arena);
 	static struct id      ids[static_arrlenu(os_names)];
 	for (usize i = 0; i < static_arrlenu(os_names); ++i) {
 		str_t name = make_str_from_c(os_names[i]);
-		name       = scdup2(&ctx->string_cache, name);
+		name       = scdup2(ctx->string_cache, name);
 		name       = str_toupper(name);
 
 		struct mir_variant *variant = create_variant(ctx, id_init(&ids[i], name), bt->t_s32, i);
@@ -11848,12 +11847,12 @@ static void provide_builtin_os(struct context *ctx) {
 
 static void provide_builtin_env(struct context *ctx) {
 	struct builtin_types *bt       = ctx->builtin_types;
-	struct scope         *scope    = scope_create(&ctx->assembly->scope_arenas, SCOPE_TYPE_ENUM, ctx->assembly->gscope, NULL);
-	mir_variants_t       *variants = arena_alloc(&ctx->assembly->arenas.sarr);
+	struct scope         *scope    = scope_create(ctx->scope_arenas, SCOPE_TYPE_ENUM, ctx->assembly->gscope, NULL);
+	mir_variants_t       *variants = arena_alloc(ctx->small_array_arena);
 	static struct id      ids[static_arrlenu(env_names)];
 	for (usize i = 0; i < static_arrlenu(env_names); ++i) {
 		str_t name = make_str_from_c(env_names[i]);
-		name       = scdup2(&ctx->string_cache, name);
+		name       = scdup2(ctx->string_cache, name);
 		name       = str_toupper(name);
 
 		struct mir_variant *variant = create_variant(ctx, id_init(&ids[i], name), bt->t_s32, i);
@@ -11913,15 +11912,15 @@ str_t get_intrinsic(const str_t name) {
 
 void mir_arenas_init(struct mir_arenas *arenas) {
 	const usize instr_size = SIZEOF_MIR_INSTR;
-	arena_init(&arenas->instr, instr_size, ALIGNOF_MIR_INSTR, ARENA_INSTR_CHUNK_COUNT, NULL);
-	arena_init(&arenas->type, sizeof(struct mir_type), alignment_of(struct mir_type), ARENA_CHUNK_COUNT * 8, NULL);
-	arena_init(&arenas->var, sizeof(struct mir_var), alignment_of(struct mir_var), ARENA_CHUNK_COUNT, NULL);
-	arena_init(&arenas->fn_generated, sizeof(struct mir_fn_generated_recipe), alignment_of(struct mir_fn_generated_recipe), ARENA_CHUNK_COUNT, (arena_elem_dtor_t)&fn_poly_dtor);
-	arena_init(&arenas->fn, sizeof(struct mir_fn), alignment_of(struct mir_fn), ARENA_CHUNK_COUNT, (arena_elem_dtor_t)&fn_dtor);
-	arena_init(&arenas->member, sizeof(struct mir_member), alignment_of(struct mir_member), ARENA_CHUNK_COUNT, NULL);
-	arena_init(&arenas->variant, sizeof(struct mir_variant), alignment_of(struct mir_variant), ARENA_CHUNK_COUNT, NULL);
-	arena_init(&arenas->arg, sizeof(struct mir_arg), alignment_of(struct mir_arg), ARENA_CHUNK_COUNT / 2, NULL);
-	arena_init(&arenas->fn_group, sizeof(struct mir_fn_group), alignment_of(struct mir_fn_group), ARENA_CHUNK_COUNT / 2, NULL);
+	arena_init(&arenas->instr, instr_size, ALIGNOF_MIR_INSTR, 4096, NULL);
+	arena_init(&arenas->type, sizeof(struct mir_type), alignment_of(struct mir_type), 2048, NULL);
+	arena_init(&arenas->var, sizeof(struct mir_var), alignment_of(struct mir_var), 1024, NULL);
+	arena_init(&arenas->fn_generated, sizeof(struct mir_fn_generated_recipe), alignment_of(struct mir_fn_generated_recipe), 512, (arena_elem_dtor_t)&fn_poly_dtor);
+	arena_init(&arenas->fn, sizeof(struct mir_fn), alignment_of(struct mir_fn), 1024, (arena_elem_dtor_t)&fn_dtor);
+	arena_init(&arenas->member, sizeof(struct mir_member), alignment_of(struct mir_member), 2048, NULL);
+	arena_init(&arenas->variant, sizeof(struct mir_variant), alignment_of(struct mir_variant), 2048, NULL);
+	arena_init(&arenas->arg, sizeof(struct mir_arg), alignment_of(struct mir_arg), 1024, NULL);
+	arena_init(&arenas->fn_group, sizeof(struct mir_fn_group), alignment_of(struct mir_fn_group), 512, NULL);
 }
 
 void mir_arenas_terminate(struct mir_arenas *arenas) {
@@ -11936,7 +11935,7 @@ void mir_arenas_terminate(struct mir_arenas *arenas) {
 	arena_terminate(&arenas->fn_generated);
 }
 
-static void init_context(struct context *ctx, struct assembly *assembly, struct string_cache *string_cache, u32 thread_index) {
+static void init_context(struct context *ctx, struct assembly *assembly) {
 	memset(ctx, 0, sizeof(struct context));
 	ctx->assembly                        = assembly;
 	ctx->debug_mode                      = assembly->target->opt == ASSEMBLY_OPT_DEBUG;
@@ -11944,11 +11943,15 @@ static void init_context(struct context *ctx, struct assembly *assembly, struct 
 	ctx->vm                              = &assembly->vm;
 	ctx->mir                             = &assembly->mir;
 	ctx->analyze                         = &assembly->mir.analyze;
-	ctx->string_cache                    = string_cache;
 	ctx->fn_generate.current_scope_layer = SCOPE_DEFAULT_LAYER;
 	ctx->ast.current_defer_stack_index   = -1;
-	// ctx->mir_arenas                      = &assembly->thread_local_arenas[thread_index].mir_arenas;
-	ctx->mir_arenas                      = &assembly->mir.arenas;
+
+	const u32 thread_index = get_worker_index();
+
+	ctx->mir_arenas        = &assembly->thread_local_contexts[thread_index].mir_arenas;
+	ctx->scope_arenas      = &assembly->thread_local_contexts[thread_index].scope_arenas;
+	ctx->small_array_arena = &assembly->thread_local_contexts[thread_index].small_array;
+	ctx->string_cache      = &assembly->thread_local_contexts[thread_index].string_cache;
 }
 
 static void terminate_context(struct context *ctx) {
@@ -11958,7 +11961,7 @@ static void terminate_context(struct context *ctx) {
 
 static void initialize_builtins(struct assembly *assembly) {
 	struct context ctx;
-	init_context(&ctx, assembly, assembly->string_cache, 0);
+	init_context(&ctx, assembly);
 
 	struct builtin_types *bt   = &assembly->builtin_types;
 	bt->t_s8                   = create_type_int(&ctx, &builtin_ids[BUILTIN_ID_TYPE_S8], 8, true);
@@ -12030,9 +12033,7 @@ void mir_init(struct assembly *assembly) {
 	struct mir *mir = &assembly->mir;
 
 	mir->type_cache = NULL;
-	tbl_init(mir->type_cache, TYPE_CACHE_PREALLOCATE);
-
-	mir_arenas_init(&mir->arenas);
+	tbl_init(mir->type_cache, 2048);
 
 	arrsetcap(mir->global_instrs, 4096);
 	arrsetcap(mir->exported_instrs, 256);
@@ -12042,7 +12043,8 @@ void mir_init(struct assembly *assembly) {
 
 	mtx_init(&mir->analyze.stack_lock, mtx_plain);
 
-	mir->analyze.unnamed_entry = scope_create_entry(&assembly->scope_arenas, SCOPE_ENTRY_UNNAMED, NULL, NULL, true);
+	const u32 thread_index     = get_worker_index();
+	mir->analyze.unnamed_entry = scope_create_entry(&assembly->thread_local_contexts[thread_index].scope_arenas, SCOPE_ENTRY_UNNAMED, NULL, NULL, true);
 
 	mtx_init(&mir->type_cache_lock, mtx_recursive);
 	spl_init(&mir->global_instrs_lock);
@@ -12063,7 +12065,6 @@ void mir_terminate(struct assembly *assembly) {
 	hmfree(mir->rtti_table);
 	arrfree(mir->global_instrs);
 	arrfree(mir->exported_instrs);
-	mir_arenas_terminate(&mir->arenas); // @Cleanup
 	tbl_free(mir->type_cache);
 
 	mtx_destroy(&mir->analyze.stack_lock);
@@ -12085,19 +12086,13 @@ struct mir_var *mir_get_rtti(struct assembly *assembly, hash_t type_hash) {
 	return result;
 }
 
-void mir_unit_run(struct assembly *assembly, struct unit *unit, const u32 thread_index) {
+void mir_unit_run(struct assembly *assembly, struct unit *unit) {
 	zone();
 	runtime_measure_begin(mir_unit);
-
-	blog("THREAD: %u", thread_index);
-
 	struct context ctx;
-	init_context(&ctx, assembly, unit->string_cache, thread_index);
-
+	init_context(&ctx, assembly);
 	ast(&ctx, unit->ast);
-
 	terminate_context(&ctx);
-
 	batomic_fetch_add_s32(&assembly->stats.mir_generate_ms, runtime_measure_end(mir_unit));
 	return_zone();
 }
@@ -12108,7 +12103,7 @@ void mir_analyze_run(struct assembly *assembly) {
 
 	// Analyze pass
 	struct context ctx;
-	init_context(&ctx, assembly, assembly->string_cache, 0);
+	init_context(&ctx, assembly);
 
 	analyze(&ctx);
 	if (builder.errorc) goto DONE;

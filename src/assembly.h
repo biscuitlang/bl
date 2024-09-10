@@ -118,18 +118,6 @@ enum environment {
 };
 extern const char *env_names[_ENV_COUNT];
 
-static const usize sarr_total_size = sizeof(union {
-	ast_nodes_t        _1;
-	mir_args_t         _2;
-	mir_fns_t          _3;
-	mir_types_t        _4;
-	mir_members_t      _5;
-	mir_variants_t     _6;
-	mir_instrs_t       _7;
-	mir_switch_cases_t _8;
-	ints_t             _9;
-});
-
 struct target_triple {
 	enum arch             arch;
 	enum vendor           vendor;
@@ -202,9 +190,12 @@ struct target {
 	bmagic_member
 };
 
-struct assembly_arenas {
-	struct scope_arenas scope_arenas;
-	struct mir_arenas   mir_arenas;
+struct assembly_thread_local_context {
+	struct scope_arenas  scope_arenas;
+	struct mir_arenas    mir_arenas;
+	struct arena         small_array;
+	struct arena         ast_arena;
+	struct string_cache *string_cache;
 };
 
 struct assembly {
@@ -218,15 +209,8 @@ struct assembly {
 	array(struct native_lib) libs;
 	spl_t libs_lock;
 
-	struct string_cache *string_cache;
-	struct scope_arenas  scope_arenas;
-
-	struct {
-		struct arena sarr;
-	} arenas; // @Cleanup 2024-09-09 move to assembly arenas.
-
-	// We have group of arenas for each worker thread to prevent locking.
-	array(struct assembly_arenas) thread_local_arenas;
+	// We have group of thread local contexts for each worker thread to prevent locking.
+	array(struct assembly_thread_local_context) thread_local_contexts;
 
 	struct mir mir;
 

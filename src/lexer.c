@@ -34,8 +34,8 @@
 #include <string.h>
 
 #ifdef BL_USE_SIMD
-	#include <emmintrin.h>
-	#include <intrin.h>
+#include <emmintrin.h>
+#include <intrin.h>
 #endif
 
 #define is_ident(c) (isalnum(c) || (c) == '_')
@@ -48,9 +48,10 @@
 	(void)0
 
 struct context {
-	struct assembly *assembly;
-	struct unit     *unit;
-	struct tokens   *tokens;
+	struct assembly      *assembly;
+	struct unit          *unit;
+	struct tokens        *tokens;
+	struct string_cache **string_cache;
 	sarr_t(char, 64) strtmp; // @Cleanup: Use tmp string from builder.
 	jmp_buf jmp_error;
 	char   *c;
@@ -118,7 +119,7 @@ bool scan_docs(struct context *ctx, struct token *tok) {
 		ctx->c++;
 	}
 
-	tok->value.str    = scdup2(&ctx->unit->string_cache, make_str(begin, len_str));
+	tok->value.str    = scdup2(ctx->string_cache, make_str(begin, len_str));
 	tok->location.len = len_parsed + 3; // + 3 = '///'
 	ctx->col += len_parsed;
 	return true;
@@ -262,8 +263,7 @@ bool scan_string(struct context *ctx, struct token *tok) {
 		sarrput(&ctx->strtmp, c);
 	}
 DONE:
-	tok->value.str =
-	    scdup2(&ctx->unit->string_cache, make_str(sarrdata(&ctx->strtmp), sarrlenu(&ctx->strtmp)));
+	tok->value.str = scdup2(ctx->string_cache, make_str(sarrdata(&ctx->strtmp), sarrlenu(&ctx->strtmp)));
 
 	tok->location.len = len;
 	tok->location.col += 1;
@@ -320,8 +320,8 @@ bool scan_char(struct context *ctx, struct token *tok) {
 
 inline s32 c_to_number(char c, s32 base) {
 #ifndef _MSC_VER
-	#pragma GCC diagnostic push
-	#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 #endif
 	switch (base) {
 	case 16:
@@ -347,7 +347,7 @@ inline s32 c_to_number(char c, s32 base) {
 
 	return -1;
 #ifndef _MSC_VER
-	#pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
 #endif
 }
 
@@ -501,8 +501,8 @@ SCAN:
 			}
 
 #ifndef _MSC_VER
-	#pragma GCC diagnostic push
-	#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 #endif
 			switch (tok.sym) {
 			case SYM_DCOMMENT:
@@ -530,7 +530,7 @@ SCAN:
 				goto PUSH_TOKEN;
 			}
 #ifndef _MSC_VER
-	#pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
 #endif
 		}
 	}
@@ -556,17 +556,20 @@ PUSH_TOKEN:
 	goto SCAN;
 }
 
-void lexer_run(struct assembly *assembly, struct unit *unit, u32 UNUSED(thread_index)) {
+void lexer_run(struct assembly *assembly, struct unit *unit) {
 	runtime_measure_begin(lex);
 
+	const u32 thread_index = get_worker_index();
+
 	struct context ctx = {
-	    .assembly = assembly,
-	    .tokens   = &unit->tokens,
-	    .unit     = unit,
-	    .c        = unit->src,
-	    .line     = 1,
-	    .col      = 1,
-	    .strtmp   = SARR_ZERO,
+	    .assembly     = assembly,
+	    .tokens       = &unit->tokens,
+	    .unit         = unit,
+	    .c            = unit->src,
+	    .line         = 1,
+	    .col          = 1,
+	    .strtmp       = SARR_ZERO,
+	    .string_cache = &assembly->thread_local_contexts[thread_index].string_cache,
 	};
 
 	zone();

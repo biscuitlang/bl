@@ -51,6 +51,9 @@ static bool search_library(struct context *ctx,
                            str_t          *out_lib_filepath) {
 	bool found = false;
 
+	const u32 thread_index = get_worker_index();
+	struct string_cache **string_cache = &ctx->assembly->thread_local_contexts[thread_index].string_cache;
+
 	str_buf_t lib_filepath      = get_tmp_str();
 	str_buf_t lib_platform_name = platform_lib_name(lib_name);
 
@@ -66,13 +69,13 @@ static bool search_library(struct context *ctx,
 			builder_log("  Found: '%.*s'", lib_filepath.len, lib_filepath.ptr);
 
 			if (out_lib_name) {
-				(*out_lib_name) = scdup2(&ctx->assembly->string_cache, lib_platform_name);
+				(*out_lib_name) = scdup2(string_cache, lib_platform_name);
 			}
 			if (out_lib_dir) {
-				(*out_lib_dir) = scdup2(&ctx->assembly->string_cache, make_str_from_c(dir));
+				(*out_lib_dir) = scdup2(string_cache, make_str_from_c(dir));
 			}
 			if (out_lib_filepath) {
-				(*out_lib_filepath) = scdup2(&ctx->assembly->string_cache, lib_filepath);
+				(*out_lib_filepath) = scdup2(string_cache, lib_filepath);
 			}
 			found = true;
 			goto DONE;

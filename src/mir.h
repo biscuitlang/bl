@@ -132,8 +132,6 @@ struct mir_analyze {
 };
 
 struct mir {
-	struct mir_arenas arenas;
-
 	array(struct mir_instr *) global_instrs; // All global instructions.
 	spl_t global_instrs_lock;
 
@@ -1100,7 +1098,7 @@ struct mir_var *mir_get_rtti(struct assembly *assembly, hash_t type_hash);
 bool            mir_is_in_comptime_fn(struct mir_instr *instr);
 str_buf_t       mir_type2str(const struct mir_type *type, bool prefer_name);
 const char     *mir_instr_name(const struct mir_instr *instr);
-void            mir_unit_run(struct assembly *assembly, struct unit *unit, u32 thread_index);
+void            mir_unit_run(struct assembly *assembly, struct unit *unit);
 void            mir_analyze_run(struct assembly *assembly);
 struct mir_fn  *mir_get_callee(const struct mir_instr_call *call);
 str_t           mir_get_fn_readable_name(struct mir_fn *fn);
