@@ -27,6 +27,7 @@
 // =================================================================================================
 
 #include "arena.h"
+#include "threading.h"
 
 #define total_elem_size(A) ((A)->elem_size_bytes + (A)->elem_alignment)
 
@@ -42,7 +43,7 @@ static inline struct arena_chunk *alloc_chunk(struct arena *arena) {
 	if (!chunk) babort("bad alloc");
 	// bl_zeromem(chunk, chunk_size);
 	chunk->count = 0;
-	chunk->next = NULL;
+	chunk->next  = NULL;
 	return_zone(chunk);
 }
 
@@ -83,8 +84,8 @@ void arena_init(struct arena     *arena,
 	// Preallocate right away...
 	// arena->current_chunk = alloc_chunk(arena);
 	// arena->first_chunk   = arena->current_chunk;
-	arena->first_chunk     = NULL;
-	arena->current_chunk   = NULL;
+	arena->first_chunk   = NULL;
+	arena->current_chunk = NULL;
 }
 
 void arena_terminate(struct arena *arena) {
