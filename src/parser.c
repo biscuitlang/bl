@@ -27,6 +27,7 @@
 // =================================================================================================
 
 #include "builder.h"
+#include "table.h"
 #include "tokens_inline_utils.h"
 #include <setjmp.h>
 
@@ -65,18 +66,21 @@ enum hash_directive_flags {
 #undef HD_GEN
 };
 
-struct context {
-	struct {
-		hash_t                    key;
-		enum hash_directive_flags value;
-	} *hash_directive_table;
+struct hash_directive_entry {
+	hash_t                    hash;
+	enum hash_directive_flags value;
+};
 
-	struct assembly       *assembly;
-	struct unit           *unit;
-	struct arena          *ast_arena;
-	struct arena          *sarr_arena;
-	struct scopes_context *scopes_context;
-	struct tokens         *tokens;
+struct context {
+	my_hash_table(struct hash_directive_entry) hash_directive_table;
+
+	struct assembly      *assembly;
+	struct unit          *unit;
+	struct arena         *ast_arena;
+	struct arena         *sarr_arena;
+	struct scope_arenas  *scope_arenas;
+	struct tokens        *tokens;
+	struct string_cache **string_cache;
 
 	// tmps
 	array(struct scope *) scope_stack;
@@ -306,7 +310,7 @@ bool parse_docs(struct context *ctx) {
 		while ((tok = tokens_consume_if(ctx->tokens, SYM_DCOMMENT))) {
 			str_buf_append_fmt(&tmp, "{str}\n", tok->value.str);
 		}
-		str = scdup2(&ctx->unit->string_cache, tmp);
+		str = scdup2(ctx->string_cache, tmp);
 		put_tmp_str(tmp);
 	}
 
@@ -364,7 +368,7 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 
 	const str_t  directive = tok_directive->value.str;
 	const hash_t hash      = strhash(directive);
-	const s64    index     = hmgeti(ctx->hash_directive_table, hash);
+	const s64    index     = tbl_lookup_index(ctx->hash_directive_table, hash);
 	if (index == -1) goto INVALID;
 	const enum hash_directive_flags hd_flag = ctx->hash_directive_table[index].value;
 	bassert(directive.len);
@@ -502,8 +506,7 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 		// Parse optional message.
 		struct token *tok_message = tokens_consume_if(ctx->tokens, SYM_STRING);
 		if (!tok_message) return_zone(NULL);
-		struct ast *message =
-		    ast_create_node(ctx->ast_arena, AST_EXPR_LIT_STRING, tok_message, scope_get(ctx));
+		struct ast *message           = ast_create_node(ctx->ast_arena, AST_EXPR_LIT_STRING, tok_message, scope_get(ctx));
 		message->data.expr_string.val = tok_message->value.str;
 		return_zone(message);
 	}
@@ -538,8 +541,7 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 		// and it is visible only from such unit.
 		// Private scope contains only global entity declarations with 'private' flag set
 		// in ast node.
-		struct scope *scope = scope_create(
-		    ctx->scopes_context, SCOPE_PRIVATE, scope_get(ctx), &tok_directive->location);
+		struct scope *scope = scope_create(ctx->scope_arenas, SCOPE_PRIVATE, scope_get(ctx), &tok_directive->location);
 
 		ctx->current_private_scope = scope;
 		ctx->unit->private_scope   = scope;
@@ -559,33 +561,26 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 			             "Expected scope name after #scope directive.");
 			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_directive, scope_get(ctx)));
 		}
-		struct ast *scope =
-		    ast_create_node(ctx->ast_arena, AST_SCOPE, tok_directive, scope_get(ctx));
+		struct ast *scope       = ast_create_node(ctx->ast_arena, AST_SCOPE, tok_directive, scope_get(ctx));
 		scope->data.scope.ident = ident;
 		struct id *id           = &ident->data.ident.id;
 
 		// Perform lookup of named scope here, in case named scope already exist in global scope
 		// we can reuse it!.
 		if (scope_get(ctx)->kind == SCOPE_GLOBAL) scope_lock(scope_get(ctx));
-		struct scope_entry *scope_entry =
-		    scope_lookup(scope_get(ctx), &(scope_lookup_args_t){.id = id});
+		struct scope_entry *scope_entry = scope_lookup(scope_get(ctx), &(scope_lookup_args_t){.id = id});
 		if (scope_entry) {
-			bassert(scope_entry->kind == SCOPE_ENTRY_NAMED_SCOPE &&
-			        "Found scope entry is expected to be named scope!");
+			bassert(scope_entry->kind == SCOPE_ENTRY_NAMED_SCOPE && "Found scope entry is expected to be named scope!");
 			bassert(scope_entry->data.scope && scope_entry->data.scope->kind == SCOPE_NAMED);
 		} else {
-			scope_entry = scope_create_entry(
-			    &ctx->assembly->scopes_context, SCOPE_ENTRY_NAMED_SCOPE, id, scope, false);
-
+			scope_entry = scope_create_entry(ctx->scope_arenas, SCOPE_ENTRY_NAMED_SCOPE, id, scope, false);
 			scope_insert(scope_get(ctx), SCOPE_DEFAULT_LAYER, scope_entry);
 
-			struct scope *named_scope = scope_create(
-			    ctx->scopes_context, SCOPE_NAMED, scope_get(ctx), &tok_directive->location);
+			struct scope *named_scope = scope_create(ctx->scope_arenas, SCOPE_NAMED, scope_get(ctx), &tok_directive->location);
+			scope_reserve(named_scope, 2048);
 
 			named_scope->name       = id->str;
 			scope_entry->data.scope = named_scope;
-
-			scope_reserve(named_scope, 2048);
 		}
 		if (scope_get(ctx)->kind == SCOPE_GLOBAL) scope_unlock(scope_get(ctx));
 		if (ctx->current_named_scope) {
@@ -771,7 +766,7 @@ struct ast *parse_decl_member(struct context *ctx, s32 UNUSED(index)) {
 		char      buf[64]; // More than enough.
 		const s32 len = snprintf(buf, static_arrlenu(buf), "_%d", index);
 		bassert(len >= 0 && len < (s32)static_arrlenu(buf) && "Buffer overflow!");
-		const str_t ident = scdup2(&ctx->unit->string_cache, make_str(buf, len));
+		const str_t ident = scdup2(ctx->string_cache, make_str(buf, len));
 		name              = ast_create_node(ctx->ast_arena, AST_IDENT, tok_begin, scope_get(ctx));
 		id_init(&name->data.ident.id, ident);
 	}
@@ -1033,8 +1028,7 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 		} else if (is_expression) {
 			true_branch = parse_single_block_stmt_or_expr(ctx, NULL);
 		} else {
-			struct scope *scope =
-			    scope_create(ctx->scopes_context, SCOPE_LEXICAL, scope_get(ctx), &tok_then->location);
+			struct scope *scope = scope_create(ctx->scope_arenas, SCOPE_LEXICAL, scope_get(ctx), &tok_then->location);
 			scope_push(ctx, scope);
 			struct ast *block       = ast_create_node(ctx->ast_arena, AST_BLOCK, tok_then, scope_get(ctx));
 			block->data.block.nodes = arena_alloc(ctx->sarr_arena);
@@ -1079,8 +1073,7 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 			} else if (is_expression) {
 				false_branch = parse_single_block_stmt_or_expr(ctx, NULL);
 			} else {
-				struct scope *scope =
-				    scope_create(ctx->scopes_context, SCOPE_LEXICAL, scope_get(ctx), &tok_then->location);
+				struct scope *scope = scope_create(ctx->scope_arenas, SCOPE_LEXICAL, scope_get(ctx), &tok_then->location);
 				scope_push(ctx, scope);
 				struct ast *block       = ast_create_node(ctx->ast_arena, AST_BLOCK, tok_then, scope_get(ctx));
 				block->data.block.nodes = arena_alloc(ctx->sarr_arena);
@@ -1250,8 +1243,7 @@ struct ast *parse_stmt_loop(struct context *ctx) {
 	const bool  prev_in_loop = ctx->is_inside_loop;
 	ctx->is_inside_loop      = true;
 
-	struct scope *scope =
-	    scope_create(ctx->scopes_context, SCOPE_LEXICAL, scope_get(ctx), &tok_begin->location);
+	struct scope *scope = scope_create(ctx->scope_arenas, SCOPE_LEXICAL, scope_get(ctx), &tok_begin->location);
 
 	scope_push(ctx, scope);
 
@@ -1552,7 +1544,7 @@ struct ast *parse_expr_lit(struct context *ctx) {
 			while ((tok = tokens_consume_if(ctx->tokens, SYM_STRING))) {
 				str_buf_append(&tmp, tok->value.str);
 			}
-			const str_t dup = scdup2(&ctx->unit->string_cache, tmp);
+			const str_t dup = scdup2(ctx->string_cache, tmp);
 			put_tmp_str(tmp);
 
 			lit->data.expr_string.val = dup;
@@ -1582,8 +1574,7 @@ struct ast *parse_expr_lit_fn(struct context *ctx) {
 	ctx->is_inside_expression            = false;
 
 	// Create function scope for function signature.
-	scope_push(ctx,
-	           scope_create(ctx->scopes_context, SCOPE_FN, scope_get(ctx), &tok_fn->location));
+	scope_push(ctx, scope_create(ctx->scope_arenas, SCOPE_FN, scope_get(ctx), &tok_fn->location));
 
 	struct ast *type = parse_type_fn(ctx, /* named_args */ true, /* create_scope */ false);
 	bassert(type);
@@ -1793,8 +1784,9 @@ struct ast *parse_type_enum(struct context *ctx) {
 		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok, scope_get(ctx)));
 	}
 
-	struct scope *scope =
-	    scope_create(ctx->scopes_context, SCOPE_TYPE_ENUM, scope_get(ctx), &tok->location);
+	struct scope *scope = scope_create(ctx->scope_arenas, SCOPE_TYPE_ENUM, scope_get(ctx), &tok->location);
+	scope_reserve(scope, 256);
+	
 	enm->data.type_enm.scope = scope;
 	scope_push(ctx, scope);
 
@@ -2033,8 +2025,7 @@ struct ast *parse_type_fn_return(struct context *ctx) {
 		// multiple return type ( T1, T2 )
 		// eat (
 		struct token *tok_begin = tokens_consume(ctx->tokens);
-		struct scope *scope     = scope_create(
-            ctx->scopes_context, SCOPE_TYPE_STRUCT, scope_get(ctx), &tok_begin->location);
+		struct scope *scope     = scope_create(ctx->scope_arenas, SCOPE_TYPE_STRUCT, scope_get(ctx), &tok_begin->location);
 		scope_push(ctx, scope);
 
 		struct ast *type_struct =
@@ -2086,9 +2077,7 @@ struct ast *parse_type_fn(struct context *ctx, bool named_args, bool create_scop
 	struct ast *fn = ast_create_node(ctx->ast_arena, AST_TYPE_FN, tok_fn, scope_get(ctx));
 
 	if (create_scope) {
-		scope_push(
-		    ctx,
-		    scope_create(ctx->scopes_context, SCOPE_FN, scope_get(ctx), &tok_fn->location));
+		scope_push(ctx, scope_create(ctx->scope_arenas, SCOPE_FN, scope_get(ctx), &tok_fn->location));
 	}
 
 	// parse arg types
@@ -2207,8 +2196,7 @@ struct ast *parse_type_struct(struct context *ctx) {
 		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_struct, scope_get(ctx)));
 	}
 
-	struct scope *scope =
-	    scope_create(ctx->scopes_context, SCOPE_TYPE_STRUCT, scope_get(ctx), &tok->location);
+	struct scope *scope = scope_create(ctx->scope_arenas, SCOPE_TYPE_STRUCT, scope_get(ctx), &tok->location);
 	scope_push(ctx, scope);
 
 	struct ast *type_struct =
@@ -2518,8 +2506,7 @@ struct ast *parse_block(struct context *ctx, enum scope_kind scope_kind) {
 		bassert((scope_kind == SCOPE_LEXICAL || scope_kind == SCOPE_FN_BODY) &&
 		        "Unexpected scope kind, extend this assert in case it's intentional.");
 
-		struct scope *scope = scope_create(
-		    ctx->scopes_context, scope_kind, scope_get(ctx), &tok_begin->location);
+		struct scope *scope = scope_create(ctx->scope_arenas, scope_kind, scope_get(ctx), &tok_begin->location);
 
 		scope_push(ctx, scope);
 		scope_created = true;
@@ -2616,8 +2603,12 @@ void init_hash_directives(struct context *ctx) {
 	};
 
 	for (usize i = 0; i < static_arrlenu(hash_directive_names); ++i) {
-		const hash_t hash = strhash(make_str_from_c(hash_directive_names[i]));
-		hmput(ctx->hash_directive_table, hash, hash_directive_flags[i]);
+		const hash_t                hash  = strhash(make_str_from_c(hash_directive_names[i]));
+		struct hash_directive_entry entry = (struct hash_directive_entry){
+		    .hash  = hash,
+		    .value = hash_directive_flags[i],
+		};
+		tbl_insert(ctx->hash_directive_table, entry);
 	}
 }
 
@@ -2625,14 +2616,20 @@ void parser_run(struct assembly *assembly, struct unit *unit) {
 	bassert(assembly);
 	bassert(assembly->gscope && "Missing global scope for assembly.");
 
+	const u32 thread_index = get_worker_index();
+
 	zone();
+	runtime_measure_begin(parse);
+
 	struct context ctx = {
-	    .assembly       = assembly,
-	    .unit           = unit,
-	    .ast_arena      = &unit->ast_arena,
-	    .sarr_arena     = &unit->sarr_arena,
-	    .scopes_context = &assembly->scopes_context,
-	    .tokens         = &unit->tokens,
+	    .assembly = assembly,
+	    .unit     = unit,
+	    .tokens   = &unit->tokens,
+
+	    .ast_arena    = &assembly->thread_local_contexts[thread_index].ast_arena,
+	    .scope_arenas = &assembly->thread_local_contexts[thread_index].scope_arenas,
+	    .sarr_arena   = &assembly->thread_local_contexts[thread_index].small_array,
+	    .string_cache = &assembly->thread_local_contexts[thread_index].string_cache,
 	};
 
 	init_hash_directives(&ctx);
@@ -2645,10 +2642,12 @@ void parser_run(struct assembly *assembly, struct unit *unit) {
 	parse_ublock_content(&ctx, unit->ast);
 	unit->ast->docs = str_buf_view(unit->file_docs_cache);
 
-	hmfree(ctx.hash_directive_table);
+	tbl_free(ctx.hash_directive_table);
 	arrfree(ctx.decl_stack);
 	arrfree(ctx.scope_stack);
 	arrfree(ctx.fn_type_stack);
 	arrfree(ctx.block_stack);
+
+	batomic_fetch_add_s32(&assembly->stats.parsing_ms, runtime_measure_end(parse));
 	return_zone();
 }

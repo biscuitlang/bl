@@ -30,9 +30,9 @@
 #include "stb_ds.h"
 
 #if !BL_PLATFORM_WIN
-#	include <errno.h>
-#	include <sys/stat.h>
-#	include <unistd.h>
+#include <errno.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #endif
 
 typedef s32 (*LinkerFn)(struct assembly *);
@@ -95,7 +95,7 @@ void native_bin_run(struct assembly *assembly) {
 #elif BL_PLATFORM_LINUX || BL_PLATFORM_MACOS
 	linker = &lld_ld;
 #else
-#	error "Unknown platform"
+#error "Unknown platform"
 #endif
 
 	const str_t out_dir = str_buf_view(assembly->target->out_dir);

@@ -30,6 +30,7 @@
 #define BL_LLVM_API_H
 
 #include "common.h"
+
 _SHUT_UP_BEGIN
 #include <llvm-c/Analysis.h>
 #include <llvm-c/BitWriter.h>
@@ -69,9 +70,9 @@ typedef enum {
 
 typedef enum {
 #if LLVM_VERSION_MAJOR >= 10
-#	define HANDLE_DW_TAG(ID, NAME, VERSION, VENDOR, KIND) DW_TAG_##NAME = ID,
+	#define HANDLE_DW_TAG(ID, NAME, VERSION, VENDOR, KIND) DW_TAG_##NAME = ID,
 #else
-#	define HANDLE_DW_TAG(ID, NAME, VERSION, VENDOR) DW_TAG_##NAME = ID,
+	#define HANDLE_DW_TAG(ID, NAME, VERSION, VENDOR) DW_TAG_##NAME = ID,
 #endif
 #include "llvm/BinaryFormat/Dwarf.def"
 	DW_TAG_lo_user   = 0x4080,
@@ -83,12 +84,34 @@ typedef enum {
 extern "C" {
 #endif
 
+struct llvm_context;
+
+typedef struct llvm_context *llvm_context_ref_t;
+
 // We need these because LLVM C API does not provide length parameter for string names.
-LLVMTypeRef       llvm_struct_create_named(LLVMContextRef C, str_t Name);
-LLVMValueRef      llvm_add_global(LLVMModuleRef M, LLVMTypeRef Ty, str_t Name);
-LLVMValueRef      llvm_add_function(LLVMModuleRef M, str_t Name, LLVMTypeRef FunctionTy);
-LLVMValueRef      llvm_build_alloca(LLVMBuilderRef B, LLVMTypeRef Ty, str_t Name);
-LLVMBasicBlockRef llvm_append_basic_block_in_context(LLVMContextRef C, LLVMValueRef Fn, str_t Name);
+
+llvm_context_ref_t llvm_context_create(void);
+void               llvm_context_dispose(llvm_context_ref_t ctx);
+void               llvm_lock_context(llvm_context_ref_t ctx);
+void               llvm_unlock_context(llvm_context_ref_t ctx);
+LLVMTypeRef        llvm_int_type_in_context(llvm_context_ref_t ctx, s32 bitcount);
+LLVMTypeRef        llvm_float_type_in_context(llvm_context_ref_t ctx);
+LLVMTypeRef        llvm_double_type_in_context(llvm_context_ref_t ctx);
+LLVMTypeRef        llvm_void_type_in_context(llvm_context_ref_t ctx);
+LLVMTypeRef        llvm_struct_create_named(llvm_context_ref_t ctx, const str_t Name);
+LLVMValueRef       llvm_add_global(LLVMModuleRef M, LLVMTypeRef Ty, const str_t Name);
+LLVMValueRef       llvm_add_function(LLVMModuleRef M, const str_t Name, LLVMTypeRef FunctionTy);
+LLVMValueRef       llvm_build_alloca(LLVMBuilderRef B, LLVMTypeRef Ty, const str_t Name);
+LLVMBasicBlockRef  llvm_append_basic_block_in_context(llvm_context_ref_t ctx, LLVMValueRef Fn, const str_t Name);
+LLVMMetadataRef    llvm_di_builder_create_debug_location(llvm_context_ref_t ctx, s32 line, s32 col, LLVMMetadataRef scope, LLVMMetadataRef inlined_at);
+u32                llvm_get_md_kind_id_in_context(llvm_context_ref_t ctx, const str_t name);
+LLVMAttributeRef   llvm_create_enum_attribute(llvm_context_ref_t ctx, u32 kind, u64 val);
+LLVMAttributeRef   llvm_create_type_attribute(llvm_context_ref_t ctx, u32 kind, LLVMTypeRef type_ref);
+LLVMValueRef       llvm_const_string_in_context(llvm_context_ref_t ctx, const str_t str, bool dont_null_terminate);
+LLVMTypeRef        llvm_struct_type_in_context(llvm_context_ref_t ctx, LLVMTypeRef *elems, u32 elem_num, LLVMBool packed);
+LLVMModuleRef      llvm_module_create_with_name_in_context(llvm_context_ref_t ctx, const char *name);
+LLVMTypeRef        llvm_intrinsic_get_type(llvm_context_ref_t ctx, u32 id, LLVMTypeRef *types, size_t types_num);
+LLVMBuilderRef     llvm_create_builder_in_context(llvm_context_ref_t ctx);
 
 #ifdef __cplusplus
 }

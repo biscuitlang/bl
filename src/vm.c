@@ -226,8 +226,7 @@ static inline vm_stack_ptr_t stack_push_empty(struct virtual_machine *vm, struct
 	return tmp;
 }
 
-static inline vm_stack_ptr_t
-stack_push(struct virtual_machine *vm, void *value, struct mir_type *type) {
+static inline vm_stack_ptr_t stack_push(struct virtual_machine *vm, void *value, struct mir_type *type) {
 	bassert(value && "try to push NULL value");
 	vm_stack_ptr_t tmp = stack_push_empty(vm, type);
 	memcpy(tmp, value, type->store_size_bytes);
@@ -650,8 +649,10 @@ void calculate_unop(vm_stack_ptr_t dest, vm_stack_ptr_t v, enum unop_kind op, st
 // execution linked static library (exporting these functions) is used.
 
 BL_EXPORT void *__dlib_open(const char *libname) {
+#if BL_ASSERT_ENABLE
 	struct assembly *assembly = builder.current_executed_assembly;
 	bassert(assembly);
+#endif
 	return dlLoadLibrary(libname);
 }
 
@@ -672,7 +673,9 @@ BL_EXPORT void *__dlib_symbol(DLLib *lib, const char *symname) {
 
 	// Create function for the found symbol.
 
-	struct mir_fn *fn = arena_alloc(&assembly->arenas.mir.fn);
+	const u32          thread_index = get_worker_index();
+	struct mir_arenas *arenas       = &assembly->thread_local_contexts[thread_index].mir_arenas;
+	struct mir_fn     *fn           = arena_alloc(&arenas->fn);
 	bmagic_set(fn);
 	fn->flags                = FLAG_EXTERN;
 	fn->is_global            = true;
@@ -1238,7 +1241,7 @@ enum vm_interp_state interp_instr(struct virtual_machine *vm, struct mir_instr *
 
 void interp_instr_toany(struct virtual_machine *vm, struct mir_instr_to_any *toany) {
 	struct mir_var *dest_var  = toany->tmp;
-	struct mir_var *type_info = assembly_get_rtti(vm->assembly, toany->rtti_type->id.hash);
+	struct mir_var *type_info = mir_get_rtti(vm->assembly, toany->rtti_type->id.hash);
 	bassert(type_info->value.is_comptime);
 
 	struct mir_type *dest_type = dest_var->value.type;
@@ -1268,7 +1271,7 @@ void interp_instr_toany(struct virtual_machine *vm, struct mir_instr_to_any *toa
 		// setup destination pointer
 		memcpy(dest_data, &dest_expr, dest_data_type->store_size_bytes);
 	} else if (toany->rtti_data) {
-		struct mir_var *rtti_data_var = assembly_get_rtti(vm->assembly, toany->rtti_data->id.hash);
+		struct mir_var *rtti_data_var = mir_get_rtti(vm->assembly, toany->rtti_data->id.hash);
 		vm_stack_ptr_t  rtti_data     = vm_read_var(vm, rtti_data_var);
 		// setup destination pointer
 		memcpy(dest_data, &rtti_data, dest_data_type->store_size_bytes);
@@ -2050,14 +2053,14 @@ void eval_instr(struct virtual_machine *vm, struct mir_instr *instr) {
 
 void eval_instr_type_info(struct virtual_machine *vm, struct mir_instr_type_info *type_info) {
 	bassert(type_info->rtti_type && "Missing RTTI type!");
-	struct mir_var *rtti_var = assembly_get_rtti(vm->assembly, type_info->rtti_type->id.hash);
+	struct mir_var *rtti_var = mir_get_rtti(vm->assembly, type_info->rtti_type->id.hash);
 #if BL_ASSERT_ENABLE
 	if (!rtti_var) {
-#	if defined(BL_DEBUG)
+#if defined(BL_DEBUG)
 		const str_t  name = type_info->rtti_type->id.str;
 		const hash_t hash = type_info->rtti_type->id.hash;
 		blog("Rtti type %.*s [%lu] not found!", name.len, name.ptr, hash);
-#	endif
+#endif
 		bassert(rtti_var);
 	}
 #endif
@@ -2431,10 +2434,12 @@ void eval_instr_decl_direct_ref(struct virtual_machine            UNUSED(*vm),
 void vm_init(struct virtual_machine *vm, usize stack_size) {
 	vm->main_stack = create_stack(stack_size);
 	swap_current_stack(vm, vm->main_stack);
+	mtx_init(&vm->lock, mtx_recursive); // recursive here, we might nest some locking calls...
 }
 
 void vm_terminate(struct virtual_machine *vm) {
 	data_free(vm);
+	mtx_destroy(&vm->lock);
 	arrfree(vm->dcsigtmp);
 	for (u64 i = 0; i < arrlenu(vm->available_comptime_call_stacks); ++i) {
 		terminate_stack(vm->available_comptime_call_stacks[i]);
@@ -2448,11 +2453,17 @@ void vm_terminate(struct virtual_machine *vm) {
 }
 
 void vm_print_backtrace(struct virtual_machine *vm) {
+	mtx_lock(&vm->lock);
+
 	builder_note("\nBacktrace:");
 	struct mir_instr *instr = vm->stack->pc;
 	struct vm_frame  *fr    = vm->stack->ra;
 	usize             n     = 0;
-	if (!instr) return;
+	if (!instr) {
+		mtx_unlock(&vm->lock);
+		return;
+	}
+
 	// Print the last instruction
 	builder_msg(MSG_ERR_NOTE, 0, instr->node->location, CARET_NONE, "Last called:");
 	while (fr) {
@@ -2478,24 +2489,31 @@ void vm_print_backtrace(struct virtual_machine *vm) {
 		}
 		++n;
 	}
+	mtx_unlock(&vm->lock);
 }
 
 void vm_abort(struct virtual_machine *vm) {
+	mtx_lock(&vm->lock);
 	vm_print_backtrace(vm);
 	vm->aborted = true;
+	mtx_unlock(&vm->lock);
 }
 
 bool vm_eval_instr(struct virtual_machine *vm, struct assembly *assembly, struct mir_instr *instr) {
 	zone();
+	mtx_lock(&vm->lock);
 	vm->aborted  = false;
 	vm->assembly = assembly;
 	eval_instr(vm, instr);
+	mtx_unlock(&vm->lock);
 	return_zone(!vm->aborted);
 }
 
 void vm_provide_command_line_arguments(struct virtual_machine *vm, const s32 argc, char *argv[]) {
 	bassert(argc > 0 && "At least one command line argument must be provided!");
 	bassert(argv && "Invalid arguments value pointer!");
+	mtx_lock(&vm->lock);
+
 	struct mir_type *slice_type;
 	vm_stack_ptr_t   slice_dest;
 	vm_stack_ptr_t   args_dest;
@@ -2519,6 +2537,7 @@ void vm_provide_command_line_arguments(struct virtual_machine *vm, const s32 arg
 	}
 
 	vm_write_slice(vm, slice_type, slice_dest, args_dest, argc);
+	mtx_unlock(&vm->lock);
 }
 
 void vm_override_var(struct virtual_machine *vm, struct mir_var *var, const u64 value) {
@@ -2535,6 +2554,8 @@ enum vm_interp_state vm_execute_fn(struct virtual_machine *vm,
                                    mir_const_values_t     *optional_args,
                                    vm_stack_ptr_t         *optional_return) {
 	bmagic_assert(fn);
+	mtx_lock(&vm->lock);
+
 	vm->assembly = assembly;
 	if (optional_args && optional_args->len) {
 		bassert(fn->type->data.fn.args);
@@ -2562,6 +2583,8 @@ enum vm_interp_state vm_execute_fn(struct virtual_machine *vm,
 			}
 		}
 	}
+	mtx_unlock(&vm->lock);
+
 	return state;
 }
 
@@ -2587,8 +2610,7 @@ struct get_snapshot_result {
 
 // Tries to find stack used for previous execution (in case the call was postponed). If there is
 // no such stack, new one is created or reused from cache.
-static struct get_snapshot_result get_snapshot(struct virtual_machine *vm,
-                                               struct mir_instr_call  *call) {
+static struct get_snapshot_result get_snapshot(struct virtual_machine *vm, struct mir_instr_call *call) {
 	bassert(call);
 	struct get_snapshot_result result = {0};
 
@@ -2605,16 +2627,15 @@ static struct get_snapshot_result get_snapshot(struct virtual_machine *vm,
 		bassert(result.stack && result.stack->allocated_bytes == VM_COMPTIME_CALL_STACK_SIZE);
 	} else {
 		result.stack = create_stack(VM_COMPTIME_CALL_STACK_SIZE);
-		vm->assembly->stats.comptime_call_stacks_count += 1;
+		batomic_fetch_add_s32(&vm->assembly->stats.comptime_call_stacks_count, 1);
 	}
 	bassert(result.stack);
 	return result;
 }
 
-enum vm_interp_state vm_execute_comptime_call(struct virtual_machine *vm,
-                                              struct assembly        *assembly,
-                                              struct mir_instr_call  *call) {
+enum vm_interp_state vm_execute_comptime_call(struct virtual_machine *vm, struct assembly *assembly, struct mir_instr_call *call) {
 	zone();
+	mtx_lock(&vm->lock);
 	vm->assembly = assembly;
 	bassert(call && isflag(call->base.state, MIR_IS_ANALYZED));
 	bassert(mir_is_comptime(&call->base) && "Top level call is expected to be comptime.");
@@ -2672,10 +2693,14 @@ enum vm_interp_state vm_execute_comptime_call(struct virtual_machine *vm,
 	}
 
 	swap_current_stack(vm, previous_stack);
+	mtx_unlock(&vm->lock);
+
 	return_zone(state);
 }
 
 void vm_alloc_global(struct virtual_machine *vm, struct assembly *assembly, struct mir_var *var) {
+	mtx_lock(&vm->lock);
+
 	vm->assembly = assembly;
 	bassert(var);
 	bassert(isflag(var->iflags, MIR_VAR_GLOBAL) &&
@@ -2691,15 +2716,21 @@ void vm_alloc_global(struct virtual_machine *vm, struct assembly *assembly, stru
 	} else {
 		var->vm_ptr.global = data_alloc(vm, type);
 	}
+
+	mtx_unlock(&vm->lock);
 }
 
-vm_stack_ptr_t
-vm_alloc_raw(struct virtual_machine *vm, struct assembly UNUSED(*assembly), struct mir_type *type) {
-	return data_alloc(vm, type);
+vm_stack_ptr_t vm_alloc_raw(struct virtual_machine *vm, struct assembly UNUSED(*assembly), struct mir_type *type) {
+	mtx_lock(&vm->lock);
+	vm_stack_ptr_t result = data_alloc(vm, type);
+	mtx_unlock(&vm->lock);
+	return result;
 }
 
 // Try to fetch variable allocation pointer.
 vm_stack_ptr_t vm_read_var(struct virtual_machine *vm, const struct mir_var *var) {
+	mtx_lock(&vm->lock);
+
 	vm_stack_ptr_t ptr = NULL;
 	if (var->value.is_comptime) {
 		ptr = var->value.data;
@@ -2710,6 +2741,8 @@ vm_stack_ptr_t vm_read_var(struct virtual_machine *vm, const struct mir_var *var
 		ptr = stack_rel_to_abs_ptr(vm, var->vm_ptr.local);
 	}
 	bassert(ptr && "Attempt to get allocation pointer of unallocated variable!");
+	mtx_unlock(&vm->lock);
+
 	return ptr;
 }
 

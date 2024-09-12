@@ -35,31 +35,14 @@ BL_STATIC_ASSERT(sizeof(BL_TBL_HASH_T) == sizeof(u64), "Scope require hash value
 
 #define entry_hash(id, layer) ((((u64)layer) << 32) | (u64)id)
 
-typedef struct scope_sync_impl {
-	pthread_spinlock_t lock;
-} scope_sync_impl;
-
-static scope_sync_impl *sync_new(void) {
-	scope_sync_impl *impl = bmalloc(sizeof(scope_sync_impl));
-	pthread_spin_init(&impl->lock, 0);
-	return impl;
-}
-
-static void sync_delete(scope_sync_impl *impl) {
-	if (!impl) return;
-	pthread_spin_destroy(&impl->lock);
-	bfree(impl);
-}
-
 static void scope_dtor(struct scope *scope) {
 	bmagic_assert(scope);
 	tbl_free(scope->entries);
 	arrfree(scope->usings);
-	sync_delete(scope->sync);
+	mtx_destroy(&scope->lock);
 }
 
-static inline struct scope_entry *
-lookup_usings(struct scope *scope, struct id *id, struct scope_entry **out_ambiguous) {
+static inline struct scope_entry *lookup_usings(struct scope *scope, struct id *id, struct scope_entry **out_ambiguous) {
 	zone();
 	bassert(scope && id && out_ambiguous);
 	struct scope_entry *found = NULL;
@@ -77,37 +60,28 @@ lookup_usings(struct scope *scope, struct id *id, struct scope_entry **out_ambig
 	return_zone(found);
 }
 
-void scopes_context_init(struct scopes_context *ctx) {
-	arena_init(&ctx->arenas.scopes,
-	           sizeof(struct scope),
-	           alignment_of(struct scope),
-	           256,
-	           (arena_elem_dtor_t)scope_dtor);
-	arena_init(&ctx->arenas.entries,
-	           sizeof(struct scope_entry),
-	           alignment_of(struct scope_entry),
-	           1024,
-	           NULL);
+void scope_arenas_init(struct scope_arenas *arenas, u32 owner_thread_index) {
+	arena_init(&arenas->scopes, sizeof(struct scope), alignment_of(struct scope), 256, owner_thread_index, (arena_elem_dtor_t)scope_dtor);
+	arena_init(&arenas->entries, sizeof(struct scope_entry), alignment_of(struct scope_entry), 8192, owner_thread_index, NULL);
 }
 
-void scopes_context_terminate(struct scopes_context *ctx) {
-	arena_terminate(&ctx->arenas.scopes);
-	arena_terminate(&ctx->arenas.entries);
+void scope_arenas_terminate(struct scope_arenas *arenas) {
+	arena_terminate(&arenas->scopes);
+	arena_terminate(&arenas->entries);
 }
 
-struct scope *scope_create(struct scopes_context *ctx,
-                           enum scope_kind        kind,
-                           struct scope          *parent,
-                           struct location       *loc) {
+struct scope *scope_create(struct scope_arenas *arenas,
+                           enum scope_kind      kind,
+                           struct scope        *parent,
+                           struct location     *loc) {
 	bassert(kind != SCOPE_NONE && "Invalid scope kind.");
-	struct scope *scope = arena_alloc(&ctx->arenas.scopes);
+	struct scope *scope = arena_alloc(&arenas->scopes);
 	scope->parent       = parent;
 	scope->kind         = kind;
 	scope->location     = loc;
-	scope->ctx          = ctx;
 
-	// Global scopes must be thread safe!
-	if (kind == SCOPE_GLOBAL) scope->sync = sync_new();
+	mtx_init(&scope->lock, mtx_recursive);
+
 	bmagic_set(scope);
 	return scope;
 }
@@ -117,12 +91,12 @@ void scope_reserve(struct scope *scope, s32 num) {
 	tbl_init(scope->entries, num);
 }
 
-struct scope_entry *scope_create_entry(struct scopes_context *ctx,
-                                       enum scope_entry_kind  kind,
-                                       struct id             *id,
-                                       struct ast            *node,
-                                       bool                   is_builtin) {
-	struct scope_entry *entry = arena_alloc(&ctx->arenas.entries);
+struct scope_entry *scope_create_entry(struct scope_arenas  *arenas,
+                                       enum scope_entry_kind kind,
+                                       struct id            *id,
+                                       struct ast           *node,
+                                       bool                  is_builtin) {
+	struct scope_entry *entry = arena_alloc(&arenas->entries);
 	entry->id                 = id;
 	entry->kind               = kind;
 	entry->node               = node;
@@ -151,9 +125,12 @@ void scope_insert(struct scope *scope, hash_t layer, struct scope_entry *entry) 
 struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args) {
 	zone();
 	bassert(scope && args->id);
+
 	struct scope_entry *found       = NULL;
 	struct scope_entry *found_using = NULL;
 	struct scope_entry *ambiguous   = NULL;
+
+	struct scope *locked_gscope = NULL;
 
 #define REPORTS 0
 
@@ -165,10 +142,13 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 
 	u64 hash = entry_hash(args->id->hash, args->layer);
 	while (scope) {
-		if (args->ignore_global && scope->kind == SCOPE_GLOBAL) break;
+		bool is_locked = false;
+		if (scope->kind == SCOPE_GLOBAL && args->ignore_global) break;
 		if (!scope_is_local(scope)) {
 			// Global scopes should not have layers!!!
-			hash = entry_hash(args->id->hash, SCOPE_DEFAULT_LAYER);
+			hash      = entry_hash(args->id->hash, SCOPE_DEFAULT_LAYER);
+			is_locked = true;
+			scope_lock(scope);
 		}
 
 		// Used scopes are handled in following way:
@@ -189,11 +169,17 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 				bassert(args->out_ambiguous);
 				(*args->out_ambiguous) = found_using;
 			}
+			if (is_locked) scope_unlock(scope);
 			break;
 		}
 		// Lookup in parent.
-		if (!args->in_tree) break;
+		if (!args->in_tree) {
+			if (is_locked) scope_unlock(scope);
+			break;
+		}
 		if (args->out_of_local) *(args->out_of_local) = scope->kind == SCOPE_FN;
+		if (is_locked) scope_unlock(scope);
+
 		scope = scope->parent;
 	}
 	if (!found && args->out_ambiguous) {
@@ -202,7 +188,6 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 		found                  = found_using;
 		(*args->out_ambiguous) = ambiguous;
 	}
-
 #if REPORTS
 	if (found) hit++;
 	printf("(%3.0f%%) [%d/%d]\n", ((f32)hit / (f32)total) * 100.f, hit, total);
@@ -210,18 +195,14 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 	return_zone(found);
 }
 
-void scope_dirty_clear_tree(struct scope *scope) {
-	bassert(scope);
-}
-
 void scope_lock(struct scope *scope) {
-	bassert(scope && scope->sync);
-	pthread_spin_lock(&scope->sync->lock);
+	bassert(!scope_is_local(scope));
+	mtx_lock(&scope->lock);
 }
 
 void scope_unlock(struct scope *scope) {
-	bassert(scope && scope->sync);
-	pthread_spin_unlock(&scope->sync->lock);
+	bassert(!scope_is_local(scope));
+	mtx_unlock(&scope->lock);
 }
 
 bool scope_using_add(struct scope *scope, struct scope *other) {
@@ -229,6 +210,7 @@ bool scope_using_add(struct scope *scope, struct scope *other) {
 	bmagic_assert(other);
 	for (usize i = 0; i < arrlenu(scope->usings); ++i) {
 		if (other == scope->usings[i]) {
+			mtx_unlock(&scope->lock);
 			return false;
 		}
 	}

@@ -30,6 +30,7 @@
 #define BL_VM_H
 
 #include "common.h"
+#include "tinycthread.h"
 
 // Values:
 // * compile time constant
@@ -106,6 +107,8 @@ struct virtual_machine {
 	// When the call is successfully completed the cached entry must be removed from the table and
 	// returned back to 'available_comptime_call_stacks' array.
 	hash_table(struct vm_snapshot) comptime_call_stacks;
+
+	mtx_t lock;
 };
 
 enum mir_value_address_mode {

@@ -172,6 +172,7 @@ set(HEADER_FILES
 	src/arena.h
 	src/assembly.h
 	src/ast.h
+	src/atomics.h
 	src/basic_types.h
 	src/bldebug.h
 	src/blmemory.h
@@ -187,13 +188,13 @@ set(HEADER_FILES
 	src/stb_ds.h
 	src/table.h
 	src/threading.h
+	src/tinycthread.h
 	src/tokens.h
 	src/tokens_inline_utils.h
 	src/unit.h
 	src/vm.h
 	src/vmdbg.h
 	src/wbs.h
-	src/winpthreads.h
 	src/x86_64_instructions.h
 )
 
@@ -231,6 +232,7 @@ set(SOURCE_FILES
 	src/setup.c
 	src/table.c
 	src/threading.c
+	src/tinycthread.c
 	src/token_printer.c
 	src/tokens.c
 	src/unit.c

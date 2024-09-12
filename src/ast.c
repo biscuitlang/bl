@@ -27,10 +27,9 @@
 // =================================================================================================
 
 #include "ast.h"
+#include "atomics.h"
 #include "stb_ds.h"
 #include "tokens.h"
-
-#define ARENA_CHUNK_COUNT 2048
 
 struct ast *
 ast_create_node(struct arena *arena, enum ast_kind c, struct token *tok, struct scope *parent_scope) {
@@ -39,15 +38,15 @@ ast_create_node(struct arena *arena, enum ast_kind c, struct token *tok, struct 
 	node->owner_scope = parent_scope;
 	node->location    = tok ? &tok->location : NULL;
 #ifdef BL_DEBUG
-	static u64 serial = 0;
-	node->_serial     = serial++;
+	static batomic_s64 serial = 0;
+	node->_serial             = batomic_fetch_add_s64(&serial, 1);
 #endif
 	return node;
 }
 
 // public
-void ast_arena_init(struct arena *arena) {
-	arena_init(arena, sizeof(struct ast), alignment_of(struct ast), ARENA_CHUNK_COUNT, NULL);
+void ast_arena_init(struct arena *arena, u32 owner_thread_index) {
+	arena_init(arena, sizeof(struct ast), alignment_of(struct ast), 8192, owner_thread_index, NULL);
 }
 
 void ast_arena_terminate(struct arena *arena) {

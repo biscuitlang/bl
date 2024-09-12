@@ -1179,7 +1179,7 @@ void mir_print_fn(FILE *stream, struct assembly *assembly, struct mir_fn *fn) {
 
 void mir_print_assembly(FILE *stream, struct assembly *assembly) {
 	struct context ctx = {.assembly = assembly, .stream = stream};
-	for (usize i = 0; i < arrlenu(assembly->MIR.global_instrs); ++i) {
-		print_instr(&ctx, assembly->MIR.global_instrs[i]);
+	for (usize i = 0; i < arrlenu(assembly->mir.global_instrs); ++i) {
+		print_instr(&ctx, assembly->mir.global_instrs[i]);
 	}
 }

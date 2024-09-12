@@ -29,7 +29,7 @@
 #include "common.h"
 
 #ifndef BL_TABLE_H
-#	define BL_TABLE_H
+#define BL_TABLE_H
 
 #define BL_TBL_HASH_T u64
 
@@ -40,35 +40,34 @@ s32   _tbl_lookup_index(void *ptr, BL_TBL_HASH_T hash, str_t key, u32 entry_size
 void  _tbl_clear(void *ptr);
 u32   _tbl_len(void *ptr);
 
-#	define tbl_init(tbl, elem_count)                               \
-		{                                                           \
-			(tbl) = _tbl_init((tbl), sizeof(*(tbl)), (elem_count)); \
-		}                                                           \
-		(void)0
+#define tbl_init(tbl, elem_count)                               \
+	{                                                           \
+		(tbl) = _tbl_init((tbl), sizeof(*(tbl)), (elem_count)); \
+	}                                                           \
+	(void)0
 
-#	define tbl_insert(tbl, entry)                                              \
-		{                                                                       \
-			(tbl) = _tbl_insert((tbl), (entry).hash, &(entry), sizeof(*(tbl))); \
-		}                                                                       \
-		(void)0
+#define tbl_insert(tbl, entry)                                              \
+	{                                                                       \
+		(tbl) = _tbl_insert((tbl), (entry).hash, &(entry), sizeof(*(tbl))); \
+	}                                                                       \
+	(void)0
 
-#	define tbl_free(tbl)     \
-		{                     \
-			_tbl_free((tbl)); \
-			(tbl) = NULL;     \
-		}                     \
-		(void)0
+#define tbl_free(tbl)     \
+	{                     \
+		_tbl_free((tbl)); \
+		(tbl) = NULL;     \
+	}                     \
+	(void)0
 
-#	define tbl_clear(tbl)     \
-		{                      \
-			_tbl_clear((tbl)); \
-		}                      \
-		(void)0
+#define tbl_clear(tbl)     \
+	{                      \
+		_tbl_clear((tbl)); \
+	}                      \
+	(void)0
 
-#	define tbl_key_offset(tbl) ((s32)(((u8 *)(&((tbl)->key))) - ((u8 *)(tbl))))
-#	define tbl_lookup_index_with_key(tbl, hash, key) _tbl_lookup_index((tbl), (hash), (key), sizeof(*(tbl)), tbl_key_offset(tbl))
-#	define tbl_lookup_index(tbl, hash) _tbl_lookup_index((tbl), (hash), str_t{0}, sizeof(*(tbl)), -1)
-#	define tbl_len(tbl) _tbl_len((tbl))
+#define tbl_key_offset(tbl) ((s32)(((u8 *)(&((tbl)->key))) - ((u8 *)(tbl))))
+#define tbl_lookup_index_with_key(tbl, hash, key) _tbl_lookup_index((tbl), (hash), (key), sizeof(*(tbl)), tbl_key_offset(tbl))
+#define tbl_lookup_index(tbl, hash) _tbl_lookup_index((tbl), (hash), (str_t){0}, sizeof(*(tbl)), -1)
+#define tbl_len(tbl) _tbl_len((tbl))
 
 #endif
-

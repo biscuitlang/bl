@@ -28,16 +28,26 @@
 
 #include "assembly.h"
 #include "conf.h"
-#include "threading.h"
 #if !BL_PLATFORM_WIN
-#	include <errno.h>
+#include <errno.h>
 #endif
 
 #include "builder.h"
 #include "stb_ds.h"
 #include <string.h>
 
-#define EXPECTED_ARRAY_COUNT 2048
+// Total size of all small arrays allocated later in a single arena.
+static const usize SARR_TOTAL_SIZE = sizeof(union {
+	ast_nodes_t        _1;
+	mir_args_t         _2;
+	mir_fns_t          _3;
+	mir_types_t        _4;
+	mir_members_t      _5;
+	mir_variants_t     _6;
+	mir_instrs_t       _7;
+	mir_switch_cases_t _8;
+	ints_t             _9;
+});
 
 const char *arch_names[] = {
 #define GEN_ARCH
@@ -73,30 +83,6 @@ const char *env_names[] = {
 
 static void sarr_dtor(sarr_any_t *arr) {
 	sarrfree(arr);
-}
-
-struct asembly_sync_impl {
-	pthread_spinlock_t units_lock;
-	pthread_spinlock_t linker_opt_lock;
-	pthread_spinlock_t lib_path_lock;
-	pthread_spinlock_t link_lock;
-};
-
-static struct asembly_sync_impl *sync_new(void) {
-	struct asembly_sync_impl *impl = bmalloc(sizeof(struct asembly_sync_impl));
-	pthread_spin_init(&impl->units_lock, 0);
-	pthread_spin_init(&impl->linker_opt_lock, 0);
-	pthread_spin_init(&impl->lib_path_lock, 0);
-	pthread_spin_init(&impl->link_lock, 0);
-	return impl;
-}
-
-static void sync_delete(struct asembly_sync_impl *impl) {
-	pthread_spin_destroy(&impl->units_lock);
-	pthread_spin_destroy(&impl->linker_opt_lock);
-	pthread_spin_destroy(&impl->lib_path_lock);
-	pthread_spin_destroy(&impl->link_lock);
-	bfree(impl);
 }
 
 static void dl_init(struct assembly *assembly) {
@@ -193,8 +179,7 @@ static void llvm_init(struct assembly *assembly) {
 		}
 		babort("Cannot get target");
 	}
-	LLVMContextRef llvm_context = LLVMContextCreate();
-	LLVMRelocMode  reloc_mode   = LLVMRelocDefault;
+	LLVMRelocMode reloc_mode = LLVMRelocDefault;
 	switch (assembly->target->kind) {
 	case ASSEMBLY_SHARED_LIB:
 		reloc_mode = LLVMRelocPIC;
@@ -211,7 +196,7 @@ static void llvm_init(struct assembly *assembly) {
 	                                                       LLVMCodeModelDefault);
 
 	LLVMTargetDataRef llvm_td = LLVMCreateTargetDataLayout(llvm_tm);
-	assembly->llvm.ctx        = llvm_context;
+	assembly->llvm.ctx        = llvm_context_create();
 	assembly->llvm.TM         = llvm_tm;
 	assembly->llvm.TD         = llvm_td;
 	assembly->llvm.triple     = triple;
@@ -221,26 +206,13 @@ static void llvm_terminate(struct assembly *assembly) {
 	LLVMDisposeModule(assembly->llvm.module);
 	LLVMDisposeTargetMachine(assembly->llvm.TM);
 	LLVMDisposeTargetData(assembly->llvm.TD);
-	LLVMContextDispose(assembly->llvm.ctx);
+	llvm_context_dispose(assembly->llvm.ctx);
 	bfree(assembly->llvm.triple);
 }
 
 static void native_lib_terminate(struct native_lib *lib) {
 	if (lib->handle) dlFreeLibrary(lib->handle);
 	if (lib->is_internal) return;
-}
-
-static void mir_init(struct assembly *assembly) {
-	mir_arenas_init(&assembly->arenas.mir);
-	arrsetcap(assembly->MIR.global_instrs, 4096);
-	arrsetcap(assembly->MIR.exported_instrs, 256);
-}
-
-static inline void mir_terminate(struct assembly *assembly) {
-	hmfree(assembly->MIR.rtti_table);
-	arrfree(assembly->MIR.global_instrs);
-	arrfree(assembly->MIR.exported_instrs);
-	mir_arenas_terminate(&assembly->arenas.mir);
 }
 
 // Create directory tree and set out_path.
@@ -252,7 +224,7 @@ static bool create_auxiliary_dir_tree_if_not_exist(const char *_path, str_buf_t 
 	if (!path) babort("Invalid directory copy.");
 	win_path_to_unix(path, strlen(path));
 #else
-	const char *path  = _path;
+	const char *path = _path;
 #endif
 	if (!dir_exists(path)) {
 		if (!create_dir_tree(path)) {
@@ -323,7 +295,7 @@ static void import_lib_path(import_elem_context_t *ctx, const char *dirpath) {
 		            path.len,
 		            path.ptr);
 	} else {
-		assembly_add_lib_path_safe(ctx->assembly, str_to_c(path));
+		assembly_add_lib_path(ctx->assembly, str_to_c(path));
 	}
 	put_tmp_str(path);
 }
@@ -333,11 +305,11 @@ static void validate_module_target(import_elem_context_t *ctx, const char *tripl
 }
 
 static void import_link(import_elem_context_t *ctx, const char *lib) {
-	assembly_add_native_lib_safe(ctx->assembly, lib, NULL, false);
+	assembly_add_native_lib(ctx->assembly, lib, NULL, false);
 }
 
 static void import_link_runtime_only(import_elem_context_t *ctx, const char *lib) {
-	assembly_add_native_lib_safe(ctx->assembly, lib, NULL, true);
+	assembly_add_native_lib(ctx->assembly, lib, NULL, true);
 }
 
 static bool import_module(struct assembly *assembly,
@@ -354,7 +326,7 @@ static bool import_module(struct assembly *assembly,
 	builder_log("Import module '%s' version %d.", modulepath, version);
 
 	// Global
-	assembly_append_linker_options_safe(assembly, confreads(config, "/linker_opt", ""));
+	assembly_append_linker_options(assembly, confreads(config, "/linker_opt", ""));
 	process_tokens(&ctx,
 	               confreads(config, "/src", ""),
 	               ENVPATH_SEPARATOR,
@@ -388,8 +360,8 @@ static bool import_module(struct assembly *assembly,
 	}
 
 	// Platform specific
-	assembly_append_linker_options_safe(assembly,
-	                                    read_config(config, assembly->target, "linker_opt", ""));
+	assembly_append_linker_options(assembly,
+	                               read_config(config, assembly->target, "linker_opt", ""));
 	process_tokens(&ctx,
 	               read_config(config, assembly->target, "src", ""),
 	               ENVPATH_SEPARATOR,
@@ -579,28 +551,55 @@ s32 target_triple_to_string(const struct target_triple *triple, char *buf, s32 b
 	return len;
 }
 
+static void thread_local_init(struct assembly *assembly) {
+	zone();
+	const u32 thread_count = get_thread_count();
+	arrsetlen(assembly->thread_local_contexts, thread_count);
+	for (u32 i = 0; i < thread_count; ++i) {
+		scope_arenas_init(&assembly->thread_local_contexts[i].scope_arenas, i);
+		mir_arenas_init(&assembly->thread_local_contexts[i].mir_arenas, i);
+		ast_arena_init(&assembly->thread_local_contexts[i].ast_arena, i);
+		arena_init(&assembly->thread_local_contexts[i].small_array, SARR_TOTAL_SIZE, 16, 2048, i, (arena_elem_dtor_t)sarr_dtor);
+	}
+	return_zone();
+}
+
+static void thread_local_terminate(struct assembly *assembly) {
+	zone();
+	for (u32 i = 0; i < arrlenu(assembly->thread_local_contexts); ++i) {
+		scope_arenas_terminate(&assembly->thread_local_contexts[i].scope_arenas);
+		mir_arenas_terminate(&assembly->thread_local_contexts[i].mir_arenas);
+		ast_arena_terminate(&assembly->thread_local_contexts[i].ast_arena);
+		arena_terminate(&assembly->thread_local_contexts[i].small_array);
+		scfree(&assembly->thread_local_contexts[i].string_cache);
+	}
+
+	arrfree(assembly->thread_local_contexts);
+	return_zone();
+}
+
 struct assembly *assembly_new(const struct target *target) {
 	bmagic_assert(target);
 	struct assembly *assembly = bmalloc(sizeof(struct assembly));
 	memset(assembly, 0, sizeof(struct assembly));
 	assembly->target = target;
-	assembly->sync   = sync_new();
+
+	mtx_init(&assembly->units_lock, mtx_plain);
+	spl_init(&assembly->custom_linker_opt_lock);
+	spl_init(&assembly->lib_paths_lock);
+	spl_init(&assembly->libs_lock);
 
 	llvm_init(assembly);
 	arrsetcap(assembly->units, 64);
 	str_buf_setcap(&assembly->custom_linker_opt, 128);
 	vm_init(&assembly->vm, VM_STACK_SIZE);
 
-	// set defaults
-	scopes_context_init(&assembly->scopes_context);
-	arena_init(&assembly->arenas.sarr,
-	           sarr_total_size,
-	           16, // Is this correct?
-	           EXPECTED_ARRAY_COUNT,
-	           (arena_elem_dtor_t)sarr_dtor);
+	thread_local_init(assembly);
 
-	assembly->gscope = scope_create(&assembly->scopes_context, SCOPE_GLOBAL, NULL, NULL);
-	scope_reserve(assembly->gscope, 2048);
+	// set defaults
+	const u32 thread_index = get_worker_index();
+	assembly->gscope       = scope_create(&assembly->thread_local_contexts[thread_index].scope_arenas, SCOPE_GLOBAL, NULL, NULL);
+	scope_reserve(assembly->gscope, 8192);
 
 	dl_init(assembly);
 	mir_init(assembly);
@@ -636,14 +635,14 @@ struct assembly *assembly_new(const struct target *target) {
 
 	// Duplicate default library paths
 	for (usize i = 0; i < arrlenu(target->default_lib_paths); ++i)
-		assembly_add_lib_path_safe(assembly, target->default_lib_paths[i]);
+		assembly_add_lib_path(assembly, target->default_lib_paths[i]);
 
 	// Duplicate default libs
 	for (usize i = 0; i < arrlenu(target->default_libs); ++i)
-		assembly_add_native_lib_safe(assembly, target->default_libs[i], NULL, false);
+		assembly_add_native_lib(assembly, target->default_libs[i], NULL, false);
 
 	// Append custom linker options
-	assembly_append_linker_options_safe(assembly, str_to_c(target->default_custom_linker_opt));
+	assembly_append_linker_options(assembly, str_to_c(target->default_custom_linker_opt));
 
 	return assembly;
 }
@@ -662,37 +661,37 @@ void assembly_delete(struct assembly *assembly) {
 	arrfree(assembly->testing.cases);
 	arrfree(assembly->units);
 
+	mtx_destroy(&assembly->units_lock);
+	spl_destroy(&assembly->custom_linker_opt_lock);
+	spl_destroy(&assembly->lib_paths_lock);
+	spl_destroy(&assembly->libs_lock);
+
 	str_buf_free(&assembly->custom_linker_opt);
 	vm_terminate(&assembly->vm);
-	arena_terminate(&assembly->arenas.sarr);
-	scopes_context_terminate(&assembly->scopes_context);
 	llvm_terminate(assembly);
 	dl_terminate(assembly);
 	mir_terminate(assembly);
-	sync_delete(assembly->sync);
-	scfree(&assembly->string_cache);
+	thread_local_terminate(assembly);
 	bfree(assembly);
 	return_zone();
 }
 
-void assembly_add_lib_path_safe(struct assembly *assembly, const char *path) {
+void assembly_add_lib_path(struct assembly *assembly, const char *path) {
 	if (!path) return;
 	char *tmp = strdup(path);
 	if (!tmp) return;
-	struct asembly_sync_impl *sync = assembly->sync;
-	pthread_spin_lock(&sync->lib_path_lock);
+	spl_lock(&assembly->lib_paths_lock);
 	arrput(assembly->lib_paths, tmp);
-	pthread_spin_unlock(&sync->lib_path_lock);
+	spl_unlock(&assembly->lib_paths_lock);
 }
 
-void assembly_append_linker_options_safe(struct assembly *assembly, const char *opt) {
+void assembly_append_linker_options(struct assembly *assembly, const char *opt) {
 	if (!opt) return;
 	if (opt[0] == '\0') return;
 
-	struct asembly_sync_impl *sync = assembly->sync;
-	pthread_spin_lock(&sync->linker_opt_lock);
+	spl_lock(&assembly->custom_linker_opt_lock);
 	str_buf_append_fmt(&assembly->custom_linker_opt, "{s} ", opt);
-	pthread_spin_unlock(&sync->linker_opt_lock);
+	spl_unlock(&assembly->custom_linker_opt_lock);
 }
 
 static inline bool assembly_has_unit(struct assembly *assembly, const hash_t hash) {
@@ -708,27 +707,27 @@ static inline bool assembly_has_unit(struct assembly *assembly, const hash_t has
 struct unit *assembly_add_unit(struct assembly *assembly, const char *filepath, struct token *load_from) {
 	zone();
 	if (!is_str_valid_nonempty(filepath)) return_zone(NULL);
-	struct unit              *unit = NULL;
-	const hash_t              hash = unit_hash(filepath, load_from);
-	struct asembly_sync_impl *sync = assembly->sync;
-	pthread_spin_lock(&sync->units_lock);
-	if (assembly_has_unit(assembly, hash)) goto DONE;
-	unit = unit_new(filepath, load_from);
-	arrput(assembly->units, unit);
+	struct unit *unit = NULL;
+	const hash_t hash = unit_hash(filepath, load_from);
 
-	builder_submit_unit(assembly, unit);
+	mtx_lock(&assembly->units_lock);
+	if (!assembly_has_unit(assembly, hash)) {
+		unit = unit_new(filepath, load_from);
+		arrput(assembly->units, unit);
+	}
+	mtx_unlock(&assembly->units_lock);
 
-DONE:
-	pthread_spin_unlock(&sync->units_lock);
+	if (unit) builder_submit_unit(assembly, unit);
 	return_zone(unit);
 }
 
-void assembly_add_native_lib_safe(struct assembly *assembly,
-                                  const char      *lib_name,
-                                  struct token    *link_token,
-                                  bool             runtime_only) {
-	struct asembly_sync_impl *sync = assembly->sync;
-	pthread_spin_lock(&sync->link_lock);
+void assembly_add_native_lib(struct assembly *assembly,
+                             const char      *lib_name,
+                             struct token    *link_token,
+                             bool             runtime_only) {
+	const u32 thread_index = get_worker_index();
+
+	spl_lock(&assembly->libs_lock);
 	const hash_t hash = strhash(make_str_from_c(lib_name));
 	{ // Search for duplicity.
 		for (usize i = 0; i < arrlenu(assembly->libs); ++i) {
@@ -738,12 +737,12 @@ void assembly_add_native_lib_safe(struct assembly *assembly,
 	}
 	struct native_lib lib = {0};
 	lib.hash              = hash;
-	lib.user_name         = scdup2(&assembly->string_cache, make_str_from_c(lib_name));
+	lib.user_name         = scdup2(&assembly->thread_local_contexts[thread_index].string_cache, make_str_from_c(lib_name));
 	lib.linked_from       = link_token;
 	lib.runtime_only      = runtime_only;
 	arrput(assembly->libs, lib);
 DONE:
-	pthread_spin_unlock(&sync->link_lock);
+	spl_unlock(&assembly->libs_lock);
 }
 
 static inline bool module_exist(const char *module_dir, const char *modulepath) {
@@ -867,21 +866,4 @@ DCpointer assembly_find_extern(struct assembly *assembly, const str_t symbol) {
 
 	put_tmp_str(tmp);
 	return handle;
-}
-
-struct mir_var *assembly_get_rtti(struct assembly *assembly, hash_t type_hash) {
-	bassert(type_hash);
-	const s64 i = hmgeti(assembly->MIR.rtti_table, type_hash);
-	if (i < 0) return NULL;
-	struct mir_var *result = assembly->MIR.rtti_table[i].value;
-	bassert(result);
-	return result;
-}
-
-void assembly_add_rtti(struct assembly *assembly, hash_t type_hash, struct mir_var *rtti_var) {
-	bassert(rtti_var);
-	bassert(type_hash);
-	bassert(assembly_get_rtti(assembly, type_hash) == NULL &&
-	        "RTTI variable already added for the type!");
-	hmput(assembly->MIR.rtti_table, type_hash, rtti_var);
 }

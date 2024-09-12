@@ -28,19 +28,19 @@
 
 #include "conf.h"
 #include "builder.h"
-#include "stb_ds.h"
+#include "table.h"
 #include <yaml.h>
 
 // =================================================================================================
 // Generic configuration loading
 // =================================================================================================
 struct entry {
-	hash_t      key;
+	hash_t      hash;
 	const char *value;
 };
 
 struct config {
-	struct entry        *data;
+	my_hash_table(struct entry) data;
 	struct string_cache *cache;
 };
 
@@ -59,13 +59,17 @@ struct config *confload(const char *filepath) {
 	conf->cache         = NULL;
 
 	// insert special entry for filename
-	struct entry entry;
-	entry.key   = strhash(make_str_from_c(CONF_FILEPATH));
-	entry.value = scdup(&conf->cache, filepath, strlen(filepath));
-	hmputs(conf->data, entry);
+	struct entry entry = (struct entry){
+	    .hash  = strhash(make_str_from_c(CONF_FILEPATH)),
+	    .value = scdup(&conf->cache, filepath, strlen(filepath)),
+	};
 
-	enum state { STATE_KEY,
-		         STATE_VALUE } state = STATE_KEY;
+	tbl_insert(conf->data, entry);
+
+	enum state {
+		STATE_KEY,
+		STATE_VALUE,
+	} state = STATE_KEY;
 
 	char blockpath[256] = "";
 
@@ -107,9 +111,10 @@ struct config *confload(const char *filepath) {
 			} else {
 				str_buf_clr(&path);
 				str_buf_append_fmt(&path, "{s}/{str}", blockpath, key);
-				entry.key   = strhash(path);
+				entry.hash  = strhash(path);
 				entry.value = scdup(&conf->cache, value, token.data.scalar.length);
-				hmputs(conf->data, entry);
+
+				tbl_insert(conf->data, entry);
 			}
 			break;
 		}
@@ -142,7 +147,7 @@ LOAD_ERROR:
 
 void confdelete(struct config *conf) {
 	if (!conf) return;
-	hmfree(conf->data);
+	tbl_free(conf->data);
 	scfree(&conf->cache);
 	bfree(conf);
 }
@@ -150,7 +155,7 @@ void confdelete(struct config *conf) {
 const char *confreads(struct config *conf, const char *path, const char *default_value) {
 	bassert(conf);
 	const hash_t hash  = strhash(make_str_from_c(path));
-	const s64    index = hmgeti(conf->data, hash);
+	const s64    index = tbl_lookup_index(conf->data, hash);
 	if (index == -1) {
 		if (default_value) return default_value;
 		babort("Unknown configuration entry '%s'!", path);

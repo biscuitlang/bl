@@ -317,6 +317,8 @@ void print_supported(FILE *stream) {
 int main(s32 argc, char *argv[]) {
 	// _crtBreakAlloc = 1782;
 
+	MAIN_THREAD = thrd_current();
+
 #define EXIT(_state) \
 	state = _state;  \
 	goto RELEASE;
@@ -488,7 +490,7 @@ int main(s32 argc, char *argv[]) {
 		{
 		    .name       = "--no-jobs",
 		    .property.b = &opt.builder.no_jobs,
-		    .help       = "Enable single-thread mode.",
+		    .help       = "Enable single-thread mode. This is mainly useful for compiler debugging.",
 		},
 		{
 		    .name       = "--no-warning",

@@ -34,7 +34,7 @@
 #include <stdarg.h>
 
 #if !BL_PLATFORM_WIN
-#	include <unistd.h>
+#include <unistd.h>
 #endif
 
 struct builder builder;
@@ -76,31 +76,30 @@ const char *supported_targets_experimental[] = {
 #undef GEN_EXPERIMENTAL
 };
 
-struct builder_sync_impl {
-	pthread_mutex_t log_mutex;
-};
-
-static struct builder_sync_impl *sync_new(void) {
-	struct builder_sync_impl *impl = bmalloc(sizeof(struct builder_sync_impl));
-	pthread_mutex_init(&impl->log_mutex, NULL);
-	return impl;
-}
-
-static void sync_delete(struct builder_sync_impl *impl) {
-	pthread_mutex_destroy(&impl->log_mutex);
-	bfree(impl);
-}
-
 // =================================================================================================
 // Builder
 // =================================================================================================
-static int  compile_unit(struct unit *unit, struct assembly *assembly);
+
 static int  compile_assembly(struct assembly *assembly);
 static bool llvm_initialized = false;
 
 static void unit_job(struct job_context *ctx) {
 	bassert(ctx);
-	compile_unit(ctx->unit.unit, ctx->unit.assembly);
+
+	struct assembly *assembly = ctx->unit.assembly;
+	struct unit     *unit     = ctx->unit.unit;
+
+	array(unit_stage_fn_t) pipeline = assembly->current_pipelines.unit;
+	bassert(pipeline && "Invalid unit pipeline!");
+	if (unit->loaded_from) {
+		builder_log("Compile: %s (loaded from '%s')", unit->name, unit->loaded_from->location.unit->name);
+	} else {
+		builder_log("Compile: %s", unit->name);
+	}
+	for (usize i = 0; i < arrlenu(pipeline); ++i) {
+		pipeline[i](assembly, unit);
+		if (builder.errorc) return;
+	}
 }
 
 static void submit_unit(struct assembly *assembly, struct unit *unit) {
@@ -127,9 +126,7 @@ static void llvm_init(void) {
 	LLVMInitializeAArch64TargetMC();
 	LLVMInitializeAArch64AsmPrinter();
 
-	bassert(LLVMIsMultithreaded() &&
-	        "LLVM must be compiled in multi-thread mode with flag 'LLVM_ENABLE_THREADS'");
-
+	bassert(LLVMIsMultithreaded() && "LLVM must be compiled in multi-thread mode with flag 'LLVM_ENABLE_THREADS'");
 	llvm_initialized = true;
 }
 
@@ -137,27 +134,10 @@ static void llvm_terminate(void) {
 	LLVMShutdown();
 }
 
-int compile_unit(struct unit *unit, struct assembly *assembly) {
-	array(unit_stage_fn_t) pipeline = assembly->current_pipelines.unit;
-	bassert(pipeline && "Invalid unit pipeline!");
-	if (unit->loaded_from) {
-		builder_log(
-		    "Compile: %s (loaded from '%s')", unit->name, unit->loaded_from->location.unit->name);
-	} else {
-		builder_log("Compile: %s", unit->name);
-	}
-	for (usize i = 0; i < arrlenu(pipeline); ++i) {
-		pipeline[i](assembly, unit);
-		if (builder.errorc) return COMPILE_FAIL;
-	}
-	return COMPILE_OK;
-}
-
 int compile_assembly(struct assembly *assembly) {
 	bassert(assembly);
 	array(assembly_stage_fn_t) pipeline = assembly->current_pipelines.assembly;
 	bassert(pipeline && "Invalid assembly pipeline!");
-
 	for (usize i = 0; i < arrlenu(pipeline); ++i) {
 		if (builder.errorc) return COMPILE_FAIL;
 		pipeline[i](assembly);
@@ -197,6 +177,7 @@ static void setup_unit_pipeline(struct assembly *assembly) {
 	arrput(*stages, &lexer_run);
 	if (t->print_tokens) arrput(*stages, &token_printer_run);
 	arrput(*stages, &parser_run);
+	if (!t->syntax_only) arrput(*stages, &mir_unit_run);
 }
 
 static void setup_assembly_pipeline(struct assembly *assembly) {
@@ -213,7 +194,8 @@ static void setup_assembly_pipeline(struct assembly *assembly) {
 	}
 	if (t->syntax_only) return;
 	arrput(*stages, &linker_run);
-	arrput(*stages, &mir_run);
+	if (t->no_analyze) return;
+	arrput(*stages, &mir_analyze_run);
 	if (t->vmdbg_enabled) arrput(*stages, &attach_dbg);
 	if (t->run) arrput(*stages, &entry_run);
 	if (t->kind == ASSEMBLY_BUILD_PIPELINE) arrput(*stages, build_entry_run);
@@ -242,44 +224,61 @@ static void setup_assembly_pipeline(struct assembly *assembly) {
 }
 
 static void print_stats(struct assembly *assembly) {
+#define SECONDS(t) ((f32)t / 1000.f)
+#define PERC(t, total) ((f32)t / (f32)total * 100.f)
 
-	const f64 total_s = assembly->stats.parsing_lexing_s + assembly->stats.mir_s +
-	                    assembly->stats.llvm_s + assembly->stats.linking_s +
-	                    assembly->stats.llvm_obj_s;
+	const s32 total_ms =
+	    assembly->stats.parsing_ms +
+	    assembly->stats.lexing_ms +
+	    assembly->stats.mir_generate_ms +
+	    assembly->stats.mir_analyze_ms +
+	    assembly->stats.llvm_ms +
+	    assembly->stats.llvm_obj_ms +
+	    assembly->stats.linking_ms +
+	    assembly->stats.polymorph_ms;
 
 	builder_info(
 	    "--------------------------------------------------------------------------------\n"
 	    "Compilation stats for '%s'\n"
 	    "--------------------------------------------------------------------------------\n"
 	    "Time:\n"
-	    "  Lexing & Parsing: %10.3f seconds    %3.0f%%\n"
-	    "  MIR:              %10.3f seconds    %3.0f%%\n"
+	    "  Lexing:           %10.3f seconds    %3.0f%%\n"
+	    "  Parsing:          %10.3f seconds    %3.0f%%\n"
+	    "  MIR Generate:     %10.3f seconds    %3.0f%%\n"
+	    "  MIR Analyze:      %10.3f seconds    %3.0f%%\n"
 	    "  LLVM IR:          %10.3f seconds    %3.0f%%\n"
 	    "  LLVM Obj:         %10.3f seconds    %3.0f%%\n"
 	    "  Linking:          %10.3f seconds    %3.0f%%\n\n"
-	    "  Polymorph:        %10lld generated in %.3f seconds\n\n"
+	    "  Polymorph:        %10d generated in %.3f seconds\n\n"
 	    "  Total:            %10.3f seconds\n"
 	    "  Lines:              %8d\n"
 	    "  Speed:            %10.0f lines/second\n\n"
 	    "MISC:\n"
-	    "  Allocated stack snapshot count: %lld\n",
+	    "  Allocated stack snapshot count: %d\n",
 	    assembly->target->name,
-	    assembly->stats.parsing_lexing_s,
-	    assembly->stats.parsing_lexing_s / total_s * 100.,
-	    assembly->stats.mir_s,
-	    assembly->stats.mir_s / total_s * 100.,
-	    assembly->stats.llvm_s,
-	    assembly->stats.llvm_s / total_s * 100.,
-	    assembly->stats.llvm_obj_s,
-	    assembly->stats.llvm_obj_s / total_s * 100.,
-	    assembly->stats.linking_s,
-	    assembly->stats.linking_s / total_s * 100.,
+	    SECONDS(assembly->stats.lexing_ms),
+	    PERC(assembly->stats.lexing_ms, total_ms),
+	    SECONDS(assembly->stats.parsing_ms),
+	    PERC(assembly->stats.parsing_ms, total_ms),
+	    SECONDS(assembly->stats.mir_generate_ms),
+	    PERC(assembly->stats.mir_generate_ms, total_ms),
+	    SECONDS(assembly->stats.mir_analyze_ms),
+	    PERC(assembly->stats.mir_analyze_ms, total_ms),
+	    SECONDS(assembly->stats.llvm_ms),
+	    PERC(assembly->stats.llvm_ms, total_ms),
+	    SECONDS(assembly->stats.llvm_obj_ms),
+	    PERC(assembly->stats.llvm_obj_ms, total_ms),
+	    SECONDS(assembly->stats.linking_ms),
+	    PERC(assembly->stats.linking_ms, total_ms),
 	    assembly->stats.polymorph_count,
-	    assembly->stats.polymorph_s,
-	    total_s,
+	    SECONDS(assembly->stats.polymorph_ms),
+	    SECONDS(total_ms),
 	    builder.total_lines,
-	    ((f64)builder.total_lines) / total_s,
+	    ((f32)builder.total_lines) / SECONDS(total_ms),
 	    assembly->stats.comptime_call_stacks_count);
+
+#undef SECONDS
+#undef PERC
 }
 
 static void clear_stats(struct assembly *assembly) {
@@ -295,11 +294,7 @@ static int compile(struct assembly *assembly) {
 	setup_unit_pipeline(assembly);
 	setup_assembly_pipeline(assembly);
 
-	set_single_thread_mode(builder.options->no_jobs);
-	if (builder.options->no_jobs) blog("Running in single thread mode!");
-
 	{
-		runtime_measure_begin(process_unit);
 		builder.auto_submit = true;
 
 		// !!! we modify original array while compiling !!!
@@ -314,8 +309,7 @@ static int compile(struct assembly *assembly) {
 		bfree(dup);
 		wait_threads();
 
-		builder.auto_submit              = false;
-		assembly->stats.parsing_lexing_s = runtime_measure_end(process_unit);
+		builder.auto_submit = false;
 	}
 
 	// Compile assembly using pipeline.
@@ -368,10 +362,10 @@ void builder_init(struct builder_options *options, const char *exec_dir) {
 		builtin_ids[i].hash = strhash(builtin_ids[i].str);
 	}
 
-	builder.sync = sync_new();
+	mtx_init(&builder.log_mutex, mtx_plain);
 
 	init_thread_local_storage();
-	start_threads(cpu_thread_count());
+	start_threads(MAX(cpu_thread_count(), 2));
 
 	builder.is_initialized = true;
 }
@@ -380,7 +374,7 @@ void builder_terminate(void) {
 	stop_threads();
 	terminate_thread_local_storage();
 
-	sync_delete(builder.sync);
+	mtx_destroy(&builder.log_mutex);
 
 	for (usize i = 0; i < arrlenu(builder.targets); ++i) {
 		target_delete(builder.targets[i]);
@@ -467,10 +461,20 @@ int builder_compile_all(void) {
 
 s32 builder_compile(const struct target *target) {
 	bmagic_assert(target);
+
+	set_single_thread_mode(builder.options->no_jobs);
+	if (builder.options->no_jobs) {
+		builder_warning("Compiling target '%s' in single-thread mode.", target->name);
+	}
+
+	// Each invocation creates new assembly, this way we can compile the same target multiple times.
 	struct assembly *assembly = assembly_new(target);
 
-	s32 state = compile(assembly);
+	const s32 state = compile(assembly);
 
+	// @Note 2024-09-09 This might be problematic in case we compile lot of targets, however in such
+	// case programmer can decide and enable do_cleanup_when_done to reduce memory usage, but lost a
+	// bit of speed...
 	if (builder.options->do_cleanup_when_done) {
 		assembly_delete(assembly);
 	}
@@ -538,7 +542,7 @@ void builder_vmsg(enum builder_msg_type type,
                   enum builder_cur_pos  pos,
                   const char           *format,
                   va_list               args) {
-	pthread_mutex_lock(&builder.sync->log_mutex);
+	mtx_lock(&builder.log_mutex);
 	if (!should_report(type)) goto DONE;
 
 	FILE *stream = stdout;
@@ -608,7 +612,7 @@ void builder_vmsg(enum builder_msg_type type,
 		fprintf(stream, "\n");
 	}
 DONE:
-	pthread_mutex_unlock(&builder.sync->log_mutex);
+	mtx_unlock(&builder.log_mutex);
 
 #if ASSERT_ON_CMP_ERROR
 	if (type == MSG_ERR) bassert(false);

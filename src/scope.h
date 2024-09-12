@@ -41,11 +41,9 @@ struct mir_fn;
 struct mir_var;
 
 // Global context data used by all scopes in assembly.
-struct scopes_context {
-	struct {
-		struct arena scopes;
-		struct arena entries;
-	} arenas;
+struct scope_arenas {
+	struct arena scopes;
+	struct arena entries;
 };
 
 enum scope_entry_kind {
@@ -103,37 +101,35 @@ enum scope_kind {
 #define SCOPE_DEFAULT_LAYER 0
 
 struct scope {
-	enum scope_kind         kind;
-	struct scopes_context  *ctx;
-	str_t                   name; // optional
-	struct scope           *parent;
-	struct scope_sync_impl *sync;
-	struct location        *location;
+	enum scope_kind  kind;
+	str_t            name; // optional
+	struct scope    *parent;
+	struct location *location;
 	array(struct scope *) usings;
 	LLVMMetadataRef llvm_meta;
 	my_hash_table(struct scope_tbl_entry) entries;
 
+	mtx_t lock;
+
 	bmagic_member
 };
 
-void scopes_context_init(struct scopes_context *ctx);
-void scopes_context_terminate(struct scopes_context *ctx);
+void scope_arenas_init(struct scope_arenas *arenas, u32 owner_thread_index);
+void scope_arenas_terminate(struct scope_arenas *arenas);
 
-struct scope *scope_create(struct scopes_context *ctx,
-                           enum scope_kind        kind,
-                           struct scope          *parent,
-                           struct location       *loc);
+struct scope *scope_create(struct scope_arenas *arenas,
+                           enum scope_kind      kind,
+                           struct scope        *parent,
+                           struct location     *loc);
 
-struct scope_entry *scope_create_entry(struct scopes_context *ctx,
-                                       enum scope_entry_kind  kind,
-                                       struct id             *id,
-                                       struct ast            *node,
-                                       bool                   is_builtin);
+struct scope_entry *scope_create_entry(struct scope_arenas  *arenas,
+                                       enum scope_entry_kind kind,
+                                       struct id            *id,
+                                       struct ast           *node,
+                                       bool                  is_builtin);
 
 void scope_reserve(struct scope *scope, s32 num);
-
 void scope_insert(struct scope *scope, hash_t layer, struct scope_entry *entry);
-
 void scope_lock(struct scope *scope);
 void scope_unlock(struct scope *scope);
 

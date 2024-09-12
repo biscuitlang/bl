@@ -45,36 +45,39 @@
 #include <time.h>
 
 #ifdef BL_USE_SIMD
-#	include <emmintrin.h>
-#	include <intrin.h>
-#	include <nmmintrin.h>
+	#include <emmintrin.h>
+	#include <intrin.h>
+	#include <nmmintrin.h>
 #endif
 
 #if !BL_PLATFORM_WIN
-#	include <sys/stat.h>
-#	include <unistd.h>
+	#include <sys/stat.h>
+	#include <unistd.h>
 #endif
 
 #if BL_PLATFORM_MACOS
-#	include <ctype.h>
-#	include <errno.h>
-#	include <mach-o/dyld.h>
-#	include <mach/mach_time.h>
-#	include <sys/time.h>
+	#include <ctype.h>
+	#include <errno.h>
+	#include <mach-o/dyld.h>
+	#include <mach/mach_time.h>
+	#include <sys/time.h>
 #endif
 
 #if BL_PLATFORM_LINUX
-#	include <ctype.h>
-#	include <errno.h>
+	#include <ctype.h>
+	#include <errno.h>
 #endif
 
 #if BL_PLATFORM_WIN
-#	include <shlwapi.h>
-#	define popen _popen
-#	define pclose _pclose
+	#include <shlwapi.h>
+	#ifndef popen
+		#define popen _popen
+	#endif
+	#ifndef pclose
+		#define pclose _pclose
+	#endif
 #endif
 
-u64 main_thread_id = 0;
 // =================================================================================================
 // PUBLIC
 // =================================================================================================
@@ -951,7 +954,11 @@ s32 cpu_thread_count(void) {
 	GetSystemInfo(&sysinfo);
 	return sysinfo.dwNumberOfProcessors;
 #else
-	return 8; // @Incomplete: Detect for platform.
+	s32 nprocs = sysconf(_SC_NPROCESSORS_ONLN);
+	if (nprocs < 1) {
+		return 8; // ehm
+	}
+	return nprocs;
 #endif
 }
 

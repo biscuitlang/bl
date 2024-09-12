@@ -30,9 +30,14 @@
 #define BL_ASSEMBLY_BL
 
 #include "arena.h"
+#include "atomics.h"
+#include "common.h"
 #include "mir.h"
 #include "scope.h"
+#include "threading.h"
+#include "tinycthread.h"
 #include "unit.h"
+
 #include <dyncall.h>
 #include <dynload.h>
 
@@ -113,18 +118,6 @@ enum environment {
 };
 extern const char *env_names[_ENV_COUNT];
 
-static const usize sarr_total_size = sizeof(union {
-	ast_nodes_t        _1;
-	mir_args_t         _2;
-	mir_fns_t          _3;
-	mir_types_t        _4;
-	mir_members_t      _5;
-	mir_variants_t     _6;
-	mir_instrs_t       _7;
-	mir_switch_cases_t _8;
-	ints_t             _9;
-});
-
 struct target_triple {
 	enum arch             arch;
 	enum vendor           vendor;
@@ -197,31 +190,33 @@ struct target {
 	bmagic_member
 };
 
+struct assembly_thread_local_context {
+	struct scope_arenas  scope_arenas;
+	struct mir_arenas    mir_arenas;
+	struct arena         small_array;
+	struct arena         ast_arena;
+	struct string_cache *string_cache;
+};
+
 struct assembly {
 	const struct target *target;
 	str_buf_t            custom_linker_opt;
+	spl_t                custom_linker_opt_lock;
+
 	array(char *) lib_paths;
+	spl_t lib_paths_lock;
+
 	array(struct native_lib) libs;
-	struct string_cache  *string_cache;
-	struct scopes_context scopes_context;
+	spl_t libs_lock;
 
-	struct {
-		struct mir_arenas mir;
-		struct arena      sarr;
-	} arenas;
+	// We have group of thread local contexts for each worker thread to prevent locking.
+	array(struct assembly_thread_local_context) thread_local_contexts;
 
-	struct {
-		array(struct mir_instr *) global_instrs; // All global instructions.
-		struct {
-			hash_t          key;
-			struct mir_var *value;
-		} *rtti_table; // Map type ids to RTTI variables.
-		array(struct mir_instr *) exported_instrs;
-	} MIR;
+	struct mir mir;
 
 	struct {
 		LLVMModuleRef        module;
-		LLVMContextRef       ctx;
+		llvm_context_ref_t   ctx;
 		LLVMTargetDataRef    TD;
 		LLVMTargetMachineRef TM;
 		char                *triple;
@@ -230,6 +225,12 @@ struct assembly {
 	struct {
 		array(struct mir_fn *) cases;
 		struct mir_var *meta_var;
+
+		// Expected unit test count is evaluated before analyze pass. We need this
+		// information before we analyze all test functions because metadata runtime
+		// variable must be preallocated (testcases builtin operator cannot wait for all
+		// test case functions to be analyzed). This count must match cases len in the end.
+		s32 expected_test_count;
 	} testing;
 
 	struct {
@@ -245,14 +246,17 @@ struct assembly {
 
 	// Some compilation time related runtimes, this data are reset for every compilation.
 	struct {
-		f64 parsing_lexing_s;
-		f64 mir_s;
-		f64 llvm_s;
-		f64 llvm_obj_s;
-		f64 linking_s;
-		f64 polymorph_s;
-		s64 polymorph_count; // @Incomplete: rename to generated.
-		s64 comptime_call_stacks_count;
+		batomic_s32 lexing_ms;
+		batomic_s32 parsing_ms;
+		batomic_s32 mir_generate_ms;
+		batomic_s32 mir_analyze_ms;
+		batomic_s32 llvm_ms;
+		batomic_s32 llvm_obj_ms;
+		batomic_s32 linking_ms;
+		batomic_s32 polymorph_ms;
+
+		batomic_s32 polymorph_count; // @Incomplete: rename to generated.
+		batomic_s32 comptime_call_stacks_count;
 	} stats;
 
 	// DynCall/Lib data used for external method execution in compile time
@@ -260,10 +264,12 @@ struct assembly {
 	struct virtual_machine vm;
 
 	array(struct unit *) units; // array of all units in assembly
-	struct scope *gscope;       // global scope of the assembly
+	mtx_t units_lock;
+
+	struct scope *gscope; // global scope of the assembly
 
 	/* Builtins */
-	struct BuiltinTypes {
+	struct builtin_types {
 #define GEN_BUILTIN_TYPES
 #include "assembly.def"
 #undef GEN_BUILTIN_TYPES
@@ -278,8 +284,6 @@ struct assembly {
 		unit_stage_fn_t     *unit;
 		assembly_stage_fn_t *assembly;
 	} current_pipelines;
-
-	struct asembly_sync_impl *sync;
 };
 
 struct target *target_new(const char *name);
@@ -301,19 +305,16 @@ s32            target_triple_to_string(const struct target_triple *triple, char 
 struct assembly *assembly_new(const struct target *target);
 void             assembly_delete(struct assembly *assembly);
 struct unit     *assembly_add_unit(struct assembly *assembly, const char *filepath, struct token *load_from);
-void             assembly_add_lib_path_safe(struct assembly *assembly, const char *path);
-void             assembly_append_linker_options_safe(struct assembly *assembly, const char *opt);
-void             assembly_add_native_lib_safe(struct assembly *assembly,
-                                              const char      *lib_name,
-                                              struct token    *link_token,
-                                              bool             runtime_only);
+void             assembly_add_lib_path(struct assembly *assembly, const char *path);
+void             assembly_append_linker_options(struct assembly *assembly, const char *opt);
+void             assembly_add_native_lib(struct assembly *assembly,
+                                         const char      *lib_name,
+                                         struct token    *link_token,
+                                         bool             runtime_only);
 bool             assembly_import_module(struct assembly *assembly,
                                         const char      *modulepath,
                                         struct token    *import_from);
 DCpointer        assembly_find_extern(struct assembly *assembly, const str_t symbol);
-
-struct mir_var *assembly_get_rtti(struct assembly *assembly, hash_t type_hash);
-void            assembly_add_rtti(struct assembly *assembly, hash_t type_hash, struct mir_var *rtti_var);
 
 // Convert opt level to string.
 static inline const char *opt_to_str(enum assembly_opt opt) {

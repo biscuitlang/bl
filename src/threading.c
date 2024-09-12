@@ -29,7 +29,10 @@
 #include "threading.h"
 #include "stb_ds.h"
 
+thrd_t MAIN_THREAD = (thrd_t)0;
+
 static _Thread_local struct thread_local_storage thread_data;
+static _Thread_local u32                         worker_index = 0; // By default 0 for main thread.
 
 struct job {
 	struct job_context ctx;
@@ -37,13 +40,13 @@ struct job {
 };
 
 static array(struct job) jobs;
-static pthread_mutex_t jobs_mutex;
-static pthread_cond_t  jobs_cond;
-static pthread_cond_t  working_cond;
-static s32             jobs_running     = 0;
-static s32             thread_count     = 0;
-static bool            should_exit      = false;
-static bool            is_single_thread = false;
+static mtx_t jobs_mutex;
+static cnd_t jobs_cond;
+static cnd_t working_cond;
+static s32   jobs_running     = 0;
+static s32   thread_count     = 0;
+static bool  should_exit      = false;
+static bool  is_single_thread = false;
 
 static bool pop_job(struct job *job) {
 	s64 len = arrlen(jobs);
@@ -55,16 +58,17 @@ static bool pop_job(struct job *job) {
 	return true;
 }
 
-static void *worker(void *args) {
-	const u32 thread_index = (u32)(u64)args;
+static s32 worker(void *args) {
+	worker_index = (u32)(u64)args;
+
 	bl_alloc_thread_init();
 	init_thread_local_storage();
 	struct job job;
 
 	while (true) {
-		pthread_mutex_lock(&jobs_mutex);
+		mtx_lock(&jobs_mutex);
 		while (arrlenu(jobs) == 0 && !should_exit)
-			pthread_cond_wait(&jobs_cond, &jobs_mutex);
+			cnd_wait(&jobs_cond, &jobs_mutex);
 
 		if (should_exit)
 			break;
@@ -72,33 +76,30 @@ static void *worker(void *args) {
 		const bool has_job = pop_job(&job);
 		++jobs_running;
 		bassert(jobs_running <= thread_count);
-		pthread_mutex_unlock(&jobs_mutex);
+		mtx_unlock(&jobs_mutex);
 
 		// Execute the job
-		if (has_job) {
-			job.ctx.thread_index = thread_index;
-			job.fn(&job.ctx);
-		}
+		if (has_job) job.fn(&job.ctx);
 
-		pthread_mutex_lock(&jobs_mutex);
+		mtx_lock(&jobs_mutex);
 		--jobs_running;
 		bassert(jobs_running >= 0);
 
 		// Might signal anyone waiting for the submitted batch to complete.
 		if (!should_exit && jobs_running == 0 && arrlenu(jobs) == 0)
-			pthread_cond_signal(&working_cond);
-		pthread_mutex_unlock(&jobs_mutex);
+			cnd_signal(&working_cond);
+		mtx_unlock(&jobs_mutex);
 	}
 
 	bassert(thread_count > 0);
 
 	--thread_count;
-	pthread_cond_signal(&working_cond);
-	pthread_mutex_unlock(&jobs_mutex);
+	cnd_signal(&working_cond);
+	mtx_unlock(&jobs_mutex);
 
 	terminate_thread_local_storage();
 	bl_alloc_thread_terminate();
-	return NULL;
+	return 0;
 }
 
 // =================================================================================================
@@ -107,34 +108,37 @@ static void *worker(void *args) {
 
 void start_threads(const s32 n) {
 	bassert(n > 1);
+	bassert(thread_count == 0 && "Thread pool is already running!");
 	thread_count     = n;
 	is_single_thread = false;
 
-	pthread_mutex_init(&jobs_mutex, NULL);
-	pthread_cond_init(&jobs_cond, NULL);
-	pthread_cond_init(&working_cond, NULL);
+	mtx_init(&jobs_mutex, mtx_plain);
+	cnd_init(&jobs_cond);
+	cnd_init(&working_cond);
 
 	for (s32 i = 0; i < thread_count; ++i) {
-		pthread_t thread;
-		pthread_create(&thread, NULL, &worker, (void *)(u64)i);
-		pthread_detach(thread);
+		thrd_t thread;
+		thrd_create(&thread, &worker, (void *)(u64)i);
+		thrd_detach(thread);
 	}
 }
 
 void stop_threads(void) {
-	pthread_mutex_lock(&jobs_mutex);
+	mtx_lock(&jobs_mutex);
 	arrsetlen(jobs, 0);
 	should_exit = true;
-	pthread_cond_broadcast(&jobs_cond);
-	pthread_mutex_unlock(&jobs_mutex);
+	cnd_broadcast(&jobs_cond);
+	mtx_unlock(&jobs_mutex);
 
 	wait_threads();
 
-	pthread_cond_destroy(&working_cond);
-	pthread_cond_destroy(&jobs_cond);
-	pthread_mutex_destroy(&jobs_mutex);
+	cnd_destroy(&working_cond);
+	cnd_destroy(&jobs_cond);
+	mtx_destroy(&jobs_mutex);
 
 	arrfree(jobs);
+
+	thread_count = 0;
 }
 
 void wait_threads(void) {
@@ -146,11 +150,11 @@ void wait_threads(void) {
 		return;
 	}
 
-	pthread_mutex_lock(&jobs_mutex);
+	mtx_lock(&jobs_mutex);
 	while ((!should_exit && (arrlenu(jobs) > 0 || jobs_running)) || (should_exit && thread_count != 0)) {
-		pthread_cond_wait(&working_cond, &jobs_mutex);
+		cnd_wait(&working_cond, &jobs_mutex);
 	}
-	pthread_mutex_unlock(&jobs_mutex);
+	mtx_unlock(&jobs_mutex);
 	if (arrlenu(jobs) != 0 && should_exit == false) {
 		babort("Parallel compilation failed, not all jobs were completed as expected.");
 	}
@@ -158,7 +162,7 @@ void wait_threads(void) {
 
 void submit_job(job_fn_t fn, struct job_context *ctx) {
 	if (!is_single_thread) {
-		pthread_mutex_lock(&jobs_mutex);
+		mtx_lock(&jobs_mutex);
 	}
 	bassert(fn);
 	struct job *job = arraddnptr(jobs, 1);
@@ -169,8 +173,8 @@ void submit_job(job_fn_t fn, struct job_context *ctx) {
 	job->fn = fn;
 
 	if (!is_single_thread) {
-		pthread_cond_broadcast(&jobs_cond);
-		pthread_mutex_unlock(&jobs_mutex);
+		cnd_broadcast(&jobs_cond);
+		mtx_unlock(&jobs_mutex);
 	}
 }
 
@@ -198,4 +202,8 @@ void terminate_thread_local_storage(void) {
 		str_buf_free(&thread_data.temporary_strings[i]);
 	}
 	arrfree(thread_data.temporary_strings);
+}
+
+u32 get_worker_index(void) {
+	return worker_index;
 }

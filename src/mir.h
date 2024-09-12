@@ -47,7 +47,7 @@
 #ifdef BL_DEBUG
 vm_stack_ptr_t _mir_cev_read(struct mir_const_expr_value *value);
 #else
-#	define _mir_cev_read(expr) (expr)->data
+#define _mir_cev_read(expr) (expr)->data
 #endif
 
 // Helper macro for reading Const Expression Values of fundamental types.
@@ -83,6 +83,71 @@ struct mir_arenas {
 	struct arena arg;
 	struct arena fn_group;
 	struct arena fn_generated;
+};
+
+struct mir_type_cache_entry {
+	hash_t           hash;
+	str_t            key;
+	struct mir_type *type;
+};
+
+struct mir_rtti_incomplete {
+	struct mir_var  *var;
+	struct mir_type *type;
+};
+
+typedef sarr_t(struct mir_instr *, 32) instrs_t;
+typedef sarr_t(struct mir_rtti_incomplete, 64) mir_rttis_t;
+
+struct mir_analyze {
+	// Instructions waiting for analyze.
+	array(struct mir_instr *) stack[2];
+	s32   si; // Current stack index
+	mtx_t stack_lock;
+
+	// Hash table of arrays. Hash is id of symbol and array contains queue of waiting
+	// instructions.
+	hash_table(struct {
+		hash_t   key;
+		instrs_t value;
+	}) waiting;
+
+	// Structure members can sometimes point to self, in such case we end up with
+	// endless looping RTTI generation, to solve this problem we create dummy RTTI
+	// variable for all pointer types and store them in this array. When structure RTTI
+	// is complete we can fill missing pointer RTTIs in second generation pass.
+	mir_rttis_t incomplete_rtti;
+
+	// Incomplete type check stack.
+	mir_types_t          complete_check_type_stack;
+	struct scope_entry **usage_check_arr;
+	struct scope_entry  *unnamed_entry;
+
+	// Table of instruction being skipped in analyze pass, this should be empty at the end
+	// of analyze!
+	hash_table(struct {
+		struct mir_instr *key;
+		u8                value; // this is not used
+	}) skipped_instructions;
+};
+
+struct mir {
+	array(struct mir_instr *) global_instrs; // All global instructions.
+	spl_t global_instrs_lock;
+
+	struct {
+		hash_t          key;
+		struct mir_var *value;
+	}    *rtti_table; // Map type ids to RTTI variables.
+	spl_t rtti_table_lock;
+
+	array(struct mir_instr *) exported_instrs;
+	spl_t exported_instrs_lock;
+
+	my_hash_table(struct mir_type_cache_entry) type_cache;
+	mtx_t type_cache_lock;
+
+	struct mir_analyze analyze;
 };
 
 struct mir_switch_case {
@@ -1025,13 +1090,17 @@ static inline struct mir_fn *mir_instr_owner_fn(struct mir_instr *instr) {
 	return instr->owner_block->owner_fn;
 }
 
-bool           mir_is_in_comptime_fn(struct mir_instr *instr);
-void           mir_arenas_init(struct mir_arenas *arenas);
-void           mir_arenas_terminate(struct mir_arenas *arenas);
-str_buf_t      mir_type2str(const struct mir_type *type, bool prefer_name);
-const char    *mir_instr_name(const struct mir_instr *instr);
-void           mir_run(struct assembly *assembly);
-struct mir_fn *mir_get_callee(const struct mir_instr_call *call);
-str_t          mir_get_fn_readable_name(struct mir_fn *fn);
+void            mir_init(struct assembly *assembly);
+void            mir_arenas_init(struct mir_arenas *arenas, u32 owner_thread_index);
+void            mir_arenas_terminate(struct mir_arenas *arenas);
+void            mir_terminate(struct assembly *assembly);
+struct mir_var *mir_get_rtti(struct assembly *assembly, hash_t type_hash);
+bool            mir_is_in_comptime_fn(struct mir_instr *instr);
+str_buf_t       mir_type2str(const struct mir_type *type, bool prefer_name);
+const char     *mir_instr_name(const struct mir_instr *instr);
+void            mir_unit_run(struct assembly *assembly, struct unit *unit);
+void            mir_analyze_run(struct assembly *assembly);
+struct mir_fn  *mir_get_callee(const struct mir_instr_call *call);
+str_t           mir_get_fn_readable_name(struct mir_fn *fn);
 
 #endif
