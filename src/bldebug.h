@@ -105,7 +105,8 @@ void print_trace_impl(void);
 #define bcalled_once_assert(obj, name) \
 	bassert((obj)->_##name##_call_count++ == 0 && "Expected to be called only once!")
 
-#define bcheck_main_thread() bassert(thrd_equal(MAIN_THREAD, thrd_current()) && "Function is supposed to be called from the main thread!");
+#define bcheck_main_thread() bassert(thrd_equal(MAIN_THREAD, thrd_current()) && "Function is supposed to be called from the main thread!")
+#define bcheck_true(expr) bassert(expr)
 
 // =================================================================================================
 #else
@@ -133,6 +134,7 @@ void print_trace_impl(void);
 #define bcalled_once_member(name)
 #define bcalled_once_assert(obj, name) (void)0
 #define bcheck_main_thread() (void)0
+#define bcheck_true(expr) (expr)
 
 // =================================================================================================
 #endif

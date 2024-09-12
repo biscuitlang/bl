@@ -30,6 +30,7 @@
 #include "builder.h"
 #include "common.h"
 #include "stb_ds.h"
+#include "table.h"
 #include "vmdbg.h"
 
 #define VM_MAX_ALIGNMENT 8
@@ -2445,10 +2446,10 @@ void vm_terminate(struct virtual_machine *vm) {
 		terminate_stack(vm->available_comptime_call_stacks[i]);
 	}
 	arrfree(vm->available_comptime_call_stacks);
-	for (u64 i = 0; i < hmlenu(vm->comptime_call_stacks); ++i) {
+	for (u32 i = 0; i < tbl_len(vm->comptime_call_stacks); ++i) {
 		terminate_stack(vm->comptime_call_stacks[i].stack);
 	}
-	hmfree(vm->comptime_call_stacks);
+	tbl_free(vm->comptime_call_stacks);
 	terminate_stack(vm->main_stack);
 }
 
@@ -2593,14 +2594,10 @@ static inline void release_snapshot(struct virtual_machine *vm, struct vm_stack 
 	arrput(vm->available_comptime_call_stacks, reset_stack(stack));
 }
 
-static inline void
-store_snapshot(struct virtual_machine *vm, struct vm_stack *stack, struct mir_instr_call *call) {
-	bassert(hmgeti(vm->comptime_call_stacks, call) == -1);
-	hmputs(vm->comptime_call_stacks,
-	       ((struct vm_snapshot){
-	           .key   = call,
-	           .stack = stack,
-	       }));
+static inline void store_snapshot(struct virtual_machine *vm, struct vm_stack *stack, struct mir_instr_call *call) {
+	bassert(tbl_lookup_index(vm->comptime_call_stacks, call) == -1);
+	struct vm_snapshot entry = (struct vm_snapshot){.hash = call, .stack = stack};
+	tbl_insert(vm->comptime_call_stacks, entry);
 }
 
 struct get_snapshot_result {
@@ -2614,10 +2611,11 @@ static struct get_snapshot_result get_snapshot(struct virtual_machine *vm, struc
 	bassert(call);
 	struct get_snapshot_result result = {0};
 
-	const s64 index = hmgeti(vm->comptime_call_stacks, call);
+	const s32 index = tbl_lookup_index(vm->comptime_call_stacks, call);
 	if (index != -1) {
+		bassert(vm->comptime_call_stacks[index].hash == call);
 		result.stack = vm->comptime_call_stacks[index].stack;
-		hmdel(vm->comptime_call_stacks, call);
+		bcheck_true(tbl_erase(vm->comptime_call_stacks, call));
 		result.resume = true;
 		return result;
 	}

@@ -33,12 +33,15 @@
 
 #define BL_TBL_HASH_T u64
 
+BL_STATIC_ASSERT(sizeof(BL_TBL_HASH_T) == sizeof(void *), "Table hash type should have same size as pointer!");
+
 void *_tbl_init(void *ptr, u32 elem_size, u32 elem_count);
 void  _tbl_free(void *ptr);
 void *_tbl_insert(void *ptr, BL_TBL_HASH_T hash, void *elem_data, u32 elem_size);
 s32   _tbl_lookup_index(void *ptr, BL_TBL_HASH_T hash, str_t key, u32 entry_size, s32 data_key_offset);
 void  _tbl_clear(void *ptr);
 u32   _tbl_len(void *ptr);
+bool  _tbl_erase(void *ptr, BL_TBL_HASH_T hash, str_t key, u32 entry_size, u32 hash_size, s32 data_hash_offset, s32 data_key_offset);
 
 #define tbl_init(tbl, elem_count)                               \
 	{                                                           \
@@ -46,10 +49,10 @@ u32   _tbl_len(void *ptr);
 	}                                                           \
 	(void)0
 
-#define tbl_insert(tbl, entry)                                              \
-	{                                                                       \
-		(tbl) = _tbl_insert((tbl), (entry).hash, &(entry), sizeof(*(tbl))); \
-	}                                                                       \
+#define tbl_insert(tbl, entry)                                                             \
+	{                                                                                      \
+		(tbl) = _tbl_insert((tbl), (BL_TBL_HASH_T)(entry).hash, &(entry), sizeof(*(tbl))); \
+	}                                                                                      \
 	(void)0
 
 #define tbl_free(tbl)     \
@@ -66,8 +69,11 @@ u32   _tbl_len(void *ptr);
 	(void)0
 
 #define tbl_key_offset(tbl) ((s32)(((u8 *)(&((tbl)->key))) - ((u8 *)(tbl))))
+#define tbl_hash_offset(tbl) ((s32)(((u8 *)(&((tbl)->hash))) - ((u8 *)(tbl))))
 #define tbl_lookup_index_with_key(tbl, hash, key) _tbl_lookup_index((tbl), (hash), (key), sizeof(*(tbl)), tbl_key_offset(tbl))
-#define tbl_lookup_index(tbl, hash) _tbl_lookup_index((tbl), (hash), (str_t){0}, sizeof(*(tbl)), -1)
+#define tbl_lookup_index(tbl, hash) _tbl_lookup_index((tbl), (BL_TBL_HASH_T)(hash), (str_t){0}, sizeof(*(tbl)), -1)
+#define tbl_erase_with_key(tbl, hash, key) _tbl_erase((tbl), (hash), (key), sizeof(*(tbl)), sizeof(hash), tbl_hash_offset(tbl), tbl_key_offset(tbl))
+#define tbl_erase(tbl, hash) _tbl_erase((tbl), (BL_TBL_HASH_T)(hash), (str_t){0}, sizeof(*(tbl)), sizeof(hash), tbl_hash_offset(tbl), -1)
 #define tbl_len(tbl) _tbl_len((tbl))
 
 #endif

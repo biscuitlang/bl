@@ -85,7 +85,7 @@ struct vm_bufpage {
 };
 
 struct vm_snapshot {
-	struct mir_instr_call *key;
+	struct mir_instr_call *hash;
 	struct vm_stack       *stack;
 };
 
@@ -106,7 +106,7 @@ struct virtual_machine {
 	//
 	// When the call is successfully completed the cached entry must be removed from the table and
 	// returned back to 'available_comptime_call_stacks' array.
-	hash_table(struct vm_snapshot) comptime_call_stacks;
+	my_hash_table(struct vm_snapshot) comptime_call_stacks;
 
 	mtx_t lock;
 };

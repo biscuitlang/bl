@@ -183,7 +183,7 @@ static void fn_dtor(struct mir_fn *fn) {
 
 static void fn_poly_dtor(struct mir_fn_generated_recipe *recipe) {
 	bmagic_assert(recipe);
-	hmfree(recipe->entries);
+	tbl_free(recipe->entries);
 }
 
 // FW decls
@@ -910,10 +910,11 @@ static inline bool is_incomplete_struct_type(struct mir_type *type) {
 static bool is_incomplete_type(struct context *ctx, struct mir_type *type, struct mir_type **incomplete_type) {
 	zone();
 
-	hash_table(struct {
-		struct mir_type *key;
-		u8               value; // this is not used
-	}) visited = NULL;
+	struct visited_entry {
+		struct mir_type *hash;
+	};
+
+	my_hash_table(struct visited_entry) visited = NULL;
 
 	mir_types_t *stack = &ctx->analyze->complete_check_type_stack;
 	sarrput(stack, type);
@@ -948,9 +949,10 @@ static bool is_incomplete_type(struct context *ctx, struct mir_type *type, struc
 		case MIR_TYPE_STRING:
 		case MIR_TYPE_VARGS:
 		case MIR_TYPE_STRUCT: {
-			const s64 index = hmgeti(visited, top);
+			const s32 index = tbl_lookup_index(visited, top);
 			if (index != -1) break;
-			hmput(visited, top, 0);
+			struct visited_entry entry = (struct visited_entry){.hash = top};
+			tbl_insert(visited, entry);
 			mir_members_t *members = top->data.strct.members;
 			for (usize i = 0; i < sarrlenu(members); ++i) {
 				struct mir_member *member = sarrpeek(members, i);
@@ -964,7 +966,7 @@ static bool is_incomplete_type(struct context *ctx, struct mir_type *type, struc
 	}
 DONE:
 	sarrclear(stack);
-	hmfree(visited);
+	tbl_free(visited);
 	if (incomplete_type) *incomplete_type = first_incomplete_type;
 	type->checked_and_complete = !first_incomplete_type;
 	return_zone(first_incomplete_type);
@@ -6323,10 +6325,13 @@ struct result analyze_instr_switch(struct context *ctx, struct mir_instr_switch 
 		return_zone(PASS);
 	}
 
-	hash_table(struct {
-		s64                     key;
+	struct presented_entry {
+		s64                     hash;
 		struct mir_switch_case *value;
-	}) presented = NULL;
+	};
+
+	my_hash_table(struct presented_entry) presented = NULL;
+
 	for (usize i = sarrlenu(sw->cases); i-- > 0;) {
 		struct mir_switch_case *c = &sarrpeek(sw->cases, i);
 		if (!mir_is_comptime(c->on_value)) {
@@ -6341,7 +6346,7 @@ struct result analyze_instr_switch(struct context *ctx, struct mir_instr_switch 
 		}
 		{ // validate value
 			const s64 v               = MIR_CEV_READ_AS(s64, &c->on_value->value);
-			const s64 collision_index = hmgeti(presented, v);
+			const s32 collision_index = tbl_lookup_index(presented, v);
 			if (collision_index != -1) {
 				struct mir_switch_case *ce = presented[collision_index].value;
 				report_error(DUPLICIT_SWITCH_CASE, c->on_value->node, "Switch already contains case for this value!");
@@ -6349,10 +6354,11 @@ struct result analyze_instr_switch(struct context *ctx, struct mir_instr_switch 
 				hmfree(presented);
 				return_zone(FAIL);
 			}
-			hmput(presented, v, c);
+			struct presented_entry entry = (struct presented_entry){.hash = v, .value = c};
+			tbl_insert(presented, entry);
 		}
 	}
-	hmfree(presented);
+	tbl_free(presented);
 
 	mir_variants_t *variants            = expected_case_type->data.enm.variants;
 	s64             expected_case_count = expected_case_type->kind == MIR_TYPE_ENUM ? sarrlen(variants) : -1;
@@ -8150,7 +8156,7 @@ struct result analyze_call_stage_generate(struct context *ctx, struct mir_instr_
 	if (is_polymorph) bassert(replacement_hash != 0);
 #endif
 
-	const s64 index = replacement_hash ? hmgeti(recipe->entries, replacement_hash) : -1;
+	const s32 index = replacement_hash ? tbl_lookup_index(recipe->entries, replacement_hash) : -1;
 
 	if (index == -1) {
 		// Prepare global state for the function generation.
@@ -8199,12 +8205,13 @@ struct result analyze_call_stage_generate(struct context *ctx, struct mir_instr_
 		if (replacement_hash != 0) {
 			// Function can be identified by hash (calculated from arguments) so we can reuse the
 			// same implementation later!
-			hmput(recipe->entries, replacement_hash, replacement_fn);
+			struct recipe_entry entry = (struct recipe_entry){.hash = replacement_hash, .replacement = replacement_fn };
+			tbl_insert(recipe->entries, entry);
 		}
 
 		batomic_fetch_add_s32(&ctx->assembly->stats.polymorph_count, 1);
 	} else {
-		replacement_fn = recipe->entries[index].value;
+		replacement_fn = recipe->entries[index].replacement;
 	}
 
 DONE:
@@ -8991,7 +8998,7 @@ struct result analyze_instr(struct context *ctx, struct mir_instr *instr) {
 			(*analyze_state) = MIR_IS_ANALYZED;
 			if (instr->kind == MIR_INSTR_COMPOUND) {
 				// Supported only for compounds right now!
-				hmdel(ctx->analyze->skipped_instructions, instr);
+				tbl_erase(ctx->analyze->skipped_instructions, instr);
 			}
 		} else if (state.state == ANALYZE_FAILED) {
 			(*analyze_state) = MIR_IS_FAILED;
@@ -9003,10 +9010,11 @@ struct result analyze_instr(struct context *ctx, struct mir_instr *instr) {
 		} else if (state.state == ANALYZE_SKIP) {
 #if defined(BL_ASSERT_ENABLE)
 			bassert(instr->kind == MIR_INSTR_COMPOUND && "ANALYZE_SKIP is supported only for compounds right now!");
-			const s64 index = hmgeti(ctx->analyze->skipped_instructions, instr);
+			const s32 index = tbl_lookup_index(ctx->analyze->skipped_instructions, instr);
 			bassert(index == -1);
 #endif
-			hmput(ctx->analyze->skipped_instructions, instr, 0);
+			struct skipped_instr_entry entry = (struct skipped_instr_entry){.hash = instr};
+			tbl_insert(ctx->analyze->skipped_instructions, entry);
 		}
 	} // PENDING
 
@@ -9202,8 +9210,8 @@ void analyze_report_unused(struct context *ctx) {
 }
 
 void analyze_report_skipped(struct context *ctx) {
-	for (s64 i = 0; i < hmlen(ctx->analyze->skipped_instructions); ++i) {
-		struct mir_instr *instr = ctx->analyze->skipped_instructions[i].key;
+	for (u32 i = 0; i < tbl_len(ctx->analyze->skipped_instructions); ++i) {
+		struct mir_instr *instr = ctx->analyze->skipped_instructions[i].hash;
 		bassert(instr->kind == MIR_INSTR_COMPOUND);
 		report_error(INVALID_TYPE, instr->node, INVALID_COMPOUND_TYPE_INFER_MESSAGE);
 	}
@@ -9283,7 +9291,7 @@ void rtti_satisfy_incomplete(struct context *ctx, struct mir_rtti_incomplete *in
 
 struct mir_var *get_rtti_no_lock(struct assembly *assembly, hash_t type_hash) {
 	bassert(type_hash);
-	const s64 i = hmgeti(assembly->mir.rtti_table, type_hash);
+	const s32 i = tbl_lookup_index(assembly->mir.rtti_table, type_hash);
 	if (i < 0) return NULL;
 	struct mir_var *result = assembly->mir.rtti_table[i].value;
 	bassert(result);
@@ -9365,7 +9373,11 @@ struct mir_var *_rtti_gen(struct context *ctx, struct mir_type *type) {
 
 	spl_lock(&ctx->mir->rtti_table_lock);
 	bassert(get_rtti_no_lock(ctx->assembly, type->id.hash) == NULL && "RTTI variable already added for the type!");
-	hmput(ctx->mir->rtti_table, type->id.hash, rtti_var);
+	struct rtti_table_entry entry = (struct rtti_table_entry){
+	    .hash  = type->id.hash,
+	    .value = rtti_var,
+	};
+	tbl_insert(ctx->mir->rtti_table, entry);
 	spl_unlock(&ctx->mir->rtti_table_lock);
 
 	return rtti_var;
@@ -12040,7 +12052,8 @@ void mir_init(struct assembly *assembly) {
 
 	mir->type_cache = NULL;
 	tbl_init(mir->type_cache, 2048);
-
+	tbl_init(mir->rtti_table, 2048);
+	tbl_init(mir->analyze.skipped_instructions, 1024);
 	arrsetcap(mir->global_instrs, 4096);
 	arrsetcap(mir->exported_instrs, 256);
 	arrsetcap(mir->analyze.usage_check_arr, 256);
@@ -12068,7 +12081,7 @@ void mir_terminate(struct assembly *assembly) {
 	spl_destroy(&mir->rtti_table_lock);
 	spl_destroy(&mir->exported_instrs_lock);
 
-	hmfree(mir->rtti_table);
+	tbl_free(mir->rtti_table);
 	arrfree(mir->global_instrs);
 	arrfree(mir->exported_instrs);
 	tbl_free(mir->type_cache);
@@ -12077,7 +12090,7 @@ void mir_terminate(struct assembly *assembly) {
 
 	arrfree(mir->analyze.stack[0]);
 	arrfree(mir->analyze.stack[1]);
-	hmfree(mir->analyze.skipped_instructions);
+	tbl_free(mir->analyze.skipped_instructions);
 	hmfree(mir->analyze.waiting);
 	arrfree(mir->analyze.usage_check_arr);
 	sarrfree(&mir->analyze.incomplete_rtti);
@@ -12124,19 +12137,6 @@ void mir_analyze_run(struct assembly *assembly) {
 	analyze_report_unused(&ctx);
 
 	blog("Analyze queue push count: %i", push_count);
-
-#if 1
-	for (u32 i = 0; i < arrlenu(assembly->thread_local_contexts); ++i) {
-		struct assembly_thread_local_context *tl = &assembly->thread_local_contexts[i];
-		blog("Arena 'ast'         [%d] allocated %llu", i, tl->ast_arena.num_allocations);
-		blog("Arena 'small_array' [%d] allocated %llu", i, tl->small_array.num_allocations);
-		blog("Arena 'instr'       [%d] allocated %llu", i, tl->mir_arenas.instr.num_allocations);
-		blog("Arena 'type'        [%d] allocated %llu", i, tl->mir_arenas.type.num_allocations);
-		blog("Arena 'var'         [%d] allocated %llu", i, tl->mir_arenas.var.num_allocations);
-		blog("Arena 'fn'          [%d] allocated %llu", i, tl->mir_arenas.fn.num_allocations);
-		blog("Arena 'arg'         [%d] allocated %llu", i, tl->mir_arenas.arg.num_allocations);
-	}
-#endif
 
 DONE:
 	batomic_fetch_add_s32(&assembly->stats.mir_analyze_ms, runtime_measure_end(mir_analyze));

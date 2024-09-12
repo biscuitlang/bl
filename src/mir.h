@@ -96,6 +96,15 @@ struct mir_rtti_incomplete {
 	struct mir_type *type;
 };
 
+struct rtti_table_entry {
+	hash_t          hash;
+	struct mir_var *value;
+};
+
+struct skipped_instr_entry {
+	struct mir_instr *hash;
+};
+
 typedef sarr_t(struct mir_instr *, 32) instrs_t;
 typedef sarr_t(struct mir_rtti_incomplete, 64) mir_rttis_t;
 
@@ -125,20 +134,14 @@ struct mir_analyze {
 
 	// Table of instruction being skipped in analyze pass, this should be empty at the end
 	// of analyze!
-	hash_table(struct {
-		struct mir_instr *key;
-		u8                value; // this is not used
-	}) skipped_instructions;
+	my_hash_table(struct skipped_instr_entry) skipped_instructions;
 };
 
 struct mir {
 	array(struct mir_instr *) global_instrs; // All global instructions.
 	spl_t global_instrs_lock;
 
-	struct {
-		hash_t          key;
-		struct mir_var *value;
-	}    *rtti_table; // Map type ids to RTTI variables.
+	my_hash_table(struct rtti_table_entry) rtti_table; // Map type ids to RTTI variables.
 	spl_t rtti_table_lock;
 
 	array(struct mir_instr *) exported_instrs;
@@ -234,17 +237,18 @@ struct dyncall_cb_context {
 	struct mir_fn          *fn;
 };
 
+struct recipe_entry {
+	hash_t         hash;
+	struct mir_fn *replacement;
+};
+
 struct mir_fn_generated_recipe {
 	// Function literal (used for function replacement generation).
 	struct ast *ast_lit_fn;
 	// Scope layer solves symbol collisions in reused scopes.
 	hash_t scope_layer;
 	// Cache of already generated functions (replacement hash -> struct mir_fn*).
-	hash_table(struct {
-		hash_t         key;
-		struct mir_fn *value;
-	}) entries;
-
+	my_hash_table(struct recipe_entry) entries;
 	bmagic_member
 };
 
