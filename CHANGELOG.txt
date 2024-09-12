@@ -1,6 +1,8 @@
 Master
 ---------------------------------------------------------------------------------------
 Fix interp function callbacks without arguments.
+Paralelize MIR generation.
+Performance improvements.
 
 0.11.2
 ---------------------------------------------------------------------------------------
