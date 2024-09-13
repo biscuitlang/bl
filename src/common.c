@@ -45,37 +45,37 @@
 #include <time.h>
 
 #ifdef BL_USE_SIMD
-	#include <emmintrin.h>
-	#include <intrin.h>
-	#include <nmmintrin.h>
+#include <emmintrin.h>
+#include <intrin.h>
+#include <nmmintrin.h>
 #endif
 
 #if !BL_PLATFORM_WIN
-	#include <sys/stat.h>
-	#include <unistd.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #endif
 
 #if BL_PLATFORM_MACOS
-	#include <ctype.h>
-	#include <errno.h>
-	#include <mach-o/dyld.h>
-	#include <mach/mach_time.h>
-	#include <sys/time.h>
+#include <ctype.h>
+#include <errno.h>
+#include <mach-o/dyld.h>
+#include <mach/mach_time.h>
+#include <sys/time.h>
 #endif
 
 #if BL_PLATFORM_LINUX
-	#include <ctype.h>
-	#include <errno.h>
+#include <ctype.h>
+#include <errno.h>
 #endif
 
 #if BL_PLATFORM_WIN
-	#include <shlwapi.h>
-	#ifndef popen
-		#define popen _popen
-	#endif
-	#ifndef pclose
-		#define pclose _pclose
-	#endif
+#include <shlwapi.h>
+#ifndef popen
+#define popen _popen
+#endif
+#ifndef pclose
+#define pclose _pclose
+#endif
 #endif
 
 // =================================================================================================
@@ -453,25 +453,19 @@ s32 levenshtein(const str_t s1, const str_t s2) {
 	return column[s1len];
 }
 
-bool search_source_file(const char *filepath,
-                        const u32   flags,
-                        const char *wdir,
-                        char      **out_filepath,
-                        char      **out_dirpath) {
+bool search_source_file(const char *filepath, const u32 flags, const char *wdir, str_buf_t *out_filepath) {
 	str_buf_t tmp = get_tmp_str();
 	if (!filepath) goto NOT_FOUND;
-	char        tmp_result[PATH_MAX] = {0};
-	const char *result               = NULL;
-	if (brealpath(filepath, tmp_result, static_arrlenu(tmp_result))) {
-		result = &tmp_result[0];
+	char result[PATH_MAX];
+
+	if (brealpath(filepath, result)) {
 		goto FOUND;
 	}
 
 	// Lookup in working directory.
 	if (wdir && isflag(flags, SEARCH_FLAG_WDIR)) {
 		str_buf_append_fmt(&tmp, "{s}" PATH_SEPARATOR "{s}", wdir, filepath);
-		if (brealpath(str_to_c(tmp), tmp_result, static_arrlenu(tmp_result))) {
-			result = &tmp_result[0];
+		if (brealpath(str_to_c(tmp), result)) {
 			goto FOUND;
 		}
 	}
@@ -480,17 +474,17 @@ bool search_source_file(const char *filepath,
 	if (builder_get_lib_dir() && isflag(flags, SEARCH_FLAG_LIB_DIR)) {
 		str_buf_clr(&tmp);
 		str_buf_append_fmt(&tmp, "{s}" PATH_SEPARATOR "{s}", builder_get_lib_dir(), filepath);
-		if (brealpath(str_to_c(tmp), tmp_result, static_arrlenu(tmp_result))) {
-			result = &tmp_result[0];
+		if (brealpath(str_to_c(tmp), result)) {
 			goto FOUND;
 		}
 	}
 
 	// file has not been found in current working directory -> search in PATH
 	if (isflag(flags, SEARCH_FLAG_SYSTEM_PATH)) {
-		char *env = strdup(getenv(ENV_PATH));
-		char *s   = env;
-		char *p   = NULL;
+		bool  found = false;
+		char *env   = strdup(getenv(ENV_PATH));
+		char *s     = env;
+		char *p     = NULL;
 		do {
 			p = strchr(s, ENVPATH_SEPARATORC);
 			if (p != NULL) {
@@ -498,12 +492,11 @@ bool search_source_file(const char *filepath,
 			}
 			str_buf_clr(&tmp);
 			str_buf_append_fmt(&tmp, "{s}" PATH_SEPARATOR "{s}", s, filepath);
-			if (brealpath(str_to_c(tmp), tmp_result, static_arrlenu(tmp_result)))
-				result = &tmp_result[0];
-			s = p + 1;
-		} while (p && !result);
+			found = brealpath(str_to_c(tmp), result);
+			s     = p + 1;
+		} while (p && !found);
 		free(env);
-		if (result) goto FOUND;
+		if (found) goto FOUND;
 	}
 
 NOT_FOUND:
@@ -512,14 +505,7 @@ NOT_FOUND:
 
 FOUND:
 	// Absolute file path.
-	if (out_filepath) *out_filepath = strdup(result);
-	if (out_dirpath) {
-		// Absolute directory path.
-		char dirpath[PATH_MAX] = {0};
-		if (get_dir_from_filepath(dirpath, static_arrlenu(dirpath), result)) {
-			*out_dirpath = strdup(dirpath);
-		}
-	}
+	if (out_filepath) str_buf_append(out_filepath, make_str_from_c(result));
 	put_tmp_str(tmp);
 	return true;
 }
@@ -565,10 +551,6 @@ bool get_current_exec_dir(char *buf, usize buf_size) {
 	if (!get_current_exec_path(tmp, PATH_MAX)) return false;
 	if (!get_dir_from_filepath(buf, buf_size, tmp)) return false;
 	return true;
-}
-
-bool get_current_working_dir(char *buf, usize buf_size) {
-	return brealpath(".", buf, (s32)buf_size);
 }
 
 bool set_current_working_dir(const char *path) {
@@ -619,32 +601,30 @@ bool _dir_exists(const char *ptr, s32 len) {
 #endif
 }
 
-bool brealpath(const char *file, char *out, s32 out_len) {
+bool brealpath(const char *file, char *out) {
 	bassert(out);
 	bassert(out_len);
 	if (!file) return false;
 #if BL_PLATFORM_WIN
-	const DWORD len = GetFullPathNameA(file, out_len, out, NULL);
+	const DWORD len = GetFullPathNameA(file, PATH_MAX, out, NULL);
 	if (!len) {
 		DWORD ec = GetLastError();
 		if (ec == ERROR_FILENAME_EXCED_RANGE)
-			builder_error("Cannot get full path of '%s', resulting path is too long. (expected "
-			              "maximum %d characters)",
-			              file,
-			              PATH_MAX);
+			builder_error("Cannot get full path of '%s', resulting path is too long. (expected maximum %d characters)", file, PATH_MAX);
 		return false;
 	}
 	if (!file_exists(out)) return false;
-	win_path_to_unix(out, out_len);
+	win_path_to_unix(out, PATH_MAX);
 	return true;
 #else
+	// Requires the out buffer preallocated up to PATH_MAX.
 	return realpath(file, out);
 #endif
 }
 
 bool normalize_path(str_buf_t *path) {
 	char buf[PATH_MAX] = "";
-	if (!brealpath(str_to_c(*path), buf, static_arrlenu(buf))) {
+	if (!brealpath(str_to_c(*path), buf)) {
 		return false;
 	}
 	str_buf_clr(path);

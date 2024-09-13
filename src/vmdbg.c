@@ -30,6 +30,7 @@
 #include "builder.h"
 #include "mir_printer.h"
 #include "stb_ds.h"
+#include "table.h"
 
 enum state {
 	CONTINUE,
@@ -37,7 +38,7 @@ enum state {
 };
 
 struct stack_context {
-	struct vm_stack *key;
+	struct vm_stack *hash;
 	array(uintptr_t) stackops;
 };
 
@@ -237,10 +238,10 @@ void vmdbg_attach(struct virtual_machine *vm) {
 }
 
 void vmdbg_detach(void) {
-	for (u64 i = 0; i < hmlenu(stack_context); ++i) {
+	for (u64 i = 0; i < tbl_len(stack_context); ++i) {
 		arrfree(stack_context[i].stackops);
 	}
-	hmfree(stack_context);
+	tbl_free(stack_context);
 
 	current_vm = NULL;
 	state      = CONTINUE;
@@ -271,10 +272,10 @@ static struct stack_context *get_stack_context(void) {
 	bassert(current_vm->stack);
 	struct vm_stack *stack = current_vm->stack;
 	bassert(stack);
-	s64 index = hmgeti(stack_context, stack);
+	s64 index = tbl_lookup_index(stack_context, stack);
 	if (index == -1) {
-		hmputs(stack_context, ((struct stack_context){.key = stack}));
-		index = hmgeti(stack_context, stack);
+		tbl_insert(stack_context, ((struct stack_context){.hash = stack}));
+		index = tbl_len(stack_context) - 1; // New item is last in the array.
 		bassert(index != -1);
 	}
 	return &stack_context[index];

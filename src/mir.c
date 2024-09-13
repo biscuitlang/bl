@@ -914,7 +914,7 @@ static bool is_incomplete_type(struct context *ctx, struct mir_type *type, struc
 		struct mir_type *hash;
 	};
 
-	my_hash_table(struct visited_entry) visited = NULL;
+	hash_table(struct visited_entry) visited = NULL;
 
 	mir_types_t *stack = &ctx->analyze->complete_check_type_stack;
 	sarrput(stack, type);
@@ -1282,7 +1282,7 @@ static inline void analyze_schedule(struct context *ctx, struct mir_instr *instr
 
 static inline void analyze_notify_provided(struct context *ctx, hash_t hash) {
 	bcheck_main_thread();
-	const s64 index = hmgeti(ctx->analyze->waiting, hash);
+	const s32 index = tbl_lookup_index(ctx->analyze->waiting, hash);
 	if (index == -1) return; // No one is waiting for this...
 
 	instrs_t *wq = &ctx->analyze->waiting[index].value;
@@ -1294,7 +1294,7 @@ static inline void analyze_notify_provided(struct context *ctx, hash_t hash) {
 
 	// Also clear element content!
 	sarrfree(wq);
-	hmdel(ctx->analyze->waiting, hash);
+	tbl_erase(ctx->analyze->waiting, hash);
 }
 // =================================================================================================
 
@@ -1534,7 +1534,7 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 	if (!scope_is_local(scope)) scope_unlock(scope);
 	return_zone(entry);
 
-COLLIDE: {
+COLLIDE : {
 	if (!scope_is_local(scope)) scope_unlock(scope);
 	char *err_msg = (collision->is_builtin || is_builtin) ? "Symbol name collision with compiler builtin '%.*s'." : "Duplicate symbol";
 	report_error(DUPLICATE_SYMBOL, node, err_msg, id->str.len, id->str.ptr);
@@ -6330,18 +6330,18 @@ struct result analyze_instr_switch(struct context *ctx, struct mir_instr_switch 
 		struct mir_switch_case *value;
 	};
 
-	my_hash_table(struct presented_entry) presented = NULL;
+	hash_table(struct presented_entry) presented = NULL;
 
 	for (usize i = sarrlenu(sw->cases); i-- > 0;) {
 		struct mir_switch_case *c = &sarrpeek(sw->cases, i);
 		if (!mir_is_comptime(c->on_value)) {
 			report_error(EXPECTED_COMPTIME, c->on_value->node, "Switch case value must be compile-time known.");
-			hmfree(presented);
+			tbl_free(presented);
 			return_zone(FAIL);
 		}
 
 		if (analyze_slot(ctx, analyze_slot_conf_default, &c->on_value, expected_case_type) != ANALYZE_PASSED) {
-			hmfree(presented);
+			tbl_free(presented);
 			return_zone(FAIL);
 		}
 		{ // validate value
@@ -6351,7 +6351,7 @@ struct result analyze_instr_switch(struct context *ctx, struct mir_instr_switch 
 				struct mir_switch_case *ce = presented[collision_index].value;
 				report_error(DUPLICIT_SWITCH_CASE, c->on_value->node, "Switch already contains case for this value!");
 				report_note(ce->on_value->node, "Same value found here.");
-				hmfree(presented);
+				tbl_free(presented);
 				return_zone(FAIL);
 			}
 			struct presented_entry entry = (struct presented_entry){.hash = v, .value = c};
@@ -6434,7 +6434,7 @@ struct result analyze_instr_load(struct context *ctx, struct mir_instr_load *loa
 
 	return_zone(PASS);
 
-INVALID_SRC: {
+INVALID_SRC : {
 	bassert(err_type);
 	str_buf_t type_name = mir_type2str(err_type, /* prefer_name */ true);
 	report_error(INVALID_TYPE, src->node, "Expected value of pointer type, got '%.*s'.", type_name.len, type_name.ptr);
@@ -8205,7 +8205,7 @@ struct result analyze_call_stage_generate(struct context *ctx, struct mir_instr_
 		if (replacement_hash != 0) {
 			// Function can be identified by hash (calculated from arguments) so we can reuse the
 			// same implementation later!
-			struct recipe_entry entry = (struct recipe_entry){.hash = replacement_hash, .replacement = replacement_fn };
+			struct recipe_entry entry = (struct recipe_entry){.hash = replacement_hash, .replacement = replacement_fn};
 			tbl_insert(recipe->entries, entry);
 		}
 
@@ -9126,10 +9126,11 @@ void analyze(struct context *ctx) {
 		case ANALYZE_WAIT: {
 			instrs_t    *wq;
 			const hash_t hash  = result.waiting_for;
-			s64          index = hmgeti(ctx->analyze->waiting, hash);
+			s32          index = tbl_lookup_index(ctx->analyze->waiting, hash);
 			if (index == -1) {
-				hmput(ctx->analyze->waiting, hash, ((instrs_t)SARR_ZERO));
-				index = hmgeti(ctx->analyze->waiting, hash);
+				struct waiting_entry entry = (struct waiting_entry){.hash = hash, .value = ((instrs_t)SARR_ZERO)};
+				tbl_insert(ctx->analyze->waiting, entry);
+				index = (s32)tbl_len(ctx->analyze->waiting) - 1; // New item is last in the array.
 				bassert(index >= -1);
 				wq = &ctx->analyze->waiting[index].value;
 			} else {
@@ -9148,7 +9149,7 @@ void analyze(struct context *ctx) {
 void analyze_report_unresolved(struct context *ctx) {
 	s32 reported = 0;
 
-	for (usize i = 0; i < hmlenu(ctx->analyze->waiting); ++i) {
+	for (u32 i = 0; i < tbl_len(ctx->analyze->waiting); ++i) {
 		instrs_t *wq = &ctx->analyze->waiting[i].value;
 		bassert(wq);
 		for (usize j = 0; j < sarrlenu(wq); ++j) {
@@ -9176,7 +9177,7 @@ void analyze_report_unresolved(struct context *ctx) {
 			++reported;
 		}
 	}
-	if (hmlen(ctx->analyze->waiting) && !reported) {
+	if (tbl_len(ctx->analyze->waiting) && !reported) {
 		report_error(UNKNOWN_SYMBOL, NULL, "Unknown symbol/s detected but not correctly reported, this is compiler bug!");
 	}
 }
@@ -12091,7 +12092,7 @@ void mir_terminate(struct assembly *assembly) {
 	arrfree(mir->analyze.stack[0]);
 	arrfree(mir->analyze.stack[1]);
 	tbl_free(mir->analyze.skipped_instructions);
-	hmfree(mir->analyze.waiting);
+	tbl_free(mir->analyze.waiting);
 	arrfree(mir->analyze.usage_check_arr);
 	sarrfree(&mir->analyze.incomplete_rtti);
 	sarrfree(&mir->analyze.complete_check_type_stack);

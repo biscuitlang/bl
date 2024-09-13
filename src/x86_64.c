@@ -40,6 +40,7 @@
 
 #include "assembly.h"
 #include "builder.h"
+#include "table.h"
 
 #if BL_PLATFORM_WIN
 
@@ -123,16 +124,16 @@ struct sym_patch {
 };
 
 struct symbol_table_entry {
-	hash_t key;
+	hash_t hash;
 	s32    symbol_table_index;
 };
 
 struct scheduled_entry {
-	hash_t key;
+	hash_t hash;
 };
 
 struct rtti_entry {
-	hash_t key;
+	hash_t hash;
 };
 
 struct thread_context {
@@ -180,9 +181,7 @@ struct context {
 
 	hash_table(struct rtti_entry) rtti;
 	spl_t rtti_lock;
-
 	hash_table(struct symbol_table_entry) symbol_table;
-
 	hash_table(struct scheduled_entry) scheduled_for_generation;
 	spl_t schedule_for_generation_lock;
 
@@ -328,8 +327,8 @@ static inline u32 add_data(struct thread_context *tctx, const void *buf, s32 len
 
 static inline void submit_instr(struct context *ctx, hash_t hash, struct mir_instr *instr) {
 	spl_lock(&ctx->schedule_for_generation_lock);
-	if (hmgeti(ctx->scheduled_for_generation, hash) == -1) {
-		hmputs(ctx->scheduled_for_generation, (struct scheduled_entry){hash});
+	if (tbl_lookup_index(ctx->scheduled_for_generation, hash) == -1) {
+		tbl_insert(ctx->scheduled_for_generation, ((struct scheduled_entry){hash}));
 		submit_job(&job, &(struct job_context){.x64 = {.ctx = ctx, .top_instr = instr}});
 	}
 	spl_unlock(&ctx->schedule_for_generation_lock);
@@ -395,14 +394,14 @@ hash_t add_global_external_sym(struct context *ctx, str_t linkage_name, s32 data
 	}
 
 	const hash_t hash = strhash(linkage_name);
-	bassert(hmgeti(ctx->symbol_table, hash) == -1);
+	bassert(tbl_lookup_index(ctx->symbol_table, hash) == -1);
 	struct symbol_table_entry entry = {
-	    .key                = hash,
+	    .hash               = hash,
 	    .symbol_table_index = (s32)(arrlen(ctx->syms)),
 	};
 
 	arrput(ctx->syms, sym);
-	hmputs(ctx->symbol_table, entry);
+	tbl_insert(ctx->symbol_table, entry);
 
 	return hash;
 }
@@ -1016,10 +1015,10 @@ static hash_t emit_type_info(struct context *ctx, struct thread_context *tctx, s
 
 	bool should_generate = false;
 	spl_lock(&ctx->rtti_lock);
-	if (hmgeti(ctx->rtti, hash) == -1) {
+	if (tbl_lookup_index(ctx->rtti, hash) == -1) {
 		// Note that the type info for this hash was generated.
 		struct rtti_entry entry = {hash};
-		hmputs(ctx->rtti, entry);
+		tbl_insert(ctx->rtti, entry);
 		should_generate = true;
 	}
 	spl_unlock(&ctx->rtti_lock);
@@ -2662,12 +2661,12 @@ void job(struct job_context *job_ctx) {
 			if (sym->StorageClass == IMAGE_SYM_CLASS_LABEL) continue;
 
 			const hash_t hash = strhash(make_str_from_c(sym_name));
-			bassert(hmgeti(ctx->symbol_table, hash) == -1);
+			bassert(tbl_lookup_index(ctx->symbol_table, hash) == -1);
 			struct symbol_table_entry entry = {
-			    .key                = hash,
+			    .hash               = hash,
 			    .symbol_table_index = (s32)(i + gsyms_len),
 			};
-			hmputs(ctx->symbol_table, entry);
+			tbl_insert(ctx->symbol_table, entry);
 		}
 
 		// Copy symbol table to global one.
@@ -2819,7 +2818,7 @@ void x86_64run(struct assembly *assembly) {
 		bassert(patch->target_section);
 
 		// Find the function position in the binary.
-		const usize i = hmgeti(ctx.symbol_table, patch->hash);
+		const s32 i = tbl_lookup_index(ctx.symbol_table, patch->hash);
 		if (i == -1) {
 			babort("Internally linked symbol reference is not found in the binary!");
 		}
@@ -2875,9 +2874,9 @@ void x86_64run(struct assembly *assembly) {
 		arrfree(ctx.syms);
 		arrfree(ctx.patches);
 
-		hmfree(ctx.symbol_table);
-		hmfree(ctx.scheduled_for_generation);
-		hmfree(ctx.rtti);
+		tbl_free(ctx.symbol_table);
+		tbl_free(ctx.scheduled_for_generation);
+		tbl_free(ctx.rtti);
 	}
 
 	spl_destroy(&ctx.schedule_for_generation_lock);

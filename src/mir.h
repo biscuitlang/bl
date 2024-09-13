@@ -85,6 +85,8 @@ struct mir_arenas {
 	struct arena fn_generated;
 };
 
+typedef sarr_t(struct mir_instr *, 32) instrs_t;
+
 struct mir_type_cache_entry {
 	hash_t           hash;
 	str_t            key;
@@ -95,6 +97,7 @@ struct mir_rtti_incomplete {
 	struct mir_var  *var;
 	struct mir_type *type;
 };
+typedef sarr_t(struct mir_rtti_incomplete, 64) mir_rttis_t;
 
 struct rtti_table_entry {
 	hash_t          hash;
@@ -105,8 +108,10 @@ struct skipped_instr_entry {
 	struct mir_instr *hash;
 };
 
-typedef sarr_t(struct mir_instr *, 32) instrs_t;
-typedef sarr_t(struct mir_rtti_incomplete, 64) mir_rttis_t;
+struct waiting_entry {
+	hash_t   hash;
+	instrs_t value;
+};
 
 struct mir_analyze {
 	// Instructions waiting for analyze.
@@ -116,10 +121,7 @@ struct mir_analyze {
 
 	// Hash table of arrays. Hash is id of symbol and array contains queue of waiting
 	// instructions.
-	hash_table(struct {
-		hash_t   key;
-		instrs_t value;
-	}) waiting;
+	hash_table(struct waiting_entry) waiting;
 
 	// Structure members can sometimes point to self, in such case we end up with
 	// endless looping RTTI generation, to solve this problem we create dummy RTTI
@@ -134,20 +136,20 @@ struct mir_analyze {
 
 	// Table of instruction being skipped in analyze pass, this should be empty at the end
 	// of analyze!
-	my_hash_table(struct skipped_instr_entry) skipped_instructions;
+	hash_table(struct skipped_instr_entry) skipped_instructions;
 };
 
 struct mir {
 	array(struct mir_instr *) global_instrs; // All global instructions.
 	spl_t global_instrs_lock;
 
-	my_hash_table(struct rtti_table_entry) rtti_table; // Map type ids to RTTI variables.
+	hash_table(struct rtti_table_entry) rtti_table; // Map type ids to RTTI variables.
 	spl_t rtti_table_lock;
 
 	array(struct mir_instr *) exported_instrs;
 	spl_t exported_instrs_lock;
 
-	my_hash_table(struct mir_type_cache_entry) type_cache;
+	hash_table(struct mir_type_cache_entry) type_cache;
 	mtx_t type_cache_lock;
 
 	struct mir_analyze analyze;
@@ -248,7 +250,7 @@ struct mir_fn_generated_recipe {
 	// Scope layer solves symbol collisions in reused scopes.
 	hash_t scope_layer;
 	// Cache of already generated functions (replacement hash -> struct mir_fn*).
-	my_hash_table(struct recipe_entry) entries;
+	hash_table(struct recipe_entry) entries;
 	bmagic_member
 };
 

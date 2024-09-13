@@ -28,6 +28,7 @@
 
 #include "unit.h"
 #include "assembly.h"
+#include "builder.h"
 #include "stb_ds.h"
 #include <string.h>
 
@@ -38,10 +39,9 @@
 #define EXPECTED_ARRAY_COUNT 64
 
 hash_t unit_hash(const char *filepath, struct token *load_from) {
+	str_buf_t    tmp         = get_tmp_str();
 	struct unit *parent_unit = load_from ? load_from->location.unit : NULL;
-	char        *real_path   = NULL;
-	search_source_file(
-	    filepath, SEARCH_FLAG_ALL, parent_unit ? parent_unit->dirpath : NULL, &real_path, NULL);
+	search_source_file(filepath, SEARCH_FLAG_ALL, parent_unit ? parent_unit->dirpath : NULL, &tmp, NULL);
 	const char  *path = real_path ? real_path : filepath;
 	const hash_t hash = strhash(make_str_from_c(path));
 	free(real_path);
@@ -49,16 +49,17 @@ hash_t unit_hash(const char *filepath, struct token *load_from) {
 }
 
 // public
-struct unit *unit_new(const char *filepath, struct token *load_from) {
+struct unit *unit_new(struct assembly *assembly, const str_t filepath, struct token *load_from) {
 	struct unit *parent_unit = load_from ? load_from->location.unit : NULL;
 	struct unit *unit        = bmalloc(sizeof(struct unit));
 	bl_zeromem(unit, sizeof(struct unit));
 
-	search_source_file(filepath,
-	                   SEARCH_FLAG_ALL,
-	                   parent_unit ? parent_unit->dirpath : NULL,
-	                   &unit->filepath,
-	                   &unit->dirpath);
+	const u32             thread_index = get_worker_index();
+	struct string_cache **string_cache = &assembly->thread_local_contexts[thread_index].string_cache;
+
+	unit->filepath = scdup2(string_cache, filepath);
+
+	// search_source_file(filepath, SEARCH_FLAG_ALL, parent_unit ? parent_unit->dirpath : NULL, &unit->filepath, &unit->dirpath);
 	unit->name         = strdup(filepath);
 	char tmp[PATH_MAX] = {0};
 	if (get_filename_from_filepath(tmp, static_arrlenu(tmp), filepath)) {

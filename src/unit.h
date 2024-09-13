@@ -36,6 +36,7 @@
 #include "tokens.h"
 
 struct token;
+struct assembly;
 
 struct unit {
 	hash_t        hash;
@@ -43,8 +44,8 @@ struct unit {
 	struct ast   *ast;
 	array(struct ast *) ublock_ast;
 	struct scope   *private_scope;
+	str_t           filepath;
 	char           *filename;
-	char           *filepath;
 	char           *dirpath;
 	char           *name;
 	char           *src;
@@ -54,7 +55,7 @@ struct unit {
 };
 
 hash_t       unit_hash(const char *filepath, struct token *load_from);
-struct unit *unit_new(const char *filepath, struct token *load_from);
+struct unit *unit_new(struct assembly *assembly, const char *filepath, struct token *load_from);
 void         unit_delete(struct unit *unit);
 // Returns single line from the unit source code, len does not count last new line char.
 const char *unit_get_src_ln(struct unit *unit, s32 line, long *len);

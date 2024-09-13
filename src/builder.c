@@ -651,8 +651,10 @@ void put_tmp_str(str_buf_t str) {
 }
 
 void builder_submit_unit(struct assembly *assembly, struct unit *unit) {
+	zone();
 	bassert(unit);
 	if (builder.auto_submit) {
 		submit_unit(assembly, unit);
 	}
+	return_zone();
 }

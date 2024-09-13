@@ -247,7 +247,6 @@ s32 bvsnprint(char *buf, s32 buf_len, const char *fmt, va_list args);
 // These are used for explicitness.
 #define array(T) T *
 #define hash_table(T) T *
-#define my_hash_table(T) T *
 
 #define queue_t(T) \
 	struct {       \
@@ -384,27 +383,28 @@ typedef void (*unit_stage_fn_t)(struct assembly *, struct unit *);
 typedef void (*assembly_stage_fn_t)(struct assembly *);
 
 enum search_flags {
-	SEARCH_FLAG_ABS         = 0,
-	SEARCH_FLAG_WDIR        = 1,
-	SEARCH_FLAG_LIB_DIR     = 2,
-	SEARCH_FLAG_SYSTEM_PATH = 4,
-	SEARCH_FLAG_ALL         = SEARCH_FLAG_WDIR | SEARCH_FLAG_LIB_DIR | SEARCH_FLAG_SYSTEM_PATH,
+	// Just try to resolve normalized absolute path of the passed file.
+	SEARCH_FLAG_ABS = 1 << 0,
+	// Search in specified working directory.
+	SEARCH_FLAG_WDIR = 1 << 1,
+	// Search in compiler lib directory.
+	SEARCH_FLAG_LIB_DIR = 1 << 2,
+	// Search in system path.
+	SEARCH_FLAG_SYSTEM_PATH = 1 << 3,
+
+	SEARCH_FLAG_ALL = SEARCH_FLAG_WDIR | SEARCH_FLAG_LIB_DIR | SEARCH_FLAG_SYSTEM_PATH,
 };
 
-// Search file specified by 'filepath' and sets output filepath (full file location) and output
-// directory path (path without file name).
+// Search file specified by 'filepath' and sets output filepath (full file location).
 //
 // Search order:
-//     1) exec_dir (working directory if not NULL)
-//     2) LIB_DIR specified in global config file
-//     3) system PATH
+//     1) Current working directory.
+//     2) wdir directory if not NULL.
+//     3) LIB_DIR specified in global config file.
+//     4) System PATH.
 //
-// Function returns true and modify output variables if file was found otherwise returns false.
-bool search_source_file(const char *filepath,
-                        const u32   flags,
-                        const char *wdir,
-                        char      **out_filepath,
-                        char      **out_dirpath);
+// Function returns true and modify output filepath if file was found otherwise returns false.
+bool search_source_file(const char *filepath, const u32 flags, const char *wdir, str_buf_t *out_filepath);
 
 static inline bool is_aligned(const void *p, usize alignment) {
 	return (uintptr_t)p % alignment == 0;
@@ -447,8 +447,7 @@ void        unix_path_to_win(char *buf, usize buf_size);
 bool        file_exists(const char *filepath);
 bool        dir_exists(const char *dirpath);
 bool        normalize_path(str_buf_t *path);
-bool        brealpath(const char *file, char *out, s32 out_len);
-bool        get_current_working_dir(char *buf, usize buf_size);
+bool        brealpath(const char *file, char *out);
 bool        set_current_working_dir(const char *path);
 bool        get_dir_from_filepath(char *buf, const usize l, const char *filepath);
 bool        get_filename_from_filepath(char *buf, const usize l, const char *filepath);

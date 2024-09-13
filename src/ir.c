@@ -35,9 +35,9 @@
 #include "llvm-c/Types.h"
 
 #ifdef BL_DEBUG
-	#define NAMED_VARS true
+#define NAMED_VARS true
 #else
-	#define NAMED_VARS false
+#define NAMED_VARS false
 #endif
 
 #define STORE_MAX_SIZE_BYTES 16
@@ -90,8 +90,8 @@ struct context {
 	LLVMValueRef llvm_const_i64_zero;
 	LLVMValueRef llvm_const_i8_zero;
 
-	my_hash_table(struct cache_entry) gstring_cache;
-	my_hash_table(struct cache_entry) llvm_fn_cache;
+	hash_table(struct cache_entry) gstring_cache;
+	hash_table(struct cache_entry) llvm_fn_cache;
 	array(struct rtti_incomplete) incomplete_rtti;
 
 	struct builtin_types *builtin_types;

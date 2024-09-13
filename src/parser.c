@@ -72,7 +72,7 @@ struct hash_directive_entry {
 };
 
 struct context {
-	my_hash_table(struct hash_directive_entry) hash_directive_table;
+	hash_table(struct hash_directive_entry) hash_directive_table;
 
 	struct assembly      *assembly;
 	struct unit          *unit;
@@ -1786,7 +1786,7 @@ struct ast *parse_type_enum(struct context *ctx) {
 
 	struct scope *scope = scope_create(ctx->scope_arenas, SCOPE_TYPE_ENUM, scope_get(ctx), &tok->location);
 	scope_reserve(scope, 256);
-	
+
 	enm->data.type_enm.scope = scope;
 	scope_push(ctx, scope);
 

@@ -107,7 +107,7 @@ struct scope {
 	struct location *location;
 	array(struct scope *) usings;
 	LLVMMetadataRef llvm_meta;
-	my_hash_table(struct scope_tbl_entry) entries;
+	hash_table(struct scope_tbl_entry) entries;
 
 	mtx_t lock;
 

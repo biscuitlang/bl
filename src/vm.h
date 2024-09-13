@@ -106,7 +106,7 @@ struct virtual_machine {
 	//
 	// When the call is successfully completed the cached entry must be removed from the table and
 	// returned back to 'available_comptime_call_stacks' array.
-	my_hash_table(struct vm_snapshot) comptime_call_stacks;
+	hash_table(struct vm_snapshot) comptime_call_stacks;
 
 	mtx_t lock;
 };

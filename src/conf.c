@@ -40,7 +40,7 @@ struct entry {
 };
 
 struct config {
-	my_hash_table(struct entry) data;
+	hash_table(struct entry) data;
 	struct string_cache *cache;
 };
 

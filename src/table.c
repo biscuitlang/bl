@@ -137,7 +137,7 @@ bool _tbl_erase(void *ptr, BL_TBL_HASH_T hash, str_t key, u32 entry_size, u32 ha
 		bassert(last_entry_index != erase_entry_index);
 		bassert(last_entry_index == tbl->len - 1);
 		tbl->slots[last_slot_index].index = erase_entry_index + 1;
-		memcpy(&tbl->data[erase_entry_index], &tbl->data[last_entry_index], entry_size);
+		memcpy(&tbl->data[erase_entry_index * entry_size], &tbl->data[last_entry_index * entry_size], entry_size);
 	}
 	bassert(tbl->len > 0);
 	tbl->len -= 1;

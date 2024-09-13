@@ -224,7 +224,7 @@ static bool create_auxiliary_dir_tree_if_not_exist(const char *_path, str_buf_t 
 	if (!path) babort("Invalid directory copy.");
 	win_path_to_unix(path, strlen(path));
 #else
-	const char *path = _path;
+	const char *path  = _path;
 #endif
 	if (!dir_exists(path)) {
 		if (!create_dir_tree(path)) {
@@ -694,7 +694,7 @@ void assembly_append_linker_options(struct assembly *assembly, const char *opt) 
 	spl_unlock(&assembly->custom_linker_opt_lock);
 }
 
-static inline bool assembly_has_unit(struct assembly *assembly, const hash_t hash) {
+static inline bool assembly_has_unit(struct assembly *assembly, const hash_t hash, str_t filepath) {
 	for (usize i = 0; i < arrlenu(assembly->units); ++i) {
 		struct unit *unit = assembly->units[i];
 		if (hash == unit->hash) {
@@ -708,11 +708,20 @@ struct unit *assembly_add_unit(struct assembly *assembly, const char *filepath, 
 	zone();
 	if (!is_str_valid_nonempty(filepath)) return_zone(NULL);
 	struct unit *unit = NULL;
-	const hash_t hash = unit_hash(filepath, load_from);
+
+	str_buf_t    tmp_fullpath = get_tmp_str();
+	struct unit *parent_unit  = load_from ? load_from->location.unit : NULL;
+	if (!search_source_file(filepath, SEARCH_FLAG_ALL, parent_unit ? parent_unit->dirpath : NULL, &tmp_fullpath)) {
+		put_tmp_str(tmp_fullpath);
+		builder_msg(MSG_ERR, ERR_FILE_NOT_FOUND, TOKEN_OPTIONAL_LOCATION(load_from), CARET_WORD, "File not found '%s'.", filepath);
+		return_zone(NULL);
+	}
+
+	const hash_t hash = strhash(tmp_fullpath);
 
 	mtx_lock(&assembly->units_lock);
-	if (!assembly_has_unit(assembly, hash)) {
-		unit = unit_new(filepath, load_from);
+	if (!assembly_has_unit(assembly, hash, str_buf_view(tmp_fullpath))) {
+		unit = unit_new(assembly, str_buf_view(filepath), load_from);
 		arrput(assembly->units, unit);
 	}
 	mtx_unlock(&assembly->units_lock);
@@ -748,14 +757,12 @@ DONE:
 static inline bool module_exist(const char *module_dir, const char *modulepath) {
 	str_buf_t path = get_tmp_str();
 	str_buf_append_fmt(&path, "{s}/{s}/{s}", module_dir, modulepath, MODULE_CONFIG_FILE);
-	const bool found = search_source_file(str_to_c(path), SEARCH_FLAG_ABS, NULL, NULL, NULL);
+	const bool found = search_source_file(str_to_c(path), SEARCH_FLAG_ABS, NULL, NULL);
 	put_tmp_str(path);
 	return found;
 }
 
-bool assembly_import_module(struct assembly *assembly,
-                            const char      *modulepath,
-                            struct token    *import_from) {
+bool assembly_import_module(struct assembly *assembly, const char *modulepath, struct token *import_from) {
 	zone();
 	bool state = false;
 	if (!is_str_valid_nonempty(modulepath)) {
