@@ -631,11 +631,7 @@ LLVMMetadataRef DI_scope_init(struct context *ctx, struct scope *scope) {
 
 LLVMMetadataRef DI_unit_init(struct context *ctx, struct unit *unit) {
 	if (unit->llvm_file_meta) return unit->llvm_file_meta;
-	unit->llvm_file_meta = LLVMDIBuilderCreateFile(ctx->llvm_di_builder,
-	                                               unit->filename,
-	                                               strlen(unit->filename),
-	                                               unit->dirpath,
-	                                               strlen(unit->dirpath));
+	unit->llvm_file_meta = LLVMDIBuilderCreateFile(ctx->llvm_di_builder, unit->filename.ptr, unit->filename.len, unit->dirpath.ptr, unit->dirpath.len);
 	return unit->llvm_file_meta;
 }
 
@@ -1498,12 +1494,12 @@ LLVMValueRef testing_emit_meta_case(struct context *ctx, struct mir_fn *fn) {
 	struct mir_type *type = ctx->builtin_types->t_TestCase;
 	LLVMValueRef     llvm_vals[4];
 
-	char     *filename = fn->decl_node ? fn->decl_node->location->unit->filename : "UNKNOWN";
-	const s32 line     = fn->decl_node ? fn->decl_node->location->line : 0;
+	const str_t filename = fn->decl_node ? fn->decl_node->location->unit->filename : cstr("UNKNOWN");
+	const s32   line     = fn->decl_node ? fn->decl_node->location->line : 0;
 
 	llvm_vals[0] = emit_fn_proto(ctx, fn, true);
 	llvm_vals[1] = emit_const_string(ctx, fn->id->str);
-	llvm_vals[2] = emit_const_string(ctx, make_str_from_c(filename));
+	llvm_vals[2] = emit_const_string(ctx, filename);
 	llvm_vals[3] = LLVMConstInt(get_type(ctx, mir_get_struct_elem_type(type, 3)), (u64)line, true);
 	return LLVMConstNamedStruct(get_type(ctx, type), llvm_vals, static_arrlenu(llvm_vals));
 }
@@ -2886,8 +2882,8 @@ enum state emit_instr_call_loc(struct context *ctx, struct mir_instr_call_loc *l
 	LLVMSetGlobalConstant(llvm_var, true);
 
 	LLVMValueRef llvm_vals[4];
-	char        *filepath      = loc->call_location->unit->filepath;
-	llvm_vals[0]               = emit_const_string(ctx, make_str_from_c(filepath));
+	const str_t  filepath      = loc->call_location->unit->filepath;
+	llvm_vals[0]               = emit_const_string(ctx, filepath);
 	struct mir_type *line_type = mir_get_struct_elem_type(type, 1);
 	llvm_vals[1]               = LLVMConstInt(get_type(ctx, line_type), (u32)loc->call_location->line, true);
 	llvm_vals[2]               = emit_const_string(ctx, loc->function_name);

@@ -567,13 +567,10 @@ static inline void set_value(struct thread_context *tctx, struct mir_instr *inst
 	instr->backend_value = add_value(tctx, value);
 }
 
-#define get_value(tctx, V) _Generic((V),                \
-	                                struct mir_instr *  \
-	                                : _get_value_instr, \
-	                                  struct mir_arg *  \
-	                                : _get_value_arg,   \
-	                                  struct mir_var *  \
-	                                : _get_value_var)((tctx), (V))
+#define get_value(tctx, V) _Generic((V),  \
+	struct mir_instr *: _get_value_instr, \
+	struct mir_arg *: _get_value_arg,     \
+	struct mir_var *: _get_value_var)((tctx), (V))
 
 static inline u64 _get_value_instr(struct thread_context *tctx, struct mir_instr *instr) {
 	bassert(instr->backend_value);
@@ -590,11 +587,9 @@ static inline u64 _get_value_arg(struct thread_context *tctx, struct mir_arg *ar
 	return arg->backend_value - 1;
 }
 
-#define release_value(tctx, V) _Generic((V),                    \
-	                                    u64                     \
-	                                    : _release_value_index, \
-	                                      struct mir_instr *    \
-	                                    : _release_value_instr)((tctx), (V))
+#define release_value(tctx, V) _Generic((V), \
+	u64: _release_value_index,               \
+	struct mir_instr *: _release_value_instr)((tctx), (V))
 
 static inline void _release_value_index(struct thread_context *tctx, u64 index) {
 	const struct x64_value value = tctx->values[index];
@@ -2210,8 +2205,8 @@ static void emit_instr(struct context *ctx, struct thread_context *tctx, struct 
 		add_sym(tctx, SECTION_DATA, data_offset, str_buf_view(name), IMAGE_SYM_CLASS_EXTERNAL, 0);
 
 		// Write file
-		char *filepath = loc->call_location->unit->filepath;
-		emit_string_literal(ctx, tctx, data_offset, make_str_from_c(filepath));
+		const str_t filepath = loc->call_location->unit->filepath;
+		emit_string_literal(ctx, tctx, data_offset, filepath);
 
 		// Write line
 		const u32 line_member_offset                  = data_offset + (u32)vm_get_struct_elem_offset(assembly, type, 1);

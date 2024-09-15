@@ -38,38 +38,21 @@
 
 #define EXPECTED_ARRAY_COUNT 64
 
-hash_t unit_hash(const char *filepath, struct token *load_from) {
-	str_buf_t    tmp         = get_tmp_str();
-	struct unit *parent_unit = load_from ? load_from->location.unit : NULL;
-	search_source_file(filepath, SEARCH_FLAG_ALL, parent_unit ? parent_unit->dirpath : NULL, &tmp, NULL);
-	const char  *path = real_path ? real_path : filepath;
-	const hash_t hash = strhash(make_str_from_c(path));
-	free(real_path);
-	return hash;
-}
-
 // public
-struct unit *unit_new(struct assembly *assembly, const str_t filepath, struct token *load_from) {
-	struct unit *parent_unit = load_from ? load_from->location.unit : NULL;
-	struct unit *unit        = bmalloc(sizeof(struct unit));
+struct unit *unit_new(struct assembly *assembly, const str_t filepath, const str_t name, const hash_t hash, struct token *load_from) {
+	struct unit *unit = bmalloc(sizeof(struct unit)); // @Performance 2024-09-14 Use arena?
 	bl_zeromem(unit, sizeof(struct unit));
 
 	const u32             thread_index = get_worker_index();
 	struct string_cache **string_cache = &assembly->thread_local_contexts[thread_index].string_cache;
 
-	unit->filepath = scdup2(string_cache, filepath);
-
-	// search_source_file(filepath, SEARCH_FLAG_ALL, parent_unit ? parent_unit->dirpath : NULL, &unit->filepath, &unit->dirpath);
-	unit->name         = strdup(filepath);
-	char tmp[PATH_MAX] = {0};
-	if (get_filename_from_filepath(tmp, static_arrlenu(tmp), filepath)) {
-		unit->filename = strdup(tmp);
-	} else {
-		babort("invalid file");
-	}
+	unit->filepath    = scdup2(string_cache, filepath);
+	unit->name        = scdup2(string_cache, name);
+	unit->dirpath     = get_dir_from_filepath(unit->filepath);      // Note this is done on duplicate!
+	unit->filename    = get_filename_from_filepath(unit->filepath); // Note this is done on duplicate!
+	unit->hash        = hash;
 	unit->loaded_from = load_from;
-	const char *path  = unit->filepath ? unit->filepath : unit->name;
-	unit->hash        = strhash(make_str_from_c(path));
+
 	tokens_init(&unit->tokens);
 	return unit;
 }
@@ -78,10 +61,6 @@ void unit_delete(struct unit *unit) {
 	arrfree(unit->ublock_ast);
 	str_buf_free(&unit->file_docs_cache);
 	bfree(unit->src);
-	free(unit->filepath);
-	free(unit->dirpath);
-	free(unit->name);
-	free(unit->filename);
 	tokens_terminate(&unit->tokens);
 	bfree(unit);
 }

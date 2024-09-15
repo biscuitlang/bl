@@ -92,9 +92,10 @@ static void unit_job(struct job_context *ctx) {
 	array(unit_stage_fn_t) pipeline = assembly->current_pipelines.unit;
 	bassert(pipeline && "Invalid unit pipeline!");
 	if (unit->loaded_from) {
-		builder_log("Compile: %s (loaded from '%s')", unit->name, unit->loaded_from->location.unit->name);
+		const str_t loaded_from_unit_name = unit->loaded_from->location.unit->name;
+		builder_log("Compile: %.*s (loaded from '%.*s')", unit->name.len, unit->name.ptr, loaded_from_unit_name.len, loaded_from_unit_name.ptr);
 	} else {
-		builder_log("Compile: %s", unit->name);
+		builder_log("Compile: %.*s", unit->name.len, unit->name.ptr);
 	}
 	for (usize i = 0; i < arrlenu(pipeline); ++i) {
 		pipeline[i](assembly, unit);
@@ -343,9 +344,8 @@ static int compile(struct assembly *assembly) {
 // PUBLIC
 // =================================================================================================
 
-void builder_init(struct builder_options *options, const char *exec_dir) {
+void builder_init(struct builder_options *options) {
 	bassert(builder.is_initialized == false);
-	bassert(exec_dir && "Invalid executable directory!");
 	bassert(options);
 
 	memset(&builder, 0, sizeof(struct builder));
@@ -353,7 +353,9 @@ void builder_init(struct builder_options *options, const char *exec_dir) {
 	builder.errorc = builder.max_error = builder.test_failc = 0;
 	builder.last_script_mode_run_status                     = 0;
 
-	builder.exec_dir = strdup(exec_dir);
+	if (!get_current_exec_dir(&builder.exec_dir)) {
+		babort("Cannot locate compiler executable path.");
+	}
 
 	// initialize LLVM statics
 	llvm_init();
@@ -383,7 +385,7 @@ void builder_terminate(void) {
 
 	confdelete(builder.config);
 	llvm_terminate();
-	free(builder.exec_dir);
+	str_buf_free(&builder.exec_dir);
 	builder.is_initialized = false;
 }
 
@@ -407,9 +409,9 @@ const char *builder_get_lib_dir(void) {
 	return confreads(builder.config, CONF_LIB_DIR_KEY, NULL);
 }
 
-const char *builder_get_exec_dir(void) {
-	bassert(builder.exec_dir && "Executable directory not set, call 'builder_init' first.");
-	return builder.exec_dir;
+const str_t builder_get_exec_dir(void) {
+	bassert(builder.exec_dir.len && "Executable directory not set, call 'builder_init' first.");
+	return str_buf_view(builder.exec_dir);
 }
 
 bool builder_load_config(const str_t filepath) {
@@ -553,11 +555,10 @@ void builder_vmsg(enum builder_msg_type type,
 	}
 
 	if (src) {
-		const char *filepath =
-		    builder.options->full_path_reports ? src->unit->filepath : src->unit->filename;
-		s32 line = src->line;
-		s32 col  = src->col;
-		s32 len  = src->len;
+		const str_t filepath = builder.options->full_path_reports ? src->unit->filepath : src->unit->filename;
+		s32         line     = src->line;
+		s32         col      = src->col;
+		s32         len      = src->len;
 		switch (pos) {
 		case CARET_AFTER:
 			col += len;
@@ -573,7 +574,7 @@ void builder_vmsg(enum builder_msg_type type,
 		default:
 			break;
 		}
-		fprintf(stream, "%s:%d:%d: ", filepath, line, col);
+		fprintf(stream, "%.*s:%d:%d: ", filepath.len, filepath.ptr, line, col);
 		switch (type) {
 		case MSG_ERR: {
 			if (code > NO_ERR)

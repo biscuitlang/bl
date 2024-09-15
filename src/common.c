@@ -453,19 +453,19 @@ s32 levenshtein(const str_t s1, const str_t s2) {
 	return column[s1len];
 }
 
-bool search_source_file(const char *filepath, const u32 flags, const char *wdir, str_buf_t *out_filepath) {
-	str_buf_t tmp = get_tmp_str();
-	if (!filepath) goto NOT_FOUND;
-	char result[PATH_MAX];
+bool search_source_file(const str_t filepath, const u32 flags, const str_t wdir, str_buf_t *out_filepath) {
+	str_buf_t tmp    = get_tmp_str();
+	str_buf_t result = get_tmp_str(); // out_filepath can be null
+	if (!filepath.len) goto NOT_FOUND;
 
-	if (brealpath(filepath, result)) {
+	if (brealpath(filepath, &result)) {
 		goto FOUND;
 	}
 
 	// Lookup in working directory.
-	if (wdir && isflag(flags, SEARCH_FLAG_WDIR)) {
-		str_buf_append_fmt(&tmp, "{s}" PATH_SEPARATOR "{s}", wdir, filepath);
-		if (brealpath(str_to_c(tmp), result)) {
+	if (wdir.len && isflag(flags, SEARCH_FLAG_WDIR)) {
+		str_buf_append_fmt(&tmp, "{str}" PATH_SEPARATOR "{str}", wdir, filepath);
+		if (brealpath(str_buf_view(tmp), &result)) {
 			goto FOUND;
 		}
 	}
@@ -474,7 +474,7 @@ bool search_source_file(const char *filepath, const u32 flags, const char *wdir,
 	if (builder_get_lib_dir() && isflag(flags, SEARCH_FLAG_LIB_DIR)) {
 		str_buf_clr(&tmp);
 		str_buf_append_fmt(&tmp, "{s}" PATH_SEPARATOR "{s}", builder_get_lib_dir(), filepath);
-		if (brealpath(str_to_c(tmp), result)) {
+		if (brealpath(str_buf_view(tmp), &result)) {
 			goto FOUND;
 		}
 	}
@@ -492,7 +492,7 @@ bool search_source_file(const char *filepath, const u32 flags, const char *wdir,
 			}
 			str_buf_clr(&tmp);
 			str_buf_append_fmt(&tmp, "{s}" PATH_SEPARATOR "{s}", s, filepath);
-			found = brealpath(str_to_c(tmp), result);
+			found = brealpath(str_buf_view(tmp), &result);
 			s     = p + 1;
 		} while (p && !found);
 		free(env);
@@ -501,55 +501,66 @@ bool search_source_file(const char *filepath, const u32 flags, const char *wdir,
 
 NOT_FOUND:
 	put_tmp_str(tmp);
+	put_tmp_str(result);
 	return false;
 
 FOUND:
 	// Absolute file path.
-	if (out_filepath) str_buf_append(out_filepath, make_str_from_c(result));
+	if (out_filepath) str_buf_append(out_filepath, result);
 	put_tmp_str(tmp);
+	put_tmp_str(result);
 	return true;
 }
 
-void win_path_to_unix(char *buf, usize buf_size) {
-	if (!buf) return;
-	for (usize i = 0; i < buf_size; ++i) {
-		const char c = buf[i];
-		if (c == 0) break;
+void win_path_to_unix(str_buf_t *path) {
+	for (s32 i = 0; i < path->len; ++i) {
+		const char c = path->ptr[i];
 		if (c != '\\') continue;
-		buf[i] = '/';
+		path->ptr[i] = '/';
 	}
 }
 
-void unix_path_to_win(char *buf, usize buf_size) {
-	if (!buf) return;
-	for (usize i = 0; i < buf_size; ++i) {
-		const char c = buf[i];
-		if (c == 0) break;
+void unix_path_to_win(str_buf_t *path) {
+	for (usize i = 0; i < path->len; ++i) {
+		const char c = path->ptr[i];
 		if (c != '/') continue;
-		buf[i] = '\\';
+		path->ptr[i] = '\\';
 	}
 }
 
-bool get_current_exec_path(char *buf, usize buf_size) {
+bool get_current_exec_path(str_buf_t *out_full_path) {
+	bassert(out_full_path);
+	str_buf_clr(out_full_path);
+	str_buf_setcap(out_full_path, PATH_MAX);
 #if BL_PLATFORM_WIN
-	if (GetModuleFileNameA(NULL, buf, (DWORD)buf_size)) {
-		win_path_to_unix(buf, buf_size);
+	if (GetModuleFileNameA(NULL, out_full_path->ptr, PATH_MAX)) {
+		out_full_path->len = strlen(out_full_path->ptr);
+		win_path_to_unix(out_full_path);
 		return true;
 	}
 	return false;
+
 #elif BL_PLATFORM_LINUX
-	return readlink("/proc/self/exe", buf, buf_size) != -1;
+	const s64 len = readlink("/proc/self/exe", out_full_path->ptr, PATH_MAX);
+	if (len < 0) return false;
+	out_full_path->len = len;
+	return true;
+
 #elif BL_PLATFORM_MACOS
-	return _NSGetExecutablePath(buf, (u32 *)&buf_size) != -1;
+	const u32 buf_size = PATH_MAX;
+	if (_NSGetExecutablePath(out_full_path->ptr, &buf_size) != 0) {
+		return false;
+	}
+	out_full_path->len = strlen(out_full_path->ptr);
+	return true;
 #else
-	return false;
+#error Unsupported platform.
 #endif
 }
 
-bool get_current_exec_dir(char *buf, usize buf_size) {
-	char tmp[PATH_MAX] = {0};
-	if (!get_current_exec_path(tmp, PATH_MAX)) return false;
-	if (!get_dir_from_filepath(buf, buf_size, tmp)) return false;
+bool get_current_exec_dir(str_buf_t *out_full_path) {
+	if (!get_current_exec_path(out_full_path)) return false;
+	out_full_path->len = get_dir_from_filepath(str_buf_view(*out_full_path)).len;
 	return true;
 }
 
@@ -561,102 +572,97 @@ bool set_current_working_dir(const char *path) {
 #endif
 }
 
-bool file_exists(const char *filepath) {
+bool file_exists(const str_t filepath) {
 #if BL_PLATFORM_WIN
-	return (bool)PathFileExistsA(filepath);
+	return (bool)PathFileExistsA(str_to_c(filepath));
 #else
 	struct stat tmp;
-	return stat(filepath, &tmp) == 0;
+	return stat(str_to_c(filepath), &tmp) == 0;
 #endif
 }
 
-bool _file_exists(const char *ptr, s32 len) {
-	bassert(ptr && len && ptr[len] == '\0');
+bool dir_exists(const str_t dirpath) {
 #if BL_PLATFORM_WIN
-	return (bool)PathFileExistsA(ptr);
-#else
-	struct stat tmp;
-	return stat(ptr, &tmp) == 0;
-#endif
-}
-
-bool dir_exists(const char *dirpath) {
-#if BL_PLATFORM_WIN
-	DWORD dwAttrib = GetFileAttributesA(dirpath);
+	DWORD dwAttrib = GetFileAttributesA(str_to_c(dirpath));
 	return (dwAttrib != INVALID_FILE_ATTRIBUTES && (dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
 #else
 	struct stat sb;
-	return stat(dirpath, &sb) == 0 && S_ISDIR(sb.st_mode);
+	return stat(str_to_c(dirpath), &sb) == 0 && S_ISDIR(sb.st_mode);
 #endif
 }
 
-bool _dir_exists(const char *ptr, s32 len) {
-	bassert(ptr && len && ptr[len] == '\0');
-#if BL_PLATFORM_WIN
-	DWORD dwAttrib = GetFileAttributesA(ptr);
-	return (dwAttrib != INVALID_FILE_ATTRIBUTES && (dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
-#else
-	struct stat sb;
-	return stat(ptr, &sb) == 0 && S_ISDIR(sb.st_mode);
-#endif
-}
+bool brealpath(const str_t path, str_buf_t *out_full_path) {
+	bassert(out_full_path);
+	if (!path.len) return false;
 
-bool brealpath(const char *file, char *out) {
-	bassert(out);
-	bassert(out_len);
-	if (!file) return false;
+	str_buf_clr(out_full_path);
+	// Requires the out buffer preallocated up to PATH_MAX.
+	str_buf_setcap(out_full_path, PATH_MAX);
+
 #if BL_PLATFORM_WIN
-	const DWORD len = GetFullPathNameA(file, PATH_MAX, out, NULL);
+	const DWORD len = GetFullPathNameA(str_to_c(path), PATH_MAX, out_full_path->ptr, NULL);
 	if (!len) {
 		DWORD ec = GetLastError();
 		if (ec == ERROR_FILENAME_EXCED_RANGE)
-			builder_error("Cannot get full path of '%s', resulting path is too long. (expected maximum %d characters)", file, PATH_MAX);
+			builder_error("Cannot get full path of '%.*s', resulting path is too long. (expected maximum %d characters)", path.len, path.ptr, PATH_MAX);
 		return false;
 	}
-	if (!file_exists(out)) return false;
-	win_path_to_unix(out, PATH_MAX);
+	if (!file_exists(str_buf_view(*out_full_path))) return false;
+	win_path_to_unix(out_full_path);
 	return true;
 #else
-	// Requires the out buffer preallocated up to PATH_MAX.
-	return realpath(file, out);
+	if (!realpath(str_to_c(path), out_full_path->ptr)) {
+		return false;
+	}
+	out_full_path->len = strlen(out_full_path->ptr);
+	return true;
 #endif
 }
 
 bool normalize_path(str_buf_t *path) {
-	char buf[PATH_MAX] = "";
-	if (!brealpath(str_to_c(*path), buf)) {
+	str_buf_t tmp = get_tmp_str();
+	if (!brealpath(str_buf_view(*path), &tmp)) {
+		put_tmp_str(tmp);
 		return false;
 	}
 	str_buf_clr(path);
-	str_buf_append(path, make_str_from_c(buf));
+	str_buf_append(path, tmp);
+	put_tmp_str(tmp);
 	return true;
 }
 
-bool create_dir(const char *dirpath) {
+bool create_dir(const str_t dirpath) {
 #if BL_PLATFORM_WIN
-	return CreateDirectoryA(dirpath, NULL) != 0;
+	return CreateDirectoryA(str_to_c(dirpath), NULL) != 0;
 #else
-	return mkdir(dirpath, 0700) == 0;
+	return mkdir(str_to_c(dirpath), 0700) == 0;
 #endif
 }
 
-bool create_dir_tree(const char *dirpath) {
-	char tmp[PATH_MAX] = {0};
-	s32  prev_i        = 0;
-	for (s32 i = 0; dirpath[i]; ++i) {
-		if (dirpath[i] == PATH_SEPARATORC) {
+bool create_dir_tree(const str_t dirpath) {
+	str_buf_t tmp    = get_tmp_str();
+	s32       prev_i = 0;
+	for (s32 i = 0; i < dirpath.len; ++i) {
+		if (dirpath.ptr[i] == PATH_SEPARATORC) {
 			if (i - prev_i > 1) {
-				if (!dir_exists(tmp)) {
-					if (!create_dir(tmp)) return false;
+				if (!dir_exists(str_buf_view(tmp))) {
+					if (!create_dir(str_buf_view(tmp))) {
+						put_tmp_str(tmp);
+						return false;
+					}
 				}
 			}
 			prev_i = i;
 		}
-		tmp[i] = dirpath[i];
+		str_buf_append_char(&tmp, dirpath.ptr[i]);
 	}
-	if (!dir_exists(tmp)) {
-		if (!create_dir(tmp)) return false;
+	if (!dir_exists(str_buf_view(tmp))) {
+		if (!create_dir(str_buf_view(tmp))) {
+			put_tmp_str(tmp);
+			return false;
+		}
 	}
+	put_tmp_str(tmp);
 	return true;
 }
 
@@ -743,35 +749,22 @@ int count_bits(u64 n) {
 	return count;
 }
 
-bool get_dir_from_filepath(char *buf, const usize l, const char *filepath) {
-	if (!filepath) return false;
-	char *ptr = strrchr(filepath, PATH_SEPARATORC);
-	if (!ptr) return false;
-	if (filepath == ptr) {
-		strncpy(buf, filepath, l);
-		return true;
+str_t get_dir_from_filepath(const str_t filepath) {
+	for (s32 i = filepath.len - 1; i-- > 0;) {
+		if (filepath.ptr[i] == PATH_SEPARATORC) {
+			return make_str(filepath.ptr, i);
+		}
 	}
-	const ptrdiff_t len = ptr - filepath;
-	if (len >= (s64)l) babort("path too long!!!");
-	strncpy(buf, filepath, len);
-	buf[len] = '\0';
-	return true;
+	return str_empty;
 }
 
-bool get_filename_from_filepath(char *buf, const usize l, const char *filepath) {
-	if (!filepath) return false;
-
-	char *ptr = strrchr(filepath, PATH_SEPARATORC);
-	if (!ptr || filepath == ptr) {
-		strncpy(buf, filepath, l);
-		return true;
+str_t get_filename_from_filepath(const str_t filepath) {
+	for (s32 i = filepath.len - 1; i-- > 0;) {
+		if (filepath.ptr[i] == PATH_SEPARATORC) {
+			return make_str(&filepath.ptr[i + 1], filepath.len - i - 1);
+		}
 	}
-
-	usize len = strlen(filepath) - (ptr - filepath);
-	if (len + 1 > l) babort("path too long!!!");
-	strncpy(buf, ptr + 1, len);
-
-	return true;
+	return str_empty;
 }
 
 str_buf_t platform_lib_name(const str_t name) {

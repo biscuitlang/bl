@@ -37,16 +37,8 @@
 
 bool setup(const str_t filepath, const char *triple);
 
-static char *get_exec_dir(void) {
-	char tmp[PATH_MAX] = "";
-	if (!get_current_exec_dir(tmp, PATH_MAX)) {
-		babort("Cannot locate compiler executable path.");
-	}
-	return strdup(tmp);
-}
-
 static void get_config_file_location(str_buf_t *filepath) {
-	str_buf_append_fmt(filepath, "{s}/../{s}", builder_get_exec_dir(), BL_CONFIG_FILE);
+	str_buf_append_fmt(filepath, "{str}/../{s}", builder_get_exec_dir(), BL_CONFIG_FILE);
 }
 
 static bool generate_conf(void) {
@@ -72,15 +64,13 @@ static bool load_conf_file(const char *custom_conf_filepath) {
 	} else {
 		get_config_file_location(&filepath);
 	}
-	if (!file_exists2(filepath)) {
+	if (!file_exists(str_buf_view(filepath))) {
 		if (custom_conf_filepath) {
-			builder_error(
-			    "Custom configuration file not found on path: '%.*s'.", filepath.len, filepath.ptr);
+			builder_error("Custom configuration file not found on path: '%.*s'.", filepath.len, filepath.ptr);
 			goto FAILED;
 		}
 		if (!generate_conf()) {
-			builder_error("Failed to generate the configuration file, please report the issue on "
-			              "https://github.com/travisdoor/bl/issues");
+			builder_error("Failed to generate the configuration file, please report the issue on https://github.com/travisdoor/bl/issues");
 			goto FAILED;
 		}
 	}
@@ -330,17 +320,15 @@ int main(s32 argc, char *argv[]) {
 	Options opt = {0};
 	setlocale(LC_ALL, "C.utf8");
 
-	s32   state    = EXIT_SUCCESS;
-	char *exec_dir = NULL;
+	s32 state = EXIT_SUCCESS;
 
 	bl_alloc_init();
 
 	const f64 start_time_ms = get_tick_ms();
 
-	exec_dir                = get_exec_dir();
 	opt.builder.error_limit = 10;
 	opt.builder.doc_out_dir = "out";
-	builder_init(&opt.builder, exec_dir);
+	builder_init(&opt.builder);
 	builder_log("Compiler version: %s, LLVM: %d", BL_VERSION, LLVM_VERSION_MAJOR);
 	// Just create default empty target assembly options here and setup it later depending on
 	// user passed arguments!

@@ -156,7 +156,7 @@ void doc_decl_entity(struct context *ctx, struct ast *decl) {
 		str_buf_clr(&ctx->section_members);
 	}
 
-	fprintf(ctx->stream, "\n\n*File: %s*\n\n", ctx->unit->filename);
+	fprintf(ctx->stream, "\n\n*File: %.*s*\n\n", ctx->unit->filename.len, ctx->unit->filename.ptr);
 }
 
 void doc_decl_arg(struct context *ctx, struct ast *decl) {
@@ -434,9 +434,11 @@ void doc(struct context *ctx, struct ast *node) {
 }
 
 void doc_unit(struct context *ctx, struct unit *unit) {
-	if (!unit->filename) return;
-	str_buf_t   unit_name = get_tmp_str();
-	const str_t name      = make_str(unit->filename, (s32)strlen(unit->filename) - 3); // -3 ('.bl')
+	if (unit->filename.len) return;
+	str_buf_t unit_name = get_tmp_str();
+	str_t     name      = unit->filename;
+	name.len -= 3;
+	bassert(name.len > 0);
 	str_buf_append_fmt(&unit_name, "{str}", name);
 	ctx->unit = unit;
 
@@ -454,7 +456,7 @@ void doc_unit(struct context *ctx, struct unit *unit) {
 		const str_t docs = unit->ast->docs;
 		fprintf(f, "%.*s\n", docs.len, docs.ptr);
 	} else {
-		H0(f, unit->filename);
+		H0(f, str_to_c(unit->filename));
 	}
 	doc(ctx, unit->ast);
 	fclose(f);

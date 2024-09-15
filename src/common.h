@@ -213,24 +213,20 @@ static inline const char *_str_to_c_checked(char *ptr, s32 len) {
 // Converts the input string or str_t or str_buf_t to the C string. Zero termination is checked by
 // assert.
 // In case the buffer is not allocated, returns pointer to the static empty C string.
-#define str_to_c(B) _Generic((B),                                   \
-	                         str_buf_t                              \
-	                         : _str_to_c_checked((B).ptr, (B).len), \
-	                           str_t                                \
-	                         : _str_to_c_checked((B).ptr, (B).len))
+#define str_to_c(B) _Generic((B),                   \
+	str_buf_t: _str_to_c_checked((B).ptr, (B).len), \
+	str_t: _str_to_c_checked((B).ptr, (B).len))
 
 // This way we can append another string buffer or view without any casting.
-#define str_buf_append(B, S) _Generic((S),                                    \
-	                                  str_buf_t                               \
-	                                  : _str_buf_append(B, (S).ptr, (S).len), \
-	                                    str_t                                 \
-	                                  : _str_buf_append(B, (S).ptr, (S).len))
+#define str_buf_append(B, S) _Generic((S),           \
+	str_buf_t: _str_buf_append(B, (S).ptr, (S).len), \
+	str_t: _str_buf_append(B, (S).ptr, (S).len))
 
-#define str_buf_dup(S) _Generic((S),                              \
-	                            str_buf_t                         \
-	                            : _str_buf_dup((S).ptr, (S).len), \
-	                              str_t                           \
-	                            : _str_buf_dup((S).ptr, (S).len))
+#define str_buf_append_char(B, C) _str_buf_append(B, &(C), 1)
+
+#define str_buf_dup(S) _Generic((S),           \
+	str_buf_t: _str_buf_dup((S).ptr, (S).len), \
+	str_t: _str_buf_dup((S).ptr, (S).len))
 
 #define str_buf_view(B)                \
 	(str_t) {                          \
@@ -404,7 +400,7 @@ enum search_flags {
 //     4) System PATH.
 //
 // Function returns true and modify output filepath if file was found otherwise returns false.
-bool search_source_file(const char *filepath, const u32 flags, const char *wdir, str_buf_t *out_filepath);
+bool search_source_file(const str_t filepath, const u32 flags, const str_t wdir, str_buf_t *out_filepath);
 
 static inline bool is_aligned(const void *p, usize alignment) {
 	return (uintptr_t)p % alignment == 0;
@@ -436,25 +432,22 @@ static inline void *next_aligned(void *p, usize alignment) {
 
 #define next_aligned2(ptr, a) (usize) next_aligned((void *)(usize)(ptr), (a))
 
-#define file_exists2(S) _file_exists((S).ptr, (S).len)
-#define dir_exists2(S) _dir_exists((S).ptr, (S).len)
-
 // Replace all backslashes in passed path with forward slash, this is used as workaround on Windows
 // platform due to inconsistency 'Unix vs Windows' path separators. This function will modify passed
 // buffer.
-void        win_path_to_unix(char *buf, usize buf_size);
-void        unix_path_to_win(char *buf, usize buf_size);
-bool        file_exists(const char *filepath);
-bool        dir_exists(const char *dirpath);
+void        win_path_to_unix(str_buf_t *path);
+void        unix_path_to_win(str_buf_t *path);
+bool        file_exists(const str_t filepath);
+bool        dir_exists(const str_t dirpath);
 bool        normalize_path(str_buf_t *path);
-bool        brealpath(const char *file, char *out);
+bool        brealpath(const str_t path, str_buf_t *out_full_path);
 bool        set_current_working_dir(const char *path);
-bool        get_dir_from_filepath(char *buf, const usize l, const char *filepath);
-bool        get_filename_from_filepath(char *buf, const usize l, const char *filepath);
-bool        get_current_exec_path(char *buf, usize buf_size);
-bool        get_current_exec_dir(char *buf, usize buf_size);
-bool        create_dir(const char *dirpath);
-bool        create_dir_tree(const char *dirpath);
+str_t       get_dir_from_filepath(const str_t filepath);
+str_t       get_filename_from_filepath(const str_t filepath);
+bool        get_current_exec_path(str_buf_t *out_full_path);
+bool        get_current_exec_dir(str_buf_t *out_full_path);
+bool        create_dir(const str_t dirpath);
+bool        create_dir_tree(const str_t dirpath);
 bool        copy_dir(const char *src, const char *dest);
 bool        copy_file(const char *src, const char *dest);
 bool        remove_dir(const char *path);
@@ -476,8 +469,5 @@ const char *read_config(struct config       *config,
 typedef void (*process_tokens_fn_t)(void *ctx, const char *token);
 s32   process_tokens(void *ctx, const char *input, const char *delimiter, process_tokens_fn_t fn);
 char *strtrim(char *str);
-
-bool _dir_exists(const char *ptr, s32 len);
-bool _file_exists(const char *ptr, s32 len);
 
 #endif

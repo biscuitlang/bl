@@ -31,7 +31,7 @@
 #include "stb_ds.h"
 
 #if BL_PLATFORM_WIN
-#	include "wbs.h"
+#include "wbs.h"
 #endif
 
 struct context {
@@ -72,7 +72,7 @@ bool setup(const str_t filepath, const char *triple) {
 	// common config
 	ctx.version      = make_str_from_c(BL_VERSION);
 	str_buf_t libdir = get_tmp_str();
-	str_buf_append_fmt(&libdir, "{s}/{s}", builder_get_exec_dir(), BL_API_DIR);
+	str_buf_append_fmt(&libdir, "{str}/{s}", builder_get_exec_dir(), BL_API_DIR);
 	if (!normalize_path(&libdir)) {
 		builder_error("BL API directory not found. (Expected location is '%.*s').", libdir.len, libdir.ptr);
 		put_tmp_str(libdir);
@@ -97,27 +97,21 @@ bool setup(const str_t filepath, const char *triple) {
 		state = default_config(&ctx);
 	}
 	if (!state) {
-		builder_error("Generate new configuration file at '%.*s' for target triple '%s' failed!",
-		              ctx.filepath.len,
-		              ctx.filepath.ptr,
-		              ctx.triple);
+		builder_error("Generate new configuration file at '%.*s' for target triple '%s' failed!", ctx.filepath.len, ctx.filepath.ptr, ctx.triple);
 		return false;
 	}
 	str_buf_t content = make_content(&ctx);
-	if (file_exists2(ctx.filepath)) { // backup old-one
+	if (file_exists(ctx.filepath)) { // backup old-one
 		str_buf_t bakfilepath = get_tmp_str();
 		char      date[26];
 		date_time(date, static_arrlenu(date), "%d-%m-%Y_%H-%M-%S");
 		str_buf_append_fmt(&bakfilepath, "{str}.{s}", ctx.filepath, date);
-		builder_warning("Creating backup of previous configuration file at '%.*s'.",
-		                bakfilepath.len,
-		                bakfilepath.ptr);
+		builder_warning("Creating backup of previous configuration file at '%.*s'.", bakfilepath.len, bakfilepath.ptr);
 		copy_file(str_to_c(ctx.filepath), str_to_c(bakfilepath));
 		put_tmp_str(bakfilepath);
 	}
 
-	char dirpath[PATH_MAX]; // @Hack: use dynamic length string?
-	get_dir_from_filepath(dirpath, static_arrlenu(dirpath), str_to_c(ctx.filepath));
+	const str_t dirpath = get_dir_from_filepath(ctx.filepath);
 	if (!dir_exists(dirpath)) {
 		if (!create_dir_tree(dirpath)) {
 			builder_error("Cannot create directory path '%s'!", dirpath);
@@ -195,8 +189,7 @@ bool default_config(struct context UNUSED(*ctx)) {
 bool x86_64_pc_windows_msvc(struct context *ctx) {
 	ctx->preload_file      = cstr("os/_windows.bl");
 	ctx->linker_executable = str_empty;
-	ctx->linker_opt_exec =
-	    cstr("/NOLOGO /ENTRY:__os_start /SUBSYSTEM:CONSOLE /INCREMENTAL:NO /MACHINE:x64");
+	ctx->linker_opt_exec   = cstr("/NOLOGO /ENTRY:__os_start /SUBSYSTEM:CONSOLE /INCREMENTAL:NO /MACHINE:x64");
 	ctx->linker_opt_shared = cstr("/NOLOGO /INCREMENTAL:NO /MACHINE:x64 /DLL");
 
 	struct wbs *wbs = wbslookup();
@@ -216,9 +209,9 @@ FAILED:
 #endif
 
 bool x86_64_pc_linux_gnu(struct context *ctx) {
-	const char *RUNTIME_PATH      = "lib/bl/rt/blrt_x86_64_linux.o";
-	const char *LINKER_OPT_EXEC   = "-dynamic-linker /lib64/ld-linux-x86-64.so.2 -e _start";
-	const char *LINKER_OPT_SHARED = "--shared";
+	const str_t RUNTIME_PATH      = cstr("lib/bl/rt/blrt_x86_64_linux.o");
+	const str_t LINKER_OPT_EXEC   = cstr("-dynamic-linker /lib64/ld-linux-x86-64.so.2 -e _start");
+	const str_t LINKER_OPT_SHARED = cstr("--shared");
 
 	const str_t LINKER_LIB_PATHS[] = {
 	    cstr("/lib"),
@@ -241,7 +234,7 @@ bool x86_64_pc_linux_gnu(struct context *ctx) {
 	put_tmp_str(ldpath);
 
 	str_buf_t runtime = get_tmp_str();
-	str_buf_append_fmt(&runtime, "{s}/../{s}", builder_get_exec_dir(), RUNTIME_PATH);
+	str_buf_append_fmt(&runtime, "{str}/../{str}", builder_get_exec_dir(), RUNTIME_PATH);
 	if (!normalize_path(&runtime)) {
 		builder_error("Runtime loader not found. (Expected location is '%.*s').", runtime.len, runtime.ptr);
 		put_tmp_str(runtime);
@@ -252,7 +245,7 @@ bool x86_64_pc_linux_gnu(struct context *ctx) {
 	str_buf_t lib_paths = get_tmp_str();
 	for (s32 i = 0; i < static_arrlenu(LINKER_LIB_PATHS); ++i) {
 		const str_t path = LINKER_LIB_PATHS[i];
-		if (file_exists2(path)) {
+		if (file_exists(path)) {
 			if (lib_paths.len > 0) {
 				str_buf_append(&lib_paths, cstr(":"));
 			}
@@ -260,8 +253,8 @@ bool x86_64_pc_linux_gnu(struct context *ctx) {
 		}
 	}
 
-	ctx->linker_opt_exec   = scprint(&ctx->cache, "{str} {s}", runtime, LINKER_OPT_EXEC);
-	ctx->linker_opt_shared = scprint(&ctx->cache, "{s}", LINKER_OPT_SHARED);
+	ctx->linker_opt_exec   = scprint(&ctx->cache, "{str} {str}", runtime, LINKER_OPT_EXEC);
+	ctx->linker_opt_shared = scprint(&ctx->cache, "{str}", LINKER_OPT_SHARED);
 	ctx->linker_lib_path   = scprint(&ctx->cache, "{str}", lib_paths);
 
 	put_tmp_str(lib_paths);
@@ -270,17 +263,16 @@ bool x86_64_pc_linux_gnu(struct context *ctx) {
 }
 
 static bool x86_64_apple_darwin(struct context *ctx) {
-	const char *COMMAND_LINE_TOOLS = "/Library/Developer/CommandLineTools";
-	const char *MACOS_SDK          = "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib";
-	const char *LINKER_LIB_PATH    = "/usr/lib:/usr/local/lib";
-	const char *LINKER_OPT_EXEC    = "-e ___os_start";
-	const char *LINKER_OPT_SHARED  = "-dylib";
+	const str_t COMMAND_LINE_TOOLS = cstr("/Library/Developer/CommandLineTools");
+	const str_t MACOS_SDK          = cstr("/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib");
+	const str_t LINKER_LIB_PATH    = cstr("/usr/lib:/usr/local/lib");
+	const str_t LINKER_OPT_EXEC    = cstr("-e ___os_start");
+	const str_t LINKER_OPT_SHARED  = cstr("-dylib");
 
 	ctx->preload_file = cstr("os/_macos.bl");
 
 	if (!dir_exists(COMMAND_LINE_TOOLS)) {
-		builder_error("Cannot find Command Line Tools on '%s', use 'xcode-select --install'.",
-		              COMMAND_LINE_TOOLS);
+		builder_error("Cannot find Command Line Tools on '%s', use 'xcode-select --install'.", COMMAND_LINE_TOOLS.ptr);
 		return false;
 	}
 
@@ -288,7 +280,7 @@ static bool x86_64_apple_darwin(struct context *ctx) {
 	str_buf_t optexec   = get_tmp_str();
 	str_buf_t optshared = get_tmp_str();
 
-	str_buf_append(&libpath, make_str_from_c(LINKER_LIB_PATH));
+	str_buf_append(&libpath, LINKER_LIB_PATH);
 	str_buf_t osver = execute("sw_vers -productVersion");
 	if (osver.len == 0) {
 		builder_error("Cannot detect macOS product version!");
@@ -298,20 +290,18 @@ static bool x86_64_apple_darwin(struct context *ctx) {
 		if (sscanf(str_to_c(osver), "%d.%d.%d", &major, &minor, &patch) == 3) {
 			if (major >= 11) {
 				if (!dir_exists(MACOS_SDK)) {
-					builder_error("Cannot find macOS SDK on '%s'.", MACOS_SDK);
+					builder_error("Cannot find macOS SDK on '%s'.", MACOS_SDK.ptr);
 				} else {
-					str_buf_append_fmt(&libpath, ":{s}", MACOS_SDK);
+					str_buf_append_fmt(&libpath, ":{str}", MACOS_SDK);
 				}
 			}
 		}
-		str_buf_append_fmt(
-		    &optexec, "-macosx_version_min {str} -sdk_version {str} ", osver, osver);
-		str_buf_append_fmt(
-		    &optshared, "-macosx_version_min {str} -sdk_version {str} ", osver, osver);
+		str_buf_append_fmt(&optexec, "-macosx_version_min {str} -sdk_version {str} ", osver, osver);
+		str_buf_append_fmt(&optshared, "-macosx_version_min {str} -sdk_version {str} ", osver, osver);
 	}
 
-	str_buf_append_fmt(&optexec, "{s}", LINKER_OPT_EXEC);
-	str_buf_append_fmt(&optshared, "{s}", LINKER_OPT_SHARED);
+	str_buf_append_fmt(&optexec, "{str}", LINKER_OPT_EXEC);
+	str_buf_append_fmt(&optshared, "{str}", LINKER_OPT_SHARED);
 
 	ctx->linker_lib_path   = scdup2(&ctx->cache, libpath);
 	ctx->linker_opt_exec   = scdup2(&ctx->cache, optexec);
@@ -332,23 +322,21 @@ static bool x86_64_apple_darwin(struct context *ctx) {
 }
 
 static bool arm64_apple_darwin(struct context *ctx) {
-	const char *COMMAND_LINE_TOOLS = "/Library/Developer/CommandLineTools";
-	const char *MACOS_SDK          = "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib";
+	const str_t COMMAND_LINE_TOOLS = cstr("/Library/Developer/CommandLineTools");
+	const str_t MACOS_SDK          = cstr("/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib");
 	const str_t LINKER_OPT_EXEC    = cstr("-e ___os_start -arch arm64");
 	const str_t LINKER_OPT_SHARED  = cstr("-dylib -arch arm64");
 
 	const str_t LINKER_LIB_PATHS[] = {
-		cstr("/usr/lib"),
-		cstr("/usr/local/lib"),
-		// Extend this in case we have some more known locations...
+	    cstr("/usr/lib"),
+	    cstr("/usr/local/lib"),
+	    // Extend this in case we have some more known locations...
 	};
-
 
 	ctx->preload_file = cstr("os/_macos.bl");
 
 	if (!dir_exists(COMMAND_LINE_TOOLS)) {
-		builder_error("Cannot find Command Line Tools on '%s', use 'xcode-select --install'.",
-		              COMMAND_LINE_TOOLS);
+		builder_error("Cannot find Command Line Tools on '%.*s', use 'xcode-select --install'.", COMMAND_LINE_TOOLS.len, COMMAND_LINE_TOOLS.ptr);
 		return false;
 	}
 
@@ -359,7 +347,7 @@ static bool arm64_apple_darwin(struct context *ctx) {
 	// Lookup all possible lib paths on the system.
 	for (s32 i = 0; i < static_arrlenu(LINKER_LIB_PATHS); ++i) {
 		const str_t path = LINKER_LIB_PATHS[i];
-		if (file_exists2(path)) {
+		if (file_exists(path)) {
 			if (libpath.len > 0) {
 				str_buf_append(&libpath, cstr(":"));
 			}
@@ -378,7 +366,7 @@ static bool arm64_apple_darwin(struct context *ctx) {
 			// not provided... (We love apples...)
 			if (major >= 11) {
 				if (!dir_exists(MACOS_SDK)) {
-					builder_error("Cannot find macOS SDK on '%s'.", MACOS_SDK);
+					builder_error("Cannot find macOS SDK on '%.*s'.", MACOS_SDK.len, MACOS_SDK.ptr);
 				} else {
 					str_buf_append_fmt(&libpath, ":{s}", MACOS_SDK);
 				}

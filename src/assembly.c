@@ -187,19 +187,12 @@ static void llvm_init(struct assembly *assembly) {
 	default:
 		break;
 	}
-	LLVMTargetMachineRef llvm_tm = LLVMCreateTargetMachine(llvm_target,
-	                                                       triple,
-	                                                       cpu,
-	                                                       features,
-	                                                       opt_to_LLVM(assembly->target->opt),
-	                                                       reloc_mode,
-	                                                       LLVMCodeModelDefault);
-
-	LLVMTargetDataRef llvm_td = LLVMCreateTargetDataLayout(llvm_tm);
-	assembly->llvm.ctx        = llvm_context_create();
-	assembly->llvm.TM         = llvm_tm;
-	assembly->llvm.TD         = llvm_td;
-	assembly->llvm.triple     = triple;
+	LLVMTargetMachineRef llvm_tm = LLVMCreateTargetMachine(llvm_target, triple, cpu, features, opt_to_LLVM(assembly->target->opt), reloc_mode, LLVMCodeModelDefault);
+	LLVMTargetDataRef    llvm_td = LLVMCreateTargetDataLayout(llvm_tm);
+	assembly->llvm.ctx           = llvm_context_create();
+	assembly->llvm.TM            = llvm_tm;
+	assembly->llvm.TD            = llvm_td;
+	assembly->llvm.triple        = triple;
 }
 
 static void llvm_terminate(struct assembly *assembly) {
@@ -215,33 +208,34 @@ static void native_lib_terminate(struct native_lib *lib) {
 	if (lib->is_internal) return;
 }
 
-// Create directory tree and set out_path.
-static bool create_auxiliary_dir_tree_if_not_exist(const char *_path, str_buf_t *out_path) {
-	bassert(_path);
+// Create directory tree and set out_path to full path.
+static bool create_auxiliary_dir_tree_if_not_exist(const str_t _path, str_buf_t *out_path) {
+	bassert(_path.len);
 	bassert(out_path);
 #if BL_PLATFORM_WIN
-	char *path = strdup(_path);
-	if (!path) babort("Invalid directory copy.");
-	win_path_to_unix(path, strlen(path));
+	str_buf_t tmp_path = get_tmp_str();
+	str_buf_append(&tmp_path, _path);
+	win_path_to_unix(tmp_path.ptr, tmp_path.len);
+	const str_t path = str_buf_view(tmp_path);
 #else
-	const char *path  = _path;
+	const str_t path = _path;
 #endif
 	if (!dir_exists(path)) {
 		if (!create_dir_tree(path)) {
 #if BL_PLATFORM_WIN
-			free(path);
+			put_tmp_str(tmp_path);
 #endif
 			return false;
 		}
 	}
 	char full_path[PATH_MAX] = {0};
-	if (!brealpath(path, full_path, PATH_MAX)) {
+	if (!brealpath(path, full_path)) {
 		return false;
 	}
 	str_buf_clr(out_path);
 	str_buf_append_fmt(out_path, "{s}", full_path);
 #if BL_PLATFORM_WIN
-	free(path);
+	put_tmp_str(tmp_path);
 #endif
 	return true;
 }
@@ -279,21 +273,15 @@ static void import_source(import_elem_context_t *ctx, const char *srcfile) {
 	str_buf_t path = get_tmp_str();
 	str_buf_append_fmt(&path, "{s}/{s}", ctx->modulepath, srcfile);
 	// @Cleanup: should we pass the import_from token here?
-	assembly_add_unit(ctx->assembly, str_to_c(path), NULL);
+	assembly_add_unit(ctx->assembly, str_buf_view(path), NULL);
 	put_tmp_str(path);
 }
 
 static void import_lib_path(import_elem_context_t *ctx, const char *dirpath) {
 	str_buf_t path = get_tmp_str();
 	str_buf_append_fmt(&path, "{s}/{s}", ctx->modulepath, dirpath);
-	if (!dir_exists2(path)) {
-		builder_msg(MSG_ERR,
-		            ERR_FILE_NOT_FOUND,
-		            TOKEN_OPTIONAL_LOCATION(ctx->import_from),
-		            CARET_WORD,
-		            "Cannot find module imported library path '%.*s'.",
-		            path.len,
-		            path.ptr);
+	if (!dir_exists(path)) {
+		builder_msg(MSG_ERR, ERR_FILE_NOT_FOUND, TOKEN_OPTIONAL_LOCATION(ctx->import_from), CARET_WORD, "Cannot find module imported library path '%.*s'.", path.len, path.ptr);
 	} else {
 		assembly_add_lib_path(ctx->assembly, str_to_c(path));
 	}
@@ -606,28 +594,28 @@ struct assembly *assembly_new(const struct target *target) {
 
 	// Add units from target
 	for (usize i = 0; i < arrlenu(target->files); ++i) {
-		assembly_add_unit(assembly, target->files[i], NULL);
+		assembly_add_unit(assembly, make_str_from_c(target->files[i]), NULL);
 	}
 
-	const char *preload_file = read_config(builder.config, assembly->target, "preload_file", "");
+	const str_t preload_file = make_str_from_c(read_config(builder.config, assembly->target, "preload_file", ""));
 
 	// Add default units based on assembly kind
 	switch (assembly->target->kind) {
 	case ASSEMBLY_EXECUTABLE:
 		if (assembly->target->no_api) break;
-		assembly_add_unit(assembly, BUILTIN_FILE, NULL);
+		assembly_add_unit(assembly, cstr(BUILTIN_FILE), NULL);
 		assembly_add_unit(assembly, preload_file, NULL);
 		break;
 	case ASSEMBLY_SHARED_LIB:
 		if (assembly->target->no_api) break;
-		assembly_add_unit(assembly, BUILTIN_FILE, NULL);
+		assembly_add_unit(assembly, cstr(BUILTIN_FILE), NULL);
 		assembly_add_unit(assembly, preload_file, NULL);
 		break;
 	case ASSEMBLY_BUILD_PIPELINE:
-		assembly_add_unit(assembly, BUILTIN_FILE, NULL);
+		assembly_add_unit(assembly, cstr(BUILTIN_FILE), NULL);
 		assembly_add_unit(assembly, preload_file, NULL);
-		assembly_add_unit(assembly, BUILD_API_FILE, NULL);
-		assembly_add_unit(assembly, BUILD_SCRIPT_FILE, NULL);
+		assembly_add_unit(assembly, cstr(BUILD_API_FILE), NULL);
+		assembly_add_unit(assembly, cstr(BUILD_SCRIPT_FILE), NULL);
 		break;
 	case ASSEMBLY_DOCS:
 		break;
@@ -697,21 +685,21 @@ void assembly_append_linker_options(struct assembly *assembly, const char *opt) 
 static inline bool assembly_has_unit(struct assembly *assembly, const hash_t hash, str_t filepath) {
 	for (usize i = 0; i < arrlenu(assembly->units); ++i) {
 		struct unit *unit = assembly->units[i];
-		if (hash == unit->hash) {
+		if (hash == unit->hash && str_match(filepath, unit->filepath)) {
 			return true;
 		}
 	}
 	return false;
 }
 
-struct unit *assembly_add_unit(struct assembly *assembly, const char *filepath, struct token *load_from) {
+struct unit *assembly_add_unit(struct assembly *assembly, const str_t filepath, struct token *load_from) {
 	zone();
-	if (!is_str_valid_nonempty(filepath)) return_zone(NULL);
+	bassert(filepath.len && filepath.ptr);
 	struct unit *unit = NULL;
 
 	str_buf_t    tmp_fullpath = get_tmp_str();
 	struct unit *parent_unit  = load_from ? load_from->location.unit : NULL;
-	if (!search_source_file(filepath, SEARCH_FLAG_ALL, parent_unit ? parent_unit->dirpath : NULL, &tmp_fullpath)) {
+	if (!search_source_file(filepath, SEARCH_FLAG_ALL, parent_unit ? parent_unit->dirpath : str_empty, &tmp_fullpath)) {
 		put_tmp_str(tmp_fullpath);
 		builder_msg(MSG_ERR, ERR_FILE_NOT_FOUND, TOKEN_OPTIONAL_LOCATION(load_from), CARET_WORD, "File not found '%s'.", filepath);
 		return_zone(NULL);
@@ -721,7 +709,7 @@ struct unit *assembly_add_unit(struct assembly *assembly, const char *filepath, 
 
 	mtx_lock(&assembly->units_lock);
 	if (!assembly_has_unit(assembly, hash, str_buf_view(tmp_fullpath))) {
-		unit = unit_new(assembly, str_buf_view(filepath), load_from);
+		unit = unit_new(assembly, str_buf_view(tmp_fullpath), filepath, hash, load_from);
 		arrput(assembly->units, unit);
 	}
 	mtx_unlock(&assembly->units_lock);
@@ -757,7 +745,7 @@ DONE:
 static inline bool module_exist(const char *module_dir, const char *modulepath) {
 	str_buf_t path = get_tmp_str();
 	str_buf_append_fmt(&path, "{s}/{s}/{s}", module_dir, modulepath, MODULE_CONFIG_FILE);
-	const bool found = search_source_file(str_to_c(path), SEARCH_FLAG_ABS, NULL, NULL);
+	const bool found = search_source_file(str_buf_view(path), SEARCH_FLAG_ABS, str_empty, NULL);
 	put_tmp_str(path);
 	return found;
 }

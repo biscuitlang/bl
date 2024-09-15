@@ -292,6 +292,8 @@ lookup_indices :: fn (tbl: *?T, hash: u32, key: tbl_typeof_key(T)) (slot_index: 
 		slot :: &slots[index];
 		if slot.index == EMPTY_INDEX { break; }
 		if slot.hash == hash && compare_keys(tbl.keys[slot.index-1], key) {
+			if slot.index == DELETED_INDEX then return -1, -1; // Element was deleted...
+			assert(slot.index > 0);
 			return index, slot.index-1;
 		}
 		index += increment;

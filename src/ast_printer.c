@@ -121,7 +121,8 @@ static void print_expr_elem(struct ast *elem, s32 pad, FILE *stream);
 // impl
 void print_ublock(struct ast *ublock, s32 pad, FILE *stream) {
 	print_head(ublock, pad, stream);
-	fprintf(stream, "%s", ublock->data.ublock.unit->name);
+	const str_t unit_name = ublock->data.ublock.unit->name;
+	fprintf(stream, "%.*s", unit_name.len, unit_name.ptr);
 	for (usize i = 0; i < arrlenu(ublock->data.ublock.nodes); ++i) {
 		print_node(ublock->data.ublock.nodes[i], pad + 1, stream);
 	}
@@ -137,12 +138,14 @@ void print_block(struct ast *block, s32 pad, FILE *stream) {
 
 void print_load(struct ast *load, s32 pad, FILE *stream) {
 	print_head(load, pad, stream);
-	fprintf(stream, "%s", load->data.load.filepath);
+	const str_t filepath = load->data.load.filepath;
+	fprintf(stream, "%.*s", filepath.len, filepath.ptr);
 }
 
 void print_import(struct ast *import, s32 pad, FILE *stream) {
 	print_head(import, pad, stream);
-	fprintf(stream, "%s", import->data.load.filepath);
+	const str_t filepath = import->data.load.filepath;
+	fprintf(stream, "%.*s", filepath.len, filepath.ptr);
 }
 
 void print_link(struct ast *link, s32 pad, FILE *stream) {

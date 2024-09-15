@@ -1534,7 +1534,7 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 	if (!scope_is_local(scope)) scope_unlock(scope);
 	return_zone(entry);
 
-COLLIDE : {
+COLLIDE: {
 	if (!scope_is_local(scope)) scope_unlock(scope);
 	char *err_msg = (collision->is_builtin || is_builtin) ? "Symbol name collision with compiler builtin '%.*s'." : "Duplicate symbol";
 	report_error(DUPLICATE_SYMBOL, node, err_msg, id->str.len, id->str.ptr);
@@ -6434,7 +6434,7 @@ struct result analyze_instr_load(struct context *ctx, struct mir_instr_load *loa
 
 	return_zone(PASS);
 
-INVALID_SRC : {
+INVALID_SRC: {
 	bassert(err_type);
 	str_buf_t type_name = mir_type2str(err_type, /* prefer_name */ true);
 	report_error(INVALID_TYPE, src->node, "Expected value of pointer type, got '%.*s'.", type_name.len, type_name.ptr);
@@ -7259,8 +7259,7 @@ struct result analyze_instr_call_loc(struct context *ctx, struct mir_instr_call_
 	struct mir_type *dest_hash_type     = mir_get_struct_elem_type(type, 3);
 	vm_stack_ptr_t   dest_hash          = vm_get_struct_elem_ptr(ctx->assembly, type, dest, 3);
 
-	char *filepath = loc->call_location->unit->filepath;
-	bassert(filepath);
+	const str_t          filepath = loc->call_location->unit->filepath;
 	const struct mir_fn *owner_fn = mir_instr_owner_fn(&loc->base);
 	loc->function_name            = str_empty;
 	if (owner_fn) {
@@ -7273,7 +7272,7 @@ struct result analyze_instr_call_loc(struct context *ctx, struct mir_instr_call_
 	const hash_t hash = strhash(str_hash);
 	put_tmp_str(str_hash);
 
-	vm_write_string(ctx->vm, dest_file_type, dest_file, make_str_from_c(filepath));
+	vm_write_string(ctx->vm, dest_file_type, dest_file, filepath);
 	vm_write_string(ctx->vm, dest_function_type, dest_function, loc->function_name);
 	vm_write_int(dest_line_type, dest_line, (u64)loc->call_location->line);
 	vm_write_int(dest_hash_type, dest_hash, (u64)hash);
@@ -9261,12 +9260,12 @@ inline void testing_add_test_case(struct context *ctx, struct mir_fn *fn) {
 
 	bassert(fn->id);
 
-	char     *filename = fn->decl_node ? fn->decl_node->location->unit->filename : "UNKNOWN";
-	const s32 line     = fn->decl_node ? fn->decl_node->location->line : 0;
+	const str_t filename = fn->decl_node ? fn->decl_node->location->unit->filename : cstr("UNKNOWN");
+	const s32   line     = fn->decl_node ? fn->decl_node->location->line : 0;
 
 	vm_write_ptr(func_type, func_ptr, (vm_stack_ptr_t)fn);
 	vm_write_string(ctx->vm, name_type, name_ptr, fn->id->str);
-	vm_write_string(ctx->vm, file_type, file_ptr, make_str_from_c(filename));
+	vm_write_string(ctx->vm, file_type, file_ptr, filename);
 	vm_write_int(line_type, line_ptr, line);
 }
 

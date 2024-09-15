@@ -56,7 +56,7 @@ struct builder_options {
 struct builder {
 	struct builder_options *options;
 	const struct target    *default_target;
-	char                   *exec_dir;
+	str_buf_t               exec_dir;
 	batomic_s32             total_lines;
 	s32                     errorc;
 	s32                     max_error;
@@ -92,13 +92,12 @@ enum builder_cur_pos { CARET_WORD = 0,
 
 struct location;
 
-// Initialize builder global instance with executable directory specified.
-void builder_init(struct builder_options *options, const char *exec_dir);
+void builder_init(struct builder_options *options);
 void builder_terminate(void);
 // Return zero terminated list of supported target triples. Must be disposed by bfree.
 char         **builder_get_supported_targets(void);
 const char    *builder_get_lib_dir(void);
-const char    *builder_get_exec_dir(void);
+const str_t    builder_get_exec_dir(void);
 bool           builder_load_config(const str_t filepath);
 struct target *builder_add_target(const char *name);
 struct target *builder_add_default_target(const char *name);

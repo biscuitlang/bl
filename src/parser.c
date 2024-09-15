@@ -411,7 +411,7 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 		}
 
 		struct ast *load         = ast_create_node(ctx->ast_arena, AST_LOAD, tok_directive, scope_get(ctx));
-		load->data.load.filepath = tok_path->value.str.ptr;
+		load->data.load.filepath = tok_path->value.str;
 		if (ctx->assembly->target->kind != ASSEMBLY_DOCS) {
 			assembly_add_unit(ctx->assembly, load->data.load.filepath, tok_path);
 		}
@@ -442,8 +442,7 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 		BL_TRACY_MESSAGE("HD_FLAG", "#file");
 		struct ast *file =
 		    ast_create_node(ctx->ast_arena, AST_EXPR_LIT_STRING, tok_directive, scope_get(ctx));
-		char *filepath             = tok_directive->location.unit->filepath;
-		file->data.expr_string.val = make_str_from_c(filepath);
+		file->data.expr_string.val = tok_directive->location.unit->filepath;
 		return_zone(file);
 	}
 

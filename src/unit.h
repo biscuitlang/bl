@@ -45,17 +45,16 @@ struct unit {
 	array(struct ast *) ublock_ast;
 	struct scope   *private_scope;
 	str_t           filepath;
-	char           *filename;
-	char           *dirpath;
-	char           *name;
+	str_t           dirpath;
+	str_t           name;
+	str_t           filename;
 	char           *src;
 	struct token   *loaded_from;
 	LLVMMetadataRef llvm_file_meta;
 	str_buf_t       file_docs_cache;
 };
 
-hash_t       unit_hash(const char *filepath, struct token *load_from);
-struct unit *unit_new(struct assembly *assembly, const char *filepath, struct token *load_from);
+struct unit *unit_new(struct assembly *assembly, const str_t filepath, const str_t name, const hash_t hash, struct token *load_from);
 void         unit_delete(struct unit *unit);
 // Returns single line from the unit source code, len does not count last new line char.
 const char *unit_get_src_ln(struct unit *unit, s32 line, long *len);

@@ -34,9 +34,9 @@
 #include "stb_ds.h"
 
 #ifdef BL_DEBUG
-#	define PRINT_ANALYZED_COMPTIMES true
+#define PRINT_ANALYZED_COMPTIMES true
 #else
-#	define PRINT_ANALYZED_COMPTIMES false
+#define PRINT_ANALYZED_COMPTIMES false
 #endif
 
 struct context {
@@ -1153,11 +1153,7 @@ void print_instr(struct context *ctx, struct mir_instr *instr) {
 	if (ctx->assembly->target->opt == ASSEMBLY_OPT_DEBUG) {
 		if (instr->node && instr->node->location) {
 			const struct location *loc = instr->node->location;
-			fprintf(ctx->stream,
-			        " %s[%s:%d]",
-			        has_comment ? "" : "// ",
-			        loc->unit->filename,
-			        loc->line);
+			fprintf(ctx->stream, " %s[%.*s:%d]", has_comment ? "" : "// ", loc->unit->filename.len, loc->unit->filename.ptr, loc->line);
 		}
 	}
 

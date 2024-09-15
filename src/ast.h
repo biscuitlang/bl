@@ -111,7 +111,7 @@ struct ast_docs {
 };
 
 struct ast_load {
-	const char *filepath;
+	str_t filepath;
 };
 
 struct ast_import {

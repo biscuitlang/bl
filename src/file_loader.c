@@ -34,40 +34,20 @@
 void file_loader_run(struct assembly *UNUSED(assembly), struct unit *unit) {
 	char error_buf[256];
 	zone();
-	const char *path = unit->filepath;
-	if (!path) {
-		builder_msg(MSG_ERR,
-		            ERR_FILE_NOT_FOUND,
-		            TOKEN_OPTIONAL_LOCATION(unit->loaded_from),
-		            CARET_WORD,
-		            "File not found '%s'.",
-		            unit->filename);
-		return_zone();
-	}
+	const str_t path = unit->filepath;
+	bassert(path.len);
 
-	HANDLE f = CreateFileA(
-	    path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE f = CreateFileA(str_to_c(path), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (f == INVALID_HANDLE_VALUE) {
 		get_last_error(error_buf, static_arrlenu(error_buf));
-		builder_msg(MSG_ERR,
-		            ERR_FILE_NOT_FOUND,
-		            TOKEN_OPTIONAL_LOCATION(unit->loaded_from),
-		            CARET_WORD,
-		            "Cannot open file '%s': %s",
-		            path,
-		            error_buf);
+		builder_msg(MSG_ERR, ERR_FILE_NOT_FOUND, TOKEN_OPTIONAL_LOCATION(unit->loaded_from), CARET_WORD, "Cannot open file '%.*s': %s", path.len, path.ptr, error_buf);
 		return_zone();
 	}
 
 	DWORD bytes = GetFileSize(f, NULL);
 	if (bytes == INVALID_FILE_SIZE) {
 		CloseHandle(f);
-		builder_msg(MSG_ERR,
-		            ERR_FILE_NOT_FOUND,
-		            TOKEN_OPTIONAL_LOCATION(unit->loaded_from),
-		            CARET_WORD,
-		            "Cannot get size of file '%s'.",
-		            path);
+		builder_msg(MSG_ERR, ERR_FILE_NOT_FOUND, TOKEN_OPTIONAL_LOCATION(unit->loaded_from), CARET_WORD, "Cannot get size of file '%.*s'.", path.len, path.ptr);
 		return_zone();
 	}
 	char *data = bmalloc(bytes + 1);
@@ -76,13 +56,7 @@ void file_loader_run(struct assembly *UNUSED(assembly), struct unit *unit) {
 		bfree(data);
 		CloseHandle(f);
 		get_last_error(error_buf, static_arrlenu(error_buf));
-		builder_msg(MSG_ERR,
-		            ERR_FILE_NOT_FOUND,
-		            TOKEN_OPTIONAL_LOCATION(unit->loaded_from),
-		            CARET_WORD,
-		            "Cannot read file '%s': %s",
-		            path,
-		            error_buf);
+		builder_msg(MSG_ERR, ERR_FILE_NOT_FOUND, TOKEN_OPTIONAL_LOCATION(unit->loaded_from), CARET_WORD, "Cannot read file '%.*s': %s", path.len, path.ptr, error_buf);
 		return_zone();
 	}
 	bassert(rbytes == bytes);
@@ -94,25 +68,11 @@ void file_loader_run(struct assembly *UNUSED(assembly), struct unit *unit) {
 #else
 void file_loader_run(struct assembly *UNUSED(assembly), struct unit *unit) {
 	zone();
-	if (!unit->filepath) {
-		builder_msg(MSG_ERR,
-		            ERR_FILE_NOT_FOUND,
-		            TOKEN_OPTIONAL_LOCATION(unit->loaded_from),
-		            CARET_WORD,
-		            "File not found '%s'.",
-		            unit->name);
-		return_zone();
-	}
+	bassert(unit->filepath.len);
 
 	FILE *f = fopen(unit->filepath, "rb");
 	if (f == NULL) {
-		builder_msg(MSG_ERR,
-		            ERR_FILE_READ,
-		            TOKEN_OPTIONAL_LOCATION(unit->loaded_from),
-		            CARET_WORD,
-		            "Cannot read file '%s'.",
-		            unit->name);
-
+		builder_msg(MSG_ERR, ERR_FILE_READ, TOKEN_OPTIONAL_LOCATION(unit->loaded_from), CARET_WORD, "Cannot read file '%.*s'.", unit->name.len, unit->name.ptr);
 		return_zone();
 	}
 
@@ -120,19 +80,13 @@ void file_loader_run(struct assembly *UNUSED(assembly), struct unit *unit) {
 	usize fsize = (usize)ftell(f);
 	if (fsize == 0) {
 		fclose(f);
-		builder_msg(MSG_ERR,
-		            ERR_FILE_EMPTY,
-		            TOKEN_OPTIONAL_LOCATION(unit->loaded_from),
-		            CARET_WORD,
-		            "Invalid or empty source file '%s'.",
-		            unit->name);
-
+		builder_msg(MSG_ERR, ERR_FILE_EMPTY, TOKEN_OPTIONAL_LOCATION(unit->loaded_from), CARET_WORD, "Invalid or empty source file '%.*s'.", unit->name.len, unit->name.ptr);
 		return_zone();
 	}
 	fseek(f, 0, SEEK_SET);
 
 	char *src = bmalloc(fsize + 1);
-	if (!fread(src, sizeof(char), fsize, f)) babort("Cannot read file '%s'.", unit->name);
+	if (!fread(src, sizeof(char), fsize, f)) babort("Cannot read file '%.*s'.", unit->name.len, unit->name.ptr);
 	src[fsize] = '\0';
 	fclose(f);
 	unit->src = src;
