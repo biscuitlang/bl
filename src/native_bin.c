@@ -68,7 +68,7 @@ static void copy_user_libs(struct assembly *assembly) {
 #endif
 
 		str_buf_append_fmt(&dest_path, "{str}/{str}", out_dir, lib_dest_name);
-		if (file_exists2(dest_path)) continue;
+		if (file_exists(str_buf_view(dest_path))) continue;
 
 		builder_info("Copy '%.*s' to '%.*s'.",
 		             lib->filepath.len,
@@ -76,7 +76,7 @@ static void copy_user_libs(struct assembly *assembly) {
 		             dest_path.len,
 		             dest_path.ptr);
 
-		if (!copy_file(str_to_c(lib->filepath), str_to_c(dest_path))) {
+		if (!copy_file(lib->filepath, str_buf_view(dest_path))) {
 			builder_error("Cannot copy '%.*s' to '%.*s'.",
 			              lib->filepath.len,
 			              lib->filepath.ptr,

@@ -276,10 +276,9 @@ s32 bvsnprint(char *buf, s32 buf_len, const char *fmt, va_list args);
 
 typedef sarr_t(u8, 1) sarr_any_t;
 
-#define SARR_ZERO          \
-	{                      \
-		.len = 0, .cap = 0 \
-	}
+#define SARR_ZERO \
+	{             \
+	    .len = 0, .cap = 0}
 
 #define sarradd(A) sarraddn(A, 1)
 #define sarraddn(A, N)                                                                     \
@@ -435,8 +434,8 @@ static inline void *next_aligned(void *p, usize alignment) {
 // Replace all backslashes in passed path with forward slash, this is used as workaround on Windows
 // platform due to inconsistency 'Unix vs Windows' path separators. This function will modify passed
 // buffer.
-void        win_path_to_unix(str_buf_t *path);
-void        unix_path_to_win(str_buf_t *path);
+void        win_path_to_unix(str_t path);
+void        unix_path_to_win(str_t path);
 bool        file_exists(const str_t filepath);
 bool        dir_exists(const str_t dirpath);
 bool        normalize_path(str_buf_t *path);
@@ -448,9 +447,9 @@ bool        get_current_exec_path(str_buf_t *out_full_path);
 bool        get_current_exec_dir(str_buf_t *out_full_path);
 bool        create_dir(const str_t dirpath);
 bool        create_dir_tree(const str_t dirpath);
-bool        copy_dir(const char *src, const char *dest);
-bool        copy_file(const char *src, const char *dest);
-bool        remove_dir(const char *path);
+bool        copy_dir(const str_t src, const str_t dest);
+bool        copy_file(const str_t src, const str_t dest);
+bool        remove_dir(const str_t path);
 void        date_time(char *buf, s32 len, const char *format);
 void        print_bits(s32 const size, void const *const ptr);
 int         count_bits(u64 n);

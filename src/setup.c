@@ -107,7 +107,7 @@ bool setup(const str_t filepath, const char *triple) {
 		date_time(date, static_arrlenu(date), "%d-%m-%Y_%H-%M-%S");
 		str_buf_append_fmt(&bakfilepath, "{str}.{s}", ctx.filepath, date);
 		builder_warning("Creating backup of previous configuration file at '%.*s'.", bakfilepath.len, bakfilepath.ptr);
-		copy_file(str_to_c(ctx.filepath), str_to_c(bakfilepath));
+		copy_file(ctx.filepath, str_buf_view(bakfilepath));
 		put_tmp_str(bakfilepath);
 	}
 

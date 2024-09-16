@@ -64,7 +64,7 @@ struct context {
 	bool         is_multi_return;
 	str_buf_t    section_variants;
 	str_buf_t    section_members;
-	char        *output_directory;
+	str_t        output_directory;
 	s32          indentation;
 };
 
@@ -444,7 +444,7 @@ void doc_unit(struct context *ctx, struct unit *unit) {
 
 	// write unit global docs
 	str_buf_t export_file = get_tmp_str();
-	str_buf_append_fmt(&export_file, "{s}/{str}.md", ctx->output_directory, unit_name);
+	str_buf_append_fmt(&export_file, "{str}/{str}.md", ctx->output_directory, unit_name);
 	FILE *f = fopen(str_to_c(export_file), "w");
 	if (f == NULL) {
 		builder_error("Cannot open file '%s'", export_file);
@@ -472,7 +472,7 @@ void docs_run(struct assembly *assembly) {
 	memset(&ctx, 0, sizeof(struct context));
 	str_buf_setcap(&ctx.section_variants, 128);
 	str_buf_setcap(&ctx.section_members, 128);
-	ctx.output_directory = builder.options->doc_out_dir;
+	ctx.output_directory = make_str_from_c(builder.options->doc_out_dir);
 
 	// prepare output directory
 	if (!dir_exists(ctx.output_directory)) create_dir(ctx.output_directory);
@@ -486,6 +486,6 @@ void docs_run(struct assembly *assembly) {
 	str_buf_free(&ctx.section_variants);
 	str_buf_free(&ctx.section_members);
 
-	builder_info("Documentation written into '%s' directory.", ctx.output_directory);
+	builder_info("Documentation written into '%.*s' directory.", ctx.output_directory.len, ctx.output_directory.ptr);
 	return_zone();
 }

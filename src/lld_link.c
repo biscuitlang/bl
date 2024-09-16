@@ -94,14 +94,13 @@ static void append_custom_opt(struct assembly *assembly, str_buf_t *buf) {
 }
 
 static void append_linker_exec(struct assembly *assembly, str_buf_t *buf) {
-	const char *custom_linker =
-	    read_config(builder.config, assembly->target, "linker_executable", "");
+	const char *custom_linker = read_config(builder.config, assembly->target, "linker_executable", "");
 	if (strlen(custom_linker)) {
 		str_buf_append_fmt(buf, "\"{s}\" ", custom_linker);
 		return;
 	}
 	// Use LLD as default.
-	str_buf_append_fmt(buf, "\"{s}/{s}\" -flavor {s} ", builder.exec_dir, BL_LINKER, LLD_FLAVOR);
+	str_buf_append_fmt(buf, "\"{str}/{s}\" -flavor {s} ", builder.exec_dir, BL_LINKER, LLD_FLAVOR);
 }
 
 s32 lld_link(struct assembly *assembly) {
@@ -118,8 +117,7 @@ s32 lld_link(struct assembly *assembly) {
 	// set input file
 	str_buf_append_fmt(&buf, "\"{str}/{s}.{s}\" ", out_dir, name, OBJECT_EXT);
 	// set output file
-	str_buf_append_fmt(
-	    &buf, "{s}:\"{str}/{s}.{s}\" ", FLAG_OUT, out_dir, name, get_out_extension(assembly));
+	str_buf_append_fmt(&buf, "{s}:\"{str}/{s}.{s}\" ", FLAG_OUT, out_dir, name, get_out_extension(assembly));
 	append_lib_paths(assembly, &buf);
 	append_libs(assembly, &buf);
 	append_default_opt(assembly, &buf);

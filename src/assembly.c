@@ -215,7 +215,7 @@ static bool create_auxiliary_dir_tree_if_not_exist(const str_t _path, str_buf_t 
 #if BL_PLATFORM_WIN
 	str_buf_t tmp_path = get_tmp_str();
 	str_buf_append(&tmp_path, _path);
-	win_path_to_unix(tmp_path.ptr, tmp_path.len);
+	win_path_to_unix(str_buf_view(tmp_path));
 	const str_t path = str_buf_view(tmp_path);
 #else
 	const str_t path = _path;
@@ -228,15 +228,17 @@ static bool create_auxiliary_dir_tree_if_not_exist(const str_t _path, str_buf_t 
 			return false;
 		}
 	}
-	char full_path[PATH_MAX] = {0};
-	if (!brealpath(path, full_path)) {
+	str_buf_t tmp_full_path = get_tmp_str();
+	if (!brealpath(path, &tmp_full_path)) {
+		put_tmp_str(tmp_full_path);
 		return false;
 	}
 	str_buf_clr(out_path);
-	str_buf_append_fmt(out_path, "{s}", full_path);
+	str_buf_append(out_path, tmp_full_path);
 #if BL_PLATFORM_WIN
 	put_tmp_str(tmp_path);
 #endif
+	put_tmp_str(tmp_full_path);
 	return true;
 }
 
@@ -280,7 +282,7 @@ static void import_source(import_elem_context_t *ctx, const char *srcfile) {
 static void import_lib_path(import_elem_context_t *ctx, const char *dirpath) {
 	str_buf_t path = get_tmp_str();
 	str_buf_append_fmt(&path, "{s}/{s}", ctx->modulepath, dirpath);
-	if (!dir_exists(path)) {
+	if (!dir_exists(str_buf_view(path))) {
 		builder_msg(MSG_ERR, ERR_FILE_NOT_FOUND, TOKEN_OPTIONAL_LOCATION(ctx->import_from), CARET_WORD, "Cannot find module imported library path '%.*s'.", path.len, path.ptr);
 	} else {
 		assembly_add_lib_path(ctx->assembly, str_to_c(path));
@@ -440,7 +442,7 @@ void target_add_file(struct target *target, const char *filepath) {
 	bmagic_assert(target);
 	bassert(filepath && "Invalid filepath!");
 	char *dup = strdup(filepath);
-	win_path_to_unix(dup, strlen(dup));
+	win_path_to_unix(make_str_from_c(dup));
 	arrput(target->files, dup);
 }
 
@@ -454,7 +456,7 @@ void target_add_lib_path(struct target *target, const char *path) {
 	bmagic_assert(target);
 	if (!path) return;
 	char *dup = strdup(path);
-	win_path_to_unix(dup, strlen(dup));
+	win_path_to_unix(make_str_from_c(dup));
 	arrput(target->default_lib_paths, dup);
 }
 
@@ -462,14 +464,14 @@ void target_add_lib(struct target *target, const char *lib) {
 	bmagic_assert(target);
 	if (!lib) return;
 	char *dup = strdup(lib);
-	win_path_to_unix(dup, strlen(dup));
+	win_path_to_unix(make_str_from_c(dup));
 	arrput(target->default_libs, dup);
 }
 
 void target_set_output_dir(struct target *target, const char *dir) {
 	bmagic_assert(target);
 	if (!dir) builder_error("Cannot create output directory.");
-	if (!create_auxiliary_dir_tree_if_not_exist(dir, &target->out_dir)) {
+	if (!create_auxiliary_dir_tree_if_not_exist(make_str_from_c(dir), &target->out_dir)) {
 		builder_error("Cannot create output directory '%s'.", dir);
 	}
 }
@@ -486,7 +488,7 @@ void target_set_module_dir(struct target *target, const char *dir, enum module_i
 		builder_error("Cannot create module directory.");
 		return;
 	}
-	if (!create_auxiliary_dir_tree_if_not_exist(dir, &target->module_dir)) {
+	if (!create_auxiliary_dir_tree_if_not_exist(make_str_from_c(dir), &target->module_dir)) {
 		builder_error("Cannot create module directory '%s'.", dir);
 		return;
 	}
@@ -543,6 +545,7 @@ static void thread_local_init(struct assembly *assembly) {
 	zone();
 	const u32 thread_count = get_thread_count();
 	arrsetlen(assembly->thread_local_contexts, thread_count);
+	bl_zeromem(assembly->thread_local_contexts, sizeof(struct assembly_thread_local_context) * thread_count);
 	for (u32 i = 0; i < thread_count; ++i) {
 		scope_arenas_init(&assembly->thread_local_contexts[i].scope_arenas, i);
 		mir_arenas_init(&assembly->thread_local_contexts[i].mir_arenas, i);
@@ -701,7 +704,7 @@ struct unit *assembly_add_unit(struct assembly *assembly, const str_t filepath, 
 	struct unit *parent_unit  = load_from ? load_from->location.unit : NULL;
 	if (!search_source_file(filepath, SEARCH_FLAG_ALL, parent_unit ? parent_unit->dirpath : str_empty, &tmp_fullpath)) {
 		put_tmp_str(tmp_fullpath);
-		builder_msg(MSG_ERR, ERR_FILE_NOT_FOUND, TOKEN_OPTIONAL_LOCATION(load_from), CARET_WORD, "File not found '%s'.", filepath);
+		builder_msg(MSG_ERR, ERR_FILE_NOT_FOUND, TOKEN_OPTIONAL_LOCATION(load_from), CARET_WORD, "File not found '%.*s'.", filepath.len, filepath.ptr);
 		return_zone(NULL);
 	}
 
@@ -809,8 +812,8 @@ bool assembly_import_module(struct assembly *assembly, const char *modulepath, s
 				char      date[26];
 				date_time(date, static_arrlenu(date), "%d-%m-%Y_%H-%M-%S");
 				str_buf_append_fmt(&backup_name, "{str}_{s}.bak", local_path, date);
-				copy_dir(str_to_c(local_path), str_to_c(backup_name));
-				remove_dir(str_to_c(local_path));
+				copy_dir(str_buf_view(local_path), str_buf_view(backup_name));
+				remove_dir(str_buf_view(local_path));
 				builder_info("Backup module '%.*s'.", backup_name.len, backup_name.ptr);
 				put_tmp_str(backup_name);
 			}
@@ -819,7 +822,7 @@ bool assembly_import_module(struct assembly *assembly, const char *modulepath, s
 			             (check_version && local_found) ? "Update" : "Import",
 			             modulepath,
 			             module_dir);
-			if (!copy_dir(str_to_c(system_path), str_to_c(local_path))) {
+			if (!copy_dir(str_buf_view(system_path), str_buf_view(local_path))) {
 				builder_error("Cannot import module '%s'.", modulepath);
 			}
 		}

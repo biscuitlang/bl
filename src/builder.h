@@ -109,10 +109,8 @@ void builder_submit_unit(struct assembly *assembly, struct unit *unit);
 
 #define builder_log(format, ...) builder_msg(MSG_LOG, -1, NULL, CARET_NONE, format, ##__VA_ARGS__)
 #define builder_info(format, ...) builder_msg(MSG_INFO, -1, NULL, CARET_NONE, format, ##__VA_ARGS__)
-#define builder_note(format, ...) \
-	builder_msg(MSG_ERR_NOTE, -1, NULL, CARET_NONE, format, ##__VA_ARGS__)
-#define builder_warning(format, ...) \
-	builder_msg(MSG_WARN, -1, NULL, CARET_NONE, format, ##__VA_ARGS__)
+#define builder_note(format, ...) builder_msg(MSG_ERR_NOTE, -1, NULL, CARET_NONE, format, ##__VA_ARGS__)
+#define builder_warning(format, ...) builder_msg(MSG_WARN, -1, NULL, CARET_NONE, format, ##__VA_ARGS__)
 #define builder_error(format, ...) builder_msg(MSG_ERR, -1, NULL, CARET_NONE, format, ##__VA_ARGS__)
 
 void builder_vmsg(enum builder_msg_type type,
@@ -132,6 +130,12 @@ void builder_msg(enum builder_msg_type type,
 // Temporary strings.
 str_buf_t get_tmp_str(void);
 void      put_tmp_str(str_buf_t str);
+
+inline static str_buf_t get_tmp_str_from(const str_t s) {
+	str_buf_t tmp = get_tmp_str();
+	str_buf_append(&tmp, s);
+	return tmp;
+}
 
 void builder_print_location(FILE *stream, struct location *loc, s32 col, s32 len);
 

@@ -51,7 +51,7 @@ static bool search_library(struct context *ctx,
                            str_t          *out_lib_filepath) {
 	bool found = false;
 
-	const u32 thread_index = get_worker_index();
+	const u32             thread_index = get_worker_index();
 	struct string_cache **string_cache = &ctx->assembly->thread_local_contexts[thread_index].string_cache;
 
 	str_buf_t lib_filepath      = get_tmp_str();
@@ -65,7 +65,7 @@ static bool search_library(struct context *ctx,
 		str_buf_clr(&lib_filepath);
 		str_buf_append_fmt(&lib_filepath, "{s}/{str}", dir, lib_platform_name);
 
-		if (file_exists2(lib_filepath)) {
+		if (file_exists(str_buf_view(lib_filepath))) {
 			builder_log("  Found: '%.*s'", lib_filepath.len, lib_filepath.ptr);
 
 			if (out_lib_name) {
@@ -90,43 +90,23 @@ DONE:
 	return found;
 }
 
+void add_lib_path(struct context *ctx, const char *token) {
+	if (file_exists(make_str_from_c(token))) {
+		char *path = strdup(token);
+#if BL_PLATFORM_WIN
+		win_path_to_unix(make_str_from_c(path));
+#endif
+		arrput(ctx->assembly->lib_paths, path);
+	} else {
+		builder_warning("Invalid LIB_PATH entry value '%s'.", token);
+	}
+}
+
 static void set_lib_paths(struct context *ctx) {
 	char        tmp[PATH_MAX] = {0};
-	const char *lib_path =
-	    read_config(builder.config, ctx->assembly->target, "linker_lib_path", "");
+	const char *lib_path      = read_config(builder.config, ctx->assembly->target, "linker_lib_path", "");
 	if (!strlen(lib_path)) return;
-
-	s64         len;
-	const char *begin = lib_path;
-	const char *c     = lib_path;
-	bool        done  = false;
-
-	while (!done) {
-		done = *(c++) == '\0';
-		if (done || *c == ENVPATH_SEPARATORC) {
-			len = c - begin;
-			if (len - 1 > 0) {
-				strncpy(tmp, begin, len);
-				tmp[len] = '\0';
-				if (file_exists(tmp)) {
-					char *dup = malloc(sizeof(char) * len + 1);
-					if (!dup) babort("Bad alloc!");
-					memcpy(dup, begin, len);
-					dup[len] = '\0';
-
-#if BL_PLATFORM_WIN
-					win_path_to_unix(dup, len);
-#endif
-
-					arrput(ctx->assembly->lib_paths, dup);
-				} else {
-					builder_warning("Invalid LIB_PATH entry value '%s'.", tmp);
-				}
-
-				begin = c + 1;
-			}
-		}
-	}
+	process_tokens(ctx, lib_path, ENVPATH_SEPARATOR, (process_tokens_fn_t)&add_lib_path);
 }
 
 static bool link_lib(struct context *ctx, struct native_lib *lib) {

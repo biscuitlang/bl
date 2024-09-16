@@ -4,6 +4,7 @@
 */
 
 main :: fn () s32 {
+	print("Hello!\n");
 	return 0;
 }
 

@@ -115,7 +115,7 @@ static void append_linker_exec(struct assembly *assembly, str_buf_t *buf) {
 		return;
 	}
 	// Use LLD as default.
-	str_buf_append_fmt(buf, "{s}/{s} -flavor {s} ", builder.exec_dir, BL_LINKER, LLD_FLAVOR);
+	str_buf_append_fmt(buf, "{str}/{s} -flavor {s} ", builder.exec_dir, BL_LINKER, LLD_FLAVOR);
 #if BL_PLATFORM_MACOS
 	builder_warning("Using experimental LLD linker. (There are known issues with LLD on MacOS)");
 #endif
