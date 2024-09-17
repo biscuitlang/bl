@@ -7268,7 +7268,7 @@ struct result analyze_instr_call_loc(struct context *ctx, struct mir_instr_call_
 
 	// Generate source location hash.
 	str_buf_t str_hash = get_tmp_str();
-	str_buf_append_fmt(&str_hash, "{s}{u32}", filepath, (u32)loc->call_location->line);
+	str_buf_append_fmt(&str_hash, "{str}{u32}", filepath, (u32)loc->call_location->line);
 	const hash_t hash = strhash(str_hash);
 	put_tmp_str(str_hash);
 
