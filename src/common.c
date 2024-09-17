@@ -539,7 +539,7 @@ bool get_current_exec_path(str_buf_t *out_full_path) {
 	result = readlink("/proc/self/exe", buf, PATH_MAX) >= 0;
 #elif BL_PLATFORM_MACOS
 	u32 buf_size = PATH_MAX;
-	result       = _NSGetExecutablePath(buf, &buf_size) != 0;
+	result       = _NSGetExecutablePath(buf, &buf_size) >= 0;
 #else
 #error Unsupported platform.
 #endif
@@ -984,7 +984,7 @@ const char *read_config(struct config       *config,
 	char      triple_str[TRIPLE_MAX_LEN];
 	target_triple_to_string(&target->triple, triple_str, static_arrlenu(triple_str));
 	str_buf_append_fmt(&fullpath, "/{s}/{s}", triple_str, path);
-	const char *result = confreads(config, str_buf_to_c(fullpath), default_value); 
+	const char *result = confreads(config, str_buf_to_c(fullpath), default_value);
 	put_tmp_str(fullpath);
 	return result;
 }
