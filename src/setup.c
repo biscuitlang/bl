@@ -293,7 +293,7 @@ static bool x86_64_apple_darwin(struct context *ctx) {
 		if (sscanf(str_buf_to_c(osver), "%d.%d.%d", &major, &minor, &patch) == 3) {
 			if (major >= 11) {
 				if (!dir_exists(MACOS_SDK)) {
-					builder_error("Cannot find macOS SDK on '%s'.", MACOS_SDK.ptr);
+					builder_error("Cannot find macOS SDK on '%.*s'.", MACOS_SDK.len, MACOS_SDK.ptr);
 				} else {
 					str_buf_append_fmt(&libpath, ":{str}", MACOS_SDK);
 				}
@@ -371,7 +371,7 @@ static bool arm64_apple_darwin(struct context *ctx) {
 				if (!dir_exists(MACOS_SDK)) {
 					builder_error("Cannot find macOS SDK on '%.*s'.", MACOS_SDK.len, MACOS_SDK.ptr);
 				} else {
-					str_buf_append_fmt(&libpath, ":{s}", MACOS_SDK);
+					str_buf_append_fmt(&libpath, ":{str}", MACOS_SDK);
 				}
 			}
 			// @Note 2024-08-04: This is a bit hack, newer macos versions does not have separated standard
