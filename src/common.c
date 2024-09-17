@@ -471,9 +471,10 @@ bool search_source_file(const str_t filepath, const u32 flags, const str_t wdir,
 	}
 
 	// file has not been found in current working directory -> search in LIB_DIR
-	if (builder_get_lib_dir() && isflag(flags, SEARCH_FLAG_LIB_DIR)) {
+	const str_t lib_dir = builder_get_lib_dir();
+	if (lib_dir.len && isflag(flags, SEARCH_FLAG_LIB_DIR)) {
 		str_buf_clr(&tmp);
-		str_buf_append_fmt(&tmp, "{s}" PATH_SEPARATOR "{str}", builder_get_lib_dir(), filepath);
+		str_buf_append_fmt(&tmp, "{str}" PATH_SEPARATOR "{str}", lib_dir, filepath);
 		if (brealpath(str_buf_view(tmp), &result)) {
 			goto FOUND;
 		}
@@ -547,7 +548,7 @@ bool get_current_exec_path(str_buf_t *out_full_path) {
 	return true;
 
 #elif BL_PLATFORM_MACOS
-	const u32 buf_size = PATH_MAX;
+	u32 buf_size = PATH_MAX;
 	if (_NSGetExecutablePath(out_full_path->ptr, &buf_size) != 0) {
 		return false;
 	}

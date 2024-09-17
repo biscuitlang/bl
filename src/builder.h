@@ -96,7 +96,7 @@ void builder_init(struct builder_options *options);
 void builder_terminate(void);
 // Return zero terminated list of supported target triples. Must be disposed by bfree.
 char         **builder_get_supported_targets(void);
-const char    *builder_get_lib_dir(void);
+const str_t    builder_get_lib_dir(void);
 const str_t    builder_get_exec_dir(void);
 bool           builder_load_config(const str_t filepath);
 struct target *builder_add_target(const char *name);

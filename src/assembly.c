@@ -718,6 +718,7 @@ struct unit *assembly_add_unit(struct assembly *assembly, const str_t filepath, 
 	mtx_unlock(&assembly->units_lock);
 
 	if (unit) builder_submit_unit(assembly, unit);
+	put_tmp_str(tmp_fullpath);
 	return_zone(unit);
 }
 
@@ -772,12 +773,14 @@ bool assembly_import_module(struct assembly *assembly, const char *modulepath, s
 	const enum module_import_policy policy      = assembly->target->module_policy;
 	const bool                      local_found = module_dir ? module_exist(module_dir, modulepath) : false;
 
+	const str_t lib_dir = builder_get_lib_dir();
+
 	switch (policy) {
 	case IMPORT_POLICY_SYSTEM: {
 		if (local_found) {
 			str_buf_append_fmt(&local_path, "{s}/{s}", module_dir, modulepath);
 		} else {
-			str_buf_append_fmt(&local_path, "{s}/{s}", builder_get_lib_dir(), modulepath);
+			str_buf_append_fmt(&local_path, "{str}/{s}", lib_dir, modulepath);
 		}
 		config = load_module_config(str_to_c(local_path), import_from);
 		break;
@@ -789,15 +792,15 @@ bool assembly_import_module(struct assembly *assembly, const char *modulepath, s
 		str_buf_t  system_path   = get_tmp_str();
 		const bool check_version = policy == IMPORT_POLICY_BUNDLE_LATEST;
 		str_buf_append_fmt(&local_path, "{s}/{s}", module_dir, modulepath);
-		str_buf_append_fmt(&system_path, "{s}/{s}", builder_get_lib_dir(), modulepath);
-		const bool system_found = module_exist(builder_get_lib_dir(), modulepath);
+		str_buf_append_fmt(&system_path, "{str}/{s}", lib_dir, modulepath);
+		const bool system_found = module_exist(str_to_c(lib_dir), modulepath);
 		// Check if module is present in module directory.
 		bool do_copy = !local_found;
 		if (check_version && local_found && system_found) {
 			s32 system_version = 0;
 			s32 local_version  = 0;
 			str_buf_clr(&system_path);
-			str_buf_append_fmt(&system_path, "{s}/{s}", builder_get_lib_dir(), modulepath);
+			str_buf_append_fmt(&system_path, "{str}/{s}", lib_dir, modulepath);
 			config = load_module_config(str_to_c(system_path), import_from);
 			if (config) system_version = get_module_version(config);
 			struct config *local_config = load_module_config(str_to_c(local_path), import_from);

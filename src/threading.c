@@ -195,6 +195,9 @@ struct thread_local_storage *get_thread_local_storage(void) {
 
 void init_thread_local_storage(void) {
 	arrsetcap(thread_data.temporary_strings, 16);
+#if BL_ASSERT_ENABLE
+	thread_data._temporary_strings_check = 0;
+#endif
 }
 
 void terminate_thread_local_storage(void) {
@@ -202,6 +205,7 @@ void terminate_thread_local_storage(void) {
 		str_buf_free(&thread_data.temporary_strings[i]);
 	}
 	arrfree(thread_data.temporary_strings);
+	bassert(thread_data._temporary_strings_check == 0 && "We have dangling temporary strings!");
 }
 
 u32 get_worker_index(void) {

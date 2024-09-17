@@ -405,8 +405,8 @@ char **builder_get_supported_targets(void) {
 	return dest;
 }
 
-const char *builder_get_lib_dir(void) {
-	return confreads(builder.config, CONF_LIB_DIR_KEY, NULL);
+const str_t builder_get_lib_dir(void) {
+	return make_str_from_c(confreads(builder.config, CONF_LIB_DIR_KEY, NULL));
 }
 
 const str_t builder_get_exec_dir(void) {
@@ -643,12 +643,18 @@ str_buf_t get_tmp_str(void) {
 		str_buf_setcap(&str, 255);
 	}
 	str_buf_clr(&str); // also set zero terminator
+#if BL_ASSERT_ENABLE
+	++storage->_temporary_strings_check;
+#endif
 	return_zone(str);
 }
 
 void put_tmp_str(str_buf_t str) {
 	struct thread_local_storage *storage = get_thread_local_storage();
 	arrput(storage->temporary_strings, str);
+#if BL_ASSERT_ENABLE
+	--storage->_temporary_strings_check;
+#endif
 }
 
 void builder_submit_unit(struct assembly *assembly, struct unit *unit) {

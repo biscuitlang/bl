@@ -439,7 +439,7 @@ void doc_unit(struct context *ctx, struct unit *unit) {
 	str_t     name      = unit->filename;
 	name.len -= 3;
 	bassert(name.len > 0);
-	str_buf_append_fmt(&unit_name, "{str}", name);
+	str_buf_append(&unit_name, name);
 	ctx->unit = unit;
 
 	// write unit global docs

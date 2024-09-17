@@ -276,9 +276,7 @@ s32 bvsnprint(char *buf, s32 buf_len, const char *fmt, va_list args);
 
 typedef sarr_t(u8, 1) sarr_any_t;
 
-#define SARR_ZERO \
-	{             \
-	    .len = 0, .cap = 0}
+#define SARR_ZERO {.len = 0, .cap = 0}
 
 #define sarradd(A) sarraddn(A, 1)
 #define sarraddn(A, N)                                                                     \

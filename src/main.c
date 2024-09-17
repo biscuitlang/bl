@@ -273,7 +273,8 @@ void print_about(FILE *stream) {
 }
 
 void print_where_is_api(FILE *stream) {
-	fprintf(stream, "%s", builder_get_lib_dir());
+	const str_t lib_dir = builder_get_lib_dir();
+	fprintf(stream, "%.*s", lib_dir.len, lib_dir.ptr);
 }
 
 void print_where_is_config(FILE *stream) {

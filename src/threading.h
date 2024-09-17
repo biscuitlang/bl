@@ -54,6 +54,9 @@ struct job_context {
 
 struct thread_local_storage {
 	array(str_buf_t) temporary_strings;
+#if BL_ASSERT_ENABLE
+	s32 _temporary_strings_check;
+#endif
 };
 
 typedef void (*job_fn_t)(struct job_context *ctx);
