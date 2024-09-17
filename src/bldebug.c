@@ -38,7 +38,7 @@
 #endif
 
 #if BL_PLATFORM_MACOS || BL_PLATFORM_LINUX
-#	include <execinfo.h>
+#include <execinfo.h>
 #endif
 
 #define MAX_LOG_MSG_SIZE 2048
@@ -84,7 +84,7 @@ void print_trace_impl(void) {
 
 	printf("Obtained stack trace:\n");
 	for (usize i = 1; i < size; i++)
-		printf("  %s\n", strings[i]);
+		fprintf(stderr, "  %s\n", strings[i]);
 
 	free(strings);
 #elif BL_PLATFORM_WIN
@@ -102,11 +102,11 @@ void print_trace_impl(void) {
 	symbol->MaxNameLen               = MAX_SYM_NAME;
 	symbol->SizeOfStruct             = sizeof(SYMBOL_INFO);
 
-	printf("Obtained stack trace:\n");
+	fprintf(stderr, "Obtained stack trace:\n");
 	for (s32 i = 1; i < frame_count; i++) {
 		SymGetLineFromAddr64(process, (DWORD64)(stack[i]), &displacementLine, &line);
 		SymFromAddr(process, (DWORD64)(stack[i]), 0, symbol);
-		printf("  %s:%lu: %s\n", line.FileName, line.LineNumber, symbol->Name);
+		fprintf(stderr, "  %s:%lu: %s\n", line.FileName, line.LineNumber, symbol->Name);
 	}
 	SymCleanup(process);
 #endif
