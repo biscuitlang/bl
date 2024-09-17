@@ -53,18 +53,22 @@ static void copy_user_libs(struct assembly *assembly) {
 		str_t lib_dest_name = lib->filename;
 #if BL_PLATFORM_LINUX || BL_PLATFORM_MACOS
 		struct stat statbuf;
-		lstat(str_to_c(lib->filepath), &statbuf);
+		str_buf_t tmp_filepath = get_tmp_str();
+		const char *clib_filepath = str_to_c(&tmp_filepath, lib->filepath);
+		lstat(clib_filepath, &statbuf);
 		if (S_ISLNK(statbuf.st_mode)) {
 			char buf[PATH_MAX] = {0};
-			if (readlink(str_to_c(lib->filepath), buf, static_arrlenu(buf)) == -1) {
+			if (readlink(clib_filepath, buf, static_arrlenu(buf)) == -1) {
 				builder_error("Cannot follow symlink '%.*s' with error: %d",
 				              lib->filepath.len,
 				              lib->filepath.ptr,
 				              errno);
+				put_tmp_str(tmp_filepath);
 				continue;
 			}
 			lib_dest_name = make_str_from_c(buf);
 		}
+		put_tmp_str(tmp_filepath);
 #endif
 
 		str_buf_append_fmt(&dest_path, "{str}/{str}", out_dir, lib_dest_name);

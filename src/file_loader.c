@@ -71,14 +71,15 @@ void file_loader_run(struct assembly *UNUSED(assembly), struct unit *unit) {
 #else
 void file_loader_run(struct assembly *UNUSED(assembly), struct unit *unit) {
 	zone();
-	bassert(unit->filepath.len);
+	const str_t path = unit->filepath;
+	bassert(path.len);
 
 	str_buf_t tmp_path = get_tmp_str();
 	FILE     *f        = fopen(str_dup_if_not_terminated(&tmp_path, path.ptr, path.len), "rb");
 	put_tmp_str(tmp_path);
 
 	if (f == NULL) {
-		builder_msg(MSG_ERR, ERR_FILE_READ, TOKEN_OPTIONAL_LOCATION(unit->loaded_from), CARET_WORD, "Cannot read file '%.*s'.", unit->name.len, unit->name.ptr);
+		builder_msg(MSG_ERR, ERR_FILE_READ, TOKEN_OPTIONAL_LOCATION(unit->loaded_from), CARET_WORD, "Cannot read file '%.*s'.", path.len, path.ptr);
 		return_zone();
 	}
 
@@ -86,13 +87,13 @@ void file_loader_run(struct assembly *UNUSED(assembly), struct unit *unit) {
 	usize fsize = (usize)ftell(f);
 	if (fsize == 0) {
 		fclose(f);
-		builder_msg(MSG_ERR, ERR_FILE_EMPTY, TOKEN_OPTIONAL_LOCATION(unit->loaded_from), CARET_WORD, "Invalid or empty source file '%.*s'.", unit->name.len, unit->name.ptr);
+		builder_msg(MSG_ERR, ERR_FILE_EMPTY, TOKEN_OPTIONAL_LOCATION(unit->loaded_from), CARET_WORD, "Invalid or empty source file '%.*s'.", path.len, path.ptr);
 		return_zone();
 	}
 	fseek(f, 0, SEEK_SET);
 
 	char *src = bmalloc(fsize + 1);
-	if (!fread(src, sizeof(char), fsize, f)) babort("Cannot read file '%.*s'.", unit->name.len, unit->name.ptr);
+	if (!fread(src, sizeof(char), fsize, f)) babort("Cannot read file '%.*s'.", path.len, path.ptr);
 	src[fsize] = '\0';
 	fclose(f);
 	unit->src = src;

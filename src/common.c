@@ -576,7 +576,7 @@ bool _file_exists(char *ptr, const s32 len) {
 	result = (bool)PathFileExistsA(str_dup_if_not_terminated(&tmp_filepath, ptr, len));
 #else
 	struct stat tmp;
-	reuslt = stat(str_dup_if_not_terminated(&tmp_filepath, ptr, len), &tmp) == 0;
+	result = stat(str_dup_if_not_terminated(&tmp_filepath, ptr, len), &tmp) == 0;
 #endif
 	put_tmp_str(tmp_filepath);
 	return result;
@@ -623,7 +623,7 @@ DONE:
 	return result;
 }
 #else
-bool _brealpath(const char *ptr, const s32 len, str_buf_t *out_full_path) {
+bool _brealpath(char *ptr, const s32 len, str_buf_t *out_full_path) {
 	bassert(out_full_path);
 	str_buf_t  tmp_path = get_tmp_str();
 	char       buf[PATH_MAX];
