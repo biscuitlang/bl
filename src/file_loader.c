@@ -70,7 +70,7 @@ void file_loader_run(struct assembly *UNUSED(assembly), struct unit *unit) {
 	zone();
 	bassert(unit->filepath.len);
 
-	FILE *f = fopen(unit->filepath, "rb");
+	FILE *f = fopen(str_to_c(unit->filepath), "rb");
 	if (f == NULL) {
 		builder_msg(MSG_ERR, ERR_FILE_READ, TOKEN_OPTIONAL_LOCATION(unit->loaded_from), CARET_WORD, "Cannot read file '%.*s'.", unit->name.len, unit->name.ptr);
 		return_zone();
