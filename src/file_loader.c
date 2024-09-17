@@ -37,7 +37,10 @@ void file_loader_run(struct assembly *UNUSED(assembly), struct unit *unit) {
 	const str_t path = unit->filepath;
 	bassert(path.len);
 
-	HANDLE f = CreateFileA(str_to_c(path), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	str_buf_t tmp_path = get_tmp_str();
+	HANDLE    f        = CreateFileA(str_dup_if_not_terminated(&tmp_path, path.ptr, path.len), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	put_tmp_str(tmp_path);
+
 	if (f == INVALID_HANDLE_VALUE) {
 		get_last_error(error_buf, static_arrlenu(error_buf));
 		builder_msg(MSG_ERR, ERR_FILE_NOT_FOUND, TOKEN_OPTIONAL_LOCATION(unit->loaded_from), CARET_WORD, "Cannot open file '%.*s': %s", path.len, path.ptr, error_buf);
@@ -70,7 +73,10 @@ void file_loader_run(struct assembly *UNUSED(assembly), struct unit *unit) {
 	zone();
 	bassert(unit->filepath.len);
 
-	FILE *f = fopen(str_to_c(unit->filepath), "rb");
+	str_buf_t tmp_path = get_tmp_str();
+	FILE     *f        = fopen(str_dup_if_not_terminated(&tmp_path, path.ptr, path.len), "rb");
+	put_tmp_str(tmp_path);
+
 	if (f == NULL) {
 		builder_msg(MSG_ERR, ERR_FILE_READ, TOKEN_OPTIONAL_LOCATION(unit->loaded_from), CARET_WORD, "Cannot read file '%.*s'.", unit->name.len, unit->name.ptr);
 		return_zone();

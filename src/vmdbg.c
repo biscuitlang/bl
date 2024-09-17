@@ -333,14 +333,14 @@ void vmdbg_notify_stack_op(enum vmdbg_stack_op op, struct mir_type *type, void *
 				            mir_instr_name(vm->stack->pc),
 				            size,
 				            ptr,
-				            str_to_c(type_name));
+				            str_buf_to_c(type_name));
 			} else {
 				color_print(stdout,
 				            BL_RED,
 				            "     -                       PUSH    (%lluB, %p) %s\n",
 				            size,
 				            ptr,
-				            str_to_c(type_name));
+				            str_buf_to_c(type_name));
 			}
 			put_tmp_str(type_name);
 			break;
@@ -356,14 +356,14 @@ void vmdbg_notify_stack_op(enum vmdbg_stack_op op, struct mir_type *type, void *
 				            mir_instr_name(vm->stack->pc),
 				            size,
 				            ptr,
-				            str_to_c(type_name));
+				            str_buf_to_c(type_name));
 			} else {
 				color_print(stdout,
 				            BL_BLUE,
 				            "     -                       POP     (%lluB, %p) %s\n",
 				            size,
 				            ptr,
-				            str_to_c(type_name));
+				            str_buf_to_c(type_name));
 			}
 			put_tmp_str(type_name);
 			break;

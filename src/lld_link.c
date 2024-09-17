@@ -124,7 +124,7 @@ s32 lld_link(struct assembly *assembly) {
 	append_custom_opt(assembly, &buf);
 
 	builder_log("%.*s", buf.len, buf.ptr);
-	s32 state = system(str_to_c(buf));
+	s32 state = system(str_buf_to_c(buf));
 	put_tmp_str(buf);
 
 	batomic_fetch_add_s32(&assembly->stats.linking_ms, runtime_measure_end(linking));

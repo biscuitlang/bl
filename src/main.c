@@ -64,7 +64,7 @@ static bool load_conf_file(const char *custom_conf_filepath) {
 	} else {
 		get_config_file_location(&filepath);
 	}
-	if (!file_exists(str_buf_view(filepath))) {
+	if (!file_exists(filepath)) {
 		if (custom_conf_filepath) {
 			builder_error("Custom configuration file not found on path: '%.*s'.", filepath.len, filepath.ptr);
 			goto FAILED;

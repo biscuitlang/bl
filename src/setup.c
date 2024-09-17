@@ -114,19 +114,22 @@ bool setup(const str_t filepath, const char *triple) {
 	const str_t dirpath = get_dir_from_filepath(ctx.filepath);
 	if (!dir_exists(dirpath)) {
 		if (!create_dir_tree(dirpath)) {
-			builder_error("Cannot create directory path '%s'!", dirpath);
+			builder_error("Cannot create directory path '%.*s'!", dirpath.len, dirpath.ptr);
 			put_tmp_str(content);
 			return false;
 		}
 	}
 
-	FILE *file = fopen(str_to_c(ctx.filepath), "w");
+	str_buf_t tmp_filepath = get_tmp_str();
+	FILE *file = fopen(str_dup_if_not_terminated(&tmp_filepath, ctx.filepath.ptr, ctx.filepath.len), "w");
 	if (!file) {
 		builder_error("Cannot open file '%.*s' for writing!", ctx.filepath.len, ctx.filepath.ptr);
 		put_tmp_str(content);
+		put_tmp_str(tmp_filepath);
 		return false;
 	}
-	fputs(str_to_c(content), file);
+	put_tmp_str(tmp_filepath);
+	fputs(str_buf_to_c(content), file);
 	fclose(file);
 
 	put_tmp_str(content);
@@ -287,7 +290,7 @@ static bool x86_64_apple_darwin(struct context *ctx) {
 	} else {
 		s32 major, minor, patch;
 		major = minor = patch = 0;
-		if (sscanf(str_to_c(osver), "%d.%d.%d", &major, &minor, &patch) == 3) {
+		if (sscanf(str_buf_to_c(osver), "%d.%d.%d", &major, &minor, &patch) == 3) {
 			if (major >= 11) {
 				if (!dir_exists(MACOS_SDK)) {
 					builder_error("Cannot find macOS SDK on '%s'.", MACOS_SDK.ptr);

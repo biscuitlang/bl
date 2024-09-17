@@ -2730,7 +2730,7 @@ static void create_object_file(struct context *ctx) {
 	const struct target *target = ctx->assembly->target;
 	const char          *name   = target->name;
 	str_buf_append_fmt(&buf, "{str}/{s}.{s}", target->out_dir, name, OBJ_EXT);
-	FILE *file = fopen(str_to_c(buf), "wb");
+	FILE *file = fopen(str_buf_to_c(buf), "wb");
 	if (!file) {
 		// @Incomplete: Handle properly!
 		babort("Cannot create the output file.");

@@ -5,7 +5,6 @@
 
 main :: fn () s32 {
 	print("Hello!\n");
-	ni();
 	return 0;
 }
 

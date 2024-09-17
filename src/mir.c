@@ -1332,7 +1332,7 @@ static inline void error_types(struct context *ctx, struct mir_instr *instr, str
 	if (!msg) msg = "No implicit cast for type '%s' and '%s'.";
 	str_buf_t tmp_from = mir_type2str(from, /* prefer_name */ true);
 	str_buf_t tmp_to   = mir_type2str(to, /* prefer_name */ true);
-	report_error(INVALID_TYPE, node, msg, str_to_c(tmp_from), str_to_c(tmp_to));
+	report_error(INVALID_TYPE, node, msg, str_buf_to_c(tmp_from), str_buf_to_c(tmp_to));
 	put_tmp_str(tmp_from);
 	put_tmp_str(tmp_to);
 }
@@ -8108,8 +8108,8 @@ struct result analyze_call_stage_generate(struct context *ctx, struct mir_instr_
 					             "'%s' but call-side argument type is '%s'.",
 					             poly_type->user_id->str.len,
 					             poly_type->user_id->str.ptr,
-					             str_to_c(recipe_type_name),
-					             str_to_c(arg_type_name));
+					             str_buf_to_c(recipe_type_name),
+					             str_buf_to_c(arg_type_name));
 
 					put_tmp_str(recipe_type_name);
 					put_tmp_str(arg_type_name);
@@ -9364,7 +9364,7 @@ struct mir_var *_rtti_gen(struct context *ctx, struct mir_type *type) {
 
 	default: {
 		str_buf_t type_name = mir_type2str(type, /* prefer_name */ true);
-		babort("missing RTTI generation for type '%s'", str_to_c(type_name));
+		babort("missing RTTI generation for type '%s'", str_buf_to_c(type_name));
 	}
 	}
 

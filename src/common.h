@@ -149,8 +149,8 @@ enum { BL_RED,
 	}
 
 // Non-owning string representation with cached size. Note that the string might not be zero
-// terminated. This way we can avoid calling strlen() every time and ew can reduce amount of string
-// copying and allocations (e.g. identificators can point directly to the loaded file data).
+// terminated. This way we can avoid calling strlen() every time and we can reduce amount of string
+// copying and allocations (e.g. identifiers can point directly to the loaded file data).
 typedef struct {
 	s32   len;
 	s32   _; // Gap to make this ABI compatible with BL strings. Note that we also use this gap in str_buf.
@@ -161,12 +161,12 @@ static_assert(sizeof(str_t) == 16, "Invalid size of string view type.");
 
 bool str_match(str_t a, str_t b);
 
+str_t str_toupper(str_t str);
+s32   levenshtein(const str_t s1, const str_t s2);
+
 // =================================================================================================
 // String Buffer
 // =================================================================================================
-
-str_t str_toupper(str_t str);
-s32   levenshtein(const str_t s1, const str_t s2);
 
 // String dynamic array buffer.
 //
@@ -201,7 +201,7 @@ str_buf_t _str_buf_dup(char *ptr, s32 len);
 // The formatter implementation can be found in 'bvsnprint' feel free to implement missing formatting you need.
 void str_buf_append_fmt(str_buf_t *buf, const char *fmt, ...);
 
-void str_buf_clr(str_buf_t *buf); // This is also setting the zero
+void str_buf_clr(str_buf_t *buf);
 
 static inline const char *_str_to_c_checked(char *ptr, s32 len) {
 	if (!len) return "";
@@ -210,12 +210,12 @@ static inline const char *_str_to_c_checked(char *ptr, s32 len) {
 	return ptr;
 }
 
-// Converts the input string or str_t or str_buf_t to the C string. Zero termination is checked by
-// assert.
-// In case the buffer is not allocated, returns pointer to the static empty C string.
-#define str_to_c(B) _Generic((B),                   \
-	str_buf_t: _str_to_c_checked((B).ptr, (B).len), \
-	str_t: _str_to_c_checked((B).ptr, (B).len))
+static inline const char *str_buf_to_c(const str_buf_t b) {
+	static const char *empty = "";
+	return b.len > 0 ? b.ptr : empty;
+}
+
+#define str_to_c(B, S) str_dup_if_not_terminated((B), (S).ptr, (S).len)
 
 // This way we can append another string buffer or view without any casting.
 #define str_buf_append(B, S) _Generic((S),           \
@@ -427,23 +427,57 @@ static inline void *next_aligned(void *p, usize alignment) {
 	return p;
 }
 
+char *str_dup_if_not_terminated(str_buf_t *tmp, char *ptr, const s32 len);
+
 #define next_aligned2(ptr, a) (usize) next_aligned((void *)(usize)(ptr), (a))
+
+#define win_path_to_unix(B) _Generic((B),           \
+	str_buf_t: _win_path_to_unix((B).ptr, (B).len), \
+	str_t: _win_path_to_unix((B).ptr, (B).len))
+
+#define unix_path_to_win(B) _Generic((B),           \
+	str_buf_t: _unix_path_to_win((B).ptr, (B).len), \
+	str_t: _unix_path_to_win((B).ptr, (B).len))
+
+#define file_exists(B) _Generic((B),           \
+	str_buf_t: _file_exists((B).ptr, (B).len), \
+	str_t: _file_exists((B).ptr, (B).len))
+
+#define dir_exists(B) _Generic((B),           \
+	str_buf_t: _dir_exists((B).ptr, (B).len), \
+	str_t: _dir_exists((B).ptr, (B).len))
+
+#define brealpath(P, B) _Generic((P),           \
+	str_buf_t: _brealpath((P).ptr, (P).len, B), \
+	str_t: _brealpath((P).ptr, (P).len, B))
+
+#define create_dir(B) _Generic((B),           \
+	str_buf_t: _create_dir((B).ptr, (B).len), \
+	str_t: _create_dir((B).ptr, (B).len))
+
+#define get_dir_from_filepath(B) _Generic((B),           \
+	str_buf_t: _get_dir_from_filepath((B).ptr, (B).len), \
+	str_t: _get_dir_from_filepath((B).ptr, (B).len))
+
+#define get_filename_from_filepath(B) _Generic((B),           \
+	str_buf_t: _get_filename_from_filepath((B).ptr, (B).len), \
+	str_t: _get_filename_from_filepath((B).ptr, (B).len))
 
 // Replace all backslashes in passed path with forward slash, this is used as workaround on Windows
 // platform due to inconsistency 'Unix vs Windows' path separators. This function will modify passed
 // buffer.
-void        win_path_to_unix(str_t path);
-void        unix_path_to_win(str_t path);
-bool        file_exists(const str_t filepath);
-bool        dir_exists(const str_t dirpath);
+void        _win_path_to_unix(char *ptr, const s32 len);
+void        _unix_path_to_win(char *ptr, const s32 len);
+bool        _file_exists(char *ptr, const s32 len);
+bool        _dir_exists(char *ptr, const s32 len);
 bool        normalize_path(str_buf_t *path);
-bool        brealpath(const str_t path, str_buf_t *out_full_path);
+bool        _brealpath(char *ptr, const s32 len, str_buf_t *out_full_path);
 bool        set_current_working_dir(const char *path);
-str_t       get_dir_from_filepath(const str_t filepath);
-str_t       get_filename_from_filepath(const str_t filepath);
+str_t       _get_dir_from_filepath(const char *ptr, const s32 len);
+str_t       _get_filename_from_filepath(const char *ptr, const s32 len);
 bool        get_current_exec_path(str_buf_t *out_full_path);
 bool        get_current_exec_dir(str_buf_t *out_full_path);
-bool        create_dir(const str_t dirpath);
+bool        _create_dir(char *ptr, const s32 len);
 bool        create_dir_tree(const str_t dirpath);
 bool        copy_dir(const str_t src, const str_t dest);
 bool        copy_file(const str_t src, const str_t dest);

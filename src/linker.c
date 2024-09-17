@@ -65,7 +65,7 @@ static bool search_library(struct context *ctx,
 		str_buf_clr(&lib_filepath);
 		str_buf_append_fmt(&lib_filepath, "{s}/{str}", dir, lib_platform_name);
 
-		if (file_exists(str_buf_view(lib_filepath))) {
+		if (file_exists(lib_filepath)) {
 			builder_log("  Found: '%.*s'", lib_filepath.len, lib_filepath.ptr);
 
 			if (out_lib_name) {
@@ -103,7 +103,6 @@ void add_lib_path(struct context *ctx, const char *token) {
 }
 
 static void set_lib_paths(struct context *ctx) {
-	char        tmp[PATH_MAX] = {0};
 	const char *lib_path      = read_config(builder.config, ctx->assembly->target, "linker_lib_path", "");
 	if (!strlen(lib_path)) return;
 	process_tokens(ctx, lib_path, ENVPATH_SEPARATOR, (process_tokens_fn_t)&add_lib_path);
@@ -121,7 +120,9 @@ static bool link_lib(struct context *ctx, struct native_lib *lib) {
 		            lib->user_name.ptr);
 		return true;
 	}
-	lib->handle = dlLoadLibrary(str_to_c(lib->filepath));
+	str_buf_t tmp_path = get_tmp_str();
+	lib->handle        = dlLoadLibrary(str_to_c(&tmp_path, lib->filepath));
+	put_tmp_str(tmp_path);
 	return lib->handle;
 }
 

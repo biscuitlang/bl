@@ -45,7 +45,7 @@ void obj_writer_run(struct assembly *assembly) {
 	char *error_msg = NULL;
 	if (LLVMTargetMachineEmitToFile(assembly->llvm.TM,
 	                                assembly->llvm.module,
-	                                str_to_c(buf),
+	                                str_buf_to_c(buf),
 	                                LLVMObjectFile,
 	                                &error_msg)) {
 		builder_error("Cannot emit object file: %.*s with error: %s", buf.len, buf.ptr, error_msg);

@@ -44,7 +44,7 @@ void ir_opt_run(struct assembly *assembly) {
 
 	LLVMPassBuilderOptionsRef options = LLVMCreatePassBuilderOptions();
 
-	const char  *passes = str_to_c(tmp);
+	const char  *passes = str_buf_to_c(tmp);
 	LLVMErrorRef err    = LLVMRunPasses(llvm_module, passes, llvm_tm, options);
 	if (err != LLVMErrorSuccess) {
 		char *msg = LLVMGetErrorMessage(err);

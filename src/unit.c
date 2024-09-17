@@ -46,14 +46,18 @@ struct unit *unit_new(struct assembly *assembly, const str_t filepath, const str
 	const u32             thread_index = get_worker_index();
 	struct string_cache **string_cache = &assembly->thread_local_contexts[thread_index].string_cache;
 
-	unit->filepath    = scdup2(string_cache, filepath);
-	unit->name        = scdup2(string_cache, name);
-	unit->dirpath     = get_dir_from_filepath(unit->filepath);      // Note this is done on duplicate!
-	unit->filename    = get_filename_from_filepath(unit->filepath); // Note this is done on duplicate!
+	str_buf_t tmp = get_tmp_str();
+
+	unit->filepath = scdup2(string_cache, filepath);
+	unit->name     = scdup2(string_cache, name);
+	unit->dirpath  = get_dir_from_filepath(unit->filepath);
+	unit->filename = get_filename_from_filepath(unit->filepath);
+
 	unit->hash        = hash;
 	unit->loaded_from = load_from;
 
 	tokens_init(&unit->tokens);
+	put_tmp_str(tmp);
 	return unit;
 }
 

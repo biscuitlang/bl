@@ -71,7 +71,7 @@ static bool _listdir(struct wbs *ctx, const str_buf_t dirpath, array(char *) * o
 	str_buf_t search = get_tmp_str();
 	str_buf_append_fmt(&search, "{str}\\*", dirpath);
 	WIN32_FIND_DATAA find_data;
-	HANDLE           handle = FindFirstFileA(str_to_c(search), &find_data);
+	HANDLE           handle = FindFirstFileA(str_buf_to_c(search), &find_data);
 	if (handle == INVALID_HANDLE_VALUE) {
 		builder_error("Cannot list directory '%.*s'.", dirpath.len, dirpath.ptr);
 		put_tmp_str(search);
@@ -106,7 +106,7 @@ static bool _lookup_vs(struct wbs *ctx) {
 	if (!vspath.len) {
 		// try to use Build Tools instead!
 		str_buf_append_fmt(&vspath, "{str}/{s}", ctx->program_files_path, BUILD_TOOLS);
-		if (!dir_exists(str_buf_view(vspath))) {
+		if (!dir_exists(vspath)) {
 			builder_error("Visual Studio installation or MS Build Tools not found. Download & "
 			              "install MS Build Tools from "
 			              "https://visualstudio.microsoft.com/visual-cpp-build-tools. (Expected "
@@ -117,7 +117,7 @@ static bool _lookup_vs(struct wbs *ctx) {
 			return false;
 		}
 	}
-	win_path_to_unix(str_buf_view(vspath));
+	win_path_to_unix(vspath);
 	ctx->vs_path = str_buf_dup(vspath);
 	put_tmp_str(vspath);
 	return true;
@@ -133,7 +133,7 @@ static void _listfile_delete(char ***list) {
 static bool _lookup_windows_sdk(struct wbs *ctx) {
 	str_buf_t sdkpath = {0};
 	str_buf_append_fmt(&sdkpath, "{str}/{s}", ctx->program_files_path, WIN_SDK);
-	if (!dir_exists(str_buf_view(sdkpath))) {
+	if (!dir_exists(sdkpath)) {
 		builder_error(
 		    "Windows SDK not found. (Expected location is '%.*s')", sdkpath.len, sdkpath.ptr);
 		str_buf_free(&sdkpath);
@@ -179,7 +179,7 @@ static bool _lookup_windows_sdk(struct wbs *ctx) {
 static bool _lookup_msvc_libs(struct wbs *ctx) {
 	str_buf_t sdkpath = {0};
 	str_buf_append_fmt(&sdkpath, "{str}/{s}", ctx->vs_path, MSVC_TOOLS);
-	if (!dir_exists(str_buf_view(sdkpath))) {
+	if (!dir_exists(sdkpath)) {
 		builder_error(
 		    "MSVC build tools not found. (Expected location is '%.*s')", sdkpath.len, sdkpath.ptr);
 		str_buf_free(&sdkpath);
@@ -214,7 +214,7 @@ static bool _lookup_msvc_libs(struct wbs *ctx) {
 
 	str_buf_append_fmt(&sdkpath, "/{s}/{s}", versions[best_index], MSVC_LIB);
 	_listfile_delete(&versions);
-	if (!dir_exists(str_buf_view(sdkpath))) {
+	if (!dir_exists(sdkpath)) {
 		builder_error("MSVC lib directory not found. (Expected location is '%.*s')",
 		              sdkpath.len,
 		              sdkpath.ptr);
@@ -228,7 +228,7 @@ static bool _lookup_msvc_libs(struct wbs *ctx) {
 static bool _lookup_ucrt(struct wbs *ctx) {
 	str_buf_t tmppath = {0};
 	str_buf_append_fmt(&tmppath, "{str}/{s}", ctx->windows_sdk_path, UCRT);
-	if (!dir_exists(str_buf_view(tmppath))) {
+	if (!dir_exists(tmppath)) {
 		builder_error(
 		    "UCRT lib-path not found. (Expected location is '%.*s')", tmppath.len, tmppath.ptr);
 		str_buf_free(&tmppath);
@@ -241,7 +241,7 @@ static bool _lookup_ucrt(struct wbs *ctx) {
 static bool _lookup_um(struct wbs *ctx) {
 	str_buf_t tmppath = {0};
 	str_buf_append_fmt(&tmppath, "{str}/{s}", ctx->windows_sdk_path, UM);
-	if (!dir_exists(str_buf_view(tmppath))) {
+	if (!dir_exists(tmppath)) {
 		builder_error(
 		    "UM lib-path not found. (Expected location is '%.*s')", tmppath.len, tmppath.ptr);
 		str_buf_free(&tmppath);

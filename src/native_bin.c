@@ -68,7 +68,7 @@ static void copy_user_libs(struct assembly *assembly) {
 #endif
 
 		str_buf_append_fmt(&dest_path, "{str}/{str}", out_dir, lib_dest_name);
-		if (file_exists(str_buf_view(dest_path))) continue;
+		if (file_exists(dest_path)) continue;
 
 		builder_info("Copy '%.*s' to '%.*s'.",
 		             lib->filepath.len,

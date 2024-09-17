@@ -68,7 +68,7 @@ BL_EXPORT void __set_output_dir(struct target *target, const char *dir) {
 
 BL_EXPORT const char *__get_output_dir(struct target *target) {
 	bmagic_assert(target);
-	return target->out_dir.len > 0 ? str_to_c(target->out_dir) : NULL;
+	return target->out_dir.len > 0 ? str_buf_to_c(target->out_dir) : NULL;
 }
 
 BL_EXPORT void __set_module_dir(struct target *target, const char *dir, const s32 policy) {
@@ -77,7 +77,7 @@ BL_EXPORT void __set_module_dir(struct target *target, const char *dir, const s3
 
 BL_EXPORT const char *__get_module_dir(struct target *target) {
 	bmagic_assert(target);
-	return target->module_dir.len > 0 ? str_to_c(target->module_dir) : NULL;
+	return target->module_dir.len > 0 ? str_buf_to_c(target->module_dir) : NULL;
 }
 
 BL_EXPORT s32 __get_module_import_policy(struct target *target) {

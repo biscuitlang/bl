@@ -215,7 +215,7 @@ static bool create_auxiliary_dir_tree_if_not_exist(const str_t _path, str_buf_t 
 #if BL_PLATFORM_WIN
 	str_buf_t tmp_path = get_tmp_str();
 	str_buf_append(&tmp_path, _path);
-	win_path_to_unix(str_buf_view(tmp_path));
+	win_path_to_unix(tmp_path);
 	const str_t path = str_buf_view(tmp_path);
 #else
 	const str_t path = _path;
@@ -245,7 +245,7 @@ static bool create_auxiliary_dir_tree_if_not_exist(const str_t _path, str_buf_t 
 static struct config *load_module_config(const char *modulepath, struct token *import_from) {
 	str_buf_t path = get_tmp_str();
 	str_buf_append_fmt(&path, "{s}/{s}", modulepath, MODULE_CONFIG_FILE);
-	struct config *conf = confload(str_to_c(path));
+	struct config *conf = confload(str_buf_to_c(path));
 	put_tmp_str(path);
 	return conf;
 }
@@ -282,10 +282,10 @@ static void import_source(import_elem_context_t *ctx, const char *srcfile) {
 static void import_lib_path(import_elem_context_t *ctx, const char *dirpath) {
 	str_buf_t path = get_tmp_str();
 	str_buf_append_fmt(&path, "{s}/{s}", ctx->modulepath, dirpath);
-	if (!dir_exists(str_buf_view(path))) {
+	if (!dir_exists(path)) {
 		builder_msg(MSG_ERR, ERR_FILE_NOT_FOUND, TOKEN_OPTIONAL_LOCATION(ctx->import_from), CARET_WORD, "Cannot find module imported library path '%.*s'.", path.len, path.ptr);
 	} else {
-		assembly_add_lib_path(ctx->assembly, str_to_c(path));
+		assembly_add_lib_path(ctx->assembly, str_buf_to_c(path));
 	}
 	put_tmp_str(path);
 }
@@ -414,7 +414,7 @@ struct target *target_dup(const char *name, const struct target *other) {
 	bmagic_assert(other);
 	struct target *target = target_new(name);
 	memcpy(target, other, sizeof(struct {TARGET_COPYABLE_CONTENT}));
-	target_set_output_dir(target, str_to_c(other->out_dir));
+	target_set_output_dir(target, str_buf_to_c(other->out_dir));
 	target->vm = other->vm;
 	bmagic_set(target);
 	return target;
@@ -633,7 +633,7 @@ struct assembly *assembly_new(const struct target *target) {
 		assembly_add_native_lib(assembly, target->default_libs[i], NULL, false);
 
 	// Append custom linker options
-	assembly_append_linker_options(assembly, str_to_c(target->default_custom_linker_opt));
+	assembly_append_linker_options(assembly, str_buf_to_c(target->default_custom_linker_opt));
 
 	return assembly;
 }
@@ -769,7 +769,7 @@ bool assembly_import_module(struct assembly *assembly, const char *modulepath, s
 	str_buf_t                       local_path  = get_tmp_str();
 	struct config                  *config      = NULL;
 	const struct target            *target      = assembly->target;
-	const char                     *module_dir  = target->module_dir.len > 0 ? str_to_c(target->module_dir) : NULL;
+	const char                     *module_dir  = target->module_dir.len > 0 ? str_buf_to_c(target->module_dir) : NULL;
 	const enum module_import_policy policy      = assembly->target->module_policy;
 	const bool                      local_found = module_dir ? module_exist(module_dir, modulepath) : false;
 
@@ -782,7 +782,7 @@ bool assembly_import_module(struct assembly *assembly, const char *modulepath, s
 		} else {
 			str_buf_append_fmt(&local_path, "{str}/{s}", lib_dir, modulepath);
 		}
-		config = load_module_config(str_to_c(local_path), import_from);
+		config = load_module_config(str_buf_to_c(local_path), import_from);
 		break;
 	}
 
@@ -793,7 +793,9 @@ bool assembly_import_module(struct assembly *assembly, const char *modulepath, s
 		const bool check_version = policy == IMPORT_POLICY_BUNDLE_LATEST;
 		str_buf_append_fmt(&local_path, "{s}/{s}", module_dir, modulepath);
 		str_buf_append_fmt(&system_path, "{str}/{s}", lib_dir, modulepath);
-		const bool system_found = module_exist(str_to_c(lib_dir), modulepath);
+		str_buf_t  tmp          = get_tmp_str();
+		const bool system_found = module_exist(str_to_c(&tmp, lib_dir), modulepath);
+		put_tmp_str(tmp);
 		// Check if module is present in module directory.
 		bool do_copy = !local_found;
 		if (check_version && local_found && system_found) {
@@ -801,9 +803,9 @@ bool assembly_import_module(struct assembly *assembly, const char *modulepath, s
 			s32 local_version  = 0;
 			str_buf_clr(&system_path);
 			str_buf_append_fmt(&system_path, "{str}/{s}", lib_dir, modulepath);
-			config = load_module_config(str_to_c(system_path), import_from);
+			config = load_module_config(str_buf_to_c(system_path), import_from);
 			if (config) system_version = get_module_version(config);
-			struct config *local_config = load_module_config(str_to_c(local_path), import_from);
+			struct config *local_config = load_module_config(str_buf_to_c(local_path), import_from);
 			if (local_config) local_version = get_module_version(local_config);
 			confdelete(local_config);
 			do_copy = system_version > local_version;
@@ -829,7 +831,7 @@ bool assembly_import_module(struct assembly *assembly, const char *modulepath, s
 				builder_error("Cannot import module '%s'.", modulepath);
 			}
 		}
-		if (!config) config = load_module_config(str_to_c(local_path), import_from);
+		if (!config) config = load_module_config(str_buf_to_c(local_path), import_from);
 		put_tmp_str(system_path);
 		break;
 	}
@@ -838,7 +840,7 @@ bool assembly_import_module(struct assembly *assembly, const char *modulepath, s
 		bassert("Invalid module import policy!");
 	}
 	if (config) {
-		state = import_module(assembly, config, str_to_c(local_path), import_from);
+		state = import_module(assembly, config, str_buf_to_c(local_path), import_from);
 	} else {
 		builder_msg(MSG_ERR,
 		            ERR_FILE_NOT_FOUND,
@@ -861,7 +863,7 @@ DCpointer assembly_find_extern(struct assembly *assembly, const str_t symbol) {
 	struct native_lib *lib;
 	for (usize i = 0; i < arrlenu(assembly->libs); ++i) {
 		lib    = &assembly->libs[i];
-		handle = dlFindSymbol(lib->handle, str_to_c(tmp));
+		handle = dlFindSymbol(lib->handle, str_buf_to_c(tmp));
 		if (handle) break;
 	}
 

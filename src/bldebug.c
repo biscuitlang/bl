@@ -82,7 +82,7 @@ void print_trace_impl(void) {
 	usize  size    = backtrace(tmp, static_arrlenu(tmp));
 	char **strings = backtrace_symbols(tmp, size);
 
-	printf("Obtained stack trace:\n");
+	fprintf(stderr, "Obtained stack trace:\n");
 	for (usize i = 1; i < size; i++)
 		fprintf(stderr, "  %s\n", strings[i]);
 

@@ -50,9 +50,9 @@ static inline void
 print_type(struct context *ctx, struct mir_type *type, bool aligned, bool prefer_name) {
 	str_buf_t type_name = mir_type2str(type, prefer_name);
 	if (aligned) {
-		fprintf(ctx->stream, "%16s", str_to_c(type_name));
+		fprintf(ctx->stream, "%16s", str_buf_to_c(type_name));
 	} else {
-		fprintf(ctx->stream, "%s", str_to_c(type_name));
+		fprintf(ctx->stream, "%s", str_buf_to_c(type_name));
 	}
 	put_tmp_str(type_name);
 }

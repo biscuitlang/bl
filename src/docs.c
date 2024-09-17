@@ -129,7 +129,7 @@ void doc_decl_entity(struct context *ctx, struct ast *decl) {
 		str_buf_append_fmt(&full_name, "{str}", name);
 	}
 
-	H1(ctx->stream, str_to_c(full_name));
+	H1(ctx->stream, str_buf_to_c(full_name));
 	put_tmp_str(full_name);
 	CODE_BLOCK_BEGIN(ctx->stream);
 	fprintf(ctx->stream, "%.*s :", name.len, name.ptr);
@@ -445,7 +445,7 @@ void doc_unit(struct context *ctx, struct unit *unit) {
 	// write unit global docs
 	str_buf_t export_file = get_tmp_str();
 	str_buf_append_fmt(&export_file, "{str}/{str}.md", ctx->output_directory, unit_name);
-	FILE *f = fopen(str_to_c(export_file), "w");
+	FILE *f = fopen(str_buf_to_c(export_file), "w");
 	if (f == NULL) {
 		builder_error("Cannot open file '%s'", export_file);
 		goto DONE;
@@ -456,7 +456,9 @@ void doc_unit(struct context *ctx, struct unit *unit) {
 		const str_t docs = unit->ast->docs;
 		fprintf(f, "%.*s\n", docs.len, docs.ptr);
 	} else {
-		H0(f, str_to_c(unit->filename));
+		str_buf_t tmp_filename = get_tmp_str();
+		H0(f, str_to_c(&tmp_filename, unit->filename));
+		put_tmp_str(tmp_filename);
 	}
 	doc(ctx, unit->ast);
 	fclose(f);

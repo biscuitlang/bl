@@ -416,7 +416,9 @@ const str_t builder_get_exec_dir(void) {
 
 bool builder_load_config(const str_t filepath) {
 	confdelete(builder.config);
-	builder.config = confload(str_to_c(filepath));
+	str_buf_t tmp_path = get_tmp_str();
+	builder.config = confload(str_to_c(&tmp_path, filepath));
+	put_tmp_str(tmp_path);
 	return (bool)builder.config;
 }
 
