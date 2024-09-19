@@ -38,7 +38,7 @@ void obj_writer_run(struct assembly *assembly) {
 
 	const struct target *target = assembly->target;
 	const char          *name   = target->name;
-	blog("out_dir = %.*s", target->out_dir.len, target->out_dir.ptr);
+	blog("out_dir = " STR_FMT, STR_ARG(target->out_dir));
 	blog("name = %s", name);
 
 	str_buf_append_fmt(&buf, "{str}/{s}.{s}", target->out_dir, name, OBJ_EXT);
@@ -48,7 +48,7 @@ void obj_writer_run(struct assembly *assembly) {
 	                                str_buf_to_c(buf),
 	                                LLVMObjectFile,
 	                                &error_msg)) {
-		builder_error("Cannot emit object file: %.*s with error: %s", buf.len, buf.ptr, error_msg);
+		builder_error("Cannot emit object file: " STR_FMT " with error: %s", STR_ARG(buf), error_msg);
 	}
 	LLVMDisposeMessage(error_msg);
 	put_tmp_str(buf);

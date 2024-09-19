@@ -169,7 +169,7 @@ _print_const_value(struct context *ctx, struct mir_type *type, vm_stack_ptr_t va
 
 			if (fn) {
 				const str_t linkage_name = fn->linkage_name;
-				fprintf(ctx->stream, "&%.*s", linkage_name.len, linkage_name.ptr);
+				fprintf(ctx->stream, "&" STR_FMT, STR_ARG(linkage_name));
 			} else {
 				fprintf(ctx->stream, "null");
 			}
@@ -210,7 +210,7 @@ _print_const_value(struct context *ctx, struct mir_type *type, vm_stack_ptr_t va
 				}
 				}
 			}
-			fprintf(ctx->stream, "%.*s\"}", tmp.len, tmp.ptr);
+			fprintf(ctx->stream, STR_FMT "\"}", STR_ARG(tmp));
 			put_tmp_str(tmp);
 		} else {
 			fprintf(ctx->stream, "(null)\"}");
@@ -252,7 +252,7 @@ _print_const_value(struct context *ctx, struct mir_type *type, vm_stack_ptr_t va
 		struct mir_fn *fn = vm_read_as(struct mir_fn *, value);
 		bmagic_assert(fn);
 		const str_t name = fn->full_name;
-		fprintf(ctx->stream, "@%.*s", name.len, name.ptr);
+		fprintf(ctx->stream, "@" STR_FMT, STR_ARG(name));
 		break;
 	}
 
@@ -329,7 +329,7 @@ void print_comptime_value_or_id(struct context *ctx, struct mir_instr *instr) {
 	// Value is compile time known constant.
 	if (instr->kind == MIR_INSTR_DECL_REF) {
 		const str_t s = ((struct mir_instr_decl_ref *)instr)->rid->str;
-		fprintf(ctx->stream, "%.*s", s.len, s.ptr);
+		fprintf(ctx->stream, STR_FMT, STR_ARG(s));
 		return;
 	}
 
@@ -371,7 +371,7 @@ void print_instr_set_initializer(struct context *ctx, struct mir_instr_set_initi
 	struct mir_instr_decl_var *dest_var     = (struct mir_instr_decl_var *)dest;
 	const str_t                linkage_name = dest_var->var->linkage_name;
 	if (dest && linkage_name.len) {
-		fprintf(ctx->stream, "%.*s", linkage_name.len, linkage_name.ptr);
+		fprintf(ctx->stream, STR_FMT, STR_ARG(linkage_name));
 	} else {
 		print_comptime_value_or_id(ctx, dest);
 	}
@@ -393,9 +393,8 @@ void print_instr_phi(struct context *ctx, struct mir_instr_phi *phi) {
 		print_comptime_value_or_id(ctx, value);
 		fprintf(ctx->stream, ", ");
 		fprintf(ctx->stream,
-		        "%%%.*s_%llu",
-		        block->name.len,
-		        block->name.ptr,
+		        "%%" STR_FMT "_%llu",
+		        STR_ARG(block->name),
 		        (unsigned long long)block->base.id);
 		fprintf(ctx->stream, "] ");
 	}
@@ -444,7 +443,7 @@ void print_instr_type_poly(struct context *ctx, struct mir_instr_type_poly *type
 	print_instr_head(ctx, &type_poly->base, "const");
 	if (type_poly->T_id) {
 		const str_t s = type_poly->T_id->str;
-		fprintf(ctx->stream, "?%.*s", s.len, s.ptr);
+		fprintf(ctx->stream, "?" STR_FMT, STR_ARG(s));
 	} else {
 		fprintf(ctx->stream, "?<INVALID>");
 	}
@@ -609,7 +608,7 @@ void print_instr_member_ptr(struct context *ctx, struct mir_instr_member_ptr *me
 	if (member_ptr->builtin_id == BUILTIN_ID_NONE) {
 		if (member_ptr->member_ident) {
 			const str_t s = member_ptr->member_ident->data.ident.id.str;
-			fprintf(ctx->stream, "%.*s", s.len, s.ptr);
+			fprintf(ctx->stream, STR_FMT, STR_ARG(s));
 		} else {
 			fprintf(ctx->stream, "<UNKNOWN>");
 		}
@@ -642,12 +641,10 @@ void print_instr_cond_br(struct context *ctx, struct mir_instr_cond_br *cond_br)
 	const str_t then_block = cond_br->then_block->name;
 	const str_t else_block = cond_br->else_block->name;
 	fprintf(ctx->stream,
-	        " ? %%%.*s_%llu : %%%.*s_%llu",
-	        then_block.len,
-	        then_block.ptr,
+	        " ? %%" STR_FMT "_%llu : %%" STR_FMT "_%llu",
+	        STR_ARG(then_block),
 	        (unsigned long long)cond_br->then_block->base.id,
-	        else_block.len,
-	        else_block.ptr,
+	        STR_ARG(else_block),
 	        (unsigned long long)cond_br->else_block->base.id);
 }
 
@@ -692,7 +689,7 @@ void print_instr_designator(struct context *ctx, struct mir_instr_designator *de
 	} else {
 		name = cstr("<INVALID>");
 	}
-	fprintf(ctx->stream, "%.*s = ", name.len, name.ptr);
+	fprintf(ctx->stream, STR_FMT " = ", STR_ARG(name));
 	print_comptime_value_or_id(ctx, designator->value);
 }
 
@@ -705,9 +702,8 @@ void print_instr_br(struct context *ctx, struct mir_instr_br *br) {
 	print_instr_head(ctx, &br->base, "br");
 	const str_t then_block = br->then_block->name;
 	fprintf(ctx->stream,
-	        "%%%.*s_%llu",
-	        then_block.len,
-	        then_block.ptr,
+	        "%%" STR_FMT "_%llu",
+	        STR_ARG(then_block),
 	        (unsigned long long)br->then_block->base.id);
 }
 
@@ -721,18 +717,16 @@ void print_instr_switch(struct context *ctx, struct mir_instr_switch *sw) {
 		const str_t             block_name = c->block->name;
 		print_comptime_value_or_id(ctx, c->on_value);
 		fprintf(ctx->stream,
-		        ": %%%.*s_%llu",
-		        block_name.len,
-		        block_name.ptr,
+		        ": %%" STR_FMT "_%llu",
+		        STR_ARG(block_name),
 		        (unsigned long long)c->block->base.id);
 		if (i < sarrlenu(sw->cases) - 1) fprintf(ctx->stream, "; ");
 	}
 
 	const str_t default_block_name = sw->default_block->name;
 	fprintf(ctx->stream,
-	        "} else %%%.*s_%llu",
-	        default_block_name.len,
-	        default_block_name.ptr,
+	        "} else %%" STR_FMT "_%llu",
+	        STR_ARG(default_block_name),
 	        (unsigned long long)sw->default_block->base.id);
 }
 
@@ -758,7 +752,7 @@ void print_instr_decl_var(struct context *ctx, struct mir_instr_decl_var *decl) 
 
 	if (isflag(var->iflags, MIR_VAR_GLOBAL)) {
 		// global scope variable
-		fprintf(ctx->stream, "\n@%.*s : ", name.len, name.ptr);
+		fprintf(ctx->stream, "\n@" STR_FMT " : ", STR_ARG(name));
 		print_type(ctx, var->value.type, false, true);
 		fprintf(ctx->stream, " %s ", isflag(var->iflags, MIR_VAR_MUTABLE) ? "=" : ":");
 
@@ -771,7 +765,7 @@ void print_instr_decl_var(struct context *ctx, struct mir_instr_decl_var *decl) 
 		// local scope variable
 		print_instr_head(ctx, &decl->base, "decl");
 
-		fprintf(ctx->stream, "%.*s : ", name.len, name.ptr);
+		fprintf(ctx->stream, STR_FMT " : ", STR_ARG(name));
 		print_type(ctx, var->value.type, false, true);
 		if (decl->init) {
 			fprintf(ctx->stream, " %s ", isflag(var->iflags, MIR_VAR_MUTABLE) ? "=" : ":");
@@ -790,7 +784,7 @@ void print_instr_decl_variant(struct context *ctx, struct mir_instr_decl_variant
 	bassert(variant);
 
 	const str_t name = variant->id->str;
-	fprintf(ctx->stream, "%.*s", name.len, name.ptr);
+	fprintf(ctx->stream, STR_FMT, STR_ARG(name));
 
 	if (var->value) {
 		fprintf(ctx->stream, " :: ");
@@ -805,7 +799,7 @@ void print_instr_decl_arg(struct context *ctx, struct mir_instr_decl_arg *decl) 
 	bassert(arg);
 
 	const str_t name = arg->id ? arg->id->str : cstr("-");
-	fprintf(ctx->stream, "%.*s : ", name.len, name.ptr);
+	fprintf(ctx->stream, STR_FMT " : ", STR_ARG(name));
 	print_comptime_value_or_id(ctx, decl->type);
 
 	if (arg->default_value) {
@@ -821,7 +815,7 @@ void print_instr_decl_member(struct context *ctx, struct mir_instr_decl_member *
 	bassert(member);
 
 	const str_t name = member->id->str;
-	fprintf(ctx->stream, "%.*s : ", name.len, name.ptr);
+	fprintf(ctx->stream, STR_FMT " : ", STR_ARG(name));
 	print_comptime_value_or_id(ctx, decl->type);
 }
 
@@ -829,7 +823,7 @@ void print_instr_decl_ref(struct context *ctx, struct mir_instr_decl_ref *ref) {
 	print_instr_head(ctx, &ref->base, "declref");
 
 	const str_t name = ref->rid->str;
-	fprintf(ctx->stream, "%.*s", name.len, name.ptr);
+	fprintf(ctx->stream, STR_FMT, STR_ARG(name));
 	if (ref->accept_incomplete_type) fprintf(ctx->stream, " /* accept incomplete */");
 }
 
@@ -854,7 +848,7 @@ void print_instr_call(struct context *ctx, struct mir_instr_call *call) {
 	if (callee) {
 		const str_t name = callee->linkage_name;
 		bassert(name.len);
-		fprintf(ctx->stream, "@%.*s", name.len, name.ptr);
+		fprintf(ctx->stream, "@" STR_FMT, STR_ARG(name));
 	} else {
 		fprintf(ctx->stream, "%%%llu", (unsigned long long)call->callee->id);
 	}
@@ -908,23 +902,20 @@ void print_instr_block(struct context *ctx, struct mir_instr_block *block) {
 #ifdef BL_DEBUG
 	if (block->base.ref_count < 0) {
 		fprintf(ctx->stream,
-		        "%%%.*s_%llu (-):",
-		        block->name.len,
-		        block->name.ptr,
+		        "%%" STR_FMT "_%llu (-):",
+		        STR_ARG(block->name),
 		        (unsigned long long)block->base.id);
 	} else {
 		fprintf(ctx->stream,
-		        "%%%.*s_%llu (%u):",
-		        block->name.len,
-		        block->name.ptr,
+		        "%%" STR_FMT "_%llu (%u):",
+		        STR_ARG(block->name),
 		        (unsigned long long)block->base.id,
 		        block->base.ref_count);
 	}
 #else
 	fprintf(ctx->stream,
-	        "%%%.*s_%llu:",
-	        block->name.len,
-	        block->name.ptr,
+	        "%%" STR_FMT "_%llu:",
+	        STR_ARG(block->name),
 	        (unsigned long long)block->base.id);
 #endif
 	if (is_global) {
@@ -952,7 +943,7 @@ void print_instr_fn_proto(struct context *ctx, struct mir_instr_fn_proto *fn_pro
 	fprintf(ctx->stream, "\n");
 	if (fn_proto->base.state == MIR_IS_COMPLETE) fprintf(ctx->stream, "/* analyzed */\n");
 	if (fn->linkage_name.len)
-		fprintf(ctx->stream, "@%.*s ", fn->linkage_name.len, fn->linkage_name.ptr);
+		fprintf(ctx->stream, "@" STR_FMT " ", STR_ARG(fn->linkage_name));
 	else
 		fprintf(ctx->stream, "@%llu ", (unsigned long long)fn_proto->base.id);
 
@@ -1153,7 +1144,7 @@ void print_instr(struct context *ctx, struct mir_instr *instr) {
 	if (ctx->assembly->target->opt == ASSEMBLY_OPT_DEBUG) {
 		if (instr->node && instr->node->location) {
 			const struct location *loc = instr->node->location;
-			fprintf(ctx->stream, " %s[%.*s:%d]", has_comment ? "" : "// ", loc->unit->filename.len, loc->unit->filename.ptr, loc->line);
+			fprintf(ctx->stream, " %s[" STR_FMT ":%d]", has_comment ? "" : "// ", STR_ARG(loc->unit->filename), loc->line);
 		}
 	}
 

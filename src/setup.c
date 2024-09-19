@@ -74,7 +74,7 @@ bool setup(const str_t filepath, const char *triple) {
 	str_buf_t libdir = get_tmp_str();
 	str_buf_append_fmt(&libdir, "{str}/{s}", builder_get_exec_dir(), BL_API_DIR);
 	if (!normalize_path(&libdir)) {
-		builder_error("BL API directory not found. (Expected location is '%.*s').", libdir.len, libdir.ptr);
+		builder_error("BL API directory not found. (Expected location is '" STR_FMT "').", STR_ARG(libdir));
 		put_tmp_str(libdir);
 		return false;
 	}
@@ -97,7 +97,7 @@ bool setup(const str_t filepath, const char *triple) {
 		state = default_config(&ctx);
 	}
 	if (!state) {
-		builder_error("Generate new configuration file at '%.*s' for target triple '%s' failed!", ctx.filepath.len, ctx.filepath.ptr, ctx.triple);
+		builder_error("Generate new configuration file at '" STR_FMT "' for target triple '%s' failed!", STR_ARG(ctx.filepath), ctx.triple);
 		return false;
 	}
 	str_buf_t content = make_content(&ctx);
@@ -106,7 +106,7 @@ bool setup(const str_t filepath, const char *triple) {
 		char      date[26];
 		date_time(date, static_arrlenu(date), "%d-%m-%Y_%H-%M-%S");
 		str_buf_append_fmt(&bakfilepath, "{str}.{s}", ctx.filepath, date);
-		builder_warning("Creating backup of previous configuration file at '%.*s'.", bakfilepath.len, bakfilepath.ptr);
+		builder_warning("Creating backup of previous configuration file at '" STR_FMT "'.", STR_ARG(bakfilepath));
 		copy_file(ctx.filepath, str_buf_view(bakfilepath));
 		put_tmp_str(bakfilepath);
 	}
@@ -114,16 +114,16 @@ bool setup(const str_t filepath, const char *triple) {
 	const str_t dirpath = get_dir_from_filepath(ctx.filepath);
 	if (!dir_exists(dirpath)) {
 		if (!create_dir_tree(dirpath)) {
-			builder_error("Cannot create directory path '%.*s'!", dirpath.len, dirpath.ptr);
+			builder_error("Cannot create directory path '" STR_FMT "'!", STR_ARG(dirpath));
 			put_tmp_str(content);
 			return false;
 		}
 	}
 
 	str_buf_t tmp_filepath = get_tmp_str();
-	FILE *file = fopen(str_dup_if_not_terminated(&tmp_filepath, ctx.filepath.ptr, ctx.filepath.len), "w");
+	FILE     *file         = fopen(str_dup_if_not_terminated(&tmp_filepath, ctx.filepath.ptr, ctx.filepath.len), "w");
 	if (!file) {
-		builder_error("Cannot open file '%.*s' for writing!", ctx.filepath.len, ctx.filepath.ptr);
+		builder_error("Cannot open file '" STR_FMT "' for writing!", STR_ARG(ctx.filepath));
 		put_tmp_str(content);
 		put_tmp_str(tmp_filepath);
 		return false;
@@ -181,10 +181,9 @@ str_buf_t make_content(const struct context *ctx) {
 // =================================================================================================
 bool default_config(struct context UNUSED(*ctx)) {
 	builder_warning("Automatic generation of configuration file is not supported for target triple "
-	                "'%s' empty file will be generated at '%.*s'.",
+	                "'%s' empty file will be generated at '" STR_FMT "'.",
 	                ctx->triple,
-	                ctx->filepath.len,
-	                ctx->filepath.ptr);
+	                STR_ARG(ctx->filepath));
 	return true;
 }
 
@@ -239,7 +238,7 @@ bool x86_64_pc_linux_gnu(struct context *ctx) {
 	str_buf_t runtime = get_tmp_str();
 	str_buf_append_fmt(&runtime, "{str}/../{str}", builder_get_exec_dir(), RUNTIME_PATH);
 	if (!normalize_path(&runtime)) {
-		builder_error("Runtime loader not found. (Expected location is '%.*s').", runtime.len, runtime.ptr);
+		builder_error("Runtime loader not found. (Expected location is '" STR_FMT "').", STR_ARG(runtime));
 		put_tmp_str(runtime);
 		return false;
 	}
@@ -339,7 +338,7 @@ static bool arm64_apple_darwin(struct context *ctx) {
 	ctx->preload_file = cstr("os/_macos.bl");
 
 	if (!dir_exists(COMMAND_LINE_TOOLS)) {
-		builder_error("Cannot find Command Line Tools on '%.*s', use 'xcode-select --install'.", COMMAND_LINE_TOOLS.len, COMMAND_LINE_TOOLS.ptr);
+		builder_error("Cannot find Command Line Tools on '" STR_FMT "', use 'xcode-select --install'.", STR_ARG(COMMAND_LINE_TOOLS));
 		return false;
 	}
 
@@ -369,7 +368,7 @@ static bool arm64_apple_darwin(struct context *ctx) {
 			// not provided... (We love apples...)
 			if (major >= 11) {
 				if (!dir_exists(MACOS_SDK)) {
-					builder_error("Cannot find macOS SDK on '%.*s'.", MACOS_SDK.len, MACOS_SDK.ptr);
+					builder_error("Cannot find macOS SDK on '" STR_FMT "'.", STR_ARG(MACOS_SDK));
 				} else {
 					str_buf_append_fmt(&libpath, ":{s}", MACOS_SDK);
 				}
@@ -387,7 +386,7 @@ static bool arm64_apple_darwin(struct context *ctx) {
 				str_buf_append_fmt(&optshared, "-lSystem ");
 			}
 		} else {
-			builder_warning("Cannot parse macOS product version, provided string is '%.*s'!", osver.len, osver.ptr);
+			builder_warning("Cannot parse macOS product version, provided string is '" STR_FMT "'!", STR_ARG(osver));
 		}
 		str_buf_append_fmt(&optexec, "-macos_version_min {str} ", osver);
 		str_buf_append_fmt(&optshared, "-macos_version_min {str} ", osver);

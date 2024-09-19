@@ -227,7 +227,7 @@ static inline enum x64_type_kind get_type_kind(struct mir_type *type) {
 
 	default:
 		str_buf_t type_name = mir_type2str(type, false);
-		babort("Unsupported type in x64 backend: %.*s.", type_name.len, type_name.ptr);
+		babort("Unsupported type in x64 backend: " STR_FMT ".", STR_ARG(type_name));
 	}
 }
 
@@ -2229,7 +2229,7 @@ static void emit_instr(struct context *ctx, struct thread_context *tctx, struct 
 		struct mir_type           *type = var->value.type;
 
 		if (!mir_type_has_llvm_representation(var->value.type)) {
-			blog("Skip variable: %.*s", var->linkage_name.len, var->linkage_name.ptr);
+			blog("Skip variable: " STR_FMT, STR_ARG(var->linkage_name));
 			break;
 		}
 

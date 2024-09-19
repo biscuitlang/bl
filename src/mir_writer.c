@@ -59,13 +59,13 @@ void mir_writer_run(struct assembly *assembly) {
 
 	FILE *f = fopen(str_buf_to_c(export_file), "w");
 	if (f == NULL) {
-		builder_error("Cannot open file %.*s", export_file.len, export_file.ptr);
+		builder_error("Cannot open file " STR_FMT, STR_ARG(export_file));
 		put_tmp_str(export_file);
 		return;
 	}
 	print_header(name, str_buf_to_c(export_file), f);
 	mir_print_assembly(f, assembly);
 	fclose(f);
-	builder_info("Mir code written into %.*s", export_file.len, export_file.ptr);
+	builder_info("Mir code written into " STR_FMT, STR_ARG(export_file));
 	put_tmp_str(export_file);
 }

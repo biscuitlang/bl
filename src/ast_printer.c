@@ -122,7 +122,7 @@ static void print_expr_elem(struct ast *elem, s32 pad, FILE *stream);
 void print_ublock(struct ast *ublock, s32 pad, FILE *stream) {
 	print_head(ublock, pad, stream);
 	const str_t unit_name = ublock->data.ublock.unit->name;
-	fprintf(stream, "%.*s", unit_name.len, unit_name.ptr);
+	fprintf(stream, STR_FMT, STR_ARG(unit_name));
 	for (usize i = 0; i < arrlenu(ublock->data.ublock.nodes); ++i) {
 		print_node(ublock->data.ublock.nodes[i], pad + 1, stream);
 	}
@@ -139,13 +139,13 @@ void print_block(struct ast *block, s32 pad, FILE *stream) {
 void print_load(struct ast *load, s32 pad, FILE *stream) {
 	print_head(load, pad, stream);
 	const str_t filepath = load->data.load.filepath;
-	fprintf(stream, "%.*s", filepath.len, filepath.ptr);
+	fprintf(stream, STR_FMT, STR_ARG(filepath));
 }
 
 void print_import(struct ast *import, s32 pad, FILE *stream) {
 	print_head(import, pad, stream);
 	const str_t filepath = import->data.load.filepath;
-	fprintf(stream, "%.*s", filepath.len, filepath.ptr);
+	fprintf(stream, STR_FMT, STR_ARG(filepath));
 }
 
 void print_link(struct ast *link, s32 pad, FILE *stream) {
@@ -162,7 +162,7 @@ void print_scope(struct ast *scope, s32 pad, FILE *stream) {
 	struct ast *ident = scope->data.scope.ident;
 	if (ident) {
 		const str_t s = ident->data.ident.id.str;
-		fprintf(stream, "'%.*s' ", s.len, s.ptr);
+		fprintf(stream, "'" STR_FMT "' ", STR_ARG(s));
 	}
 }
 
@@ -183,7 +183,7 @@ void print_type_polymorph(struct ast *poly, s32 pad, FILE *stream) {
 	struct ast *ident = poly->data.type_poly.ident;
 	if (ident) {
 		const str_t s = ident->data.ident.id.str;
-		fprintf(stream, "'%.*s' ", s.len, s.ptr);
+		fprintf(stream, "'" STR_FMT "' ", STR_ARG(s));
 	}
 }
 
@@ -208,7 +208,7 @@ void print_ref(struct ast *ref, s32 pad, FILE *stream) {
 	struct ast *ident = ref->data.ref.ident;
 	if (ident) {
 		const str_t s = ident->data.ident.id.str;
-		fprintf(stream, "'%.*s' ", s.len, s.ptr);
+		fprintf(stream, "'" STR_FMT "' ", STR_ARG(s));
 	}
 
 	struct ast *next = ref->data.ref.next;
@@ -316,9 +316,8 @@ void print_decl_entity(struct ast *entity, s32 pad, FILE *stream) {
 
 	const str_t name = entity->data.decl.name->data.ident.id.str;
 	fprintf(stream,
-	        "'%.*s' '%s'",
-	        name.len,
-	        name.ptr,
+	        "'" STR_FMT "' '%s'",
+	        STR_ARG(name),
 	        entity->data.decl_entity.mut ? "mutable" : "immutable");
 
 	print_flags(entity->data.decl.flags, stream);
@@ -329,21 +328,21 @@ void print_decl_entity(struct ast *entity, s32 pad, FILE *stream) {
 void print_decl_arg(struct ast *arg, s32 pad, FILE *stream) {
 	print_head(arg, pad, stream);
 	const str_t name = arg->data.decl.name->data.ident.id.str;
-	fprintf(stream, "'%.*s'", name.len, name.ptr);
+	fprintf(stream, "'" STR_FMT "'", STR_ARG(name));
 	print_node(arg->data.decl.type, pad + 1, stream);
 }
 
 void print_decl_member(struct ast *member, s32 pad, FILE *stream) {
 	print_head(member, pad, stream);
 	const str_t name = member->data.decl.name->data.ident.id.str;
-	fprintf(stream, "'%.*s'", name.len, name.ptr);
+	fprintf(stream, "'" STR_FMT "'", STR_ARG(name));
 	print_node(member->data.decl.type, pad + 1, stream);
 }
 
 void print_decl_variant(struct ast *variant, s32 pad, FILE *stream) {
 	print_head(variant, pad, stream);
 	const str_t name = variant->data.decl.name->data.ident.id.str;
-	fprintf(stream, "'%.*s'", name.len, name.ptr);
+	fprintf(stream, "'" STR_FMT "'", STR_ARG(name));
 	print_node(variant->data.decl.type, pad + 1, stream);
 }
 

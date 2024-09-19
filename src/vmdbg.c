@@ -87,7 +87,7 @@ static void print_data(struct mir_type *type, vm_stack_ptr_t ptr) {
 	}
 	case MIR_TYPE_STRING: {
 		const str_t str = vm_read_string(current_vm, type, ptr);
-		printf("\"%.*s\"", str.len, str.ptr);
+		printf("\"" STR_FMT "\"", STR_ARG(str));
 		return;
 	}
 	case MIR_TYPE_SLICE: {

@@ -53,15 +53,14 @@ static void copy_user_libs(struct assembly *assembly) {
 		str_t lib_dest_name = lib->filename;
 #if BL_PLATFORM_LINUX || BL_PLATFORM_MACOS
 		struct stat statbuf;
-		str_buf_t tmp_filepath = get_tmp_str();
+		str_buf_t   tmp_filepath  = get_tmp_str();
 		const char *clib_filepath = str_to_c(&tmp_filepath, lib->filepath);
 		lstat(clib_filepath, &statbuf);
 		if (S_ISLNK(statbuf.st_mode)) {
 			char buf[PATH_MAX] = {0};
 			if (readlink(clib_filepath, buf, static_arrlenu(buf)) == -1) {
-				builder_error("Cannot follow symlink '%.*s' with error: %d",
-				              lib->filepath.len,
-				              lib->filepath.ptr,
+				builder_error("Cannot follow symlink '" STR_FMT "' with error: %d",
+				              STR_ARG(lib->filepath),
 				              errno);
 				put_tmp_str(tmp_filepath);
 				continue;
@@ -74,18 +73,10 @@ static void copy_user_libs(struct assembly *assembly) {
 		str_buf_append_fmt(&dest_path, "{str}/{str}", out_dir, lib_dest_name);
 		if (file_exists(dest_path)) continue;
 
-		builder_info("Copy '%.*s' to '%.*s'.",
-		             lib->filepath.len,
-		             lib->filepath.ptr,
-		             dest_path.len,
-		             dest_path.ptr);
+		builder_info("Copy '" STR_FMT "' to '" STR_FMT "'.", STR_ARG(lib->filepath), STR_ARG(dest_path));
 
 		if (!copy_file(lib->filepath, str_buf_view(dest_path))) {
-			builder_error("Cannot copy '%.*s' to '%.*s'.",
-			              lib->filepath.len,
-			              lib->filepath.ptr,
-			              dest_path.len,
-			              dest_path.ptr);
+			builder_error("Cannot copy '" STR_FMT "' to '" STR_FMT "'.", STR_ARG(lib->filepath), STR_ARG(dest_path));
 		}
 	}
 	put_tmp_str(dest_path);
@@ -110,7 +101,7 @@ void native_bin_run(struct assembly *assembly) {
 	}
 
 	if (assembly->target->copy_deps) {
-		builder_log("Copy assembly dependencies into '%.*s'.", out_dir.len, out_dir.ptr);
+		builder_log("Copy assembly dependencies into '" STR_FMT "'.", STR_ARG(out_dir));
 		copy_user_libs(assembly);
 	}
 DONE:

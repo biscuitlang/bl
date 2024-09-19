@@ -43,14 +43,14 @@ void file_loader_run(struct assembly *UNUSED(assembly), struct unit *unit) {
 
 	if (f == INVALID_HANDLE_VALUE) {
 		get_last_error(error_buf, static_arrlenu(error_buf));
-		builder_msg(MSG_ERR, ERR_FILE_NOT_FOUND, TOKEN_OPTIONAL_LOCATION(unit->loaded_from), CARET_WORD, "Cannot open file '%.*s': %s", path.len, path.ptr, error_buf);
+		builder_msg(MSG_ERR, ERR_FILE_NOT_FOUND, TOKEN_OPTIONAL_LOCATION(unit->loaded_from), CARET_WORD, "Cannot open file '" STR_FMT "': %s", STR_ARG(path), error_buf);
 		return_zone();
 	}
 
 	DWORD bytes = GetFileSize(f, NULL);
 	if (bytes == INVALID_FILE_SIZE) {
 		CloseHandle(f);
-		builder_msg(MSG_ERR, ERR_FILE_NOT_FOUND, TOKEN_OPTIONAL_LOCATION(unit->loaded_from), CARET_WORD, "Cannot get size of file '%.*s'.", path.len, path.ptr);
+		builder_msg(MSG_ERR, ERR_FILE_NOT_FOUND, TOKEN_OPTIONAL_LOCATION(unit->loaded_from), CARET_WORD, "Cannot get size of file '" STR_FMT "'.", STR_ARG(path));
 		return_zone();
 	}
 	char *data = bmalloc(bytes + 1);
@@ -59,7 +59,7 @@ void file_loader_run(struct assembly *UNUSED(assembly), struct unit *unit) {
 		bfree(data);
 		CloseHandle(f);
 		get_last_error(error_buf, static_arrlenu(error_buf));
-		builder_msg(MSG_ERR, ERR_FILE_NOT_FOUND, TOKEN_OPTIONAL_LOCATION(unit->loaded_from), CARET_WORD, "Cannot read file '%.*s': %s", path.len, path.ptr, error_buf);
+		builder_msg(MSG_ERR, ERR_FILE_NOT_FOUND, TOKEN_OPTIONAL_LOCATION(unit->loaded_from), CARET_WORD, "Cannot read file '" STR_FMT "': %s", STR_ARG(path), error_buf);
 		return_zone();
 	}
 	bassert(rbytes == bytes);
@@ -79,7 +79,7 @@ void file_loader_run(struct assembly *UNUSED(assembly), struct unit *unit) {
 	put_tmp_str(tmp_path);
 
 	if (f == NULL) {
-		builder_msg(MSG_ERR, ERR_FILE_READ, TOKEN_OPTIONAL_LOCATION(unit->loaded_from), CARET_WORD, "Cannot read file '%.*s'.", path.len, path.ptr);
+		builder_msg(MSG_ERR, ERR_FILE_READ, TOKEN_OPTIONAL_LOCATION(unit->loaded_from), CARET_WORD, "Cannot read file '" STR_FMT "'.", STR_ARG(path));
 		return_zone();
 	}
 
@@ -87,13 +87,13 @@ void file_loader_run(struct assembly *UNUSED(assembly), struct unit *unit) {
 	usize fsize = (usize)ftell(f);
 	if (fsize == 0) {
 		fclose(f);
-		builder_msg(MSG_ERR, ERR_FILE_EMPTY, TOKEN_OPTIONAL_LOCATION(unit->loaded_from), CARET_WORD, "Invalid or empty source file '%.*s'.", path.len, path.ptr);
+		builder_msg(MSG_ERR, ERR_FILE_EMPTY, TOKEN_OPTIONAL_LOCATION(unit->loaded_from), CARET_WORD, "Invalid or empty source file '" STR_FMT "'.", STR_ARG(path));
 		return_zone();
 	}
 	fseek(f, 0, SEEK_SET);
 
 	char *src = bmalloc(fsize + 1);
-	if (!fread(src, sizeof(char), fsize, f)) babort("Cannot read file '%.*s'.", path.len, path.ptr);
+	if (!fread(src, sizeof(char), fsize, f)) babort("Cannot read file '" STR_FMT "'.", STR_ARG(path));
 	src[fsize] = '\0';
 	fclose(f);
 	unit->src = src;

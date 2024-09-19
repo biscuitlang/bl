@@ -1117,7 +1117,7 @@ static inline struct mir_fn *ast_current_fn(struct context *ctx) {
 
 static inline void terminate_block(struct mir_instr_block *block, struct mir_instr *terminator) {
 	bassert(block);
-	if (block->terminal) babort("basic block '%.*s' already terminated!", block->name.len, block->name.ptr);
+	if (block->terminal) babort("basic block '" STR_FMT "' already terminated!", STR_ARG(block->name));
 	block->terminal = terminator;
 }
 
@@ -1536,8 +1536,8 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 
 COLLIDE: {
 	if (!scope_is_local(scope)) scope_unlock(scope);
-	char *err_msg = (collision->is_builtin || is_builtin) ? "Symbol name collision with compiler builtin '%.*s'." : "Duplicate symbol";
-	report_error(DUPLICATE_SYMBOL, node, err_msg, id->str.len, id->str.ptr);
+	char *err_msg = (collision->is_builtin || is_builtin) ? "Symbol name collision with compiler builtin '" STR_FMT "'." : "Duplicate symbol";
+	report_error(DUPLICATE_SYMBOL, node, err_msg, STR_ARG(id->str));
 	if (collision->node) {
 		report_note(collision->node, "Previous declaration found here.");
 	}
@@ -1558,7 +1558,7 @@ struct mir_type *lookup_builtin_type(struct context *ctx, enum builtin_id_kind k
 	                                         });
 	// scope_unlock(scope);
 
-	if (!found) babort("Missing compiler internal symbol '%.*s'", id->str.len, id->str.ptr);
+	if (!found) babort("Missing compiler internal symbol '" STR_FMT "'", STR_ARG(id->str));
 	if (found->kind == SCOPE_ENTRY_INCOMPLETE) return NULL;
 
 	if (!found->is_builtin) {
@@ -1593,7 +1593,7 @@ struct mir_fn *lookup_builtin_fn(struct context *ctx, enum builtin_id_kind kind)
 	                                         });
 	// scope_unlock(scope);
 
-	if (!found) babort("Missing compiler internal symbol '%.*s'", id->str.len, id->str.ptr);
+	if (!found) babort("Missing compiler internal symbol '" STR_FMT "'", STR_ARG(id->str));
 	if (found->kind == SCOPE_ENTRY_INCOMPLETE) return NULL;
 
 	if (!found->is_builtin) {
@@ -2826,20 +2826,17 @@ static inline void report_unreachable_block(struct context *ctx, struct mir_inst
 		            0,
 		            block->entry_instr->node->location,
 		            CARET_NONE,
-		            "Unreachable code detected in the function '%.*s' with polymorph replacement: %.*s",
-		            fn_readable_name.len,
-		            fn_readable_name.ptr,
-		            debug_replacement.len,
-		            debug_replacement.ptr);
+		            "Unreachable code detected in the function '" STR_FMT "' with polymorph replacement: " STR_FMT "",
+		            STR_ARG(fn_readable_name),
+		            STR_ARG(debug_replacement));
 	} else {
 		builder_msg(
 		    MSG_WARN,
 		    0,
 		    block->entry_instr->node->location,
 		    CARET_NONE,
-		    "Unreachable code detected in the function '%.*s'.",
-		    fn_readable_name.len,
-		    fn_readable_name.ptr);
+		    "Unreachable code detected in the function '" STR_FMT "'.",
+		    STR_ARG(fn_readable_name));
 	}
 }
 
@@ -4790,11 +4787,9 @@ static struct result analyze_instr_compound_regular(struct context *ctx, struct 
 					str_buf_t type_name = mir_type2str(type, /* prefer_name */ true);
 					report_error(INVALID_INITIALIZER,
 					             designator->ident,
-					             "Structure member designator '%.*s' does not refer to any member of initialized structure type '%.*s'.",
-					             id->str.len,
-					             id->str.ptr,
-					             type_name.len,
-					             type_name.ptr);
+					             "Structure member designator '" STR_FMT "' does not refer to any member of initialized structure type '" STR_FMT "'.",
+					             STR_ARG(id->str),
+					             STR_ARG(type_name));
 					put_tmp_str(type_name);
 					goto STRUCT_FAILED;
 				}
@@ -5419,7 +5414,7 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 
 	// Invalid
 	str_buf_t type_name = mir_type2str(target_ptr->value.type, /* prefer_name */ true);
-	report_error(INVALID_TYPE, target_ptr->node, "Expected structure or enumerator type, got '%.*s'.", type_name.len, type_name.ptr);
+	report_error(INVALID_TYPE, target_ptr->node, "Expected structure or enumerator type, got '" STR_FMT "'.", STR_ARG(type_name));
 	put_tmp_str(type_name);
 	return_zone(FAIL);
 }
@@ -5736,7 +5731,7 @@ struct result analyze_instr_decl_ref(struct context *ctx, struct mir_instr_decl_
 		// definition flow in local scopes.
 		if (found->node->location->line > ref->base.node->location->line) {
 			str_t sym_name = ref->rid->str;
-			report_error(UNKNOWN_SYMBOL, ref->base.node, "Symbol '%.*s' is used before it is declared.", sym_name.len, sym_name.ptr);
+			report_error(UNKNOWN_SYMBOL, ref->base.node, "Symbol '" STR_FMT "' is used before it is declared.", STR_ARG(sym_name));
 			report_note(found->node, "Symbol declaration found here.");
 			return_zone(FAIL);
 		}
@@ -5770,7 +5765,7 @@ struct result analyze_instr_decl_ref(struct context *ctx, struct mir_instr_decl_
 
 		// Report if the referenced function is obsolete.
 		if (isflag(fn->flags, FLAG_OBSOLETE)) {
-			report_warning(ref->base.node, "Function is marked as obsolete. %.*s", fn->obsolete_message.len, fn->obsolete_message.ptr);
+			report_warning(ref->base.node, "Function is marked as obsolete. " STR_FMT "", STR_ARG(fn->obsolete_message));
 		}
 		break;
 	}
@@ -6103,7 +6098,7 @@ struct result analyze_instr_fn_proto(struct context *ctx, struct mir_instr_fn_pr
 		// internal name mapping in this case.
 		const str_t intrinsic_name = get_intrinsic(fn->linkage_name);
 		if (!intrinsic_name.len) {
-			report_error(UNKNOWN_SYMBOL, fn_proto->base.node, "Unknown compiler intrinsic '%.*s'.", fn->linkage_name.len, fn->linkage_name.ptr);
+			report_error(UNKNOWN_SYMBOL, fn_proto->base.node, "Unknown compiler intrinsic '" STR_FMT "'.", STR_ARG(fn->linkage_name));
 			return_zone(FAIL);
 		}
 
@@ -6380,7 +6375,7 @@ struct result analyze_instr_switch(struct context *ctx, struct mir_instr_switch 
 				}
 			}
 			if (!hit) {
-				builder_msg(MSG_ERR_NOTE, 0, NULL, CARET_NONE, "Missing case for: %.*s", variant->id->str.len, variant->id->str.ptr);
+				builder_msg(MSG_ERR_NOTE, 0, NULL, CARET_NONE, "Missing case for: " STR_FMT "", STR_ARG(variant->id->str));
 			}
 		}
 	}
@@ -6437,7 +6432,7 @@ struct result analyze_instr_load(struct context *ctx, struct mir_instr_load *loa
 INVALID_SRC: {
 	bassert(err_type);
 	str_buf_t type_name = mir_type2str(err_type, /* prefer_name */ true);
-	report_error(INVALID_TYPE, src->node, "Expected value of pointer type, got '%.*s'.", type_name.len, type_name.ptr);
+	report_error(INVALID_TYPE, src->node, "Expected value of pointer type, got '" STR_FMT "'.", STR_ARG(type_name));
 	put_tmp_str(type_name);
 	return_zone(FAIL);
 }
@@ -6491,7 +6486,7 @@ struct result analyze_instr_type_fn(struct context *ctx, struct mir_instr_type_f
 			case MIR_TYPE_FN_GROUP:
 			case MIR_TYPE_NAMED_SCOPE: {
 				str_buf_t type_name = mir_type2str(arg->type, /* prefer_name */ true);
-				report_error(INVALID_TYPE, arg->decl_node, "Invalid function argument type '%.*s'.", type_name.len, type_name.ptr);
+				report_error(INVALID_TYPE, arg->decl_node, "Invalid function argument type '" STR_FMT "'.", STR_ARG(type_name));
 				put_tmp_str(type_name);
 				return_zone(FAIL);
 			}
@@ -6628,7 +6623,7 @@ struct result analyze_instr_decl_member(struct context *ctx, struct mir_instr_de
 	}
 	if (decl->type->value.type->kind != MIR_TYPE_TYPE && !mir_is_placeholder(decl->type)) {
 		str_buf_t type_name = mir_type2str(decl->type->value.type, /* prefer_name */ true);
-		report_error(INVALID_TYPE, decl->type->node, "Invalid type of the structure member, expected is 'type', got '%.*s'", type_name.len, type_name.ptr);
+		report_error(INVALID_TYPE, decl->type->node, "Invalid type of the structure member, expected is 'type', got '" STR_FMT "'", STR_ARG(type_name));
 		put_tmp_str(type_name);
 		return_zone(FAIL);
 	}
@@ -6686,12 +6681,10 @@ struct result analyze_instr_decl_variant(struct context *ctx, struct mir_instr_d
 			str_buf_t base_type_name = mir_type2str(base_type, /* prefer_name */ true);
 			report_error(NUM_LIT_OVERFLOW,
 			             variant_instr->base.node,
-			             "Enum variant value overflow on variant '%.*s', maximum value for type "
-			             "'%.*s' is %llu.",
-			             variant->id->str.len,
-			             variant->id->str.ptr,
-			             base_type_name.len,
-			             base_type_name.ptr,
+			             "Enum variant value overflow on variant '" STR_FMT "', maximum value for type "
+			             "'" STR_FMT "' is %llu.",
+			             STR_ARG(variant->id->str),
+			             STR_ARG(base_type_name),
 			             max_value);
 			put_tmp_str(base_type_name);
 			return_zone(FAIL);
@@ -6762,9 +6755,8 @@ struct result analyze_instr_decl_arg(struct context *ctx, struct mir_instr_decl_
 		report_error(INVALID_TYPE,
 		             decl->base.node,
 		             "Types can be passed only as comptime arguments into the functions. Consider "
-		             "using the '#comptime' directive for the argument '%.*s'.",
-		             arg->id->str.len,
-		             arg->id->str.ptr);
+		             "using the '#comptime' directive for the argument '" STR_FMT "'.",
+		             STR_ARG(arg->id->str));
 		return_zone(FAIL);
 	} else if (arg->type->kind == MIR_TYPE_VARGS && isflag(arg->flags, FLAG_COMPTIME)) {
 		report_error(INVALID_TYPE, decl->base.node, "Compile-time VArgs are not supported for now.");
@@ -7304,10 +7296,10 @@ struct result analyze_instr_msg(struct context *ctx, struct mir_instr_msg *msg) 
 	erase_instr_tree(msg->expr, false, false);
 	switch (msg->message_kind) {
 	case MIR_USER_MSG_ERROR:
-		report_error(USER, msg->base.node, "%.*s", message.len, message.ptr);
+		report_error(USER, msg->base.node, "" STR_FMT "", STR_ARG(message));
 		return_zone(FAIL);
 	case MIR_USER_MSG_WARNING:
-		report_warning(msg->base.node, "%.*s", message.len, message.ptr);
+		report_warning(msg->base.node, "" STR_FMT "", STR_ARG(message));
 		return_zone(PASS);
 	}
 	BL_UNREACHABLE;
@@ -7338,10 +7330,9 @@ struct result analyze_instr_unop(struct context *ctx, struct mir_instr_unop *uno
 			str_buf_t type_name = mir_type2str(expr_type, /* prefer_name */ true);
 			report_error_after(INVALID_TYPE,
 			                   unop->base.node,
-			                   "Invalid operation for type '%.*s'. This operation "
+			                   "Invalid operation for type '" STR_FMT "'. This operation "
 			                   "is valid for integer or enum flags types only.",
-			                   type_name.len,
-			                   type_name.ptr);
+			                   STR_ARG(type_name));
 			put_tmp_str(type_name);
 			return_zone(FAIL);
 		}
@@ -7354,10 +7345,9 @@ struct result analyze_instr_unop(struct context *ctx, struct mir_instr_unop *uno
 			str_buf_t type_name = mir_type2str(expr_type, /* prefer_name */ true);
 			report_error_after(INVALID_TYPE,
 			                   unop->base.node,
-			                   "Invalid operation for type '%.*s'. This operation "
+			                   "Invalid operation for type '" STR_FMT "'. This operation "
 			                   "is valid for integer or real types only.",
-			                   type_name.len,
-			                   type_name.ptr);
+			                   STR_ARG(type_name));
 			put_tmp_str(type_name);
 			return_zone(FAIL);
 		}
@@ -8104,10 +8094,9 @@ struct result analyze_call_stage_generate(struct context *ctx, struct mir_instr_
 
 					report_error(INVALID_POLY_MATCH,
 					             err_node,
-					             "Cannot deduce polymorph function argument type '%.*s'. Expected is "
+					             "Cannot deduce polymorph function argument type '" STR_FMT "'. Expected is "
 					             "'%s' but call-side argument type is '%s'.",
-					             poly_type->user_id->str.len,
-					             poly_type->user_id->str.ptr,
+					             STR_ARG(poly_type->user_id->str),
 					             str_buf_to_c(recipe_type_name),
 					             str_buf_to_c(arg_type_name));
 
@@ -8116,7 +8105,7 @@ struct result analyze_call_stage_generate(struct context *ctx, struct mir_instr_
 				} else {
 					// Missing argument on call side required for polymorph deduction. Should be
 					// reported only for vargs (see the check above).
-					report_error(INVALID_POLY_MATCH, err_node, "Cannot deduce polymorph function argument type '%.*s'.", poly_type->user_id->str.len, poly_type->user_id->str.ptr);
+					report_error(INVALID_POLY_MATCH, err_node, "Cannot deduce polymorph function argument type '" STR_FMT "'.", STR_ARG(poly_type->user_id->str));
 				}
 				report_note(call->base.node, "Called from here.");
 				goto DONE;
@@ -9169,7 +9158,7 @@ void analyze_report_unresolved(struct context *ctx) {
 				continue;
 			}
 			bassert(sym_name.len && "Invalid unresolved symbol name!");
-			report_error(UNKNOWN_SYMBOL, instr->node, "Unknown symbol '%.*s'.", sym_name.len, sym_name.ptr);
+			report_error(UNKNOWN_SYMBOL, instr->node, "Unknown symbol '" STR_FMT "'.", STR_ARG(sym_name));
 			if (str_match(sym_name, builtin_ids[BUILTIN_ID_MAIN].str)) {
 				report_note(NULL, "Executable requires 'main' entry point function: \n\n\tmain :: fn () s32 {\n\t\treturn 0;\n\t}\n");
 			}
@@ -9194,16 +9183,15 @@ void analyze_report_unused(struct context *ctx) {
 		case SCOPE_PRIVATE:
 		case SCOPE_NAMED: {
 
-			report_warning(entry->node, "Unused symbol '%.*s'. Mark the symbol as '#maybe_unused' if it's intentional.", name.len, name.ptr);
+			report_warning(entry->node, "Unused symbol '" STR_FMT "'. Mark the symbol as '#maybe_unused' if it's intentional.", STR_ARG(name));
 			break;
 		}
 		default: {
 			report_warning(entry->node,
-			               "Unused symbol '%.*s'. Use blank identifier '_' if it's "
+			               "Unused symbol '" STR_FMT "'. Use blank identifier '_' if it's "
 			               "intentional, or mark the symbol as '#maybe_unused'. If it's used only "
 			               "in some conditional or generated code.",
-			               name.len,
-			               name.ptr);
+			               STR_ARG(name));
 		}
 		}
 	}
@@ -10709,7 +10697,7 @@ void report_poly(struct mir_instr *instr) {
 	if (!owner_fn->generated.first_call_node->location) return;
 	const str_t debug_replacement = owner_fn->generated.debug_replacement_types;
 	if (debug_replacement.len) {
-		builder_msg(MSG_ERR_NOTE, 0, owner_fn->decl_node->location, CARET_WORD, "In polymorphic function with substitution: %.*s", debug_replacement.len, debug_replacement.ptr);
+		builder_msg(MSG_ERR_NOTE, 0, owner_fn->decl_node->location, CARET_WORD, "In polymorphic function with substitution: " STR_FMT "", STR_ARG(debug_replacement));
 	} else {
 		builder_msg(MSG_ERR_NOTE, 0, owner_fn->decl_node->location, CARET_WORD, "In function:");
 	}

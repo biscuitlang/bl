@@ -283,7 +283,7 @@ static void import_lib_path(import_elem_context_t *ctx, const char *dirpath) {
 	str_buf_t path = get_tmp_str();
 	str_buf_append_fmt(&path, "{s}/{s}", ctx->modulepath, dirpath);
 	if (!dir_exists(path)) {
-		builder_msg(MSG_ERR, ERR_FILE_NOT_FOUND, TOKEN_OPTIONAL_LOCATION(ctx->import_from), CARET_WORD, "Cannot find module imported library path '%.*s'.", path.len, path.ptr);
+		builder_msg(MSG_ERR, ERR_FILE_NOT_FOUND, TOKEN_OPTIONAL_LOCATION(ctx->import_from), CARET_WORD, "Cannot find module imported library path '" STR_FMT "'.", STR_ARG(path));
 	} else {
 		assembly_add_lib_path(ctx->assembly, str_buf_to_c(path));
 	}
@@ -704,7 +704,7 @@ struct unit *assembly_add_unit(struct assembly *assembly, const str_t filepath, 
 	struct unit *parent_unit  = load_from ? load_from->location.unit : NULL;
 	if (!search_source_file(filepath, SEARCH_FLAG_ALL, parent_unit ? parent_unit->dirpath : str_empty, &tmp_fullpath)) {
 		put_tmp_str(tmp_fullpath);
-		builder_msg(MSG_ERR, ERR_FILE_NOT_FOUND, TOKEN_OPTIONAL_LOCATION(load_from), CARET_WORD, "File not found '%.*s'.", filepath.len, filepath.ptr);
+		builder_msg(MSG_ERR, ERR_FILE_NOT_FOUND, TOKEN_OPTIONAL_LOCATION(load_from), CARET_WORD, "File not found '" STR_FMT "'.", STR_ARG(filepath));
 		return_zone(NULL);
 	}
 
@@ -819,7 +819,7 @@ bool assembly_import_module(struct assembly *assembly, const char *modulepath, s
 				str_buf_append_fmt(&backup_name, "{str}_{s}.bak", local_path, date);
 				copy_dir(str_buf_view(local_path), str_buf_view(backup_name));
 				remove_dir(str_buf_view(local_path));
-				builder_info("Backup module '%.*s'.", backup_name.len, backup_name.ptr);
+				builder_info("Backup module '" STR_FMT "'.", STR_ARG(backup_name));
 				put_tmp_str(backup_name);
 			}
 			// Copy module from system to module directory.

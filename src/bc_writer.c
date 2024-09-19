@@ -41,14 +41,14 @@ void bc_writer_run(struct assembly *assembly) {
 	char *str = LLVMPrintModuleToString(assembly->llvm.module);
 	FILE *f   = fopen(str_buf_to_c(export_file), "w");
 	if (f == NULL) {
-		builder_error("Cannot open file %.*s", export_file.len, export_file.ptr);
+		builder_error("Cannot open file " STR_FMT "", STR_ARG(export_file));
 		put_tmp_str(export_file);
 		return_zone();
 	}
 	fprintf(f, "%s\n", str);
 	fclose(f);
 	LLVMDisposeMessage(str);
-	builder_info("Byte code written into %.*s", export_file.len, export_file.ptr);
+	builder_info("Byte code written into " STR_FMT "", STR_ARG(export_file));
 	put_tmp_str(export_file);
 	return_zone();
 }

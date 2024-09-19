@@ -61,11 +61,11 @@ struct config;
 #if BL_COMPILER_CLANG || BL_COMPILER_GNUC
 
 // clang-format off
-	#define _SHUT_UP_BEGIN \
-		_Pragma("GCC diagnostic push") \
-        _Pragma("GCC diagnostic ignored \"-Wcast-qual\"") \
-		_Pragma("GCC diagnostic ignored \"-Wpedantic\"") \
-		_Pragma("GCC diagnostic ignored \"-Wsign-conversion\"")
+#define _SHUT_UP_BEGIN \
+_Pragma("GCC diagnostic push") \
+_Pragma("GCC diagnostic ignored \"-Wcast-qual\"") \
+_Pragma("GCC diagnostic ignored \"-Wpedantic\"") \
+_Pragma("GCC diagnostic ignored \"-Wsign-conversion\"")
 // clang-format on
 
 #define _SHUT_UP_END _Pragma("GCC diagnostic pop")
@@ -156,6 +156,9 @@ typedef struct {
 	s32   _; // Gap to make this ABI compatible with BL strings. Note that we also use this gap in str_buf.
 	char *ptr;
 } str_t;
+
+#define STR_FMT "%.*s"
+#define STR_ARG(S) (s32) ((S).len), ((S).ptr)
 
 static_assert(sizeof(str_t) == 16, "Invalid size of string view type.");
 

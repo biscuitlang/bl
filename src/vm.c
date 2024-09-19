@@ -998,7 +998,7 @@ void interp_extern_call(struct virtual_machine *vm, struct mir_instr_call *call,
 
 	// call setup and clenup
 	if (!handle) {
-		builder_error("External function '%.*s' not found!", linkage_name.len, linkage_name.ptr);
+		builder_error("External function '" STR_FMT "' not found!", STR_ARG(linkage_name));
 		vm_abort(vm);
 		return;
 	}
@@ -1061,17 +1061,15 @@ void interp_extern_call(struct virtual_machine *vm, struct mir_instr_call *call,
 		break;
 
 	case MIR_TYPE_STRUCT: {
-		babort("External function '%.*s' returning structure cannot be executed by interpreter on "
+		babort("External function '" STR_FMT "' returning structure cannot be executed by interpreter on "
 		       "this platform.",
-		       linkage_name.len,
-		       linkage_name.ptr);
+		       STR_ARG(linkage_name));
 	}
 
 	case MIR_TYPE_ARRAY: {
-		babort("External function '%.*s' returning array cannot be executed by interpreter on "
+		babort("External function '" STR_FMT "' returning array cannot be executed by interpreter on "
 		       "this platform.",
-		       linkage_name.len,
-		       linkage_name.ptr);
+		       STR_ARG(linkage_name));
 	}
 
 	case MIR_TYPE_BOOL: {
@@ -2060,7 +2058,7 @@ void eval_instr_type_info(struct virtual_machine *vm, struct mir_instr_type_info
 #if defined(BL_DEBUG)
 		const str_t  name = type_info->rtti_type->id.str;
 		const hash_t hash = type_info->rtti_type->id.hash;
-		blog("Rtti type %.*s [%lu] not found!", name.len, name.ptr, hash);
+		blog("Rtti type " STR_FMT " [%lu] not found!", STR_ARG(name), hash);
 #endif
 		bassert(rtti_var);
 	}
@@ -2482,9 +2480,8 @@ void vm_print_backtrace(struct virtual_machine *vm) {
 			            0,
 			            instr->node->location,
 			            CARET_NONE,
-			            "Called from following location with polymorph replacement: %.*s",
-			            replacement.len,
-			            replacement.ptr);
+			            "Called from following location with polymorph replacement: " STR_FMT "",
+			            STR_ARG(replacement));
 		} else {
 			builder_msg(MSG_ERR_NOTE, 0, instr->node->location, CARET_NONE, "Called from:");
 		}

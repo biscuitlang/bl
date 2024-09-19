@@ -89,7 +89,7 @@ static void doc_expr_lit_fn_group(struct context *ctx, struct ast *lit);
 
 void append_section(struct context *ctx, const char *name, const str_t content) {
 	H2(ctx->stream, name);
-	fprintf(ctx->stream, "%.*s", content.len, content.ptr);
+	fprintf(ctx->stream, STR_FMT, STR_ARG(content));
 }
 
 void doc_ublock(struct context *ctx, struct ast *block) {
@@ -132,7 +132,7 @@ void doc_decl_entity(struct context *ctx, struct ast *decl) {
 	H1(ctx->stream, str_buf_to_c(full_name));
 	put_tmp_str(full_name);
 	CODE_BLOCK_BEGIN(ctx->stream);
-	fprintf(ctx->stream, "%.*s :", name.len, name.ptr);
+	fprintf(ctx->stream, STR_FMT " :", STR_ARG(name));
 	if (type) {
 		fprintf(ctx->stream, " ");
 		doc(ctx, type);
@@ -144,7 +144,7 @@ void doc_decl_entity(struct context *ctx, struct ast *decl) {
 	if (decl->data.decl.flags & FLAG_EXTERN) fprintf(ctx->stream, " #extern");
 	if (decl->data.decl.flags & FLAG_INLINE) fprintf(ctx->stream, " #inline");
 	CODE_BLOCK_END(ctx->stream);
-	if (text.len) fprintf(ctx->stream, "%.*s\n\n", text.len, text.ptr);
+	if (text.len) fprintf(ctx->stream, STR_FMT "\n\n", STR_ARG(text));
 
 	if (ctx->section_variants.len) {
 		append_section(ctx, "Variants", str_buf_view(ctx->section_variants));
@@ -156,7 +156,7 @@ void doc_decl_entity(struct context *ctx, struct ast *decl) {
 		str_buf_clr(&ctx->section_members);
 	}
 
-	fprintf(ctx->stream, "\n\n*File: %.*s*\n\n", ctx->unit->filename.len, ctx->unit->filename.ptr);
+	fprintf(ctx->stream, "\n\n*File: " STR_FMT "*\n\n", STR_ARG(ctx->unit->filename));
 }
 
 void doc_decl_arg(struct context *ctx, struct ast *decl) {
@@ -165,15 +165,15 @@ void doc_decl_arg(struct context *ctx, struct ast *decl) {
 	struct ast *value = decl->data.decl_arg.value;
 	const str_t name  = ident ? ident->data.ident.id.str : str_empty;
 	if (type && value) {
-		fprintf(ctx->stream, "%.*s : ", name.len, name.ptr);
+		fprintf(ctx->stream, STR_FMT " : ", STR_ARG(name));
 		doc(ctx, type);
 		fprintf(ctx->stream, ": ");
 		doc(ctx, value);
 	} else if (type && !value) {
-		fprintf(ctx->stream, "%.*s: ", name.len, name.ptr);
+		fprintf(ctx->stream, STR_FMT ": ", STR_ARG(name));
 		doc(ctx, type);
 	} else if (value) {
-		fprintf(ctx->stream, "%.*s :: ", name.len, name.ptr);
+		fprintf(ctx->stream, STR_FMT " :: ", STR_ARG(name));
 		doc(ctx, value);
 	}
 }
@@ -183,7 +183,7 @@ void doc_decl_variant(struct context *ctx, struct ast *decl) {
 	struct ast *value = decl->data.decl_variant.value;
 	if (ident) {
 		const str_t name = ident->data.ident.id.str;
-		fprintf(ctx->stream, "%.*s", name.len, name.ptr);
+		fprintf(ctx->stream, STR_FMT, STR_ARG(name));
 		if (decl->docs.len) {
 			str_buf_append_fmt(&ctx->section_variants, "* `{str}` - {str}\n", name, decl->docs);
 		}
@@ -199,7 +199,7 @@ void doc_decl_member(struct context *ctx, struct ast *decl) {
 	struct ast *type  = decl->data.decl.type;
 	if (ident) {
 		const str_t name = ident->data.ident.id.str;
-		fprintf(ctx->stream, "%.*s: ", name.len, name.ptr);
+		fprintf(ctx->stream, STR_FMT ": ", STR_ARG(name));
 
 		if (decl->docs.len) {
 			str_buf_append_fmt(&ctx->section_members, "* `{str}` - {str}\n", name, decl->docs);
@@ -297,7 +297,7 @@ void doc_ref(struct context *ctx, struct ast *ref) {
 		fprintf(ctx->stream, ".");
 	}
 	const str_t name = ident->data.ident.id.str;
-	fprintf(ctx->stream, "%.*s", name.len, name.ptr);
+	fprintf(ctx->stream, STR_FMT, STR_ARG(name));
 }
 
 void doc_type_ptr(struct context *ctx, struct ast *type) {
@@ -315,7 +315,7 @@ void doc_type_vargs(struct context *ctx, struct ast *type) {
 void doc_type_poly(struct context *ctx, struct ast *type) {
 	struct ast *ident = type->data.type_poly.ident;
 	const str_t name  = ident->data.ident.id.str;
-	fprintf(ctx->stream, "?%.*s", name.len, name.ptr);
+	fprintf(ctx->stream, "?" STR_FMT, STR_ARG(name));
 }
 
 void doc_expr_lit_fn_group(struct context *ctx, struct ast *lit) {
@@ -415,10 +415,7 @@ void doc(struct context *ctx, struct ast *node) {
 		fprintf(ctx->stream, "#call_location");
 		break;
 	case AST_EXPR_LIT_STRING:
-		fprintf(ctx->stream,
-		        "\"%.*s\"",
-		        node->data.expr_string.val.len,
-		        node->data.expr_string.val.ptr);
+		fprintf(ctx->stream, "\"" STR_FMT "\"", STR_ARG(node->data.expr_string.val));
 		break;
 
 	case AST_LOAD:
@@ -454,7 +451,7 @@ void doc_unit(struct context *ctx, struct unit *unit) {
 	ctx->stream = f;
 	if (unit->ast->docs.len) {
 		const str_t docs = unit->ast->docs;
-		fprintf(f, "%.*s\n", docs.len, docs.ptr);
+		fprintf(f, "" STR_FMT "\n", STR_ARG(docs));
 	} else {
 		str_buf_t tmp_filename = get_tmp_str();
 		H0(f, str_to_c(&tmp_filename, unit->filename));
@@ -488,6 +485,6 @@ void docs_run(struct assembly *assembly) {
 	str_buf_free(&ctx.section_variants);
 	str_buf_free(&ctx.section_members);
 
-	builder_info("Documentation written into '%.*s' directory.", ctx.output_directory.len, ctx.output_directory.ptr);
+	builder_info("Documentation written into '" STR_FMT "' directory.", STR_ARG(ctx.output_directory));
 	return_zone();
 }

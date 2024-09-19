@@ -60,13 +60,13 @@ static bool load_conf_file(const char *custom_conf_filepath) {
 	str_buf_t filepath = get_tmp_str();
 	if (custom_conf_filepath) {
 		str_buf_append_fmt(&filepath, "{s}", custom_conf_filepath);
-		builder_info("Using custom configuration file: '%.*s'", filepath.len, filepath.ptr);
+		builder_info("Using custom configuration file: '" STR_FMT "'", STR_ARG(filepath));
 	} else {
 		get_config_file_location(&filepath);
 	}
 	if (!file_exists(filepath)) {
 		if (custom_conf_filepath) {
-			builder_error("Custom configuration file not found on path: '%.*s'.", filepath.len, filepath.ptr);
+			builder_error("Custom configuration file not found on path: '" STR_FMT "'.", STR_ARG(filepath));
 			goto FAILED;
 		}
 		if (!generate_conf()) {
@@ -78,10 +78,9 @@ static bool load_conf_file(const char *custom_conf_filepath) {
 	const char *got = confreads(builder.config, CONF_VERSION, "(UNKNOWN)");
 	if (strcmp(got, BL_VERSION) != 0) {
 		builder_warning(
-		    "Invalid version of current configuration file '%.*s'. Expected is '%s', got "
+		    "Invalid version of current configuration file '" STR_FMT "'. Expected is '%s', got "
 		    "'%s'. Consider generation of new one using 'blc --configure'.",
-		    filepath.len,
-		    filepath.ptr,
+		    STR_ARG(filepath),
 		    BL_VERSION,
 		    got);
 	}
@@ -274,13 +273,13 @@ void print_about(FILE *stream) {
 
 void print_where_is_api(FILE *stream) {
 	const str_t lib_dir = builder_get_lib_dir();
-	fprintf(stream, "%.*s", lib_dir.len, lib_dir.ptr);
+	fprintf(stream, STR_FMT, STR_ARG(lib_dir));
 }
 
 void print_where_is_config(FILE *stream) {
 	str_buf_t filepath = get_tmp_str();
 	get_config_file_location(&filepath);
-	fprintf(stream, "%.*s", filepath.len, filepath.ptr);
+	fprintf(stream, STR_FMT, STR_ARG(filepath));
 	put_tmp_str(filepath);
 }
 

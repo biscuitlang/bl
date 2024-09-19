@@ -92,7 +92,7 @@ struct config *confload(const char *filepath) {
 			break;
 		case YAML_BLOCK_MAPPING_START_TOKEN:
 			if (key.len) {
-				snprintf(blockpath, static_arrlenu(blockpath), "/%.*s", key.len, key.ptr);
+				snprintf(blockpath, static_arrlenu(blockpath), "/" STR_FMT, STR_ARG(key));
 			}
 			break;
 		case YAML_BLOCK_END_TOKEN:

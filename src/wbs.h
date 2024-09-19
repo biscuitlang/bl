@@ -73,7 +73,7 @@ static bool _listdir(struct wbs *ctx, const str_buf_t dirpath, array(char *) * o
 	WIN32_FIND_DATAA find_data;
 	HANDLE           handle = FindFirstFileA(str_buf_to_c(search), &find_data);
 	if (handle == INVALID_HANDLE_VALUE) {
-		builder_error("Cannot list directory '%.*s'.", dirpath.len, dirpath.ptr);
+		builder_error("Cannot list directory '" STR_FMT "'.", STR_ARG(dirpath));
 		put_tmp_str(search);
 		return false;
 	}
@@ -110,9 +110,8 @@ static bool _lookup_vs(struct wbs *ctx) {
 			builder_error("Visual Studio installation or MS Build Tools not found. Download & "
 			              "install MS Build Tools from "
 			              "https://visualstudio.microsoft.com/visual-cpp-build-tools. (Expected "
-			              "location is '%.*s')",
-			              vspath.len,
-			              vspath.ptr);
+			              "location is '" STR_FMT "')",
+			              STR_ARG(vspath));
 			put_tmp_str(vspath);
 			return false;
 		}
@@ -135,7 +134,7 @@ static bool _lookup_windows_sdk(struct wbs *ctx) {
 	str_buf_append_fmt(&sdkpath, "{str}/{s}", ctx->program_files_path, WIN_SDK);
 	if (!dir_exists(sdkpath)) {
 		builder_error(
-		    "Windows SDK not found. (Expected location is '%.*s')", sdkpath.len, sdkpath.ptr);
+		    "Windows SDK not found. (Expected location is '" STR_FMT "')", STR_ARG(sdkpath));
 		str_buf_free(&sdkpath);
 		return false;
 	}
@@ -181,7 +180,7 @@ static bool _lookup_msvc_libs(struct wbs *ctx) {
 	str_buf_append_fmt(&sdkpath, "{str}/{s}", ctx->vs_path, MSVC_TOOLS);
 	if (!dir_exists(sdkpath)) {
 		builder_error(
-		    "MSVC build tools not found. (Expected location is '%.*s')", sdkpath.len, sdkpath.ptr);
+		    "MSVC build tools not found. (Expected location is '" STR_FMT "')", STR_ARG(sdkpath));
 		str_buf_free(&sdkpath);
 		return false;
 	}
@@ -215,9 +214,7 @@ static bool _lookup_msvc_libs(struct wbs *ctx) {
 	str_buf_append_fmt(&sdkpath, "/{s}/{s}", versions[best_index], MSVC_LIB);
 	_listfile_delete(&versions);
 	if (!dir_exists(sdkpath)) {
-		builder_error("MSVC lib directory not found. (Expected location is '%.*s')",
-		              sdkpath.len,
-		              sdkpath.ptr);
+		builder_error("MSVC lib directory not found. (Expected location is '" STR_FMT "')", STR_ARG(sdkpath));
 		str_buf_free(&sdkpath);
 		return false;
 	}
@@ -230,7 +227,7 @@ static bool _lookup_ucrt(struct wbs *ctx) {
 	str_buf_append_fmt(&tmppath, "{str}/{s}", ctx->windows_sdk_path, UCRT);
 	if (!dir_exists(tmppath)) {
 		builder_error(
-		    "UCRT lib-path not found. (Expected location is '%.*s')", tmppath.len, tmppath.ptr);
+		    "UCRT lib-path not found. (Expected location is '" STR_FMT "')", STR_ARG(tmppath));
 		str_buf_free(&tmppath);
 		return false;
 	}
@@ -243,7 +240,7 @@ static bool _lookup_um(struct wbs *ctx) {
 	str_buf_append_fmt(&tmppath, "{str}/{s}", ctx->windows_sdk_path, UM);
 	if (!dir_exists(tmppath)) {
 		builder_error(
-		    "UM lib-path not found. (Expected location is '%.*s')", tmppath.len, tmppath.ptr);
+		    "UM lib-path not found. (Expected location is '" STR_FMT "')", STR_ARG(tmppath));
 		str_buf_free(&tmppath);
 		return false;
 	}

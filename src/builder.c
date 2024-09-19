@@ -93,9 +93,9 @@ static void unit_job(struct job_context *ctx) {
 	bassert(pipeline && "Invalid unit pipeline!");
 	if (unit->loaded_from) {
 		const str_t loaded_from_unit_name = unit->loaded_from->location.unit->name;
-		builder_log("Compile: %.*s (loaded from '%.*s')", unit->name.len, unit->name.ptr, loaded_from_unit_name.len, loaded_from_unit_name.ptr);
+		builder_log("Compile: " STR_FMT " (loaded from '" STR_FMT "')", STR_ARG(unit->name), STR_ARG(loaded_from_unit_name));
 	} else {
-		builder_log("Compile: %.*s", unit->name.len, unit->name.ptr);
+		builder_log("Compile: " STR_FMT "", STR_ARG(unit->name));
 	}
 	for (usize i = 0; i < arrlenu(pipeline); ++i) {
 		pipeline[i](assembly, unit);
@@ -417,7 +417,7 @@ const str_t builder_get_exec_dir(void) {
 bool builder_load_config(const str_t filepath) {
 	confdelete(builder.config);
 	str_buf_t tmp_path = get_tmp_str();
-	builder.config = confload(str_to_c(&tmp_path, filepath));
+	builder.config     = confload(str_to_c(&tmp_path, filepath));
 	put_tmp_str(tmp_path);
 	return (bool)builder.config;
 }
@@ -576,7 +576,7 @@ void builder_vmsg(enum builder_msg_type type,
 		default:
 			break;
 		}
-		fprintf(stream, "%.*s:%d:%d: ", filepath.len, filepath.ptr, line, col);
+		fprintf(stream, "" STR_FMT ":%d:%d: ", STR_ARG(filepath), line, col);
 		switch (type) {
 		case MSG_ERR: {
 			if (code > NO_ERR)

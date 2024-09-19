@@ -57,7 +57,7 @@ static bool search_library(struct context *ctx,
 	str_buf_t lib_filepath      = get_tmp_str();
 	str_buf_t lib_platform_name = platform_lib_name(lib_name);
 
-	builder_log("- Looking for: '%.*s'", lib_platform_name.len, lib_platform_name.ptr);
+	builder_log("- Looking for: '" STR_FMT "'", STR_ARG(lib_platform_name));
 	for (usize i = 0; i < arrlenu(ctx->assembly->lib_paths); ++i) {
 		char *dir = ctx->assembly->lib_paths[i];
 		builder_log("- Search in: '%s'", dir);
@@ -66,7 +66,7 @@ static bool search_library(struct context *ctx,
 		str_buf_append_fmt(&lib_filepath, "{s}/{str}", dir, lib_platform_name);
 
 		if (file_exists(lib_filepath)) {
-			builder_log("  Found: '%.*s'", lib_filepath.len, lib_filepath.ptr);
+			builder_log("  Found: '" STR_FMT "'", STR_ARG(lib_filepath));
 
 			if (out_lib_name) {
 				(*out_lib_name) = scdup2(string_cache, lib_platform_name);
@@ -83,7 +83,7 @@ static bool search_library(struct context *ctx,
 	}
 
 DONE:
-	if (!found) builder_log("  Not found: '%.*s'", lib_filepath.len, lib_filepath.ptr);
+	if (!found) builder_log("  Not found: '" STR_FMT "'", STR_ARG(lib_filepath));
 	put_tmp_str(lib_platform_name);
 	put_tmp_str(lib_filepath);
 
@@ -103,7 +103,7 @@ void add_lib_path(struct context *ctx, const char *token) {
 }
 
 static void set_lib_paths(struct context *ctx) {
-	const char *lib_path      = read_config(builder.config, ctx->assembly->target, "linker_lib_path", "");
+	const char *lib_path = read_config(builder.config, ctx->assembly->target, "linker_lib_path", "");
 	if (!strlen(lib_path)) return;
 	process_tokens(ctx, lib_path, ENVPATH_SEPARATOR, (process_tokens_fn_t)&add_lib_path);
 }
@@ -115,9 +115,7 @@ static bool link_lib(struct context *ctx, struct native_lib *lib) {
 		return false;
 	}
 	if (lib->runtime_only) {
-		builder_log("- Library with 'runtime_only' flag '%.*s' skipped.",
-		            lib->user_name.len,
-		            lib->user_name.ptr);
+		builder_log("- Library with 'runtime_only' flag '" STR_FMT "' skipped.", STR_ARG(lib->user_name));
 		return true;
 	}
 	str_buf_t tmp_path = get_tmp_str();
@@ -153,9 +151,8 @@ void linker_run(struct assembly *assembly) {
 			link_error(ERR_LIB_NOT_FOUND,
 			           lib->linked_from,
 			           CARET_WORD,
-			           "Cannot load library '%.*s' with error: %s",
-			           lib->user_name.len,
-			           lib->user_name.ptr,
+			           "Cannot load library '" STR_FMT "' with error: %s",
+			           STR_ARG(lib->user_name),
 			           error_len ? error_buffer : "UNKNOWN");
 		}
 	}

@@ -39,16 +39,16 @@ void asm_writer_run(struct assembly *assembly) {
 	const struct target *target = assembly->target;
 	const char          *name   = target->name;
 
-	blog("out_dir = %.*s", target->out_dir.len, target->out_dir.ptr);
+	blog("out_dir = " STR_FMT "", STR_ARG(target->out_dir));
 	blog("name = %s", name);
 
 	str_buf_append_fmt(&buf, "{str}/{s}.{s}", target->out_dir, name, ASM_EXT);
 	char *error_msg = NULL;
 	if (LLVMTargetMachineEmitToFile(assembly->llvm.TM, assembly->llvm.module, str_buf_to_c(buf), LLVMAssemblyFile, &error_msg)) {
-		builder_error("Cannot emit assembly file: %.*s with error: %s", buf.len, buf.ptr, error_msg);
+		builder_error("Cannot emit assembly file: " STR_FMT " with error: %s", STR_ARG(buf), error_msg);
 		LLVMDisposeMessage(error_msg);
 	}
-	builder_info("Assembly code written into %.*s", buf.len, buf.ptr);
+	builder_info("Assembly code written into " STR_FMT "", STR_ARG(buf));
 	put_tmp_str(buf);
 
 	return_zone();
