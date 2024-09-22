@@ -73,6 +73,14 @@ BL_EXPORT f64 __intrinsic_pow_f64(f64 v1, f64 v2) {
 	return pow(v1, v2);
 }
 
+BL_EXPORT f32 __intrinsic_exp_f32(f32 v1) {
+	return (f32)exp(v1);
+}
+
+BL_EXPORT f64 __intrinsic_exp_f64(f64 v1) {
+	return exp(v1);
+}
+
 BL_EXPORT f32 __intrinsic_log_f32(f32 v) {
 	return logf(v);
 }

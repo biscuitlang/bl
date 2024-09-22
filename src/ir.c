@@ -117,8 +117,7 @@ static LLVMValueRef    testing_emit_meta_case(struct context *ctx, struct mir_fn
 // =================================================================================================
 // Intrinsic helpers
 // =================================================================================================
-static LLVMValueRef
-build_call_memcpy(struct context *ctx, LLVMValueRef src, LLVMValueRef dest, const usize size_bytes);
+static LLVMValueRef build_call_memcpy(struct context *ctx, LLVMValueRef src, LLVMValueRef dest, const usize size_bytes);
 
 // =================================================================================================
 // RTTI
@@ -307,6 +306,8 @@ str_t get_intrinsic(const str_t name) {
 	if (str_match(name, cstr("cos.f64"))) return cstr("llvm.cos.f64");
 	if (str_match(name, cstr("pow.f32"))) return cstr("llvm.pow.f32");
 	if (str_match(name, cstr("pow.f64"))) return cstr("llvm.pow.f64");
+	if (str_match(name, cstr("exp.f32"))) return cstr("llvm.exp.f32");
+	if (str_match(name, cstr("exp.f64"))) return cstr("llvm.exp.f64");
 	if (str_match(name, cstr("log.f32"))) return cstr("llvm.log.f32");
 	if (str_match(name, cstr("log.f64"))) return cstr("llvm.log.f64");
 	if (str_match(name, cstr("log2.f32"))) return cstr("llvm.log2.f32");

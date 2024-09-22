@@ -11886,6 +11886,8 @@ str_t get_intrinsic(const str_t name) {
         cstr("cos.f64"), cstr("__intrinsic_cos_f64"),
         cstr("pow.f32"), cstr("__intrinsic_pow_f32"),
         cstr("pow.f64"), cstr("__intrinsic_pow_f64"),
+		cstr("exp.f32"), cstr("__intrinsic_exp_f32"),
+		cstr("exp.f64"), cstr("__intrinsic_exp_f64"),
         cstr("log.f32"), cstr("__intrinsic_log_f32"),
         cstr("log.f64"), cstr("__intrinsic_log_f64"),
 

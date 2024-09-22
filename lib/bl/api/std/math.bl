@@ -103,6 +103,7 @@ cos       :: fn { f32_cos; f64_cos; }
 floor     :: fn { f32_floor; f64_floor; }
 round     :: fn { f32_round; f64_round; }
 pow       :: fn { f32_pow; f64_pow; }
+exp       :: fn { f32_exp; f64_exp; }
 log       :: fn { f32_log; f64_log; }
 log2      :: fn { f32_log2; f64_log2; }
 log10     :: fn { f32_log10; f64_log10; }
@@ -173,6 +174,8 @@ f32_round :: fn (n: f32) f32 #intrinsic "round.f32";
 f64_round :: fn (n: f64) f64 #intrinsic "round.f64";
 f32_pow   :: fn (base: f32, exponent: f32) f32 #intrinsic "pow.f32";
 f64_pow   :: fn (base: f64, exponent: f64) f64 #intrinsic "pow.f64";
+f32_exp   :: fn (n: f32) f32 #intrinsic "exp.f32";
+f64_exp   :: fn (n: f64) f64 #intrinsic "exp.f64";
 f32_log   :: fn (n: f32) f32 #intrinsic "log.f32";
 f64_log   :: fn (n: f64) f64 #intrinsic "log.f64";
 f32_log2  :: fn (n: f32) f32 #intrinsic "log2.f32";
