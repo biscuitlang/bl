@@ -314,17 +314,14 @@ struct ast_expr_lit_fn_group {
 
 struct ast_expr_lit_int {
 	u64  val;
-	bool overflow;
 };
 
 struct ast_expr_lit_float {
 	f32  val;
-	bool overflow;
 };
 
 struct ast_expr_lit_double {
 	f64  val;
-	bool overflow;
 };
 
 struct ast_expr_lit_char {
