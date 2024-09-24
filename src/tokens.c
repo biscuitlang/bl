@@ -47,10 +47,12 @@ void tokens_init(struct tokens *tokens) {
 	tokens->buf  = NULL;
 	tokens->iter = 0;
 	arrsetcap(tokens->buf, 2048);
+	arrsetcap(tokens->values, 256);
 }
 
 void tokens_terminate(struct tokens *tokens) {
 	arrfree(tokens->buf);
+	arrfree(tokens->values);
 }
 
 bool token_is_unary(struct token *token) {

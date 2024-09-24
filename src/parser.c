@@ -163,14 +163,18 @@ static struct ast *parse_expr_call(struct context *ctx, struct ast *prev);
 static struct ast *parse_expr_elem(struct context *ctx, struct ast *prev);
 static struct ast *parse_expr_compound(struct context *ctx, struct ast *prev);
 
-// impl
+static inline union token_value get_token_value(struct context *ctx, struct token *token) {
+	bassert(token && token->value_index < arrlenu(ctx->tokens->values));
+	return ctx->tokens->values[token->value_index];
+}
+
 #define parse_ident(ctx) (tokens_peek((ctx)->tokens)->sym == SYM_IDENT ? _parse_ident(ctx) : NULL)
 static inline struct ast *_parse_ident(struct context *ctx) {
 	zone();
 	struct token *tok_ident = tokens_consume(ctx->tokens);
 	assert(tok_ident->sym == SYM_IDENT);
 	struct ast *ident = ast_create_node(ctx->ast_arena, AST_IDENT, tok_ident, scope_get(ctx));
-	id_init(&ident->data.ident.id, tok_ident->value.str);
+	id_init(&ident->data.ident.id, get_token_value(ctx, tok_ident).str);
 	return_zone(ident);
 }
 
@@ -301,21 +305,22 @@ bool parse_docs(struct context *ctx) {
 	struct token *tok_begin = tokens_consume_if(ctx->tokens, SYM_DCOMMENT);
 	if (!tok_begin) return false;
 	zone();
-	str_t str = tok_begin->value.str;
+	str_t str_value = get_token_value(ctx, tok_begin).str;
 	if (tokens_peek(ctx->tokens)->sym == SYM_DCOMMENT) {
 		str_buf_t tmp = get_tmp_str();
-		str_buf_append_fmt(&tmp, "{str}\n", str);
+		str_buf_append_fmt(&tmp, "{str}\n", str_value);
 
 		struct token *tok;
 		while ((tok = tokens_consume_if(ctx->tokens, SYM_DCOMMENT))) {
-			str_buf_append_fmt(&tmp, "{str}\n", tok->value.str);
+			const str_t str_value = get_token_value(ctx, tok).str;
+			str_buf_append_fmt(&tmp, "{str}\n", str_value);
 		}
-		str = scdup2(ctx->string_cache, tmp);
+		str_value = scdup2(ctx->string_cache, tmp);
 		put_tmp_str(tmp);
 	}
 
 	struct ast *docs     = ast_create_node(ctx->ast_arena, AST_DOCS, tok_begin, scope_get(ctx));
-	docs->data.docs.text = str;
+	docs->data.docs.text = str_value;
 	ctx->current_docs    = docs;
 	return_zone(true);
 }
@@ -327,7 +332,8 @@ bool parse_unit_docs(struct context *ctx) {
 	struct token *tok;
 	while ((tok = tokens_consume_if(ctx->tokens, SYM_DGCOMMENT))) {
 		if (ctx->unit->file_docs_cache.len) str_buf_append(&ctx->unit->file_docs_cache, cstr("\n"));
-		str_buf_append(&ctx->unit->file_docs_cache, tok->value.str);
+		const str_t str_value = get_token_value(ctx, tok).str;
+		str_buf_append(&ctx->unit->file_docs_cache, str_value);
 	}
 	return_zone(true);
 }
@@ -366,7 +372,7 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 	struct token *tok_directive = tokens_consume(ctx->tokens);
 	if (tok_directive->sym != SYM_IDENT) goto INVALID;
 
-	const str_t  directive = tok_directive->value.str;
+	const str_t  directive = get_token_value(ctx, tok_directive).str;
 	const hash_t hash      = strhash(directive);
 	const s64    index     = tbl_lookup_index(ctx->hash_directive_table, hash);
 	if (index == -1) goto INVALID;
@@ -411,7 +417,7 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 		}
 
 		struct ast *load         = ast_create_node(ctx->ast_arena, AST_LOAD, tok_directive, scope_get(ctx));
-		load->data.load.filepath = tok_path->value.str;
+		load->data.load.filepath = get_token_value(ctx, tok_path).str;
 		if (ctx->assembly->target->kind != ASSEMBLY_DOCS) {
 			assembly_add_unit(ctx->assembly, load->data.load.filepath, tok_path);
 		}
@@ -430,10 +436,10 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 		}
 		struct ast *import =
 		    ast_create_node(ctx->ast_arena, AST_IMPORT, tok_directive, scope_get(ctx));
-		import->data.import.filepath = tok_path->value.str.ptr;
+		import->data.import.filepath = get_token_value(ctx, tok_path).str.ptr;
 		BL_TRACY_MESSAGE("HD_FLAG", "#import (%s)", tok_path->value.str.ptr);
 		if (ctx->assembly->target->kind != ASSEMBLY_DOCS) {
-			assembly_import_module(ctx->assembly, tok_path->value.str.ptr, tok_path);
+			assembly_import_module(ctx->assembly, get_token_value(ctx, tok_path).str.ptr, tok_path);
 		}
 		return_zone(import);
 	}
@@ -485,7 +491,7 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 		if (!tok_ext) return_zone(NULL);
 		// Parse extension token.
 		struct ast *ext = ast_create_node(ctx->ast_arena, AST_IDENT, tok_ext, scope_get(ctx));
-		id_init(&ext->data.ident.id, tok_ext->value.str);
+		id_init(&ext->data.ident.id, get_token_value(ctx, tok_ext).str);
 		return_zone(ext);
 	}
 
@@ -496,7 +502,7 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 		if (!tok_ext) return_zone(NULL);
 		// Parse extension token.
 		struct ast *ext = ast_create_node(ctx->ast_arena, AST_IDENT, tok_ext, scope_get(ctx));
-		id_init(&ext->data.ident.id, tok_ext->value.str);
+		id_init(&ext->data.ident.id, get_token_value(ctx, tok_ext).str);
 		return_zone(ext);
 	}
 
@@ -506,7 +512,7 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 		struct token *tok_message = tokens_consume_if(ctx->tokens, SYM_STRING);
 		if (!tok_message) return_zone(NULL);
 		struct ast *message           = ast_create_node(ctx->ast_arena, AST_EXPR_LIT_STRING, tok_message, scope_get(ctx));
-		message->data.expr_string.val = tok_message->value.str;
+		message->data.expr_string.val = get_token_value(ctx, tok_message).str;
 		return_zone(message);
 	}
 
@@ -517,7 +523,7 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 		if (!tok_ext) return_zone(NULL);
 		// Parse extension token.
 		struct ast *ext = ast_create_node(ctx->ast_arena, AST_IDENT, tok_ext, scope_get(ctx));
-		id_init(&ext->data.ident.id, tok_ext->value.str);
+		id_init(&ext->data.ident.id, get_token_value(ctx, tok_ext).str);
 		return_zone(ext);
 	}
 
@@ -1499,14 +1505,13 @@ struct ast *parse_expr_lit(struct context *ctx) {
 
 	switch (tok->sym) {
 	case SYM_NUM:
-		lit                             = ast_create_node(ctx->ast_arena, AST_EXPR_LIT_INT, tok, scope_get(ctx));
-		lit->data.expr_integer.val      = tok->value.u;
-		lit->data.expr_integer.overflow = tok->overflow;
+		lit                        = ast_create_node(ctx->ast_arena, AST_EXPR_LIT_INT, tok, scope_get(ctx));
+		lit->data.expr_integer.val = get_token_value(ctx, tok).number;
 		break;
 
 	case SYM_CHAR:
 		lit                          = ast_create_node(ctx->ast_arena, AST_EXPR_LIT_CHAR, tok, scope_get(ctx));
-		lit->data.expr_character.val = (u8)tok->value.c;
+		lit->data.expr_character.val = (u8)get_token_value(ctx, tok).character;
 
 		break;
 
@@ -1521,15 +1526,13 @@ struct ast *parse_expr_lit(struct context *ctx) {
 		break;
 
 	case SYM_DOUBLE:
-		lit                            = ast_create_node(ctx->ast_arena, AST_EXPR_LIT_DOUBLE, tok, scope_get(ctx));
-		lit->data.expr_double.val      = tok->value.d;
-		lit->data.expr_double.overflow = tok->overflow;
+		lit                       = ast_create_node(ctx->ast_arena, AST_EXPR_LIT_DOUBLE, tok, scope_get(ctx));
+		lit->data.expr_double.val = get_token_value(ctx, tok).double_number;
 		break;
 
 	case SYM_FLOAT:
-		lit                           = ast_create_node(ctx->ast_arena, AST_EXPR_LIT_FLOAT, tok, scope_get(ctx));
-		lit->data.expr_float.val      = (f32)tok->value.d;
-		lit->data.expr_float.overflow = tok->overflow;
+		lit                      = ast_create_node(ctx->ast_arena, AST_EXPR_LIT_FLOAT, tok, scope_get(ctx));
+		lit->data.expr_float.val = (f32)get_token_value(ctx, tok).double_number;
 		break;
 
 	case SYM_STRING: {
@@ -1541,7 +1544,8 @@ struct ast *parse_expr_lit(struct context *ctx) {
 			str_buf_t tmp = get_tmp_str();
 
 			while ((tok = tokens_consume_if(ctx->tokens, SYM_STRING))) {
-				str_buf_append(&tmp, tok->value.str);
+				const str_t str = get_token_value(ctx, tok).str;
+				str_buf_append(&tmp, str);
 			}
 			const str_t dup = scdup2(ctx->string_cache, tmp);
 			put_tmp_str(tmp);
@@ -1549,7 +1553,8 @@ struct ast *parse_expr_lit(struct context *ctx) {
 			lit->data.expr_string.val = dup;
 		} else {
 			tokens_consume(ctx->tokens);
-			lit->data.expr_string.val = tok->value.str;
+			const str_t str           = get_token_value(ctx, tok).str;
+			lit->data.expr_string.val = str;
 		}
 		// Directly return, all tokens were consumed.
 		return_zone(lit);

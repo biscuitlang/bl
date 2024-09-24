@@ -53,16 +53,15 @@ struct location {
 
 union token_value {
 	str_t str;
-	char  c;
-	f64   d;
-	u64   u;
+	char  character;
+	f64   double_number;
+	u64   number;
 };
 
 struct token {
-	enum sym          sym;
-	bool              overflow;
-	struct location   location;
-	union token_value value;
+	struct location location;
+	enum sym        sym;
+	u32             value_index;
 };
 
 enum token_associativity {
@@ -77,8 +76,10 @@ struct token_precedence {
 };
 
 struct tokens {
-	struct token *buf;
-	usize         iter;
+	array(struct token) buf;
+	array(union token_value) values;
+
+	usize iter;
 };
 
 static inline bool sym_is_binop(enum sym sym) {

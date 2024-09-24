@@ -2163,8 +2163,8 @@ static struct mir_type *complete_type_struct(struct context *ctx, complete_type_
 
 #if TRACY_ENABLE
 	{
-		str_buf_t type_name = mir_type2str(incomplete_type, /* prefer_name */ true);
-		BL_TRACY_MESSAGE("COMPLETE_TYPE", "%s", str_to_c(type_name));
+		str_buf_t type_name = mir_type2str(incomplete_type, true);
+		BL_TRACY_MESSAGE("COMPLETE_TYPE", "%s", type_name.ptr);
 		put_tmp_str(type_name);
 	}
 #endif
@@ -10173,13 +10173,6 @@ struct mir_instr *ast_expr_deref(struct context *ctx, struct ast *deref) {
 struct mir_instr *ast_expr_lit_int(struct context *ctx, struct ast *expr) {
 	u64 val = expr->data.expr_integer.val;
 
-	if (expr->data.expr_integer.overflow) {
-		report_error(NUM_LIT_OVERFLOW,
-		             expr,
-		             "Integer literal is too big and cannot be represented as any "
-		             "integer type.");
-	}
-
 	struct mir_type *type         = NULL;
 	const int        desired_bits = count_bits(val);
 
@@ -10197,18 +10190,10 @@ struct mir_instr *ast_expr_lit_int(struct context *ctx, struct ast *expr) {
 }
 
 struct mir_instr *ast_expr_lit_float(struct context *ctx, struct ast *expr) {
-	if (expr->data.expr_float.overflow) {
-		report_error(NUM_LIT_OVERFLOW, expr, "Float literal is too big and cannot be represented as f32.");
-	}
-
 	return append_instr_const_float(ctx, expr, expr->data.expr_float.val);
 }
 
 struct mir_instr *ast_expr_lit_double(struct context *ctx, struct ast *expr) {
-	if (expr->data.expr_double.overflow) {
-		report_error(NUM_LIT_OVERFLOW, expr, "Double literal is too big and cannot be represented as f64.");
-	}
-
 	return append_instr_const_double(ctx, expr, expr->data.expr_double.val);
 }
 
