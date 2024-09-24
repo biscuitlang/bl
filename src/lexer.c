@@ -69,6 +69,12 @@ static bool       scan_number(struct context *ctx, struct token *tok);
 static inline int c_to_number(char c, s32 base);
 static char       scan_specch(char c);
 
+static inline u32 add_token_value(struct context *ctx, union token_value value) {
+	const u32 index = (u32)arrlenu(ctx->tokens->values);
+	arrput(ctx->tokens->values, value);
+	return index;
+}
+
 bool scan_comment(struct context *ctx, struct token *tok, const char *term) {
 	if (tok->sym == SYM_SHEBANG && ctx->line != 1) {
 		report_error(INVALID_TOKEN, STR_FMT " %d:%d Shebang is allowed only on the first line of the file.", STR_ARG(ctx->unit->name), ctx->line, ctx->col);
@@ -111,7 +117,9 @@ bool scan_docs(struct context *ctx, struct token *tok) {
 		ctx->c++;
 	}
 
-	tok->value.str    = scdup2(ctx->string_cache, make_str(begin, len_str));
+	str_t str        = scdup2(ctx->string_cache, make_str(begin, len_str));
+	tok->value_index = add_token_value(ctx, (union token_value){.str = str});
+
 	tok->location.len = len_parsed + 3; // + 3 = '///'
 	ctx->col += len_parsed;
 	return true;
@@ -189,7 +197,8 @@ bool scan_ident(struct context *ctx, struct token *tok) {
 	if (len == 0) return_zone(false);
 	// Note that we use the string identificators directly (no copy is done). That means those might
 	// not to be zero terminated! This way we reduce amount of string duplication.
-	tok->value.str    = make_str(begin, len);
+	str_t str         = make_str(begin, len);
+	tok->value_index  = add_token_value(ctx, (union token_value){.str = str});
 	tok->location.len = len;
 	ctx->col += len;
 	return_zone(true);
@@ -250,13 +259,14 @@ bool scan_string(struct context *ctx, struct token *tok) {
 		}
 		sarrput(&ctx->strtmp, c);
 	}
-DONE:
-	tok->value.str = scdup2(ctx->string_cache, make_str(sarrdata(&ctx->strtmp), sarrlenu(&ctx->strtmp)));
-
+DONE : {
+	str_t str         = scdup2(ctx->string_cache, make_str(sarrdata(&ctx->strtmp), sarrlenu(&ctx->strtmp)));
+	tok->value_index  = add_token_value(ctx, (union token_value){.str = str});
 	tok->location.len = len;
 	tok->location.col += 1;
 	ctx->col += len + 2;
 	return_zone(true);
+}
 }
 
 bool scan_char(struct context *ctx, struct token *tok) {
@@ -278,12 +288,12 @@ bool scan_char(struct context *ctx, struct token *tok) {
 	}
 	case '\\':
 		// special character
-		tok->value.c = scan_specch(*(ctx->c + 1));
+		tok->value_index = add_token_value(ctx, (union token_value){.character = scan_specch(*(ctx->c + 1))});
 		ctx->c += 2;
 		tok->location.len = 2;
 		break;
 	default:
-		tok->value.c      = *ctx->c;
+		tok->value_index  = add_token_value(ctx, (union token_value){.character = *ctx->c});
 		tok->location.len = 1;
 		ctx->c++;
 	}
@@ -333,8 +343,6 @@ inline s32 c_to_number(char c, s32 base) {
 bool scan_number(struct context *ctx, struct token *tok) {
 	tok->location.line = ctx->line;
 	tok->location.col  = ctx->col;
-	// tok->value.str     = ctx->c; @Incomplete: check this
-	tok->overflow = false;
 
 	u64 n = 0, prev_n = 0;
 	s32 len  = 0;
@@ -350,6 +358,8 @@ bool scan_number(struct context *ctx, struct token *tok) {
 		ctx->c += 2;
 		len += 2;
 	}
+
+	bool overflow = false;
 
 	while (true) {
 		if (*(ctx->c) == '.') {
@@ -373,18 +383,23 @@ bool scan_number(struct context *ctx, struct token *tok) {
 
 		len++;
 		ctx->c++;
-		if (n < prev_n) tok->overflow = true;
+		if (n < prev_n) overflow = true;
 	}
 
 	if (len == 0) return false;
 
 	tok->location.len = len;
 	ctx->col += len;
-	tok->sym     = SYM_NUM;
-	tok->value.u = n;
+	tok->sym         = SYM_NUM;
+	tok->value_index = add_token_value(ctx, (union token_value){.number = n});
+
+	if (overflow) {
+		builder_msg(MSG_ERR, ERR_NUM_LIT_OVERFLOW, &tok->location, CARET_WORD, "Number value overflow.");
+	}
+
 	return true;
 
-SCAN_DOUBLE: {
+SCAN_DOUBLE : {
 	u64 e = 1;
 
 	while (true) {
@@ -399,7 +414,7 @@ SCAN_DOUBLE: {
 		len++;
 		ctx->c++;
 
-		if (n < prev_n) tok->overflow = true;
+		if (n < prev_n) overflow = true;
 	}
 
 	// valid d. or .d -> minimal 2 characters
@@ -413,8 +428,12 @@ SCAN_DOUBLE: {
 		tok->sym = SYM_DOUBLE;
 	}
 
-	tok->value.d = n / (f64)e;
-	if (tok->value.d > FLT_MAX) tok->overflow = true;
+	const double number = n / (f64)e;
+	if (number > FLT_MAX) overflow = true;
+	if (overflow) {
+		builder_msg(MSG_ERR, ERR_NUM_LIT_OVERFLOW, &tok->location, CARET_WORD, "Number value overflow.");
+	}
+	tok->value_index = add_token_value(ctx, (union token_value){.double_number = number});
 
 	tok->location.len = len;
 	ctx->col += len;
