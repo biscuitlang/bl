@@ -6359,8 +6359,6 @@ struct result analyze_instr_switch(struct context *ctx, struct mir_instr_switch 
 	s64             expected_case_count = expected_case_type->kind == MIR_TYPE_ENUM ? sarrlen(variants) : -1;
 
 	if ((expected_case_count > sarrlen(sw->cases)) && !sw->has_user_defined_default) {
-		report_warning(sw->base.node, "Switch does not handle all possible enumerator values.");
-
 		bassert(expected_case_type->kind == MIR_TYPE_ENUM);
 		for (usize i = 0; i < sarrlenu(variants); ++i) {
 			struct mir_variant *variant = sarrpeek(variants, i);
@@ -6375,7 +6373,7 @@ struct result analyze_instr_switch(struct context *ctx, struct mir_instr_switch 
 				}
 			}
 			if (!hit) {
-				builder_msg(MSG_ERR_NOTE, 0, NULL, CARET_NONE, "Missing case for: " STR_FMT "", STR_ARG(variant->id->str));
+				report_warning(sw->base.node, "Missing switch case for enumerator variant '" STR_FMT "'.", STR_ARG(variant->id->str));
 			}
 		}
 	}
