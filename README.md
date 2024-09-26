@@ -58,7 +58,7 @@ See more examples [here](https://biscuitlang.org).
 
 # Authors
 
-- **Martin Dorazil** (travis) [![](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://www.paypal.com/donate/?hosted_button_id=WKSP23ADBFDP6)
+- **Martin Dorazil** (travis) [SPONSOR](https://www.paypal.com/donate/?hosted_button_id=WKSP23ADBFDP6)
 - **Gmos**
 
 # FAQ
