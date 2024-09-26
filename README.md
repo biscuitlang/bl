@@ -58,8 +58,27 @@ See more examples [here](https://biscuitlang.org).
 
 # Authors
 
-- **Martin Dorazil** (travis) [![](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/travisdoor)
+- **Martin Dorazil** (travis) [![](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://www.paypal.com/donate/?hosted_button_id=WKSP23ADBFDP6)
 - **Gmos**
+
+# FAQ
+
+* Why does this even exist?
+
+I enjoy programming in simple languages like C, but sometimes I need a bit more abstract things. Having a custom language brings a pretty nice possibility to add all you need or miss from your conventional language like C.
+And, it's fun to work on.
+
+* Does language support XYZ?
+
+Probably not, I'm the only one working on the compiler and I usually do only things I need. Feel free to contribute.
+
+* Is it production ready?
+
+Depends on what you mean by production, but I would prefer this language to be used on smaller pet projects first before diving into corporate bullshit.
+
+* Can this language be used as C++ replacement?
+
+In some cases yes, but you might run into trouble since there is no strong community behind the language and the new religion was not established yet.
 
 # Projects Using BL
 
