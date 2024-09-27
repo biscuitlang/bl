@@ -3,8 +3,10 @@
 
 */
 
+#import "std/fs"
+
 main :: fn () s32 {
-	print("Hello!\n");
+	std.read_entire_file("hello");
 	return 0;
 }
 
