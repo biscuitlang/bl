@@ -342,6 +342,10 @@ print_any :: fn (buf: *?T, cur: *s32, any: *Any) {
 			char := cast(u8) u64_from_u8_ptr(&fmt.v, auto sizeof(u8) * 8);
 			print_string(buf, cur, string_view.{1, &char});
 			return;
+		} else if any.type_info == typeinfo(Any) {
+			tmp :: @cast(*Any) any.data;
+			print_any(buf, cur, &tmp);
+			return;
 		}
 
 		info := cast(*TypeInfoStruct) any.type_info;

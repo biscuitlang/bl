@@ -106,6 +106,20 @@ tbl_typeof_value :: fn (TTable: type #comptime) type #comptime {
 ///     When no value is explicitly inserted, returned pointer points to non-initialized memory.
 tbl_insert :: fn { impl_insert_empty; impl_insert; }
 
+tbl_insert_all :: fn (tbl: *?T, entries: []?TPair) #inline {
+	loop i := 0; i < entries.len; i += 1 {
+		entry :: &entries[i];
+		#if !has_member2(TPair, "key") {
+			panic("Entry does not have key member!");
+		}
+		#if !has_member2(TPair, "value") {
+			panic("Entry does not have value member!");
+		}
+		impl_insert(tbl, entry.key, entry.value);
+	}
+}
+
+
 /// Lookup entry associated with the `key` and returns pointer its value or `null` when no such `key`
 /// was found.
 tbl_lookup_ptr :: fn (tbl: *?T, key: tbl_typeof_key(T)) *tbl_typeof_value(T) #inline {

@@ -4808,7 +4808,7 @@ static struct result analyze_instr_compound_regular(struct context *ctx, struct 
 
 			sarrput(value_member_mapping, last_member_index);
 			member_type = mir_get_struct_elem_type(type, (usize)last_member_index);
-			if (analyze_slot(ctx, analyze_slot_conf_default, value_ref, member_type) != ANALYZE_PASSED) return_zone(FAIL);
+			if (analyze_slot(ctx, analyze_slot_conf_full, value_ref, member_type) != ANALYZE_PASSED) return_zone(FAIL);
 
 			cmp->base.value.is_comptime = (*value_ref)->value.is_comptime ? cmp->base.value.is_comptime : false;
 			struct ast *other_init      = sarrdata(&initialized_members)[last_member_index];
