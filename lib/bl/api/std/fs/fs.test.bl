@@ -401,12 +401,12 @@ fs_validate_filename_test :: fn () #test {
 	if PLATFORM == Platform.WINDOWS {
 		test_false(std.validate_filename("<"));
 		test_false(std.validate_filename(">"));
-		test_false(std.validate_filename(":")); 
-		test_false(std.validate_filename("\""));     
+		test_false(std.validate_filename(":"));
+		test_false(std.validate_filename("\""));
 		test_false(std.validate_filename("/"));
 		test_false(std.validate_filename("\\"));
-		test_false(std.validate_filename("|")); 
-		test_false(std.validate_filename("?"));        
+		test_false(std.validate_filename("|"));
+		test_false(std.validate_filename("?"));
 		test_false(std.validate_filename("*"));
 		test_false(std.validate_filename("\t"));
 		test_false(std.validate_filename("foo<"));
@@ -439,7 +439,7 @@ fs_normalize_2 :: fn () #test {
 	status :: path_normalize(&filepath);
 	test_ok(status);
 	test_eq(filepath, cwd);
-}    
+}
 
 fs_normalize_3 :: fn () #test {
 	using std;
@@ -477,7 +477,7 @@ fs_copy_test :: fn () #test {
 	defer str_delete(&filepath2);
 	remove_file(filepath1);
 	remove_file(filepath2);
-	
+
 	create_file(filepath1);
 	{ // copy
 		err :: copy_file(filepath1, filepath2);
@@ -599,7 +599,7 @@ fs_remove_all_dir_test1 :: fn () #test {
 		s :: std.create_dir(dir);
 		test_ok(s);
 	}
-	
+
 	{
 		file :: std.str_new(dir);
 		defer std.str_delete(&file);
@@ -718,4 +718,22 @@ fs_path_splitext :: fn () #test {
 		test_eq(d, "");
 		test_eq(f, ".");
 	}
+}
+
+fs_read_write_entire_file :: fn () #test {
+	using std;
+	filepath :: get_dummy_filepath();
+	defer str_delete(&filepath);
+	remove_file(filepath);
+
+	CONTENT :: "This is content of my file!";
+
+	write_err :: write_entire_file(filepath, CONTENT);
+	test_ok(write_err);
+
+	content, read_err :: read_entire_file(filepath);
+	test_ok(read_err);
+	defer array_terminate(&content);
+
+	test_eq(CONTENT, content);
 }

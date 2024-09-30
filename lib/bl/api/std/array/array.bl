@@ -44,7 +44,8 @@ array_init :: fn (_arr: *[..]?T, n: s64 = 0, allocator: *Allocator = null) #inli
 }
 
 /// Release memory allocated by dynamic array. This function is supposed to be called when dynamic
-/// array is no longer needed. Passed dynamic array is set to default state also.
+/// array is no longer needed. Passed dynamic array is reset to default state.
+/// Calling `array_terminate` on already terminated or non-initialized array is allowed.
 array_terminate :: fn (_arr: *[..]?T) #inline {
 	arr := cast(*_Array) _arr;
 	free(arr.ptr, arr.allocator);
@@ -105,6 +106,8 @@ array_pop_first :: fn (_arr: *[..]?T, out: *T = null) bool #inline {
 
 /// Reserve heap memory for `n` elements in array. Does nothing in case the already allocated block is
 /// large enough to hold `n` elements, the allocated memory block might be bigger then requested size.
+///
+/// In case `n` is 0 function immediately returns without any allocations.
 array_reserve :: fn (_arr: *[..]?T, n: s64) #inline {
 	arr := cast(*_Array) _arr;
 	if n == 0 { return; }

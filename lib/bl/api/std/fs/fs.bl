@@ -76,6 +76,36 @@ remove_file :: fn (filepath: string_view) Error #inline {
 	return _fs_impl.remove(filepath);
 }
 
+/// Reads content of entire file on `filepath` into array of bytes. Allocator can be specified optionally, in case it's null
+/// default application context allocator will be used.
+/// Returned array might require explicit destruction by calling `array_terminate` depenting on allocator being used.
+/// Use `application_context.temporary_allocator` in case the resulting content is not supposed to be persistent.
+read_entire_file :: fn (filepath: string_view, allocator : *Allocator = null) ([..]u8, Error) {
+	content: [..]u8;
+	array_init(&content, 0, allocator);
+	stream, open_err :: open_file(filepath, OpenFileMode.READ);
+	defer close_file(&stream);
+	if open_err then return content, open_err;
+	read_err :: read_whole(&stream, &content);
+	if read_err {
+		array_terminate(&content);
+		return content, read_err;
+	}
+	return content, OK;
+}
+
+/// Write entire `content` into the file on `filepath`.
+write_entire_file :: fn (filepath: string_view, content: []u8, mode := OpenFileMode.CREATE | OpenFileMode.WRITE) Error {
+	if content.len == 0 then return OK;
+	assert(content.ptr);
+	stream, open_err :: open_file(filepath, mode);
+	defer close_file(&stream);
+	if open_err then return open_err;
+	write_err :: write_all(&stream, content.ptr, content.len);
+	if write_err then return write_err;
+	return OK;
+}
+
 /// Copy existing file from `src` to `dest` and override existing file in destination if `override`
 /// is true. Return `ok` or `error`.
 ///
