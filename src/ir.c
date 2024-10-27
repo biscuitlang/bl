@@ -719,12 +719,12 @@ void emit_DI_var(struct context *ctx, struct mir_var *var) {
 		LLVMMetadataRef   llvm_expr         = LLVMDIBuilderCreateExpression(ctx->llvm_di_builder, NULL, 0);
 		LLVMMetadataRef   llvm_loc          = llvm_di_builder_create_debug_location(ctx->llvm_cnt, location->line, 0, llvm_scope, NULL);
 		LLVMBasicBlockRef llvm_insert_block = LLVMGetInsertBlock(ctx->llvm_builder);
-		LLVMDIBuilderInsertDeclareAtEnd(ctx->llvm_di_builder,
-		                                var->llvm_value,
-		                                llvm_meta,
-		                                llvm_expr,
-		                                llvm_loc,
-		                                llvm_insert_block);
+		LLVMDIBuilderInsertDeclareRecordAtEnd(ctx->llvm_di_builder,
+		                                      var->llvm_value,
+		                                      llvm_meta,
+		                                      llvm_expr,
+		                                      llvm_loc,
+		                                      llvm_insert_block);
 	}
 }
 
