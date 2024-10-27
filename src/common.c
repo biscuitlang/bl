@@ -61,6 +61,7 @@
 #include <mach-o/dyld.h>
 #include <mach/mach_time.h>
 #include <sys/time.h>
+#include <stdlib.h>
 #endif
 
 #if BL_PLATFORM_LINUX
@@ -545,8 +546,14 @@ bool get_current_exec_path(str_buf_t *out_full_path) {
 #endif
 
 	if (result) {
-		str_buf_clr(out_full_path);
-		str_buf_append(out_full_path, make_str_from_c(buf));
+	    str_buf_clr(out_full_path);
+#if BL_PLATFORM_MACOS
+        char resolved[PATH_MAX];
+        realpath(buf, resolved);
+        str_buf_append(out_full_path, make_str_from_c(resolved));
+#else
+        str_buf_append(out_full_path, make_str_from_c(buf));
+#endif
 #if BL_PLATFORM_WIN
 		win_path_to_unix(*out_full_path);
 #endif
