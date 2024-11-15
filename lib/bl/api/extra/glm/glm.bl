@@ -127,6 +127,7 @@ mat4_zero :: fn (m: *mat4) #inline {
 	zeromem(auto m, sizeof(@m));
 }
 
+// fov = fov y
 mat4_init_perspective :: fn (m: *mat4, fov_rad: f32, aspect: f32, near: f32, far: f32) #inline {
 	mat4_zero(m);
 	tanHalfFovy :: std.tan(fov_rad / 2.f);

@@ -145,6 +145,7 @@ VkResult :: enum s32 {
 	VK_ERROR_PIPELINE_COMPILE_REQUIRED_EXT = 0x3b9f5228;
 	VK_RESULT_MAX_ENUM = 0x7fffffff;
 }
+
 VkStructureType :: enum s32 {
 	VK_STRUCTURE_TYPE_APPLICATION_INFO = 0x0;
 	VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO = 0x1;
@@ -974,8 +975,10 @@ VkStructureType :: enum s32 {
 	VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_4_PROPERTIES_KHR = 0x3ba11749;
 	VK_STRUCTURE_TYPE_DEVICE_BUFFER_MEMORY_REQUIREMENTS_KHR = 0x3ba1174a;
 	VK_STRUCTURE_TYPE_DEVICE_IMAGE_MEMORY_REQUIREMENTS_KHR = 0x3ba1174b;
+	VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_VALIDATION_FEATURES_NV = 1000568000;
 	VK_STRUCTURE_TYPE_MAX_ENUM = 0x7fffffff;
 }
+
 VkPipelineCacheHeaderVersion :: enum s32 {
 	VK_PIPELINE_CACHE_HEADER_VERSION_ONE = 0x1;
 	VK_PIPELINE_CACHE_HEADER_VERSION_MAX_ENUM = 0x7fffffff;
@@ -2151,6 +2154,7 @@ VkPipelineCreateFlagBits :: enum u32 #flags {
 	VK_PIPELINE_CREATE_CAPTURE_INTERNAL_REPRESENTATIONS_BIT_KHR = 0x80;
 	VK_PIPELINE_CREATE_INDIRECT_BINDABLE_BIT_NV = 0x40000;
 	VK_PIPELINE_CREATE_LIBRARY_BIT_KHR = 0x800;
+	VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT = 0x20000000;
 	VK_PIPELINE_CREATE_RETAIN_LINK_TIME_OPTIMIZATION_INFO_BIT_EXT = 0x800000;
 	VK_PIPELINE_CREATE_LINK_TIME_OPTIMIZATION_BIT_EXT = 0x400;
 	VK_PIPELINE_CREATE_RAY_TRACING_ALLOW_MOTION_BIT_NV = 0x100000;
@@ -10388,3 +10392,9 @@ PFN_vkCmdDrawMeshTasksIndirectCountEXT :: *fn (VkCommandBuffer, VkBuffer, VkDevi
 vkCmdDrawMeshTasksEXT :: fn (commandBuffer: VkCommandBuffer, groupCountX: u32, groupCountY: u32, groupCountZ: u32) #extern;
 vkCmdDrawMeshTasksIndirectEXT :: fn (commandBuffer: VkCommandBuffer, buffer: VkBuffer, offset: VkDeviceSize, drawCount: u32, stride: u32) #extern;
 vkCmdDrawMeshTasksIndirectCountEXT :: fn (commandBuffer: VkCommandBuffer, buffer: VkBuffer, offset: VkDeviceSize, countBuffer: VkBuffer, countBufferOffset: VkDeviceSize, maxDrawCount: u32, stride: u32) #extern;
+
+VkPhysicalDeviceRayTracingValidationFeaturesNV :: struct {
+	sType: VkStructureType;
+	pNext: *u8;
+	rayTracingValidation: VkBool32;
+}

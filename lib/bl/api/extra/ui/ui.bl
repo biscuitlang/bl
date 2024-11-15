@@ -711,10 +711,11 @@ textbox :: fn {
 // Canvas
 //
 
-canvas_begin :: fn (background_color: glm.v4 = TRANSPARENT) {
+canvas_begin :: fn (background_color: glm.v4 = TRANSPARENT) Rect {
 	rect :: peek();
 	push(rect_translated(rect));
 	fill_current_rect(background_color);
+	return rect_translated(rect);
 }
 
 canvas_end :: fn () {
@@ -1414,7 +1415,7 @@ checkbox_item_impl :: fn (name: string_view, value: *bool, _style: *CheckboxStyl
 // Variants Impl
 //
 
-variants_impl :: fn (rect: Rect, value: Any, _style: *VariantsStyle = null, flags := VariantsFlags.DEFAULT, index : u64 = 0, _ := #call_location) bool {
+variants_impl :: fn (rect: Rect, value: Any, _style: *VariantsStyle = null, flags := VariantsFlags.DEFAULT, index : u64 = 0, loc := #call_location) bool {
 	style :: get_style(_style);
 
 	info :: cast(*TypeInfoEnum) value.type_info;
@@ -1438,10 +1439,10 @@ variants_impl :: fn (rect: Rect, value: Any, _style: *VariantsStyle = null, flag
 	if is_flag(flags, VariantsFlags.READONLY) { button_flags = ButtonFlags.DISABLED; }
 
 	prev_variant_index :: variant_index;
-	if button(make_rect(0.f, 0.f, rect.h, rect.h), icon_utf8(ICON_ARROW_LEFT), button_flags, &style.button, index) {
+	if button(make_rect(0.f, 0.f, rect.h, rect.h), icon_utf8(ICON_ARROW_LEFT), button_flags, &style.button, index, loc) {
 		variant_index -= 1;
 	}
-	if button(make_rect(rect.w - rect.h, 0.f, rect.h, rect.h), icon_utf8(ICON_ARROW_RIGHT), button_flags, &style.button, index) {
+	if button(make_rect(rect.w - rect.h, 0.f, rect.h, rect.h), icon_utf8(ICON_ARROW_RIGHT), button_flags, &style.button, index+1, loc) {
 		variant_index += 1;
 	}
 

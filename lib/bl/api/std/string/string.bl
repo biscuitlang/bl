@@ -612,7 +612,7 @@ str_upper_single_character :: fn (str: *string, index: s64) #inline {
 /// If `with` replacement is 0 character, all `c` occurrences will be erased from the string.
 ///
 /// Function return count of replaced characters or zero.
-str_replace_all :: fn (str: *string, c: u8, with := '\0') s32 {
+str_replace_all :: fn (str: *string, c: u8, with := '\0') s32 { // 2024-10-06 Why not to use string_view here?
 	replaced := 0;
 	loop i := 0; i < (@str).len; i += 1 {
 		if (@str)[i] == c {
