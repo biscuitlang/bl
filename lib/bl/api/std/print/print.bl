@@ -633,7 +633,7 @@ print_f64 :: fn (buf: *?T, cur: *s32, v: f64, trailing: s32) {
 	if adjusted_trailing != 0 {
 		print_string(buf, cur, ".");
 		fpart = fpart * std.pow(10., auto adjusted_trailing);
-		print_u64(buf, cur, cast(u64) std.ceil(fpart), FmtIntBase.DEC, adjusted_trailing);
+		print_u64(buf, cur, cast(u64) std.round(fpart), FmtIntBase.DEC, adjusted_trailing);
 	}
 }
 

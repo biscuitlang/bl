@@ -1506,7 +1506,7 @@ floatbox_impl :: fn (rect: Rect, value: *f32, flags := TextboxFlags.DEFAULT, sty
 	using std;
 
 	str_clear(&num_conversion_tmp);
-	str_append(&num_conversion_tmp, fmt_real(@value, 2));
+	str_append(&num_conversion_tmp, fmt_real(@value, 3));
 	if textbox_impl(rect, &num_conversion_tmp, flags | TextboxFlags.NUMBER_INPUT, style, null, index, loc) {
 		n, err :: strtof64(&num_conversion_tmp);
 		if !err {
