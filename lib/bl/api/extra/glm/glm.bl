@@ -524,6 +524,28 @@ quat_forward :: fn (q: quat) v3 {
 	return v3.{ z2x + y2w, z2y - x2w, 1.0f - (x2x + y2y) };
 }
 
+quat_for :: fn (dir: v3, up: v3) quat {
+	m2 :: mul(normalize(dir), -1.f);
+	m0 :: normalize(cross(up, m2));
+	m1 :: cross(m2, m0);
+
+	m := MAT4_IDENTITY;
+	m[0][0] = m0.x;
+	m[0][1] = m0.y;
+	m[0][2] = m0.z;
+
+	m[1][0] = m1.x;
+	m[1][1] = m1.y;
+	m[1][2] = m1.z;
+
+	m[2][0] = m2.x;
+	m[2][1] = m2.y;
+	m[2][2] = m2.z;
+
+
+	return mat4_get_quat(&m);
+}
+
 lerp :: fn (a: ?T, b: T, t: f32) T #inline {
 #if T == v2 || T == v3 || T == v4 {
 	return add(a, mul(sub(b, a), t));
