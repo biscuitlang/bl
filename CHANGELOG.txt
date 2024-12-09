@@ -1,5 +1,6 @@
 Master
 ---------------------------------------------------------------------------------------
+Add symlink resolve for the current executable on macos.
 Fix interp function callbacks without arguments.
 Paralelize MIR generation.
 Performance improvements.
