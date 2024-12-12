@@ -16,7 +16,6 @@ module :: fn (target: *Target) #module_entry {
 #load "test2.bl"
 
 main :: fn () s32 {
-
 	foo();
 	foobar();
 	return 0;

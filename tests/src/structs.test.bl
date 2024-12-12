@@ -1,4 +1,4 @@
-#private
+#scope_private
 slices :: fn () #test {
 	arr : [3]s32;
 

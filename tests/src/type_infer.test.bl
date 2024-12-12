@@ -1,4 +1,4 @@
-#private
+#scope_private
 
 type_infer :: fn () #test {
 	number := 0;

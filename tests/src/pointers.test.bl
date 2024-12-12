@@ -1,4 +1,4 @@
-#private
+#scope_private
 pointers :: fn () #test {
 	i       := 666;
 	ptr     := &i;

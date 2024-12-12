@@ -1,4 +1,4 @@
-#private
+#scope_private
 fundamental_type_default_init :: fn () #test {
 	_1: s8;
 	_2: s16;

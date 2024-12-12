@@ -298,14 +298,14 @@ main :: fn () s32 {
     return 0;
 }
 
-#private
+#scope_private
 nationality := "CZ";
 ```
 
 ```text
 test2.bl:9:1: warning: Unused symbol 'nationality'. Mark the symbol as '#maybe_unused'
                        if it's intentional.
-   8 | #private
+   8 | #scope_private
 >  9 | nationality := "CZ";
      | ^^^^^^^^^^^
   10 |
@@ -329,7 +329,7 @@ main :: fn () s32 {
     return 0;
 }
 
-#private
+#scope_private
 nationality := "CZ" #maybe_unused;
 ```
 
@@ -644,7 +644,7 @@ update :: fn (e: *Entity) {
 
 ### Member Tagging
 
-Compile-time `u64` tag can be assigned to struct members. The tag value is later accessible via Type Info API in `TypeInfoStructMember.tag`. 
+Compile-time `u64` tag can be assigned to struct members. The tag value is later accessible via Type Info API in `TypeInfoStructMember.tag`.
 
 ```bl
 @@@examples/struct_member_tags.bl
@@ -2036,9 +2036,13 @@ The named scope in *utils.bl* file is now introduced by `#scope` directive follo
 
 As you can see, the `print_log` function is now accessible only through `.` operator and it's nested in the named scope called *utils*.
 
+## Public Scope
+
+The public scope `#scope_public` can be introduced in a source file to switch back from current private scope (basically, it can be used to terminate private scope block). Functions or variables in public scope can be used from current file or from other files as well. All global declarations in BL are public by default until a private scope directive is introduced.
+
 ## Private Scope
 
-The *private* scope may be created by `#private` directive in a source file, everything declared after this directive is visible only inside the file. The *private* scope may exist only once in each file. Note there is no *public* scope available in the BL everything outside the *private* scope is *public* and we cannot switch back to *public* scope once we're in the *private* one.
+The *private* scope may be created by `#scope_private` directive in a source file, everything declared after this directive (in private block) is accessible only inside the current file. The *private* scope can be terminated by *public* scope directive.
 
 The main purpose of a *private* scope is to hide some internal implementations which should not be accessible from the outside world.
 
@@ -2054,7 +2058,7 @@ print_log :: fn (text: string_view) {
 	print(text);
 }
 
-#private
+#scope_private
 // All following code is visible only inside the current file.
 
 Color :: enum {
@@ -2336,11 +2340,12 @@ Report warning in compile-time.
 - `#maybe_unused` - See [here](manual.html#Usage-Checks).
 - `#noinit` - See [here](manual.html#Initialization).
 - `#noinline` - Disable function inlining.
-- `#obsolete` - Mark function as obsolete. 
+- `#obsolete` - Mark function as obsolete.
 	```bl
 	foo :: fn () #obsolete "Use bar instead!" {}
 	```
-- `#private` - See [here](manual.html#Private-Scope).
+- `#scope_private` - See [here](manual.html#Private-Scope).
+- `#scope_public` - See [here](manual.html#Public-Scope).
 - `#scope` - See [here](manual.html#Named-Scope).
 - `#tag` - See [here](manual.html#Member-Tagging).
 - `#test` - See [here](manual.html#Unit-Testing).

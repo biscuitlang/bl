@@ -1,4 +1,4 @@
-#private
+#scope_private
 struct_type_hash :: fn () #test {
 	test_eq(typeid(Foo), typeid(Foo));
 	test_neq(typeid(Foo), typeid(Bar.Foo));

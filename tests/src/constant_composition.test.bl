@@ -1,4 +1,4 @@
-#private
+#scope_private
 Data :: struct {
 	i: s32;
 	j: string_view;

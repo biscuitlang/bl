@@ -1,4 +1,4 @@
-#private
+#scope_private
 test_slice_init :: fn () #test {
 	ptr: []s32;
 	alloc_slice(&ptr, 10);

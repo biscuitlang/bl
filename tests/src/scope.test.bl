@@ -1,7 +1,7 @@
 #load "scope1.bl"
 #load "scope2.bl"
 
-#private
+#scope_private
 scope1_variable :: fn () #test {
 	Scope1.variable = 0;
 }

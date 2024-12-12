@@ -1,4 +1,4 @@
-#private
+#scope_private
 default_args_some_default :: fn () #test {
 	foo :: fn (i: s32, j: s32 = 20) {
 		test_eq(i, 10);

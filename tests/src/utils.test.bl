@@ -1,6 +1,6 @@
 #load "std/utils.bl"
 
-#private
+#scope_private
 test_random_number_range_1 :: fn () #test {
 	random_seed_time();
 	loop i := 0; i < 1000; i += 1 {

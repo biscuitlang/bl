@@ -1,4 +1,4 @@
-#private
+#scope_private
 T1 :: struct { i: s64; j: s64 }
 T2 :: struct { a: T1;  b: T1  }
 

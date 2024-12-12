@@ -1,4 +1,4 @@
-#private
+#scope_private
 
 using_enum :: fn () #test {
 	Enum :: enum {

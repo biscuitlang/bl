@@ -1,4 +1,4 @@
-#private
+#scope_private
 simple_loops :: fn () #test {
 	count :: 10;
 	i := 0;

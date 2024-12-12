@@ -1,4 +1,4 @@
-#private
+#scope_private
 
 IS_ENABLED :: true;
 called_num: s32;

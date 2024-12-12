@@ -1,4 +1,4 @@
-#private
+#scope_private
 
 error_test1 :: fn () #test {
 	e := OK;

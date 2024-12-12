@@ -1,4 +1,4 @@
-#private
+#scope_private
 expected_supported_archs :: [4]string_view.{
 	"UNKNOWN",
 	"X86_64",

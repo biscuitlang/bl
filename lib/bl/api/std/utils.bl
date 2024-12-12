@@ -68,6 +68,21 @@ is_flag :: fn (flags: ?T, other: T) bool #inline {
 	return (flags & other) == other;
 }
 
+#scope_private
+is_valid_bitflags :: fn (T: type #comptime) bool #comptime {
+	info :: typeinfo(T);
+	switch info.kind {
+		TypeKind.INT  { return true; }
+		TypeKind.ENUM {
+			info_enum :: cast(*TypeInfoEnum) info;
+			return info_enum.is_flags;
+		}
+		default;
+	}
+	return false;
+}
+#scope_public
+
 /// Reads environment variable specified by `var` name. Result is empty in case no such variable was
 /// found or has no content. It's caller responsibility to delete result string.
 env_get :: fn (var: string_view) string {
@@ -281,17 +296,3 @@ ternary :: fn (expr: bool, a: ?T, b: T) T #inline #obsolete "Use language builti
 	return b;
 };
 
-#private
-
-is_valid_bitflags :: fn (T: type #comptime) bool #comptime {
-	info :: typeinfo(T);
-	switch info.kind {
-		TypeKind.INT  { return true; }
-		TypeKind.ENUM {
-			info_enum :: cast(*TypeInfoEnum) info;
-			return info_enum.is_flags;
-		}
-		default;
-	}
-	return false;
-}

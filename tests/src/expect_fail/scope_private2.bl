@@ -5,5 +5,5 @@ main :: fn () s32 {
 }
 
 #scope Foo
-#private
+#scope_private
 foo :: fn () {}

@@ -1,4 +1,4 @@
-#private
+#scope_private
 
 test_os_tick_ms :: fn () #test {
 	test_gt(os_tick_ms(), 0);

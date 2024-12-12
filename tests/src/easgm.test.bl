@@ -1,4 +1,4 @@
-#private
+#scope_private
 
 one :: fn() #test {
 	s := S.{ 10, 20, 30 };

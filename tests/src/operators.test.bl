@@ -1,4 +1,4 @@
-#private
+#scope_private
 assign_operators :: fn () #test {
 	i := 5;
 	test_eq(i, 5);

@@ -1,4 +1,4 @@
-#private
+#scope_private
 literal_implicit_casting :: fn () #test {
 	_u8:    u8    = 10; 
 	_u16:   u16   = 10; 

@@ -1,4 +1,4 @@
-#private 
+#scope_private 
 fundametal_types :: fn () #test {
 	_u8:    u8; 
 	_u16:   u16; 

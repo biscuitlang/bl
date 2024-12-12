@@ -1,4 +1,4 @@
-#private
+#scope_private
 check_nans :: fn () #test {
 	using std;
 

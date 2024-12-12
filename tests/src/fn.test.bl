@@ -1,4 +1,4 @@
-#private
+#scope_private
 function_calls :: fn () #test {
 	_1 :: fn () {
 	};

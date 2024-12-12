@@ -1,4 +1,4 @@
-#private
+#scope_private
 test_sin :: fn () #test {
 	// compare results with libc
 	c_sinf :: fn (v: f32) f32 #extern "sinf";
