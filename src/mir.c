@@ -4664,6 +4664,9 @@ static struct result analyze_instr_compound_regular(struct context *ctx, struct 
 	zone();
 	bcheck_main_thread();
 
+	struct id *missing_any = lookup_builtins_any(ctx);
+	if (missing_any) return_zone(WAIT(missing_any->hash));
+
 	if (cmp->is_multiple_return_value) {
 		bassert(cmp->base.value.type == NULL && "Multi-return compound expression is supposed to have type of the return type of the "
 		                                        "current function, not explicitly specified one!");
@@ -5022,6 +5025,10 @@ struct result analyze_instr_set_initializer(struct context *ctx, struct mir_inst
 
 struct result analyze_instr_vargs(struct context *ctx, struct mir_instr_vargs *vargs) {
 	zone();
+
+	struct id *missing_any = lookup_builtins_any(ctx);
+	if (missing_any) return_zone(WAIT(missing_any->hash));
+
 	struct mir_type *type   = vargs->type;
 	mir_instrs_t    *values = vargs->values;
 	bassert(type && values);
@@ -7916,6 +7923,7 @@ static mir_call_analyze_stage_fn_t analyze_call_generated_with_placeholders_pipe
 struct result analyze_call_stage_resolve_called_object(struct context *ctx, struct mir_instr_call *call) {
 	zone();
 	bassert(call->callee);
+
 	struct id *missing_any = lookup_builtins_any(ctx);
 	if (missing_any) return_zone(WAIT(missing_any->hash));
 
@@ -8440,6 +8448,7 @@ struct result analyze_call_stage_finalize(struct context *ctx, struct mir_instr_
 struct result analyze_instr_call(struct context *ctx, struct mir_instr_call *call) {
 	zone();
 	bassert(call->callee);
+
 	if (!call->analyze_pipeline) call->analyze_pipeline = analyze_call_default_pipeline;
 	while (*call->analyze_pipeline) {
 		const mir_call_analyze_stage_fn_t *current_pipeline = call->analyze_pipeline;
