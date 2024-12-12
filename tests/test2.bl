@@ -1,0 +1,19 @@
+foo :: fn () {
+}
+
+#scope_private
+
+bar :: fn () {
+}
+
+#scope_public
+
+foobar :: fn () {
+}
+
+#scope_private
+
+bar2 :: fn () {
+}
+
+

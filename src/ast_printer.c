@@ -73,6 +73,7 @@ static void print_load(struct ast *load, s32 pad, FILE *stream);
 static void print_import(struct ast *import, s32 pad, FILE *stream);
 static void print_link(struct ast *link, s32 pad, FILE *stream);
 static void print_private(struct ast *private, s32 pad, FILE *stream);
+static void print_public(struct ast *private, s32 pad, FILE *stream);
 static void print_scope(struct ast *scope, s32 pad, FILE *stream);
 static void print_call_loc(struct ast *call_loc, s32 pad, FILE *stream);
 static void print_block(struct ast *block, s32 pad, FILE *stream);
@@ -155,6 +156,10 @@ void print_link(struct ast *link, s32 pad, FILE *stream) {
 
 void print_private(struct ast *private, s32 pad, FILE *stream) {
 	print_head(private, pad, stream);
+}
+
+void print_public(struct ast *public, s32 pad, FILE *stream) {
+	print_head(public, pad, stream);
 }
 
 void print_scope(struct ast *scope, s32 pad, FILE *stream) {
@@ -516,6 +521,10 @@ void print_node(struct ast *node, s32 pad, FILE *stream) {
 
 	case AST_PRIVATE:
 		print_private(node, pad, stream);
+		break;
+
+	case AST_PUBLIC:
+		print_public(node, pad, stream);
 		break;
 
 	case AST_SCOPE:

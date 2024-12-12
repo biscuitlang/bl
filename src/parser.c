@@ -89,7 +89,6 @@ struct context {
 	array(struct ast *) block_stack;
 	bool          is_inside_loop;
 	bool          is_inside_expression;
-	struct scope *current_private_scope;
 	struct scope *current_named_scope;
 	struct ast   *current_docs;
 };
@@ -405,7 +404,6 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 	}
 
 	case HD_LOAD: {
-		BL_TRACY_MESSAGE("HD_FLAG", "#load");
 		struct token *tok_path = tokens_consume_if(ctx->tokens, SYM_STRING);
 		if (!tok_path) {
 			struct token *tok_err = tokens_peek(ctx->tokens);
@@ -437,7 +435,6 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 		struct ast *import =
 		    ast_create_node(ctx->ast_arena, AST_IMPORT, tok_directive, scope_get(ctx));
 		import->data.import.filepath = get_token_value(ctx, tok_path).str.ptr;
-		BL_TRACY_MESSAGE("HD_FLAG", "#import (%s)", tok_path->value.str.ptr);
 		if (ctx->assembly->target->kind != ASSEMBLY_DOCS) {
 			assembly_import_module(ctx->assembly, get_token_value(ctx, tok_path).str.ptr, tok_path);
 		}
@@ -445,7 +442,6 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 	}
 
 	case HD_FILE: {
-		BL_TRACY_MESSAGE("HD_FLAG", "#file");
 		struct ast *file =
 		    ast_create_node(ctx->ast_arena, AST_EXPR_LIT_STRING, tok_directive, scope_get(ctx));
 		file->data.expr_string.val = tok_directive->location.unit->filepath;
@@ -453,7 +449,6 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 	}
 
 	case HD_LINE: {
-		BL_TRACY_MESSAGE("HD_FLAG", "#line");
 		struct ast *line =
 		    ast_create_node(ctx->ast_arena, AST_EXPR_LIT_INT, tok_directive, scope_get(ctx));
 		line->data.expr_integer.val = tok_directive->location.line;
@@ -461,12 +456,10 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 	}
 
 	case HD_BASE: {
-		BL_TRACY_MESSAGE("HD_FLAG", "#base");
 		return_zone(parse_type(ctx));
 	}
 
 	case HD_TAG: {
-		BL_TRACY_MESSAGE("HD_FLAG", "#tag");
 		// Tags can contain one or move references separated by comma
 		struct ast *expr = parse_expr(ctx);
 		if (!expr) {
@@ -480,12 +473,10 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 	}
 
 	case HD_CALL_LOC: {
-		BL_TRACY_MESSAGE("HD_FLAG", "#call_location");
 		return_zone(ast_create_node(ctx->ast_arena, AST_CALL_LOC, tok_directive, scope_get(ctx)));
 	}
 
 	case HD_EXTERN: {
-		BL_TRACY_MESSAGE("HD_FLAG", "#extern");
 		// Extern flag extension could be linkage name as string
 		struct token *tok_ext = tokens_consume_if(ctx->tokens, SYM_STRING);
 		if (!tok_ext) return_zone(NULL);
@@ -496,7 +487,6 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 	}
 
 	case HD_EXPORT: {
-		BL_TRACY_MESSAGE("HD_FLAG", "#export");
 		// Export flag extension could be linkage name as string
 		struct token *tok_ext = tokens_consume_if(ctx->tokens, SYM_STRING);
 		if (!tok_ext) return_zone(NULL);
@@ -507,7 +497,6 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 	}
 
 	case HD_OBSOLETE: {
-		BL_TRACY_MESSAGE("HD_OBSOLETE", "#obsolete");
 		// Parse optional message.
 		struct token *tok_message = tokens_consume_if(ctx->tokens, SYM_STRING);
 		if (!tok_message) return_zone(NULL);
@@ -517,7 +506,6 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 	}
 
 	case HD_INTRINSIC: {
-		BL_TRACY_MESSAGE("HD_FLAG", "#intrinsic");
 		// Intrinsic flag extension could be linkage name as string
 		struct token *tok_ext = tokens_consume_if(ctx->tokens, SYM_STRING);
 		if (!tok_ext) return_zone(NULL);
@@ -527,37 +515,42 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 		return_zone(ext);
 	}
 
-	case HD_PRIVATE: {
-		BL_TRACY_MESSAGE("HD_FLAG", "#private");
-		if (ctx->current_private_scope) {
-			report_error(UNEXPECTED_DIRECTIVE,
-			             tok_directive,
-			             CARET_WORD,
-			             "Unexpected directive. File already contains private scope block.");
-			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_directive, scope_get(ctx)));
+	case HD_PRIVATE: // @Deprecated 2024-12-12: Since version: 0.11.3
+	case HD_SCOPE_PRIVATE: {
+		struct scope *current_scope = scope_get(ctx);
+		bassert(current_scope);
+		if (current_scope->kind == SCOPE_PRIVATE) {
+			report_warning(tok_directive, CARET_WORD, "The private scope marker directive is redundant in current context and will be ignored. The current scope is already private.");
+			return_zone(ast_create_node(ctx->ast_arena, AST_PRIVATE, tok_directive, current_scope));
 		}
 
-		// Here we create private scope for the current unit. (only when source file
-		// contains private block).
-		//
-		// Parent of this scope is a global-scope.
-		//
-		// This scope has also highest priority during symbol lookup inside the current unit
-		// and it is visible only from such unit.
-		// Private scope contains only global entity declarations with 'private' flag set
-		// in ast node.
-		struct scope *scope = scope_create(ctx->scope_arenas, SCOPE_PRIVATE, scope_get(ctx), &tok_directive->location);
+		bassert(scope_get(ctx)->kind == SCOPE_GLOBAL || scope_get(ctx)->kind == SCOPE_NAMED);
+		struct scope *scope = ctx->unit->private_scope;
+		if (!scope) {
+			scope = scope_create(ctx->scope_arenas, SCOPE_PRIVATE, current_scope, &tok_directive->location);
+			scope_reserve(scope, 256);
+			ctx->unit->private_scope = scope;
+		}
 
-		ctx->current_private_scope = scope;
-		ctx->unit->private_scope   = scope;
-		scope_set(ctx, scope);
-
-		scope_reserve(scope, 256);
-
-		return_zone(ast_create_node(ctx->ast_arena, AST_PRIVATE, tok_directive, scope_get(ctx)));
+		scope_push(ctx, scope);
+		return_zone(ast_create_node(ctx->ast_arena, AST_PRIVATE, tok_directive, current_scope));
 	}
+
+	case HD_SCOPE_PUBLIC: {
+		struct scope *current_scope = scope_get(ctx);
+		bassert(current_scope);
+		if (current_scope->kind != SCOPE_PRIVATE) {
+			report_warning(tok_directive, CARET_WORD, "The public scope marker directive is redundant in current context and will be ignored. The current scope is already public.");
+			return_zone(ast_create_node(ctx->ast_arena, AST_PUBLIC, tok_directive, current_scope));
+		}
+
+		scope_pop(ctx);
+		bassert(scope_get(ctx)->kind == SCOPE_GLOBAL || scope_get(ctx)->kind == SCOPE_NAMED);
+
+		return_zone(ast_create_node(ctx->ast_arena, AST_PUBLIC, tok_directive, current_scope));
+	}
+
 	case HD_SCOPE: {
-		BL_TRACY_MESSAGE("HD_FLAG", "#scope");
 		struct ast *ident = parse_ident(ctx);
 		if (!ident) {
 			report_error(INVALID_DIRECTIVE,
@@ -601,7 +594,6 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 		return_zone(scope);
 	}
 	case HD_ENABLE_IF: {
-		BL_TRACY_MESSAGE("HD_ENABLE_IF", "#enable_if");
 		struct ast *expr = parse_expr(ctx);
 		if (!expr) {
 			report_error(
@@ -2565,8 +2557,10 @@ NEXT:
 				}
 			}
 			// setup global scope flag for declaration
-			tmp->data.decl_entity.is_global = true;
-			if (ctx->current_private_scope) tmp->data.decl.flags |= FLAG_PRIVATE;
+			tmp->data.decl_entity.is_global = true; // @Incomplete 2024-12-12 Use decl flags here too?
+			if (scope_is_subtree_of_kind(scope_get(ctx), SCOPE_PRIVATE)) {
+				tmp->data.decl.flags |= FLAG_PRIVATE;
+			}
 		}
 
 		arrput(ublock->data.ublock.nodes, tmp);
@@ -2574,7 +2568,7 @@ NEXT:
 	}
 
 	// load, import, link, test, private - enabled in global scope
-	const int enabled_hd = HD_LOAD | HD_PRIVATE | HD_IMPORT | HD_SCOPE;
+	const int enabled_hd = HD_LOAD | HD_PRIVATE | HD_IMPORT | HD_SCOPE | HD_SCOPE_PRIVATE | HD_SCOPE_PUBLIC;
 	if ((tmp = parse_hash_directive(ctx, enabled_hd, NULL))) {
 		arrput(ublock->data.ublock.nodes, tmp);
 		goto NEXT;

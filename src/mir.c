@@ -1534,7 +1534,7 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 	if (!scope_is_local(scope)) scope_unlock(scope);
 	return_zone(entry);
 
-COLLIDE: {
+COLLIDE : {
 	if (!scope_is_local(scope)) scope_unlock(scope);
 	char *err_msg = (collision->is_builtin || is_builtin) ? "Symbol name collision with compiler builtin '" STR_FMT "'." : "Duplicate symbol";
 	report_error(DUPLICATE_SYMBOL, node, err_msg, STR_ARG(id->str));
@@ -6427,7 +6427,7 @@ struct result analyze_instr_load(struct context *ctx, struct mir_instr_load *loa
 
 	return_zone(PASS);
 
-INVALID_SRC: {
+INVALID_SRC : {
 	bassert(err_type);
 	str_buf_t type_name = mir_type2str(err_type, /* prefer_name */ true);
 	report_error(INVALID_TYPE, src->node, "Expected value of pointer type, got '" STR_FMT "'.", STR_ARG(type_name));
@@ -11479,6 +11479,7 @@ struct mir_instr *ast(struct context *ctx, struct ast *node) {
 	case AST_IMPORT:
 	case AST_LINK:
 	case AST_PRIVATE:
+	case AST_PUBLIC:
 	case AST_SCOPE:
 		break;
 	default:

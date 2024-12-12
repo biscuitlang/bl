@@ -3,6 +3,7 @@
     AST_LOAD,
     AST_IMPORT,
     AST_PRIVATE,
+    AST_PUBLIC,
     AST_SCOPE,
     AST_LINK,
     AST_IDENT,

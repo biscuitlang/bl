@@ -420,6 +420,7 @@ void doc(struct context *ctx, struct ast *node) {
 
 	case AST_LOAD:
 	case AST_PRIVATE:
+	case AST_PUBLIC:
 	case AST_LINK:
 	case AST_IMPORT:
 	case AST_SCOPE:
