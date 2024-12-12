@@ -431,7 +431,7 @@ void doc(struct context *ctx, struct ast *node) {
 }
 
 void doc_unit(struct context *ctx, struct unit *unit) {
-	if (unit->filename.len) return;
+	if (!unit->filename.len) return;
 	str_buf_t unit_name = get_tmp_str();
 	str_t     name      = unit->filename;
 	name.len -= 3;

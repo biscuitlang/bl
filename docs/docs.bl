@@ -122,6 +122,53 @@ MODULES_MENU :: [_]MenuItem.{
 	.{ id = "modules_vulkan.html", title = "extra/vulkan", level = 2},
 };
 
+MODULE_SRC :: [_]string_view.{
+	"build/build.bl",
+	"builtin/a.bl",
+	"extra/argparse/argparse.bl",
+	"extra/clipboard/clipboard.bl",
+	"extra/draw/draw.bl",
+	"extra/freetype2/freetype.bl",
+	"extra/gl/gl.bl",
+	"extra/glfw3/glfw3.bl",
+	"extra/glm/glm.bl",
+	"extra/glwindow/glwindow.win32.bl",
+	"extra/mabl/miniaudio.bl",
+	"extra/png/png.bl",
+	"extra/ui/ui.bl",
+	"extra/ui/ui_common.bl",
+	"extra/vulkan/vulkan.bl",
+	"os/macos/macos.bl",
+	"os/posix/pthread/pthread.bl",
+	"os/posix/semaphore/semaphore.bl",
+	"os/posix/syscall/syscall.bl",
+	"os/posix/syscall/x86_64-linux-gnu/syscall.bl",
+	"os/windows/winapi.bl",
+	"std/arena/arena.bl",
+	"std/array/array.bl",
+	"std/async/async.bl",
+	"std/bucket_array/bucket_array.bl",
+	"std/buffer_stream/buffer_stream.bl",
+	"std/debug.bl",
+	"std/debug_allocator/debug_allocator.bl",
+	"std/dlib/dlib.bl",
+	"std/error.bl",
+	"std/fs/fs.bl",
+	"std/growing_buffer_stream/growing_buffer_stream.bl",
+	"std/io/io.bl",
+	"std/math.bl",
+	"std/memory.bl",
+	"std/pool/pool.bl",
+	"std/print/print.bl",
+	"std/static_array/static_array.bl",
+	"std/string/string.bl",
+	"std/sync/sync.bl",
+	"std/table/table.bl",
+	"std/test/test.bl",
+	"std/thread/thread.bl",
+	"std/utils.bl",
+};
+
 Lang :: enum {
 	UNKNOWN;
 	BL;
@@ -235,11 +282,22 @@ copy_additional_files :: fn () Error {
 }
 
 generate_module_documentation :: fn () Error {
-	print_info("Generate BL API documentation in '%'.\n", root_dir);
+	using std;
+	print_info("Generate BL API documentation in '%'.\n", module_dir);
 	measure_elapsed_ms_begin();
 
-	src_files := std.str_new(&default_temporary_allocator);
-	list_files_recursive(lib_dir, &src_files);
+	src_files := str_new(&default_temporary_allocator);
+
+	// 2024-12-12 This might cause issues because, some modules should be skipped for now.
+	//            For example libc module contains duplicit functions for different platforms
+	//            these colide and breaks the documentation generation...
+	// list_files_recursive(lib_dir, &src_files);
+
+	loop i := 0; i < MODULE_SRC.len; i += 1 {
+		print_info("Module src: '%'", MODULE_SRC[i]);
+		str_concat(&src_files, lib_dir, "/", MODULE_SRC[i], " ");
+	}
+
 	err_cmd :: cmd("% -doc --doc-out-dir=\"%\" %", blc_exec, module_dir, src_files);
 	if err_cmd then return err_cmd;
 	runtime :: measure_elapsed_ms_end("-");
