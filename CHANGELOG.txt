@@ -1,6 +1,8 @@
 Master
 ---------------------------------------------------------------------------------------
 Add symlink resolve for the current executable on macos.
+Add new #scope_private and #scope_public to freely enter and exit private scope block.
+Make #private directive deprecated.
 Fix interp function callbacks without arguments.
 Paralelize MIR generation.
 Performance improvements.
