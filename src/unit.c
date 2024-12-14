@@ -39,7 +39,7 @@
 #define EXPECTED_ARRAY_COUNT 64
 
 // public
-struct unit *unit_new(struct assembly *assembly, const str_t filepath, const str_t name, const hash_t hash, struct token *load_from) {
+struct unit *unit_new(struct assembly *assembly, const str_t filepath, const str_t name, const hash_t hash, struct token *load_from, struct scope *inject_to_scope) {
 	struct unit *unit = bmalloc(sizeof(struct unit)); // @Performance 2024-09-14 Use arena?
 	bl_zeromem(unit, sizeof(struct unit));
 
@@ -55,6 +55,18 @@ struct unit *unit_new(struct assembly *assembly, const str_t filepath, const str
 
 	unit->hash        = hash;
 	unit->loaded_from = load_from;
+
+	bassert(inject_to_scope &&
+	        "Missing inject target scope, in case the unit is loaded as an entry file, global scope should be provided, otherwise parent scope of #load directive is supposed to be used.");
+	struct scope_arenas *scope_arenas = &assembly->thread_local_contexts[thread_index].scope_arenas;
+	bassert(assembly->gscope);
+	unit->file_scope = scope_create(scope_arenas, SCOPE_FILE, assembly->gscope, NULL); // 2024-12-13 do we need location?
+#ifdef BL_DEBUG
+	unit->file_scope->_debug_name = unit->filename;
+#endif
+	scope_lock(inject_to_scope);
+	scope_inject(inject_to_scope, unit->file_scope);
+	scope_unlock(inject_to_scope);
 
 	tokens_init(&unit->tokens);
 	put_tmp_str(tmp);

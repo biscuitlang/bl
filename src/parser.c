@@ -87,10 +87,9 @@ struct context {
 	array(struct ast *) decl_stack;
 	array(struct ast *) fn_type_stack;
 	array(struct ast *) block_stack;
-	bool          is_inside_loop;
-	bool          is_inside_expression;
-	struct scope *current_named_scope;
-	struct ast   *current_docs;
+	bool        is_inside_loop;
+	bool        is_inside_expression;
+	struct ast *current_docs;
 };
 
 // helpers
@@ -414,10 +413,12 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_directive, scope_get(ctx)));
 		}
 
-		struct ast *load         = ast_create_node(ctx->ast_arena, AST_LOAD, tok_directive, scope_get(ctx));
+		struct scope *current_scope = scope_get(ctx);
+		bassert(current_scope);
+		struct ast *load         = ast_create_node(ctx->ast_arena, AST_LOAD, tok_directive, current_scope);
 		load->data.load.filepath = get_token_value(ctx, tok_path).str;
 		if (ctx->assembly->target->kind != ASSEMBLY_DOCS) {
-			assembly_add_unit(ctx->assembly, load->data.load.filepath, tok_path);
+			assembly_add_unit(ctx->assembly, load->data.load.filepath, tok_path, current_scope);
 		}
 		return_zone(load);
 	}
@@ -524,7 +525,7 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 			return_zone(ast_create_node(ctx->ast_arena, AST_PRIVATE, tok_directive, current_scope));
 		}
 
-		bassert(scope_get(ctx)->kind == SCOPE_GLOBAL || scope_get(ctx)->kind == SCOPE_NAMED);
+		bassert(scope_get(ctx)->kind == SCOPE_FILE || scope_get(ctx)->kind == SCOPE_NAMED);
 		struct scope *scope = ctx->unit->private_scope;
 		if (!scope) {
 			scope = scope_create(ctx->scope_arenas, SCOPE_PRIVATE, current_scope, &tok_directive->location);
@@ -545,54 +546,55 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 		}
 
 		scope_pop(ctx);
-		bassert(scope_get(ctx)->kind == SCOPE_GLOBAL || scope_get(ctx)->kind == SCOPE_NAMED);
+		bassert(scope_get(ctx)->kind == SCOPE_FILE || scope_get(ctx)->kind == SCOPE_NAMED);
 
 		return_zone(ast_create_node(ctx->ast_arena, AST_PUBLIC, tok_directive, current_scope));
 	}
 
 	case HD_SCOPE: {
-		struct ast *ident = parse_ident(ctx);
+		struct scope *current_scope = scope_get(ctx);
+		struct ast   *ident         = parse_ident(ctx);
 		if (!ident) {
 			report_error(INVALID_DIRECTIVE,
 			             tok_directive,
 			             CARET_AFTER,
 			             "Expected scope name after #scope directive.");
+			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_directive, current_scope));
+		}
+		if (scope_is_subtree_of_kind(current_scope, SCOPE_NAMED)) {
+			report_error(UNEXPECTED_DIRECTIVE,
+			             tok_directive,
+			             CARET_WORD,
+			             "Unexpected directive. Named scopes cannot be nested.");
 			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_directive, scope_get(ctx)));
 		}
-		struct ast *scope       = ast_create_node(ctx->ast_arena, AST_SCOPE, tok_directive, scope_get(ctx));
-		scope->data.scope.ident = ident;
-		struct id *id           = &ident->data.ident.id;
 
-		// Perform lookup of named scope here, in case named scope already exist in global scope
-		// we can reuse it!.
-		if (scope_get(ctx)->kind == SCOPE_GLOBAL) scope_lock(scope_get(ctx));
-		struct scope_entry *scope_entry = scope_lookup(scope_get(ctx), &(scope_lookup_args_t){.id = id});
+		struct ast *ast_scope       = ast_create_node(ctx->ast_arena, AST_SCOPE, tok_directive, current_scope);
+		ast_scope->data.scope.ident = ident;
+		struct id *id               = &ident->data.ident.id;
+
+		// Lookup already existing named scope with the same name.
+		scope_lock(current_scope);
+		struct scope_entry *scope_entry = scope_lookup(current_scope, &(scope_lookup_args_t){.id = id});
 		if (scope_entry) {
+			blog("Scope found!");
 			bassert(scope_entry->kind == SCOPE_ENTRY_NAMED_SCOPE && "Found scope entry is expected to be named scope!");
 			bassert(scope_entry->data.scope && scope_entry->data.scope->kind == SCOPE_NAMED);
 		} else {
-			scope_entry = scope_create_entry(ctx->scope_arenas, SCOPE_ENTRY_NAMED_SCOPE, id, scope, false);
-			scope_insert(scope_get(ctx), SCOPE_DEFAULT_LAYER, scope_entry);
+			scope_entry = scope_create_entry(ctx->scope_arenas, SCOPE_ENTRY_NAMED_SCOPE, id, ast_scope, false);
+			scope_insert(current_scope, SCOPE_DEFAULT_LAYER, scope_entry);
 
-			struct scope *named_scope = scope_create(ctx->scope_arenas, SCOPE_NAMED, scope_get(ctx), &tok_directive->location);
+			struct scope *named_scope = scope_create(ctx->scope_arenas, SCOPE_NAMED, current_scope, &tok_directive->location);
 			scope_reserve(named_scope, 2048);
 
 			named_scope->name       = id->str;
 			scope_entry->data.scope = named_scope;
 		}
-		if (scope_get(ctx)->kind == SCOPE_GLOBAL) scope_unlock(scope_get(ctx));
-		if (ctx->current_named_scope) {
-			report_error(UNEXPECTED_DIRECTIVE,
-			             tok_directive,
-			             CARET_WORD,
-			             "Unexpected directive. File already contains named scope block.");
-			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_directive, scope_get(ctx)));
-		}
-		bassert(scope_entry->data.scope);
-		ctx->current_named_scope = scope_entry->data.scope;
-		scope_set(ctx, ctx->current_named_scope);
-		return_zone(scope);
+		scope_unlock(current_scope);
+		scope_set(ctx, scope_entry->data.scope);
+		return_zone(ast_scope);
 	}
+
 	case HD_ENABLE_IF: {
 		struct ast *expr = parse_expr(ctx);
 		if (!expr) {
@@ -613,7 +615,7 @@ struct ast *parse_expr_compound(struct context *ctx, struct ast *prev) {
 	zone();
 	if (!tokens_is_seq(ctx->tokens, 2, SYM_DOT, SYM_LBLOCK)) return_zone(NULL);
 	// eat .
-	struct token *tok_very_first = tokens_consume(ctx->tokens);
+	tokens_consume(ctx->tokens);
 	// eat {
 	struct token *tok_begin = tokens_consume(ctx->tokens);
 
@@ -2631,7 +2633,9 @@ void parser_run(struct assembly *assembly, struct unit *unit) {
 	};
 
 	init_hash_directives(&ctx);
-	scope_push(&ctx, assembly->gscope);
+	bassert(unit->file_scope && "Missing file scope!");
+	bassert(unit->file_scope->parent && unit->file_scope->parent == assembly->gscope && "Each file scope is supposed to be child of global scope!");
+	scope_push(&ctx, unit->file_scope);
 
 	struct ast *root       = ast_create_node(ctx.ast_arena, AST_UBLOCK, NULL, scope_get(&ctx));
 	root->data.ublock.unit = unit;

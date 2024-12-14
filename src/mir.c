@@ -1505,10 +1505,7 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 		return_zone(ctx->analyze->unnamed_entry);
 	}
 
-	// Only global scope needs to be thread safe (each unit is processed on a separate thread). However global scope might
-	// be internally locked in scope_lookup in case we reach it while searching even if we're about to insert into any other
-	// scope kind.
-	if (!scope_is_local(scope)) scope_lock(scope);
+	scope_lock(scope);
 
 	const bool          is_private  = scope->kind == SCOPE_PRIVATE;
 	const hash_t        layer_index = ctx->fn_generate.current_scope_layer;
@@ -1531,11 +1528,11 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 	struct scope_entry *entry = scope_create_entry(ctx->scope_arenas, SCOPE_ENTRY_INCOMPLETE, id, node, is_builtin);
 	scope_insert(scope, layer_index, entry);
 
-	if (!scope_is_local(scope)) scope_unlock(scope);
+	scope_unlock(scope);
 	return_zone(entry);
 
 COLLIDE : {
-	if (!scope_is_local(scope)) scope_unlock(scope);
+	scope_unlock(scope);
 	char *err_msg = (collision->is_builtin || is_builtin) ? "Symbol name collision with compiler builtin '" STR_FMT "'." : "Duplicate symbol";
 	report_error(DUPLICATE_SYMBOL, node, err_msg, STR_ARG(id->str));
 	if (collision->node) {
@@ -1550,13 +1547,11 @@ struct mir_type *lookup_builtin_type(struct context *ctx, enum builtin_id_kind k
 
 	struct id    *id    = &builtin_ids[kind];
 	struct scope *scope = ctx->assembly->gscope;
-	// scope_lock(scope); // Scope is global everytime here!
 	struct scope_entry *found = scope_lookup(scope,
 	                                         &(scope_lookup_args_t){
 	                                             .id      = id,
 	                                             .in_tree = true,
 	                                         });
-	// scope_unlock(scope);
 
 	if (!found) babort("Missing compiler internal symbol '" STR_FMT "'", STR_ARG(id->str));
 	if (found->kind == SCOPE_ENTRY_INCOMPLETE) return NULL;
@@ -4594,9 +4589,7 @@ struct result analyze_instr_using(struct context *ctx, struct mir_instr_using *u
 		report_warning(using->base.node, "Attempt to use current scope. The using statement will be ignored.");
 	} else if (!scope_using_add(using->scope, used_scope)) {
 		// @Cleanup: Cause problems in polymorph!
-#if CLANUP
-		report_warning(using->base.node, "Scope is already exposed in current context. The using statement will be ignored.");
-#endif
+		// report_warning(using->base.node, "Scope is already exposed in current context. The using statement will be ignored.");
 	}
 	using->base.value.type = type;
 	return_zone(PASS);

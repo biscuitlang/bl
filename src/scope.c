@@ -30,6 +30,7 @@
 #include "stb_ds.h"
 #include "table.h"
 #include "threading.h"
+#include "unit.h"
 
 BL_STATIC_ASSERT(sizeof(BL_TBL_HASH_T) == sizeof(u64), "Scope require hash value to be 64bit.");
 
@@ -39,6 +40,7 @@ static void scope_dtor(struct scope *scope) {
 	bmagic_assert(scope);
 	tbl_free(scope->entries);
 	arrfree(scope->usings);
+	arrfree(scope->injected);
 	mtx_destroy(&scope->lock);
 }
 
@@ -110,6 +112,9 @@ void scope_insert(struct scope *scope, hash_t layer, struct scope_entry *entry) 
 	zone();
 	bassert(scope);
 	bassert(entry && entry->id);
+	if (scope->kind == SCOPE_GLOBAL) {
+		bcheck_main_thread();
+	}
 	const u64 hash = entry_hash(entry->id->hash, layer);
 	bassert(tbl_lookup_index_with_key(scope->entries, hash, entry->id->str) == -1 && "Duplicate scope entry key!!!");
 	entry->parent_scope              = scope;
@@ -130,8 +135,6 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 	struct scope_entry *found_using = NULL;
 	struct scope_entry *ambiguous   = NULL;
 
-	struct scope *locked_gscope = NULL;
-
 #define REPORTS 0
 
 #if REPORTS
@@ -142,13 +145,10 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 
 	u64 hash = entry_hash(args->id->hash, args->layer);
 	while (scope) {
-		bool is_locked = false;
 		if (scope->kind == SCOPE_GLOBAL && args->ignore_global) break;
 		if (!scope_is_local(scope)) {
 			// Global scopes should not have layers!!!
-			hash      = entry_hash(args->id->hash, SCOPE_DEFAULT_LAYER);
-			is_locked = true;
-			scope_lock(scope);
+			hash = entry_hash(args->id->hash, SCOPE_DEFAULT_LAYER);
 		}
 
 		// Used scopes are handled in following way:
@@ -161,25 +161,46 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 		if (!found_using && args->out_ambiguous) {
 			found_using = lookup_usings(scope, args->id, &ambiguous);
 		}
-		const s64 i = tbl_lookup_index_with_key(scope->entries, hash, args->id->str);
-		if (i != -1) {
+
+		scope_lock(scope);
+		s64 i = tbl_lookup_index_with_key(scope->entries, hash, args->id->str);
+		scope_unlock(scope);
+
+		if (i == -1) {
+			for (usize j = 0; j < arrlenu(scope->injected); ++j) {
+				struct scope *injected_scope = scope->injected[j];
+				bassert(injected_scope->kind == SCOPE_FILE);
+
+				scope_lock(injected_scope);
+				i = tbl_lookup_index_with_key(injected_scope->entries, hash, args->id->str);
+				scope_unlock(injected_scope);
+
+				if (i != -1) {
+					found = injected_scope->entries[i].value;
+					bassert(found);
+					bassert(!scope_is_local(injected_scope));
+					if (found_using) { // Injected scope is never local!
+						bassert(args->out_ambiguous);
+						(*args->out_ambiguous) = found_using;
+					}
+					break;
+				}
+			}
+		} else {
 			found = scope->entries[i].value;
 			bassert(found);
 			if (!scope_is_local(scope) && found_using) { // not found in local scope
 				bassert(args->out_ambiguous);
 				(*args->out_ambiguous) = found_using;
 			}
-			if (is_locked) scope_unlock(scope);
 			break;
 		}
+
 		// Lookup in parent.
 		if (!args->in_tree) {
-			if (is_locked) scope_unlock(scope);
 			break;
 		}
 		if (args->out_of_local) *(args->out_of_local) = scope->kind == SCOPE_FN;
-		if (is_locked) scope_unlock(scope);
-
 		scope = scope->parent;
 	}
 	if (!found && args->out_ambiguous) {
@@ -196,12 +217,10 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 }
 
 void scope_lock(struct scope *scope) {
-	bassert(!scope_is_local(scope));
 	mtx_lock(&scope->lock);
 }
 
 void scope_unlock(struct scope *scope) {
-	bassert(!scope_is_local(scope));
 	mtx_unlock(&scope->lock);
 }
 
@@ -210,12 +229,26 @@ bool scope_using_add(struct scope *scope, struct scope *other) {
 	bmagic_assert(other);
 	for (usize i = 0; i < arrlenu(scope->usings); ++i) {
 		if (other == scope->usings[i]) {
-			mtx_unlock(&scope->lock);
+			// mtx_unlock(&scope->lock); @Cleanup 2024-12-13 This is probably some leftover???
 			return false;
 		}
 	}
 	arrput(scope->usings, other);
 	return true;
+}
+
+void scope_inject(struct scope *scope, struct scope *other) {
+	bmagic_assert(scope);
+	bmagic_assert(other);
+	bassert(scope != other && "Injecting scope to itself!");
+	bassert(other->kind == SCOPE_FILE && "Only file scope can be injected!");
+	bassert(!scope_is_local(scope) && "Injection destination scope must be global!");
+	for (usize i = 0; i < arrlenu(scope->injected); ++i) {
+		if (other == scope->injected[i]) {
+			return;
+		}
+	}
+	arrput(scope->injected, other);
 }
 
 bool scope_is_subtree_of_kind(const struct scope *scope, enum scope_kind kind) {
@@ -255,6 +288,8 @@ const char *scope_kind_name(const struct scope *scope) {
 		return "Enum";
 	case SCOPE_NAMED:
 		return "Named";
+	case SCOPE_FILE:
+		return "File";
 	}
 
 	return "<INVALID>";
@@ -279,3 +314,19 @@ void scope_get_full_name(str_buf_t *buf, struct scope *scope) {
 	}
 	sarrfree(&tmp);
 }
+
+#ifdef BL_DEBUG
+void scope_print(struct scope *scope) {
+	blog("Scope: %s", scope_kind_name(scope));
+	blog("Injected:");
+	for (usize i = 0; i < arrlenu(scope->injected); ++i) {
+		struct scope *injected = scope->injected[i];
+		blog("  [%d] " STR_FMT, i, STR_ARG(injected->_debug_name));
+	}
+
+	blog("Symbols:");
+	for (usize i = 0; i < tbl_len(scope->entries); ++i) {
+		blog("  [%d] " STR_FMT, i, STR_ARG(scope->entries[i].key));
+	}
+}
+#endif
