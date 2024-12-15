@@ -304,7 +304,7 @@ s32            target_triple_to_string(const struct target_triple *triple, char 
 
 struct assembly *assembly_new(const struct target *target);
 void             assembly_delete(struct assembly *assembly);
-struct unit     *assembly_add_unit(struct assembly *assembly, const str_t filepath, struct token *load_from, struct scope *inject_to_scope);
+void             assembly_add_unit(struct assembly *assembly, const str_t filepath, struct token *load_from, struct scope *parent_scope);
 void             assembly_add_lib_path(struct assembly *assembly, const char *path);
 void             assembly_append_linker_options(struct assembly *assembly, const char *opt);
 void             assembly_add_native_lib(struct assembly *assembly,

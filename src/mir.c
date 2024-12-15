@@ -1531,7 +1531,7 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 	scope_unlock(scope);
 	return_zone(entry);
 
-COLLIDE : {
+COLLIDE: {
 	scope_unlock(scope);
 	char *err_msg = (collision->is_builtin || is_builtin) ? "Symbol name collision with compiler builtin '" STR_FMT "'." : "Duplicate symbol";
 	report_error(DUPLICATE_SYMBOL, node, err_msg, STR_ARG(id->str));
@@ -1545,8 +1545,8 @@ COLLIDE : {
 struct mir_type *lookup_builtin_type(struct context *ctx, enum builtin_id_kind kind) {
 	bcheck_main_thread();
 
-	struct id    *id    = &builtin_ids[kind];
-	struct scope *scope = ctx->assembly->gscope;
+	struct id          *id    = &builtin_ids[kind];
+	struct scope       *scope = ctx->assembly->gscope;
 	struct scope_entry *found = scope_lookup(scope,
 	                                         &(scope_lookup_args_t){
 	                                             .id      = id,
@@ -1580,13 +1580,11 @@ struct mir_fn *lookup_builtin_fn(struct context *ctx, enum builtin_id_kind kind)
 	struct id    *id    = &builtin_ids[kind];
 	struct scope *scope = ctx->assembly->gscope;
 
-	// scope_lock(scope); // Scope is global everytime here!
 	struct scope_entry *found = scope_lookup(scope,
 	                                         &(scope_lookup_args_t){
 	                                             .id      = id,
 	                                             .in_tree = true,
 	                                         });
-	// scope_unlock(scope);
 
 	if (!found) babort("Missing compiler internal symbol '" STR_FMT "'", STR_ARG(id->str));
 	if (found->kind == SCOPE_ENTRY_INCOMPLETE) return NULL;
@@ -1693,9 +1691,8 @@ struct scope_entry *lookup_composit_member(struct mir_type *type, struct id *rid
 	while (true) {
 		found = scope_lookup(scope,
 		                     &(scope_lookup_args_t){
-		                         .layer         = scope_layer,
-		                         .id            = rid,
-		                         .ignore_global = true,
+		                         .layer = scope_layer,
+		                         .id    = rid,
 		                     });
 		if (found) break;
 		scope = get_base_type_scope(type);
@@ -5236,9 +5233,8 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 			const hash_t        scope_layer = SCOPE_DEFAULT_LAYER; // @Incomplete
 			struct scope_entry *found       = scope_lookup(scope,
                                                      &(scope_lookup_args_t){
-			                                                   .layer         = scope_layer,
-			                                                   .id            = rid,
-			                                                   .ignore_global = true,
+			                                                   .layer = scope_layer,
+			                                                   .id    = rid,
                                                      });
 			if (!found) {
 				report_error(UNKNOWN_SYMBOL, member_ptr->member_ident, "Unknown enumerator variant.");
@@ -5686,15 +5682,26 @@ static struct result lookup_ref(struct context *ctx, const struct mir_instr_decl
 	if (!private_scope) { // reference in unit without private scope
 		found = scope_lookup(ref->scope, &lookup_args);
 	} else { // reference in unit with private scope
-		// search in current tree and ignore global scope
-		lookup_args.ignore_global = true;
-		found                     = scope_lookup(ref->scope, &lookup_args);
+		// I.
+		//
+		// In case the private scope is present in the unit we have to prioritize its symbols over the global ones
+		// but at te same time, we have to check reference owner scope tree first to support shadowing (prioritize
+		// local variables in funciton (for example). So the forst search stops on file scope.
+		//
+		lookup_args.stop_on = SCOPE_FILE;
+		found               = scope_lookup(ref->scope, &lookup_args);
 
-		// lookup in private scope and global scope also (private scope has global
-		// scope as parent every time)
+		// II.
+		//
+		// In case the symbol was not found, we have to search the private scope (to prioritize local file private
+		// symbols). Note that private scope must have parent, and since we search in_tree we might find symbols
+		// even in global/named scope across the assembly.
+		//
 		if (!found) {
-			lookup_args.ignore_global = false;
-			found                     = scope_lookup(private_scope, &lookup_args);
+			bassert(private_scope->parent);
+			bassert(private_scope->parent->kind == SCOPE_NAMED || private_scope->parent->kind == SCOPE_FILE);
+			lookup_args.stop_on = SCOPE_NONE;
+			found               = scope_lookup(private_scope, &lookup_args);
 		}
 	}
 	if (ambiguous) {
@@ -6427,7 +6434,7 @@ struct result analyze_instr_load(struct context *ctx, struct mir_instr_load *loa
 
 	return_zone(PASS);
 
-INVALID_SRC : {
+INVALID_SRC: {
 	bassert(err_type);
 	str_buf_t type_name = mir_type2str(err_type, /* prefer_name */ true);
 	report_error(INVALID_TYPE, src->node, "Expected value of pointer type, got '" STR_FMT "'.", STR_ARG(type_name));

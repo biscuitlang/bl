@@ -145,7 +145,7 @@ int compile_assembly(struct assembly *assembly) {
 	}
 #ifdef BL_DEBUG
 	// Uncoment to print content of global scope.
-	scope_print(assembly->gscope);
+	// scope_print(assembly->gscope);
 #endif
 	return COMPILE_OK;
 }

@@ -685,17 +685,17 @@ void assembly_append_linker_options(struct assembly *assembly, const char *opt) 
 	spl_unlock(&assembly->custom_linker_opt_lock);
 }
 
-static inline bool assembly_has_unit(struct assembly *assembly, const hash_t hash, str_t filepath) {
+static inline struct unit *assembly_lookup_unit(struct assembly *assembly, const hash_t hash, str_t filepath) {
 	for (usize i = 0; i < arrlenu(assembly->units); ++i) {
 		struct unit *unit = assembly->units[i];
 		if (hash == unit->hash && str_match(filepath, unit->filepath)) {
-			return true;
+			return unit;
 		}
 	}
-	return false;
+	return NULL;
 }
 
-struct unit *assembly_add_unit(struct assembly *assembly, const str_t filepath, struct token *load_from, struct scope *inject_to_scope) {
+void assembly_add_unit(struct assembly *assembly, const str_t filepath, struct token *load_from, struct scope *parent_scope) {
 	zone();
 	bassert(filepath.len && filepath.ptr);
 	struct unit *unit = NULL;
@@ -705,22 +705,46 @@ struct unit *assembly_add_unit(struct assembly *assembly, const str_t filepath, 
 	if (!search_source_file(filepath, SEARCH_FLAG_ALL, parent_unit ? parent_unit->dirpath : str_empty, &tmp_fullpath)) {
 		put_tmp_str(tmp_fullpath);
 		builder_msg(MSG_ERR, ERR_FILE_NOT_FOUND, TOKEN_OPTIONAL_LOCATION(load_from), CARET_WORD, "File not found '" STR_FMT "'.", STR_ARG(filepath));
-		return_zone(NULL);
+		return_zone();
 	}
 
 	const hash_t hash = strhash(tmp_fullpath);
 
+	bool submit = false;
+
 	mtx_lock(&assembly->units_lock);
-	if (!assembly_has_unit(assembly, hash, str_buf_view(tmp_fullpath))) {
-		bassert(inject_to_scope);
-		unit = unit_new(assembly, str_buf_view(tmp_fullpath), filepath, hash, load_from, inject_to_scope);
+	unit = assembly_lookup_unit(assembly, hash, str_buf_view(tmp_fullpath));
+	if (!unit) {
+		bassert(parent_scope);
+		unit = unit_new(assembly, str_buf_view(tmp_fullpath), filepath, hash, load_from);
 		arrput(assembly->units, unit);
+
+		submit = true;
 	}
 	mtx_unlock(&assembly->units_lock);
 
-	if (unit) builder_submit_unit(assembly, unit);
+	bassert(unit);
+
+	struct scope *inject_to_scope = NULL;
+	switch (parent_scope->kind) {
+	case SCOPE_NAMED:
+	case SCOPE_PRIVATE:
+	case SCOPE_GLOBAL:
+		inject_to_scope = parent_scope;
+		break;
+	case SCOPE_FILE:
+		inject_to_scope = assembly->gscope;
+		break;
+	default:
+		BL_UNREACHABLE;
+	}
+
+	bassert(inject_to_scope);
+	scope_inject(inject_to_scope, unit->file_scope);
+
+	if (submit) builder_submit_unit(assembly, unit);
 	put_tmp_str(tmp_fullpath);
-	return_zone(unit);
+	return_zone();
 }
 
 void assembly_add_native_lib(struct assembly *assembly,

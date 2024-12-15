@@ -20,7 +20,7 @@ main :: fn () s32 {
 	return result;
 }
 
-#private
+#scope_private
 my_logger :: fn (kind: PrintLogKind, file: string_view, line: s32, format: string_view, args: ...) {
 	output_stream := os_stdout();
 	buf: [PRINT_MAX_LENGTH]u8 #noinit;

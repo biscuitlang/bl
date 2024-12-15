@@ -112,6 +112,7 @@ struct scope {
 	hash_table(struct scope_tbl_entry) entries;
 
 	mtx_t lock;
+	mtx_t injection_lock;
 
 #ifdef BL_DEBUG
 	str_t _debug_name;
@@ -144,10 +145,10 @@ bool scope_using_add(struct scope *scope, struct scope *other);
 void scope_inject(struct scope *scope, struct scope *other);
 
 typedef struct {
-	hash_t     layer;
-	struct id *id;
-	bool       in_tree;
-	bool       ignore_global;
+	hash_t          layer;
+	struct id      *id;
+	bool            in_tree;
+	enum scope_kind stop_on;
 
 	bool *out_of_local;
 

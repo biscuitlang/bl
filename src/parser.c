@@ -566,8 +566,18 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 			             tok_directive,
 			             CARET_WORD,
 			             "Unexpected directive. Named scopes cannot be nested.");
-			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_directive, scope_get(ctx)));
+			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_directive, current_scope));
 		}
+
+		if (scope_is_subtree_of_kind(current_scope, SCOPE_PRIVATE)) {
+			report_error(UNEXPECTED_DIRECTIVE,
+			             tok_directive,
+			             CARET_WORD,
+			             "Unexpected directive. Named scopes cannot be nested in private block.");
+			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_directive, current_scope));
+		}
+
+		bassert(current_scope->kind != SCOPE_PRIVATE);
 
 		struct ast *ast_scope       = ast_create_node(ctx->ast_arena, AST_SCOPE, tok_directive, current_scope);
 		ast_scope->data.scope.ident = ident;
@@ -575,9 +585,14 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 
 		// Lookup already existing named scope with the same name.
 		scope_lock(current_scope);
-		struct scope_entry *scope_entry = scope_lookup(current_scope, &(scope_lookup_args_t){.id = id});
+
+		scope_lookup_args_t lookup_args = {
+		    .id      = id,
+		    .in_tree = true,
+		};
+
+		struct scope_entry *scope_entry = scope_lookup(current_scope, &lookup_args);
 		if (scope_entry) {
-			blog("Scope found!");
 			bassert(scope_entry->kind == SCOPE_ENTRY_NAMED_SCOPE && "Found scope entry is expected to be named scope!");
 			bassert(scope_entry->data.scope && scope_entry->data.scope->kind == SCOPE_NAMED);
 		} else {

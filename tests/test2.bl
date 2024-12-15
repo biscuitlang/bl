@@ -3,17 +3,11 @@ foo :: fn () {
 
 #scope_private
 
-bar :: fn () {
-}
-
-#scope_public
-
-foobar :: fn () {
-}
-
-#scope_private
+#load "test3.bl"
 
 bar2 :: fn () {
+	foo();
+	imprivate();
 }
 
 

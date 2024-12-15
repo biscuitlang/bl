@@ -17,7 +17,6 @@ module :: fn (target: *Target) #module_entry {
 
 main :: fn () s32 {
 	foo();
-	foobar();
 	return 0;
 }
 

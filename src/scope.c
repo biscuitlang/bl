@@ -42,6 +42,7 @@ static void scope_dtor(struct scope *scope) {
 	arrfree(scope->usings);
 	arrfree(scope->injected);
 	mtx_destroy(&scope->lock);
+	mtx_destroy(&scope->injection_lock);
 }
 
 static inline struct scope_entry *lookup_usings(struct scope *scope, struct id *id, struct scope_entry **out_ambiguous) {
@@ -83,6 +84,7 @@ struct scope *scope_create(struct scope_arenas *arenas,
 	scope->location     = loc;
 
 	mtx_init(&scope->lock, mtx_recursive);
+	mtx_init(&scope->injection_lock, mtx_plain);
 
 	bmagic_set(scope);
 	return scope;
@@ -145,7 +147,8 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 
 	u64 hash = entry_hash(args->id->hash, args->layer);
 	while (scope) {
-		if (scope->kind == SCOPE_GLOBAL && args->ignore_global) break;
+		bassert(scope->kind != SCOPE_NONE);
+		if (scope->kind == args->stop_on) break;
 		if (!scope_is_local(scope)) {
 			// Global scopes should not have layers!!!
 			hash = entry_hash(args->id->hash, SCOPE_DEFAULT_LAYER);
@@ -163,33 +166,32 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 		}
 
 		scope_lock(scope);
-		s64 i = tbl_lookup_index_with_key(scope->entries, hash, args->id->str);
+		const s64 index = tbl_lookup_index_with_key(scope->entries, hash, args->id->str);
+		if (index != -1) {
+			found = scope->entries[index].value;
+			bassert(found);
+		}
 		scope_unlock(scope);
 
-		if (i == -1) {
-			for (usize j = 0; j < arrlenu(scope->injected); ++j) {
-				struct scope *injected_scope = scope->injected[j];
+		if (!found) {
+			mtx_lock(&scope->injection_lock);
+			for (usize injected_index = 0; injected_index < arrlenu(scope->injected) && !found; ++injected_index) {
+				struct scope *injected_scope = scope->injected[injected_index];
 				bassert(injected_scope->kind == SCOPE_FILE);
 
 				scope_lock(injected_scope);
-				i = tbl_lookup_index_with_key(injected_scope->entries, hash, args->id->str);
-				scope_unlock(injected_scope);
-
-				if (i != -1) {
-					found = injected_scope->entries[i].value;
+				const s64 index = tbl_lookup_index_with_key(injected_scope->entries, hash, args->id->str);
+				if (index != -1) {
+					found = injected_scope->entries[index].value;
 					bassert(found);
-					bassert(!scope_is_local(injected_scope));
-					if (found_using) { // Injected scope is never local!
-						bassert(args->out_ambiguous);
-						(*args->out_ambiguous) = found_using;
-					}
-					break;
 				}
+				scope_unlock(injected_scope);
 			}
-		} else {
-			found = scope->entries[i].value;
-			bassert(found);
-			if (!scope_is_local(scope) && found_using) { // not found in local scope
+			mtx_unlock(&scope->injection_lock);
+		}
+
+		if (found) {
+			if (!scope_is_local(found->parent_scope) && found_using) {
 				bassert(args->out_ambiguous);
 				(*args->out_ambiguous) = found_using;
 			}
@@ -203,6 +205,7 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 		if (args->out_of_local) *(args->out_of_local) = scope->kind == SCOPE_FN;
 		scope = scope->parent;
 	}
+
 	if (!found && args->out_ambiguous) {
 		// Maybe we have some result coming from used scopes, and it can also be ambiguous (same
 		// inside multiple of used scopes).
@@ -241,14 +244,18 @@ void scope_inject(struct scope *scope, struct scope *other) {
 	bmagic_assert(scope);
 	bmagic_assert(other);
 	bassert(scope != other && "Injecting scope to itself!");
-	bassert(other->kind == SCOPE_FILE && "Only file scope can be injected!");
+	bassert(other->kind == SCOPE_FILE);
 	bassert(!scope_is_local(scope) && "Injection destination scope must be global!");
+	mtx_lock(&scope->injection_lock);
 	for (usize i = 0; i < arrlenu(scope->injected); ++i) {
 		if (other == scope->injected[i]) {
+			mtx_unlock(&scope->injection_lock);
 			return;
 		}
 	}
+	// blog(">> INJECT to [%s]: " STR_FMT, scope_kind_name(scope), STR_ARG(other->_debug_name));
 	arrput(scope->injected, other);
+	mtx_unlock(&scope->injection_lock);
 }
 
 bool scope_is_subtree_of_kind(const struct scope *scope, enum scope_kind kind) {
