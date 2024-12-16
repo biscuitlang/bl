@@ -1,0 +1,8 @@
+// #import "std/print"
+
+new :: fn () {
+	// print("Hello\n");
+}
+
+delete :: fn () {
+}

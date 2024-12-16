@@ -266,6 +266,7 @@ typedef struct {
 	struct assembly *assembly;
 	struct token    *import_from;
 	const char      *modulepath;
+	struct scope    *parent_scope;
 	s32              is_supported_for_current_target;
 
 	char target_triple_str[TRIPLE_MAX_LEN];
@@ -275,7 +276,7 @@ static void import_source(import_elem_context_t *ctx, const char *srcfile) {
 	str_buf_t path = get_tmp_str();
 	str_buf_append_fmt(&path, "{s}/{s}", ctx->modulepath, srcfile);
 	// @Cleanup: should we pass the import_from token here?
-	assembly_add_unit(ctx->assembly, str_buf_view(path), NULL, ctx->assembly->gscope);
+	assembly_add_unit(ctx->assembly, str_buf_view(path), NULL, ctx->parent_scope, ctx->parent_scope);
 	put_tmp_str(path);
 }
 
@@ -305,7 +306,8 @@ static void import_link_runtime_only(import_elem_context_t *ctx, const char *lib
 static bool import_module(struct assembly *assembly,
                           struct config   *config,
                           const char      *modulepath,
-                          struct token    *import_from) {
+                          struct token    *import_from,
+                          struct scope    *scope) {
 	zone();
 	import_elem_context_t ctx = {assembly, import_from, modulepath};
 
@@ -316,6 +318,32 @@ static bool import_module(struct assembly *assembly,
 	builder_log("Import module '%s' version %d.", modulepath, version);
 
 	// Global
+	ctx.parent_scope = assembly->gscope;
+
+	const char *default_scope_name = confreads(config, "/default_scope", ""); // @Incomplete: maybe module_name???
+	if (is_str_valid_nonempty(default_scope_name)) {
+		blog("!!! Import new module: '%s' !!!", default_scope_name);
+		const u32             thread_index = get_worker_index();
+		struct scope_arenas  *scope_arenas = &assembly->thread_local_contexts[thread_index].scope_arenas;
+		struct string_cache **string_cache = &assembly->thread_local_contexts[thread_index].string_cache;
+		struct scope         *module_scope = scope_create(scope_arenas, SCOPE_NAMED, NULL, &import_from->location);
+		module_scope->name                 = scprint(string_cache, "{s}", default_scope_name);
+
+		// @Incomplete 2024-12-16: Check collisions!!!!!
+		// @Incomplete 2024-12-16: Check collisions!!!!!
+		// @Incomplete 2024-12-16: Check collisions!!!!!
+
+		struct ast *ast_node = NULL;                       // @Incomplete 2024-12-16: missing node.
+		struct id  *id       = bmalloc(sizeof(struct id)); // @Incomplete 2024-12-16: This will leak!!!! Only for testing the feature.
+		                                                   // We may should require symbol for this, but what about implicit imports???
+		id_init(id, module_scope->name);
+		struct scope_entry *scope_entry = scope_create_entry(scope_arenas, SCOPE_ENTRY_NAMED_SCOPE, id, ast_node, false);
+		scope_insert(scope, SCOPE_DEFAULT_LAYER, scope_entry);
+		scope_entry->data.scope = module_scope;
+
+		ctx.parent_scope = module_scope;
+	}
+
 	assembly_append_linker_options(assembly, confreads(config, "/linker_opt", ""));
 	process_tokens(&ctx,
 	               confreads(config, "/src", ""),
@@ -595,9 +623,11 @@ struct assembly *assembly_new(const struct target *target) {
 	dl_init(assembly);
 	mir_init(assembly);
 
+	struct scope *gscope =assembly->gscope;
+
 	// Add units from target
 	for (usize i = 0; i < arrlenu(target->files); ++i) {
-		assembly_add_unit(assembly, make_str_from_c(target->files[i]), NULL, assembly->gscope);
+		assembly_add_unit(assembly, make_str_from_c(target->files[i]), NULL, gscope, gscope);
 	}
 
 	const str_t preload_file = make_str_from_c(read_config(builder.config, assembly->target, "preload_file", ""));
@@ -606,19 +636,19 @@ struct assembly *assembly_new(const struct target *target) {
 	switch (assembly->target->kind) {
 	case ASSEMBLY_EXECUTABLE:
 		if (assembly->target->no_api) break;
-		assembly_add_unit(assembly, cstr(BUILTIN_FILE), NULL, assembly->gscope);
-		assembly_add_unit(assembly, preload_file, NULL, assembly->gscope);
+		assembly_add_unit(assembly, cstr(BUILTIN_FILE), NULL, gscope, gscope);
+		assembly_add_unit(assembly, preload_file, NULL, gscope, gscope);
 		break;
 	case ASSEMBLY_SHARED_LIB:
 		if (assembly->target->no_api) break;
-		assembly_add_unit(assembly, cstr(BUILTIN_FILE), NULL, assembly->gscope);
-		assembly_add_unit(assembly, preload_file, NULL, assembly->gscope);
+		assembly_add_unit(assembly, cstr(BUILTIN_FILE), NULL, gscope, gscope);
+		assembly_add_unit(assembly, preload_file, NULL, gscope, gscope);
 		break;
 	case ASSEMBLY_BUILD_PIPELINE:
-		assembly_add_unit(assembly, cstr(BUILTIN_FILE), NULL, assembly->gscope);
-		assembly_add_unit(assembly, preload_file, NULL, assembly->gscope);
-		assembly_add_unit(assembly, cstr(BUILD_API_FILE), NULL, assembly->gscope);
-		assembly_add_unit(assembly, cstr(BUILD_SCRIPT_FILE), NULL, assembly->gscope);
+		assembly_add_unit(assembly, cstr(BUILTIN_FILE), NULL, gscope, gscope);
+		assembly_add_unit(assembly, preload_file, NULL, gscope, gscope);
+		assembly_add_unit(assembly, cstr(BUILD_API_FILE), NULL, gscope, gscope);
+		assembly_add_unit(assembly, cstr(BUILD_SCRIPT_FILE), NULL, gscope, gscope);
 		break;
 	case ASSEMBLY_DOCS:
 		break;
@@ -695,7 +725,7 @@ static inline struct unit *assembly_lookup_unit(struct assembly *assembly, const
 	return NULL;
 }
 
-void assembly_add_unit(struct assembly *assembly, const str_t filepath, struct token *load_from, struct scope *parent_scope) {
+void assembly_add_unit(struct assembly *assembly, const str_t filepath, struct token *load_from, struct scope *parent_scope, struct scope *inject_scope) {
 	zone();
 	bassert(filepath.len && filepath.ptr);
 	struct unit *unit = NULL;
@@ -716,7 +746,7 @@ void assembly_add_unit(struct assembly *assembly, const str_t filepath, struct t
 	unit = assembly_lookup_unit(assembly, hash, str_buf_view(tmp_fullpath));
 	if (!unit) {
 		bassert(parent_scope);
-		unit = unit_new(assembly, str_buf_view(tmp_fullpath), filepath, hash, load_from);
+		unit = unit_new(assembly, str_buf_view(tmp_fullpath), filepath, hash, load_from, parent_scope);
 		arrput(assembly->units, unit);
 
 		submit = true;
@@ -725,23 +755,7 @@ void assembly_add_unit(struct assembly *assembly, const str_t filepath, struct t
 	if (submit) builder_submit_unit(assembly, unit);
 
 	bassert(unit);
-
-	struct scope *inject_to_scope = NULL;
-	switch (parent_scope->kind) {
-	case SCOPE_NAMED:
-	case SCOPE_PRIVATE:
-	case SCOPE_GLOBAL:
-		inject_to_scope = parent_scope;
-		break;
-	case SCOPE_FILE:
-		inject_to_scope = assembly->gscope;
-		break;
-	default:
-		BL_UNREACHABLE;
-	}
-
-	bassert(inject_to_scope);
-	scope_inject(inject_to_scope, unit->file_scope);
+	if (inject_scope) scope_inject(inject_scope, unit->file_scope);
 
 	put_tmp_str(tmp_fullpath);
 	return_zone();
@@ -779,7 +793,7 @@ static inline bool module_exist(const char *module_dir, const char *modulepath) 
 	return found;
 }
 
-bool assembly_import_module(struct assembly *assembly, const char *modulepath, struct token *import_from) {
+bool assembly_import_module(struct assembly *assembly, const char *modulepath, struct token *import_from, struct scope *scope) {
 	zone();
 	bool state = false;
 	if (!is_str_valid_nonempty(modulepath)) {
@@ -865,7 +879,7 @@ bool assembly_import_module(struct assembly *assembly, const char *modulepath, s
 		bassert("Invalid module import policy!");
 	}
 	if (config) {
-		state = import_module(assembly, config, str_buf_to_c(local_path), import_from);
+		state = import_module(assembly, config, str_buf_to_c(local_path), import_from, scope);
 	} else {
 		builder_msg(MSG_ERR,
 		            ERR_FILE_NOT_FOUND,

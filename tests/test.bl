@@ -15,11 +15,13 @@ baz :: #import "std/string";
 
 */
 
-#load "test2.bl"
+#import "str"
+
+homo :: fn () {}
 
 main :: fn () s32 {
-	ahoj.foo();
-	ahoj.imprivate();
+	str.new();
+	str.delete();
 	return 0;
 }
 

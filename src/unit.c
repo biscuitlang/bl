@@ -39,7 +39,7 @@
 #define EXPECTED_ARRAY_COUNT 64
 
 // public
-struct unit *unit_new(struct assembly *assembly, const str_t filepath, const str_t name, const hash_t hash, struct token *load_from) {
+struct unit *unit_new(struct assembly *assembly, const str_t filepath, const str_t name, const hash_t hash, struct token *load_from, struct scope *parent_scope) {
 	struct unit *unit = bmalloc(sizeof(struct unit)); // @Performance 2024-09-14 Use arena?
 	bl_zeromem(unit, sizeof(struct unit));
 
@@ -58,7 +58,7 @@ struct unit *unit_new(struct assembly *assembly, const str_t filepath, const str
 
 	struct scope_arenas *scope_arenas = &assembly->thread_local_contexts[thread_index].scope_arenas;
 	bassert(assembly->gscope);
-	unit->file_scope = scope_create(scope_arenas, SCOPE_FILE, assembly->gscope, NULL); // 2024-12-13 do we need location?
+	unit->file_scope = scope_create(scope_arenas, SCOPE_FILE, parent_scope, NULL); // 2024-12-13 do we need location?
 #ifdef BL_DEBUG
 	unit->file_scope->_debug_name = unit->filename;
 #endif

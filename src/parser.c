@@ -418,7 +418,22 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 		struct ast *load         = ast_create_node(ctx->ast_arena, AST_LOAD, tok_directive, current_scope);
 		load->data.load.filepath = get_token_value(ctx, tok_path).str;
 		if (ctx->assembly->target->kind != ASSEMBLY_DOCS) {
-			assembly_add_unit(ctx->assembly, load->data.load.filepath, tok_path, current_scope);
+
+			struct scope *inject_scope = NULL;
+			switch (current_scope->kind) {
+			case SCOPE_NAMED:
+			case SCOPE_PRIVATE:
+			case SCOPE_GLOBAL:
+				inject_scope = current_scope;
+				break;
+			case SCOPE_FILE:
+				inject_scope = ctx->assembly->gscope;
+				break;
+			default:
+				BL_UNREACHABLE;
+			}
+
+			assembly_add_unit(ctx->assembly, load->data.load.filepath, tok_path, ctx->assembly->gscope, inject_scope);
 		}
 		return_zone(load);
 	}
@@ -437,7 +452,7 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 		    ast_create_node(ctx->ast_arena, AST_IMPORT, tok_directive, scope_get(ctx));
 		import->data.import.filepath = get_token_value(ctx, tok_path).str.ptr;
 		if (ctx->assembly->target->kind != ASSEMBLY_DOCS) {
-			assembly_import_module(ctx->assembly, get_token_value(ctx, tok_path).str.ptr, tok_path);
+			assembly_import_module(ctx->assembly, get_token_value(ctx, tok_path).str.ptr, tok_path, scope_get(ctx));
 		}
 		return_zone(import);
 	}
@@ -2650,7 +2665,7 @@ void parser_run(struct assembly *assembly, struct unit *unit) {
 
 	init_hash_directives(&ctx);
 	bassert(unit->file_scope && "Missing file scope!");
-	bassert(unit->file_scope->parent && unit->file_scope->parent == assembly->gscope && "Each file scope is supposed to be child of global scope!");
+	bassert(unit->file_scope->parent && (unit->file_scope->parent->kind == SCOPE_GLOBAL || unit->file_scope->parent->kind == SCOPE_NAMED) && "File scope parent is supposed to be global scope or module.");
 	scope_push(&ctx, unit->file_scope);
 
 	struct ast *root       = ast_create_node(ctx.ast_arena, AST_UBLOCK, NULL, scope_get(&ctx));
