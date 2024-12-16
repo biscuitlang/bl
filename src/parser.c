@@ -606,6 +606,7 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 			scope_entry->data.scope = named_scope;
 		}
 		scope_unlock(current_scope);
+
 		scope_set(ctx, scope_entry->data.scope);
 		return_zone(ast_scope);
 	}

@@ -137,6 +137,8 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 	struct scope_entry *found_using = NULL;
 	struct scope_entry *ambiguous   = NULL;
 
+	struct scope *last_visited_file_scope = NULL;
+
 #define REPORTS 0
 
 #if REPORTS
@@ -178,6 +180,8 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 			for (usize injected_index = 0; injected_index < arrlenu(scope->injected) && !found; ++injected_index) {
 				struct scope *injected_scope = scope->injected[injected_index];
 				bassert(injected_scope->kind == SCOPE_FILE);
+				bassert(injected_scope != scope);
+				if (last_visited_file_scope == injected_scope) continue; // @Comment!
 
 				scope_lock(injected_scope);
 				const s64 index = tbl_lookup_index_with_key(injected_scope->entries, hash, args->id->str);
@@ -203,7 +207,9 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 			break;
 		}
 		if (args->out_of_local) *(args->out_of_local) = scope->kind == SCOPE_FN;
-		scope = scope->parent;
+
+		last_visited_file_scope = scope->kind == SCOPE_FILE ? scope : NULL;
+		scope                   = scope->parent;
 	}
 
 	if (!found && args->out_ambiguous) {

@@ -722,6 +722,7 @@ void assembly_add_unit(struct assembly *assembly, const str_t filepath, struct t
 		submit = true;
 	}
 	mtx_unlock(&assembly->units_lock);
+	if (submit) builder_submit_unit(assembly, unit);
 
 	bassert(unit);
 
@@ -742,7 +743,6 @@ void assembly_add_unit(struct assembly *assembly, const str_t filepath, struct t
 	bassert(inject_to_scope);
 	scope_inject(inject_to_scope, unit->file_scope);
 
-	if (submit) builder_submit_unit(assembly, unit);
 	put_tmp_str(tmp_fullpath);
 	return_zone();
 }
