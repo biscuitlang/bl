@@ -1505,48 +1505,50 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 		return_zone(ctx->analyze->unnamed_entry);
 	}
 
-	scope_lock(scope);
+	const bool is_locked = scope->kind == SCOPE_GLOBAL || scope->kind == SCOPE_NAMED;
+	if (is_locked) scope_lock(scope);
 
-	const bool          is_private  = scope->kind == SCOPE_PRIVATE;
-	const hash_t        layer_index = ctx->fn_generate.current_scope_layer;
-	struct scope_entry *collision   = scope_lookup(scope,
-                                                 &(scope_lookup_args_t){
-	                                                   .layer   = layer_index,
-	                                                   .id      = id,
-	                                                   .in_tree = is_private,
-                                                 });
-	if (collision) {
-		if (!is_private) goto COLLIDE;
+	const bool   is_private  = scope->kind == SCOPE_PRIVATE;
+	const hash_t layer_index = ctx->fn_generate.current_scope_layer;
+
+	struct scope_entry *collision = scope_lookup(scope,
+	                                             &(scope_lookup_args_t){
+	                                                 .layer   = layer_index,
+	                                                 .id      = id,
+	                                                 .in_tree = is_private,
+	                                                 .stop_on = is_private ? SCOPE_GLOBAL : SCOPE_NONE,
+	                                             });
+
+	if (collision && is_private) {
 		const bool collision_in_same_unit = (node ? node->location->unit : NULL) == (collision->node ? collision->node->location->unit : NULL);
+		if (!collision_in_same_unit) collision = NULL;
+	}
 
-		if (collision_in_same_unit) {
-			goto COLLIDE;
+	if (collision) {
+		if (is_locked) scope_unlock(scope);
+
+		char *err_msg = (collision->is_builtin || is_builtin) ? "Symbol name collision with compiler builtin '" STR_FMT "'." : "Duplicate symbol";
+		report_error(DUPLICATE_SYMBOL, node, err_msg, STR_ARG(id->str));
+		if (collision->node) {
+			report_note(collision->node, "Previous declaration found here.");
 		}
+		return_zone(NULL);
 	}
 
 	// no collision
 	struct scope_entry *entry = scope_create_entry(ctx->scope_arenas, SCOPE_ENTRY_INCOMPLETE, id, node, is_builtin);
 	scope_insert(scope, layer_index, entry);
 
-	scope_unlock(scope);
+	if (is_locked) scope_unlock(scope);
 	return_zone(entry);
-
-COLLIDE: {
-	scope_unlock(scope);
-	char *err_msg = (collision->is_builtin || is_builtin) ? "Symbol name collision with compiler builtin '" STR_FMT "'." : "Duplicate symbol";
-	report_error(DUPLICATE_SYMBOL, node, err_msg, STR_ARG(id->str));
-	if (collision->node) {
-		report_note(collision->node, "Previous declaration found here.");
-	}
-	return_zone(NULL);
-}
 }
 
 struct mir_type *lookup_builtin_type(struct context *ctx, enum builtin_id_kind kind) {
 	bcheck_main_thread();
 
-	struct id          *id    = &builtin_ids[kind];
-	struct scope       *scope = ctx->assembly->gscope;
+	struct id    *id    = &builtin_ids[kind];
+	struct scope *scope = ctx->assembly->gscope;
+
 	struct scope_entry *found = scope_lookup(scope,
 	                                         &(scope_lookup_args_t){
 	                                             .id      = id,
@@ -5298,9 +5300,9 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 			const hash_t        scope_layer = sub_type->data.strct.scope_layer;
 			struct scope_entry *found       = scope_lookup(scope,
                                                      &(scope_lookup_args_t){
-			                                                   .layer   = scope_layer,
-			                                                   .id      = rid,
-			                                                   .in_tree = true,
+			                                                   .layer = scope_layer,
+			                                                   .id    = rid,
+                                                         //.in_tree = true,
                                                      });
 			if (!found) {
 				report_error(UNKNOWN_SYMBOL, member_ptr->member_ident, "Unknown type member.");

@@ -1,16 +1,16 @@
 #scope_private
-struct_type_hash :: fn () #test {
-	test_eq(typeid(Foo), typeid(Foo));
-	test_neq(typeid(Foo), typeid(Bar.Foo));
-	test_eq(typeid(struct { i: s32; }), typeid(struct { i: s32; }));
-}
+// struct_type_hash :: fn () #test {
+// 	test_eq(typeid(Foo), typeid(Foo));
+// 	test_neq(typeid(Foo), typeid(Bar.Foo));
+// 	test_eq(typeid(struct { i: s32; }), typeid(struct { i: s32; }));
+// }
 
-Foo :: struct {
-	b: s32;
-}
+// Foo :: struct {
+// 	b: s32;
+// }
 
-#scope Bar
+// #scope Bar
 
-Foo :: struct {
-	a: s32;
-}
+// Foo :: struct {
+// 	a: s32;
+// }

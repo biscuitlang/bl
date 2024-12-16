@@ -112,7 +112,6 @@ struct scope {
 	hash_table(struct scope_tbl_entry) entries;
 
 	mtx_t lock;
-	mtx_t injection_lock;
 
 #ifdef BL_DEBUG
 	str_t _debug_name;

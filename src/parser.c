@@ -584,7 +584,7 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 		struct id *id               = &ident->data.ident.id;
 
 		// Lookup already existing named scope with the same name.
-		scope_lock(current_scope);
+		scope_lock(ctx->assembly->gscope);
 
 		scope_lookup_args_t lookup_args = {
 		    .id      = id,
@@ -605,7 +605,7 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 			named_scope->name       = id->str;
 			scope_entry->data.scope = named_scope;
 		}
-		scope_unlock(current_scope);
+		scope_unlock(ctx->assembly->gscope);
 
 		scope_set(ctx, scope_entry->data.scope);
 		return_zone(ast_scope);

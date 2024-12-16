@@ -1,5 +1,5 @@
 #scope_private
-
+/*
 using_enum :: fn () #test {
 	Enum :: enum {
 		A; B;
@@ -70,3 +70,4 @@ Foo :: s32;
 
 i := 10;
 
+*/

@@ -1,0 +1,6 @@
+// @ERR_UNKNOWN_SYMBOL@
+#load "../scope_injection2.bl"
+main :: fn () s32 {
+	baz();
+	return 0;
+}
