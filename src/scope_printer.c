@@ -106,7 +106,7 @@ static void print_referencing(struct scope *scope, FILE *stream) {
 	}
 }
 
-void assembly_dump_scope_structure(struct assembly *assembly, FILE *stream) {
+void assembly_dump_scope_structure(struct assembly *assembly, FILE *stream, enum scope_dump_mode mode) {
 	array(struct scope *) flatten_scopes = NULL;
 
 	const u32 thread_count = get_thread_count();
@@ -146,9 +146,12 @@ void assembly_dump_scope_structure(struct assembly *assembly, FILE *stream) {
 		case SCOPE_NAMED:
 		case SCOPE_PRIVATE:
 		case SCOPE_MODULE: {
+			if (mode == SCOPE_DUMP_MODE_PARENTING) {
 				scope_print_dot_parenting(scope, stream);
-				// print_injection(scope, stream);
-				// print_referencing(scope, stream);
+			} else {
+				print_injection(scope, stream);
+				print_referencing(scope, stream);
+			}
 			break;
 		}
 		default:

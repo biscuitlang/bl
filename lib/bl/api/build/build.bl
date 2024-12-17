@@ -175,6 +175,9 @@ Target :: struct { // !!! ABI sync TargetOptions !!!
 	print_tokens: bool;
 	/// Print out AST.
 	print_ast: bool;
+	/// Print assembly scope structure in dot Graphviz format.
+	print_scopes: bool;
+	print_scopes_mode: ScopeDumpMode;
 	/// Emit LLVM IR code into file.
 	emit_llvm: bool;
 	/// Emit asm code into file.
@@ -201,6 +204,11 @@ Target :: struct { // !!! ABI sync TargetOptions !!!
 	enable_experimental_targets: bool;
 	/// Target triple according to LLVM.
 	triple: TargetTriple;
+}
+
+ScopeDumpMode :: enum {
+	PARENTING = 0;
+	INJECTION = 1;
 }
 
 /// Specification of compiler output binary kind.

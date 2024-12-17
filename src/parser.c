@@ -2665,7 +2665,7 @@ void parser_run(struct assembly *assembly, struct unit *unit) {
 
 	init_hash_directives(&ctx);
 	bassert(unit->file_scope && "Missing file scope!");
-	bassert(unit->file_scope->parent && (unit->file_scope->parent->kind == SCOPE_GLOBAL || unit->file_scope->parent->kind == SCOPE_NAMED) && "File scope parent is supposed to be global scope or module.");
+	bassert(unit->file_scope->parent && (unit->file_scope->parent->kind == SCOPE_GLOBAL || unit->file_scope->parent->kind == SCOPE_MODULE) && "File scope parent is supposed to be global scope or module.");
 	scope_push(&ctx, unit->file_scope);
 
 	struct ast *root       = ast_create_node(ctx.ast_arena, AST_UBLOCK, NULL, scope_get(&ctx));

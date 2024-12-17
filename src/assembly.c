@@ -326,7 +326,7 @@ static bool import_module(struct assembly *assembly,
 		const u32             thread_index = get_worker_index();
 		struct scope_arenas  *scope_arenas = &assembly->thread_local_contexts[thread_index].scope_arenas;
 		struct string_cache **string_cache = &assembly->thread_local_contexts[thread_index].string_cache;
-		struct scope         *module_scope = scope_create(scope_arenas, SCOPE_NAMED, NULL, &import_from->location);
+		struct scope         *module_scope = scope_create(scope_arenas, SCOPE_MODULE, NULL, &import_from->location);
 		module_scope->name                 = scprint(string_cache, "{s}", default_scope_name);
 
 		// @Incomplete 2024-12-16: Check collisions!!!!!

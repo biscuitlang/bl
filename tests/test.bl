@@ -22,6 +22,7 @@ homo :: fn () {}
 main :: fn () s32 {
 	str.new();
 	str.delete();
+	str.append();
 	return 0;
 }
 
@@ -56,7 +57,7 @@ enum_variants_to_string_list :: fn (TEnum: type #comptime) [enum_count(TEnum)]st
 */
 
 
-/*
+/* 
 
 // =================================================================================================
 // x64 TESTING BEGIN
