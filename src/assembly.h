@@ -316,6 +316,7 @@ bool             assembly_import_module(struct assembly *assembly,
                                         struct token    *import_from,
                                         struct scope    *scope);
 DCpointer        assembly_find_extern(struct assembly *assembly, const str_t symbol);
+void             assembly_dump_scope_structure(struct assembly *assembly, FILE *stream);
 
 // Convert opt level to string.
 static inline const char *opt_to_str(enum assembly_opt opt) {

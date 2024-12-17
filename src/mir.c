@@ -1505,7 +1505,7 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 		return_zone(ctx->analyze->unnamed_entry);
 	}
 
-	const bool is_locked = scope->kind == SCOPE_GLOBAL || scope->kind == SCOPE_NAMED;
+	const bool is_locked = scope->kind == SCOPE_GLOBAL || scope->kind == SCOPE_NAMED || scope->kind == SCOPE_MODULE;
 	if (is_locked) scope_lock(scope);
 
 	const bool   is_private  = scope->kind == SCOPE_PRIVATE;
@@ -6436,7 +6436,7 @@ struct result analyze_instr_load(struct context *ctx, struct mir_instr_load *loa
 
 	return_zone(PASS);
 
-INVALID_SRC: {
+INVALID_SRC : {
 	bassert(err_type);
 	str_buf_t type_name = mir_type2str(err_type, /* prefer_name */ true);
 	report_error(INVALID_TYPE, src->node, "Expected value of pointer type, got '" STR_FMT "'.", STR_ARG(type_name));

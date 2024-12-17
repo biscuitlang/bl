@@ -97,13 +97,15 @@ enum scope_kind {
 	SCOPE_TYPE_ENUM,
 	SCOPE_NAMED,
 	SCOPE_FILE,
+	SCOPE_MODULE,
 };
 
 #define SCOPE_DEFAULT_LAYER 0
 
 struct scope {
 	enum scope_kind  kind;
-	str_t            name; // optional
+	str_t            name;     // optional
+	str_t            filename; // optional
 	struct scope    *parent;
 	struct location *location;
 	array(struct scope *) usings;
@@ -112,11 +114,6 @@ struct scope {
 	hash_table(struct scope_tbl_entry) entries;
 
 	mtx_t lock;
-
-#ifdef BL_DEBUG
-	str_t _debug_name;
-#endif
-
 	bmagic_member
 };
 
@@ -166,7 +163,7 @@ void scope_get_full_name(str_buf_t *buf, struct scope *scope);
 
 static inline bool scope_is_local(const struct scope *scope) {
 	return scope->kind != SCOPE_GLOBAL && scope->kind != SCOPE_PRIVATE &&
-	       scope->kind != SCOPE_NAMED && scope->kind != SCOPE_FILE;
+	       scope->kind != SCOPE_NAMED && scope->kind != SCOPE_FILE && scope->kind != SCOPE_MODULE;
 }
 
 static inline struct scope_entry *scope_entry_ref(struct scope_entry *entry) {
@@ -174,9 +171,5 @@ static inline struct scope_entry *scope_entry_ref(struct scope_entry *entry) {
 	++entry->ref_count;
 	return entry;
 }
-
-#ifdef BL_DEBUG
-void scope_print(struct scope *scope);
-#endif
 
 #endif

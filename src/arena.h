@@ -61,4 +61,7 @@ void arena_terminate(struct arena *arena);
 // Allocated memory is zero initialized.
 void *arena_alloc(struct arena *arena);
 
+// This might be expensive and should be used in special cases for debugging.
+void arena_get_flatten(struct arena *arena, array(void *) * buf);
+
 #endif

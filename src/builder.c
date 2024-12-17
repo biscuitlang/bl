@@ -143,10 +143,9 @@ int compile_assembly(struct assembly *assembly) {
 		if (builder.errorc) return COMPILE_FAIL;
 		pipeline[i](assembly);
 	}
-#ifdef BL_DEBUG
-	// Uncoment to print content of global scope.
-	// scope_print(assembly->gscope);
-#endif
+
+
+	assembly_dump_scope_structure(assembly, stdout);
 	return COMPILE_OK;
 }
 

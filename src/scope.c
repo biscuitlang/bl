@@ -165,7 +165,7 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 			found_using = lookup_usings(scope, args->id, &ambiguous);
 		}
 
-		const bool is_locked = scope->kind == SCOPE_GLOBAL || scope->kind == SCOPE_NAMED;
+		const bool is_locked = scope->kind == SCOPE_GLOBAL || scope->kind == SCOPE_NAMED || scope->kind == SCOPE_MODULE;
 		if (is_locked) scope_lock(scope);
 
 		const s64 index = tbl_lookup_index_with_key(scope->entries, hash, args->id->str);
@@ -249,7 +249,7 @@ void scope_inject(struct scope *scope, struct scope *other) {
 	bassert(scope != other && "Injecting scope to itself!");
 	bassert(other->kind == SCOPE_FILE);
 	bassert(!scope_is_local(scope) && "Injection destination scope must be global!");
-	const bool is_locked = scope->kind == SCOPE_GLOBAL || scope->kind == SCOPE_NAMED;
+	const bool is_locked = scope->kind == SCOPE_GLOBAL || scope->kind == SCOPE_NAMED || scope->kind == SCOPE_MODULE;
 	if (is_locked) scope_lock(scope);
 	for (usize i = 0; i < arrlenu(scope->injected); ++i) {
 		if (other == scope->injected[i]) {
@@ -257,7 +257,6 @@ void scope_inject(struct scope *scope, struct scope *other) {
 			return;
 		}
 	}
-	// blog(">> INJECT to [%s]: " STR_FMT, scope_kind_name(scope), STR_ARG(other->_debug_name));
 	arrput(scope->injected, other);
 	if (is_locked) scope_unlock(scope);
 }
@@ -301,6 +300,8 @@ const char *scope_kind_name(const struct scope *scope) {
 		return "Named";
 	case SCOPE_FILE:
 		return "File";
+	case SCOPE_MODULE:
+		return "Module";
 	}
 
 	return "<INVALID>";
@@ -325,19 +326,3 @@ void scope_get_full_name(str_buf_t *buf, struct scope *scope) {
 	}
 	sarrfree(&tmp);
 }
-
-#ifdef BL_DEBUG
-void scope_print(struct scope *scope) {
-	blog("Scope: %s", scope_kind_name(scope));
-	blog("Injected:");
-	for (usize i = 0; i < arrlenu(scope->injected); ++i) {
-		struct scope *injected = scope->injected[i];
-		blog("  [%d] " STR_FMT, i, STR_ARG(injected->_debug_name));
-	}
-
-	blog("Symbols:");
-	for (usize i = 0; i < tbl_len(scope->entries); ++i) {
-		blog("  [%d] " STR_FMT, i, STR_ARG(scope->entries[i].key));
-	}
-}
-#endif

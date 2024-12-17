@@ -58,10 +58,8 @@ struct unit *unit_new(struct assembly *assembly, const str_t filepath, const str
 
 	struct scope_arenas *scope_arenas = &assembly->thread_local_contexts[thread_index].scope_arenas;
 	bassert(assembly->gscope);
-	unit->file_scope = scope_create(scope_arenas, SCOPE_FILE, parent_scope, NULL); // 2024-12-13 do we need location?
-#ifdef BL_DEBUG
-	unit->file_scope->_debug_name = unit->filename;
-#endif
+	unit->file_scope           = scope_create(scope_arenas, SCOPE_FILE, parent_scope, NULL); // 2024-12-13 do we need location?
+	unit->file_scope->filename = unit->filename;
 
 	tokens_init(&unit->tokens);
 	put_tmp_str(tmp);
