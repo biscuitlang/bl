@@ -26,6 +26,9 @@ main :: fn () s32 {
 	return 0;
 }
 
+#scope_private
+#load "test2.bl"
+
 /* BUG
 
 print_number_or_bool :: fn (v: Any) {
@@ -57,7 +60,7 @@ enum_variants_to_string_list :: fn (TEnum: type #comptime) [enum_count(TEnum)]st
 */
 
 
-/* 
+/*
 
 // =================================================================================================
 // x64 TESTING BEGIN

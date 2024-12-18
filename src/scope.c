@@ -177,7 +177,7 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 		if (!found) {
 			for (usize injected_index = 0; injected_index < arrlenu(scope->injected) && !found; ++injected_index) {
 				struct scope *injected_scope = scope->injected[injected_index];
-				bassert(injected_scope->kind == SCOPE_FILE);
+				bassert(injected_scope->kind == SCOPE_FILE || injected_scope->kind == SCOPE_PRIVATE);
 				bassert(injected_scope != scope);
 				if (last_visited_file_scope == injected_scope) continue; // @Comment!
 
@@ -243,22 +243,22 @@ bool scope_using_add(struct scope *scope, struct scope *other) {
 	return true;
 }
 
-void scope_inject(struct scope *scope, struct scope *other) {
-	bmagic_assert(scope);
-	bmagic_assert(other);
-	bassert(scope != other && "Injecting scope to itself!");
-	bassert(other->kind == SCOPE_FILE);
-	bassert(!scope_is_local(scope) && "Injection destination scope must be global!");
-	const bool is_locked = scope->kind == SCOPE_GLOBAL || scope->kind == SCOPE_NAMED || scope->kind == SCOPE_MODULE;
-	if (is_locked) scope_lock(scope);
-	for (usize i = 0; i < arrlenu(scope->injected); ++i) {
-		if (other == scope->injected[i]) {
-			if (is_locked) scope_unlock(scope);
+void scope_inject(struct scope *dest, struct scope *src) {
+	bmagic_assert(dest);
+	bmagic_assert(src);
+	bassert(dest != src && "Injecting scope to itself!");
+	bassert(src->kind == SCOPE_FILE || src->kind == SCOPE_PRIVATE);
+	bassert(!scope_is_local(dest) && "Injection destination scope must be global!");
+	const bool is_locked = dest->kind == SCOPE_GLOBAL || dest->kind == SCOPE_NAMED || dest->kind == SCOPE_MODULE;
+	if (is_locked) scope_lock(dest);
+	for (usize i = 0; i < arrlenu(dest->injected); ++i) {
+		if (src == dest->injected[i]) {
+			if (is_locked) scope_unlock(dest);
 			return;
 		}
 	}
-	arrput(scope->injected, other);
-	if (is_locked) scope_unlock(scope);
+	arrput(dest->injected, src);
+	if (is_locked) scope_unlock(dest);
 }
 
 bool scope_is_subtree_of_kind(const struct scope *scope, enum scope_kind kind) {

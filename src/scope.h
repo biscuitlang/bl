@@ -138,7 +138,7 @@ void scope_unlock(struct scope *scope);
 
 // Return true if other scope was added (is unique in this context).
 bool scope_using_add(struct scope *scope, struct scope *other);
-void scope_inject(struct scope *scope, struct scope *other);
+void scope_inject(struct scope *dest, struct scope *src);
 
 typedef struct {
 	hash_t          layer;

@@ -540,11 +540,13 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 			return_zone(ast_create_node(ctx->ast_arena, AST_PRIVATE, tok_directive, current_scope));
 		}
 
+		// @Cleanup 2024-12-18: Only file scope should be allowed later!
 		bassert(scope_get(ctx)->kind == SCOPE_FILE || scope_get(ctx)->kind == SCOPE_NAMED);
 		struct scope *scope = ctx->unit->private_scope;
 		if (!scope) {
 			scope = scope_create(ctx->scope_arenas, SCOPE_PRIVATE, current_scope, &tok_directive->location);
 			scope_reserve(scope, 256);
+			scope_inject(current_scope, scope);
 			ctx->unit->private_scope = scope;
 		}
 

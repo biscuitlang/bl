@@ -218,7 +218,7 @@ static bool create_auxiliary_dir_tree_if_not_exist(const str_t _path, str_buf_t 
 	win_path_to_unix(tmp_path);
 	const str_t path = str_buf_view(tmp_path);
 #else
-	const str_t path = _path;
+	const str_t path  = _path;
 #endif
 	if (!dir_exists(path)) {
 		if (!create_dir_tree(path)) {
@@ -326,7 +326,7 @@ static bool import_module(struct assembly *assembly,
 		const u32             thread_index = get_worker_index();
 		struct scope_arenas  *scope_arenas = &assembly->thread_local_contexts[thread_index].scope_arenas;
 		struct string_cache **string_cache = &assembly->thread_local_contexts[thread_index].string_cache;
-		struct scope         *module_scope = scope_create(scope_arenas, SCOPE_MODULE, NULL, &import_from->location);
+		struct scope         *module_scope = scope_create(scope_arenas, SCOPE_MODULE, assembly->gscope, &import_from->location);
 		module_scope->name                 = scprint(string_cache, "{s}", default_scope_name);
 
 		// @Incomplete 2024-12-16: Check collisions!!!!!
@@ -618,12 +618,12 @@ struct assembly *assembly_new(const struct target *target) {
 	// set defaults
 	const u32 thread_index = get_worker_index();
 	assembly->gscope       = scope_create(&assembly->thread_local_contexts[thread_index].scope_arenas, SCOPE_GLOBAL, NULL, NULL);
-	scope_reserve(assembly->gscope, 8192); // @Incomplete 2024-12-13: We use injections a lot, so there should not be that much symbols in the root global scope.
+	scope_reserve(assembly->gscope, 64);
 
 	dl_init(assembly);
 	mir_init(assembly);
 
-	struct scope *gscope =assembly->gscope;
+	struct scope *gscope = assembly->gscope;
 
 	// Add units from target
 	for (usize i = 0; i < arrlenu(target->files); ++i) {

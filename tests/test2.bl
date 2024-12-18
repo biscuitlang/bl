@@ -1,15 +1,13 @@
-#scope ahoj
-
 foo :: fn () {
 }
 
-#scope_private
+// #scope_private
 
-#load "test3.bl"
+// #load "test3.bl"
 
-bar2 :: fn () {
-	foo();
-	imprivate();
-}
+// bar2 :: fn () {
+// 	foo();
+// 	imprivate();
+// }
 
 

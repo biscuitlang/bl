@@ -5681,14 +5681,16 @@ static struct result lookup_ref(struct context *ctx, const struct mir_instr_decl
 	    .out_ambiguous = &ambiguous,
 	};
 
+	found = scope_lookup(ref->scope, &lookup_args);
+	/* @Cleanup.
 	if (!private_scope) { // reference in unit without private scope
 		found = scope_lookup(ref->scope, &lookup_args);
 	} else { // reference in unit with private scope
 		// I.
 		//
 		// In case the private scope is present in the unit we have to prioritize its symbols over the global ones
-		// but at te same time, we have to check reference owner scope tree first to support shadowing (prioritize
-		// local variables in funciton (for example). So the forst search stops on file scope.
+		// but at te same time, we have to check ref->scope owner scope tree first to support shadowing (prioritize
+		// local variables in function (for example). So the forst search stops on file scope.
 		//
 		lookup_args.stop_on = SCOPE_FILE;
 		found               = scope_lookup(ref->scope, &lookup_args);
@@ -5706,6 +5708,7 @@ static struct result lookup_ref(struct context *ctx, const struct mir_instr_decl
 			found               = scope_lookup(private_scope, &lookup_args);
 		}
 	}
+	*/
 	if (ambiguous) {
 		report_error(AMBIGUOUS, ref->base.node, "Symbol is ambiguous.");
 		report_note(found->node, "First declaration found here.");

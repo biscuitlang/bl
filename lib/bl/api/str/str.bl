@@ -1,7 +1,8 @@
 // #import "std/print"
 
-new :: fn () {
+new :: fn () s32 {
 	// print("Hello\n");
+	return 10;
 }
 
 delete :: fn () {
