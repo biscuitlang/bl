@@ -145,7 +145,6 @@ void assembly_dump_scope_structure(struct assembly *assembly, FILE *stream, enum
 		case SCOPE_PRIVATE:
 			if (mode == SCOPE_DUMP_MODE_INJECTION) break;
 		case SCOPE_GLOBAL:
-		case SCOPE_NAMED:
 		case SCOPE_MODULE: {
 			struct lookup_entry entry = (struct lookup_entry){.hash = scope, .id = i};
 			tbl_insert(lookup, entry);
@@ -163,7 +162,6 @@ void assembly_dump_scope_structure(struct assembly *assembly, FILE *stream, enum
 		case SCOPE_PRIVATE:
 			if (mode == SCOPE_DUMP_MODE_INJECTION) break;
 		case SCOPE_GLOBAL:
-		case SCOPE_NAMED:
 		case SCOPE_MODULE: {
 			if (mode == SCOPE_DUMP_MODE_PARENTING) {
 				scope_print_dot_parenting(scope, stream);

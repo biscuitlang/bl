@@ -166,7 +166,7 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 			found_using = lookup_usings(scope, args->id, &ambiguous);
 		}
 
-		const bool is_locked = scope->kind == SCOPE_GLOBAL || scope->kind == SCOPE_NAMED || scope->kind == SCOPE_MODULE;
+		const bool is_locked = scope->kind == SCOPE_GLOBAL || scope->kind == SCOPE_MODULE;
 		if (is_locked) scope_lock(scope);
 
 		const s64 index = tbl_lookup_index_with_key(scope->entries, hash, args->id->str);
@@ -249,7 +249,7 @@ void scope_inject(struct scope *dest, struct scope *src) {
 	bassert(dest != src && "Injecting scope to itself!");
 	bassert(src->kind == SCOPE_MODULE);
 	bassert(!scope_is_local(dest) && "Injection destination scope must be global!");
-	const bool is_locked = dest->kind == SCOPE_GLOBAL || dest->kind == SCOPE_NAMED || dest->kind == SCOPE_MODULE;
+	const bool is_locked = dest->kind == SCOPE_GLOBAL || dest->kind == SCOPE_MODULE;
 	if (is_locked) scope_lock(dest);
 	for (usize i = 0; i < arrlenu(dest->injected); ++i) {
 		if (src == dest->injected[i]) {
@@ -296,8 +296,6 @@ const char *scope_kind_name(const struct scope *scope) {
 		return "Struct";
 	case SCOPE_TYPE_ENUM:
 		return "Enum";
-	case SCOPE_NAMED:
-		return "Named";
 	case SCOPE_MODULE:
 		return "Module";
 	}

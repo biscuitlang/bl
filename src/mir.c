@@ -1507,7 +1507,7 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 		return_zone(ctx->analyze->unnamed_entry);
 	}
 
-	const bool is_locked = scope->kind == SCOPE_GLOBAL || scope->kind == SCOPE_NAMED || scope->kind == SCOPE_MODULE;
+	const bool is_locked = scope->kind == SCOPE_GLOBAL || scope->kind == SCOPE_MODULE;
 	if (is_locked) scope_lock(scope);
 	const hash_t layer_index = ctx->fn_generate.current_scope_layer;
 
@@ -9212,9 +9212,7 @@ void analyze_report_unused(struct context *ctx) {
 
 		switch (entry->node->owner_scope->kind) {
 		case SCOPE_GLOBAL:
-		case SCOPE_PRIVATE:
-		case SCOPE_NAMED: {
-
+		case SCOPE_PRIVATE: {
 			report_warning(entry->node, "Unused symbol '" STR_FMT "'. Mark the symbol as '#maybe_unused' if it's intentional.", STR_ARG(name));
 			break;
 		}
@@ -11524,7 +11522,6 @@ struct mir_instr *ast(struct context *ctx, struct ast *node) {
 	case AST_LINK:
 	case AST_PRIVATE:
 	case AST_PUBLIC:
-	case AST_SCOPE:
 		break;
 	default:
 		babort("invalid node %s", ast_get_name(node));

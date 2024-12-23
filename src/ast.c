@@ -70,8 +70,6 @@ const char *ast_get_name(const struct ast *n) {
 		return "Private";
 	case AST_PUBLIC:
 		return "Public";
-	case AST_SCOPE:
-		return "Scope";
 	case AST_IDENT:
 		return "Ident";
 	case AST_UBLOCK:

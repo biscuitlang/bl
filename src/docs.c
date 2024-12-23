@@ -117,20 +117,11 @@ void doc_decl_entity(struct context *ctx, struct ast *decl) {
 	}
 
 	if (!decl->owner_scope) return;
-	if (decl->owner_scope->kind != SCOPE_GLOBAL && decl->owner_scope->kind != SCOPE_NAMED) return;
+	if (decl->owner_scope->kind != SCOPE_GLOBAL) return;
 
-	const str_t scope_name =
-	    decl->owner_scope->kind == SCOPE_NAMED ? decl->owner_scope->name : str_empty;
-
-	str_buf_t full_name = get_tmp_str();
-	if (scope_name.len) {
-		str_buf_append_fmt(&full_name, "{str}.{str}", scope_name, name);
-	} else {
-		str_buf_append_fmt(&full_name, "{str}", name);
-	}
-
-	H1(ctx->stream, str_buf_to_c(full_name));
-	put_tmp_str(full_name);
+	str_buf_t name_tmp = get_tmp_str();
+	H1(ctx->stream, str_to_c(&name_tmp, name));
+	put_tmp_str(name_tmp);
 	CODE_BLOCK_BEGIN(ctx->stream);
 	fprintf(ctx->stream, STR_FMT " :", STR_ARG(name));
 	if (type) {
@@ -423,7 +414,6 @@ void doc(struct context *ctx, struct ast *node) {
 	case AST_PUBLIC:
 	case AST_LINK:
 	case AST_IMPORT:
-	case AST_SCOPE:
 		break;
 	default:
 		bwarn("Missing doc generation for AST node '%s'.", ast_get_name(node));

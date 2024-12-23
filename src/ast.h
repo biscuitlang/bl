@@ -128,10 +128,6 @@ struct ast_public {
 	void *_;
 };
 
-struct ast_scope {
-	struct ast *ident;
-};
-
 struct ast_link {
 	const char *lib;
 };

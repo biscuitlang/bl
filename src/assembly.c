@@ -462,64 +462,71 @@ struct assembly *assembly_new(const struct target *target) {
 	struct scope_arenas *scope_arenas = &assembly->thread_local_contexts[thread_index].scope_arenas;
 
 	// set defaults
-	assembly->gscope       = scope_create(scope_arenas, SCOPE_GLOBAL, NULL, NULL);
-	assembly->module_scope = scope_create(scope_arenas, SCOPE_MODULE, assembly->gscope, NULL);
+	assembly->gscope = scope_create(scope_arenas, SCOPE_GLOBAL, NULL, NULL);
 	scope_reserve(assembly->gscope, 256);
-	scope_reserve(assembly->module_scope, 8192);
 
-	{
+	struct scope *unit_parent_scope = NULL;
+
+	if (assembly->target->kind != ASSEMBLY_DOCS) {
+		assembly->module_scope = scope_create(scope_arenas, SCOPE_MODULE, assembly->gscope, NULL);
+		scope_reserve(assembly->module_scope, 8192);
+
 		static struct id assembly_module_id;
 		id_init(&assembly_module_id, cstr("__assembly_module"));
 		struct scope_entry *scope_entry = scope_create_entry(scope_arenas, SCOPE_ENTRY_NAMED_SCOPE, &assembly_module_id, NULL, false);
 		scope_entry->data.scope         = assembly->module_scope;
 
 		scope_insert(assembly->gscope, SCOPE_DEFAULT_LAYER, scope_entry);
-	}
 
+		unit_parent_scope = assembly->module_scope;
+	} else {
+		unit_parent_scope = assembly->gscope;
+	}
+	
 	dl_init(assembly);
 	mir_init(assembly);
 
 	// Add units from target
 	for (usize i = 0; i < arrlenu(target->files); ++i) {
-		assembly_add_unit(assembly, make_str_from_c(target->files[i]), NULL, assembly->module_scope);
+		assembly_add_unit(assembly, make_str_from_c(target->files[i]), NULL, unit_parent_scope);
 	}
 
 	const str_t preload_file = make_str_from_c(read_config(builder.config, assembly->target, "preload_file", ""));
-
-	struct scope *gscope = assembly->gscope;
 
 	// Add default units based on assembly kind
 	switch (assembly->target->kind) {
 	case ASSEMBLY_EXECUTABLE:
 		if (assembly->target->no_api) break;
-		assembly_add_unit(assembly, cstr(BUILTIN_FILE), NULL, gscope);
-		assembly_add_unit(assembly, preload_file, NULL, gscope);
+		assembly_add_unit(assembly, cstr(BUILTIN_FILE), NULL, assembly->gscope);
+		assembly_add_unit(assembly, preload_file, NULL, assembly->gscope);
 		break;
 	case ASSEMBLY_SHARED_LIB:
 		if (assembly->target->no_api) break;
-		assembly_add_unit(assembly, cstr(BUILTIN_FILE), NULL, gscope);
-		assembly_add_unit(assembly, preload_file, NULL, gscope);
+		assembly_add_unit(assembly, cstr(BUILTIN_FILE), NULL, assembly->gscope);
+		assembly_add_unit(assembly, preload_file, NULL, assembly->gscope);
 		break;
 	case ASSEMBLY_BUILD_PIPELINE:
-		assembly_add_unit(assembly, cstr(BUILTIN_FILE), NULL, gscope);
-		assembly_add_unit(assembly, preload_file, NULL, gscope);
-		assembly_add_unit(assembly, cstr(BUILD_API_FILE), NULL, gscope);
-		assembly_add_unit(assembly, cstr(BUILD_SCRIPT_FILE), NULL, gscope);
+		assembly_add_unit(assembly, cstr(BUILTIN_FILE), NULL, assembly->gscope);
+		assembly_add_unit(assembly, preload_file, NULL, assembly->gscope);
+		assembly_add_unit(assembly, cstr(BUILD_API_FILE), NULL, assembly->gscope);
+		assembly_add_unit(assembly, cstr(BUILD_SCRIPT_FILE), NULL, assembly->gscope);
 		break;
 	case ASSEMBLY_DOCS:
 		break;
 	}
 
-	// Duplicate default library paths
-	for (usize i = 0; i < arrlenu(target->default_lib_paths); ++i)
-		assembly_add_lib_path(assembly, target->default_lib_paths[i]);
+	if (assembly->target->kind != ASSEMBLY_DOCS) {
+		// Duplicate default library paths
+		for (usize i = 0; i < arrlenu(target->default_lib_paths); ++i)
+			assembly_add_lib_path(assembly, target->default_lib_paths[i]);
 
-	// Duplicate default libs
-	for (usize i = 0; i < arrlenu(target->default_libs); ++i)
-		assembly_add_native_lib(assembly, target->default_libs[i], NULL, false);
+		// Duplicate default libs
+		for (usize i = 0; i < arrlenu(target->default_libs); ++i)
+			assembly_add_native_lib(assembly, target->default_libs[i], NULL, false);
 
-	// Append custom linker options
-	assembly_append_linker_options(assembly, str_buf_to_c(target->default_custom_linker_opt));
+		// Append custom linker options
+		assembly_append_linker_options(assembly, str_buf_to_c(target->default_custom_linker_opt));
+	}
 
 	return assembly;
 }

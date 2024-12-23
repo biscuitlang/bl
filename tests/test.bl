@@ -13,7 +13,7 @@ x inject into current scope
   - with injection in local scope???
   - should be constant?
   - do not work with using!
-- use commas for global separators
+x use commas for global separators
 - do we need link_runtime
 - how to handle platform incompatible messages
 - builder api

@@ -558,66 +558,6 @@ struct ast *parse_hash_directive(struct context *ctx, s32 expected_mask, enum ha
 		return_zone(ast_create_node(ctx->ast_arena, AST_PUBLIC, tok_directive, current_scope));
 	}
 
-	case HD_SCOPE: {
-		struct scope *current_scope = scope_get(ctx);
-		struct ast   *ident         = parse_ident(ctx);
-		if (!ident) {
-			report_error(INVALID_DIRECTIVE,
-			             tok_directive,
-			             CARET_AFTER,
-			             "Expected scope name after #scope directive.");
-			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_directive, current_scope));
-		}
-		if (scope_is_subtree_of_kind(current_scope, SCOPE_NAMED)) {
-			report_error(UNEXPECTED_DIRECTIVE,
-			             tok_directive,
-			             CARET_WORD,
-			             "Unexpected directive. Named scopes cannot be nested.");
-			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_directive, current_scope));
-		}
-
-		if (scope_is_subtree_of_kind(current_scope, SCOPE_PRIVATE)) {
-			report_error(UNEXPECTED_DIRECTIVE,
-			             tok_directive,
-			             CARET_WORD,
-			             "Unexpected directive. Named scopes cannot be nested in private block.");
-			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_directive, current_scope));
-		}
-
-		bassert(current_scope->kind != SCOPE_PRIVATE);
-
-		struct ast *ast_scope       = ast_create_node(ctx->ast_arena, AST_SCOPE, tok_directive, current_scope);
-		ast_scope->data.scope.ident = ident;
-		struct id *id               = &ident->data.ident.id;
-
-		// Lookup already existing named scope with the same name.
-		scope_lock(ctx->assembly->gscope);
-
-		scope_lookup_args_t lookup_args = {
-		    .id      = id,
-		    .in_tree = true,
-		};
-
-		struct scope_entry *scope_entry = scope_lookup(current_scope, &lookup_args);
-		if (scope_entry) {
-			bassert(scope_entry->kind == SCOPE_ENTRY_NAMED_SCOPE && "Found scope entry is expected to be named scope!");
-			bassert(scope_entry->data.scope && scope_entry->data.scope->kind == SCOPE_NAMED);
-		} else {
-			scope_entry = scope_create_entry(ctx->scope_arenas, SCOPE_ENTRY_NAMED_SCOPE, id, ast_scope, false);
-			scope_insert(current_scope, SCOPE_DEFAULT_LAYER, scope_entry);
-
-			struct scope *named_scope = scope_create(ctx->scope_arenas, SCOPE_NAMED, current_scope, &tok_directive->location);
-			scope_reserve(named_scope, 2048);
-
-			named_scope->name       = id->str;
-			scope_entry->data.scope = named_scope;
-		}
-		scope_unlock(ctx->assembly->gscope);
-
-		scope_set(ctx, scope_entry->data.scope);
-		return_zone(ast_scope);
-	}
-
 	case HD_ENABLE_IF: {
 		struct ast *expr = parse_expr(ctx);
 		if (!expr) {
@@ -2593,7 +2533,7 @@ NEXT:
 	}
 
 	// load, import, link, test, private - enabled in global scope
-	const int enabled_hd = HD_LOAD | HD_PRIVATE | HD_IMPORT | HD_SCOPE | HD_SCOPE_PRIVATE | HD_SCOPE_PUBLIC;
+	const int enabled_hd = HD_LOAD | HD_PRIVATE | HD_IMPORT | HD_SCOPE_PRIVATE | HD_SCOPE_PUBLIC;
 	if ((tmp = parse_hash_directive(ctx, enabled_hd, NULL, false))) {
 		arrput(ublock->data.ublock.nodes, tmp);
 		goto NEXT;

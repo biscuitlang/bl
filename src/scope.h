@@ -95,7 +95,6 @@ enum scope_kind {
 	SCOPE_LEXICAL,
 	SCOPE_TYPE_STRUCT,
 	SCOPE_TYPE_ENUM,
-	SCOPE_NAMED,
 	SCOPE_MODULE,
 };
 
@@ -161,8 +160,7 @@ const char *scope_kind_name(const struct scope *scope);
 void scope_get_full_name(str_buf_t *buf, struct scope *scope);
 
 static inline bool scope_is_local(const struct scope *scope) {
-	return scope->kind != SCOPE_GLOBAL && scope->kind != SCOPE_PRIVATE &&
-	       scope->kind != SCOPE_NAMED && scope->kind != SCOPE_MODULE;
+	return scope->kind != SCOPE_GLOBAL && scope->kind != SCOPE_PRIVATE && scope->kind != SCOPE_MODULE;
 }
 
 static inline struct scope_entry *scope_entry_ref(struct scope_entry *entry) {
