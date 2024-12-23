@@ -88,7 +88,7 @@ static void print_injection(struct scope *scope, FILE *stream) {
 	for (usize i = 0; i < arrlenu(scope->injected); ++i) {
 		const s64 child_index = tbl_lookup_index(lookup, scope->injected[i]);
 		if (child_index == -1) continue;
-		fprintf(stream, "S%d -> S%d;\n", lookup[scope_index].id, lookup[child_index].id);
+		fprintf(stream, "S%d -> S%d [style=\"dashed\"];\n", lookup[scope_index].id, lookup[child_index].id);
 	}
 }
 
@@ -98,10 +98,29 @@ static void print_referencing(struct scope *scope, FILE *stream) {
 
 	for (usize i = 0; i < tbl_len(scope->entries); ++i) {
 		struct scope_entry *entry = scope->entries[i].value;
-		if (entry->kind == SCOPE_ENTRY_NAMED_SCOPE) {
-			const s64 ref_index = tbl_lookup_index(lookup, entry->data.scope);
+		struct scope       *scope = NULL;
+		switch (entry->kind) {
+		case SCOPE_ENTRY_NAMED_SCOPE:
+			scope = entry->data.scope;
+			break;
+		case SCOPE_ENTRY_VAR: {
+			struct mir_var *var = entry->data.var;
+			if (var->value.type->kind == MIR_TYPE_NAMED_SCOPE) {
+				scope = MIR_CEV_READ_AS(struct scope *, &var->value);
+				bmagic_assert(scope);
+			}
+			break;
+		}
+		default:
+			break;
+		}
+
+		if (scope) {
+			const s64 ref_index = tbl_lookup_index(lookup, scope);
+			str_t     name      = str_empty;
+			if (entry->id) name = entry->id->str;
 			if (ref_index == -1) continue;
-			fprintf(stream, "S%d -> S%d [label=\"ref\"];\n", lookup[scope_index].id, lookup[ref_index].id);
+			fprintf(stream, "S%d -> S%d [style=\"dashed\",label=\"" STR_FMT "\"];\n", lookup[scope_index].id, lookup[ref_index].id, STR_ARG(name));
 		}
 	}
 }
@@ -116,17 +135,17 @@ void assembly_dump_scope_structure(struct assembly *assembly, FILE *stream, enum
 
 	tbl_init(lookup, 1024);
 
-	fprintf(stream, "digraph Scopes {\n");
+	fprintf(stream, "digraph Scopes {\nrankdir=\"LR\";\n");
 	fprintf(stream, "node [shape=plaintext]\n");
 
 	str_buf_t buf = get_tmp_str();
 	for (s32 i = 0; i < arrlen(flatten_scopes); ++i) {
 		struct scope *scope = flatten_scopes[i];
 		switch (scope->kind) {
-		case SCOPE_GLOBAL:
-		case SCOPE_FILE:
-		case SCOPE_NAMED:
 		case SCOPE_PRIVATE:
+			if (mode == SCOPE_DUMP_MODE_INJECTION) break;
+		case SCOPE_GLOBAL:
+		case SCOPE_NAMED:
 		case SCOPE_MODULE: {
 			struct lookup_entry entry = (struct lookup_entry){.hash = scope, .id = i};
 			tbl_insert(lookup, entry);
@@ -141,10 +160,10 @@ void assembly_dump_scope_structure(struct assembly *assembly, FILE *stream, enum
 	for (s32 i = 0; i < arrlen(flatten_scopes); ++i) {
 		struct scope *scope = flatten_scopes[i];
 		switch (scope->kind) {
-		case SCOPE_GLOBAL:
-		case SCOPE_FILE:
-		case SCOPE_NAMED:
 		case SCOPE_PRIVATE:
+			if (mode == SCOPE_DUMP_MODE_INJECTION) break;
+		case SCOPE_GLOBAL:
+		case SCOPE_NAMED:
 		case SCOPE_MODULE: {
 			if (mode == SCOPE_DUMP_MODE_PARENTING) {
 				scope_print_dot_parenting(scope, stream);

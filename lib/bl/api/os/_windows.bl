@@ -26,27 +26,20 @@
 // SOFTWARE.
 // =================================================================================================
 
-#import "libc"
-#import "os/windows"
-#import "std/string"
-#import "std/io"
-
-#load "std/error.bl"
-
-OsStdIoStream :: struct #base std.Stream {
-	handle: win32.HANDLE;
+OsStdIoStream :: struct #base io.Stream {
+	handle: HANDLE;
 }
 
 OS_NAME :: "Windows";
 
-OS_PATH_MAX :: win32.MAX_PATH;
+OS_PATH_MAX :: MAX_PATH;
 
 ERR_UNKNOWN        :: -1;
-ERR_NOT_FOUND      :: win32.ERROR_FILE_NOT_FOUND;
-ERR_ALREADY_EXIST  :: win32.ERROR_FILE_EXISTS;
-ERR_ACCESS_DENIED  :: win32.ERROR_ACCESS_DENIED;
-ERR_INVALID_HANDLE :: win32.ERROR_INVALID_HANDLE;
-ERR_DIRECTORY      :: win32.ERROR_DIRECTORY;
+ERR_NOT_FOUND      :: ERROR_FILE_NOT_FOUND;
+ERR_ALREADY_EXIST  :: ERROR_FILE_EXISTS;
+ERR_ACCESS_DENIED  :: ERROR_ACCESS_DENIED;
+ERR_INVALID_HANDLE :: ERROR_INVALID_HANDLE;
+ERR_DIRECTORY      :: ERROR_DIRECTORY;
 
 os_stdin :: fn () *OsStdIoStream {
 	if !_std_io_initialized { init_std_io(); }
@@ -64,7 +57,7 @@ os_stderr :: fn () *OsStdIoStream {
 }
 
 os_sleep_ms :: fn (ms: u32) #inline {
-	win32.Sleep(ms);
+	Sleep(ms);
 };
 
 os_tick_ms :: fn () u64 #inline {
@@ -72,35 +65,35 @@ os_tick_ms :: fn () u64 #inline {
 };
 
 os_ftick_ms :: fn () f64 #inline {
-	f: win32.LARGE_INTEGER #noinit;
-	t: win32.LARGE_INTEGER #noinit;
+	f: LARGE_INTEGER #noinit;
+	t: LARGE_INTEGER #noinit;
 
-	if win32.QueryPerformanceFrequency(&f) == 0 { return 0.; }
-	if win32.QueryPerformanceCounter(&t) == 0 { return 0.; }
+	if QueryPerformanceFrequency(&f) == 0 { return 0.; }
+	if QueryPerformanceCounter(&t) == 0 { return 0.; }
 	return (cast(f64) t / cast(f64) f) * 1000.;
 };
 
 os_get_exec_path :: fn () string {
 	buf : [OS_PATH_MAX]u8 #noinit;
-	if win32.GetModuleFileNameA(null, auto buf.ptr, auto buf.len) > 0 {
-		result :: std.str_new(buf.ptr);
-		std.str_replace_all(&result, '\\', '/');
+	if GetModuleFileNameA(null, auto buf.ptr, auto buf.len) > 0 {
+		result :: str_new(buf.ptr);
+		str_replace_all(&result, '\\', '/');
 		return result;
 	}
 
-	return std.str_new();
+	return str_new();
 }
 
 os_execute :: fn (command: string_view) s32 {
-	return C.system(std.strtoc(command));
+	return C.system(strtoc(command));
 }
 
 os_get_last_error :: fn () (s32, string_view) #inline {
-	ec :: cast(s32) win32.GetLastError();
+	ec :: cast(s32) GetLastError();
 	if ec == 0 { return 0, "No error."; }
 
-	msg_len :: win32.FormatMessageA(
-		win32.FORMAT_MESSAGE_FROM_SYSTEM | win32.FORMAT_MESSAGE_IGNORE_INSERTS | win32.FORMAT_MESSAGE_MAX_WIDTH_MASK,
+	msg_len :: FormatMessageA(
+		FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_MAX_WIDTH_MASK,
 		null,
 		auto ec,
 		0,
@@ -109,7 +102,7 @@ os_get_last_error :: fn () (s32, string_view) #inline {
 		null);
 
 	if msg_len == 0 { return ec, "Unknown error."; }
-	return ec, std.ctostr(_last_error_msg_buffer.ptr, auto msg_len);
+	return ec, ctostr(_last_error_msg_buffer.ptr, auto msg_len);
 }
 
 os_get_last_error2 :: fn () Error #inline {
@@ -120,8 +113,6 @@ os_get_last_error2 :: fn () Error #inline {
 os_get_backtrace :: fn (skip_frames := 0, max_frame_count := 64) []CodeLocation {
 	trace: [..]CodeLocation;
 	if max_frame_count < 1 { return trace; }
-	using win32;
-	using std;
 	allocator :: application_context.temporary_allocator; // In case we change allocator we should call free!
 	stack: []C.void_ptr;
 	err_slice_alloc :: alloc_slice(&stack, max_frame_count, false, allocator);
@@ -157,8 +148,8 @@ os_get_backtrace :: fn (skip_frames := 0, max_frame_count := 64) []CodeLocation 
 // reach the `debugbreak` builtin expression, compiler will use internal break handling for compile-time
 // execution (using interpreter) and replace this expression with call to this function in runtime.
 __os_debug_break :: fn () #inline #compiler {
-	if win32.IsDebuggerPresent() != 0 {
-		win32.DebugBreak();
+	if IsDebuggerPresent() != 0 {
+		DebugBreak();
 	}
 }
 
@@ -184,9 +175,9 @@ __os_start :: fn () #entry {
 	// by free(args.ptr) call.
 	get_command_line_args :: fn (out_args: *[]string_view) #noinline {
 		wargs: []*u16;
-		cmd_line :: win32.GetCommandLineW();
-		wargs.ptr = win32.CommandLineToArgvW(cmd_line, auto &wargs.len);
-		defer win32.LocalFree(auto wargs.ptr);
+		cmd_line :: GetCommandLineW();
+		wargs.ptr = CommandLineToArgvW(cmd_line, auto &wargs.len);
+		defer LocalFree(auto wargs.ptr);
 
 		// Determinate size needed for all argument strings listed in one array including
 		// zero terminator for each one.
@@ -194,7 +185,7 @@ __os_start :: fn () #entry {
 		result_size: usize = sizeof(string_view) * auto wargs.len;
 
 		loop i := 0; i < wargs.len; i += 1 {
-			tmp_size += auto win32.WideCharToMultiByte(win32.CP_UTF8, null, wargs[i], -1, null, 0, null, null);
+			tmp_size += auto WideCharToMultiByte(CP_UTF8, null, wargs[i], -1, null, 0, null, null);
 		}
 
 		buffer :: C.malloc(result_size + tmp_size);
@@ -206,8 +197,8 @@ __os_start :: fn () #entry {
 
 		tmp_i := 0;
 		loop i := 0; i < wargs.len; i += 1 {
-			len :: win32.WideCharToMultiByte(win32.CP_UTF8, null, wargs[i], -1, null, 0, null, null);
-			win32.WideCharToMultiByte(win32.CP_UTF8, null, wargs[i], auto C.wcslen(wargs[i]), auto &tmp[tmp_i], len, null, null);
+			len :: WideCharToMultiByte(CP_UTF8, null, wargs[i], -1, null, 0, null, null);
+			WideCharToMultiByte(CP_UTF8, null, wargs[i], auto C.wcslen(wargs[i]), auto &tmp[tmp_i], len, null, null);
 
 			(@out_args)[i].len = len - 1;
 			(@out_args)[i].ptr = &tmp[tmp_i];
@@ -225,20 +216,27 @@ __os_start :: fn () #entry {
 	if !_std_io_initialized { init_std_io(); }
 	temporary_release();
 
-	out :: cast(s32) main();
+	out :: cast(s32) __assembly_module.main();
 	C.free(auto args.ptr);
 	C.exit(out);
 }
 
-#private
+#scope_private
+#import "os/windows"
+#import "std/string"
+#import "std/array"
+
+io :: #import "std/io";
+C  :: #import "libc";
+
 
 _last_error_msg_buffer: [256]s8 #thread_local;
 
-STD_IN_STREAM_VTABLE :: std.StreamVTable.{
+STD_IN_STREAM_VTABLE :: io.StreamVTable.{
 	read = auto &std_io_read
 };
 
-STD_OUT_STREAM_VTABLE :: std.StreamVTable.{
+STD_OUT_STREAM_VTABLE :: io.StreamVTable.{
 	write = auto &std_io_write,
 };
 
@@ -248,13 +246,11 @@ STD_OUT_STREAM_VTABLE :: std.StreamVTable.{
 // Can we get into situation the streams get initialized from multiple threads???
 
 _std_io_initialized := false;
-_std_in  := OsStdIoStream.{ std.Stream.{ vtable = &STD_IN_STREAM_VTABLE }  };
-_std_out := OsStdIoStream.{ std.Stream.{ vtable = &STD_OUT_STREAM_VTABLE } };
-_std_err := OsStdIoStream.{ std.Stream.{ vtable = &STD_OUT_STREAM_VTABLE } };
+_std_in  := OsStdIoStream.{ io.Stream.{ vtable = &STD_IN_STREAM_VTABLE }  };
+_std_out := OsStdIoStream.{ io.Stream.{ vtable = &STD_OUT_STREAM_VTABLE } };
+_std_err := OsStdIoStream.{ io.Stream.{ vtable = &STD_OUT_STREAM_VTABLE } };
 
 init_std_io :: fn () {
-	using win32;
-
 	assert(!_std_io_initialized);
 	_std_in.handle   = GetStdHandle(STD_INPUT_HANDLE);
 	_std_out.handle  = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -266,8 +262,8 @@ init_std_io :: fn () {
 std_io_write :: fn (stream: *OsStdIoStream, src: *u8, size: s64) (s64, Error) {
 	if !stream.handle { return 0, error(ERR_INVALID_HANDLE, "Cannot write into standard output, the stream is closed."); }
 	if !src { return 0, error(ERR_INVALID_HANDLE, "Cannot write, source is invalid."); }
-	written_bytes: win32.DWORD #noinit;
-	if win32.WriteFile(stream.handle, src, auto size, &written_bytes, null) == 0 {
+	written_bytes: DWORD #noinit;
+	if WriteFile(stream.handle, src, auto size, &written_bytes, null) == 0 {
 		ec, estr :: os_get_last_error();
 		return 0, error(ec, "Cannot write: %", estr);
 	}
@@ -277,8 +273,8 @@ std_io_write :: fn (stream: *OsStdIoStream, src: *u8, size: s64) (s64, Error) {
 std_io_read :: fn (stream: *OsStdIoStream, dest: *u8, size: s64) (s64, Error) {
 	if !stream.handle { return 0, error(ERR_INVALID_HANDLE, "Cannot read from standard output, the stream is closed."); }
 	if !dest { return 0, error(ERR_INVALID_HANDLE, "Cannot read, destination is invalid."); }
-	read_bytes: win32.DWORD #noinit;
-	if win32.ReadFile(stream.handle, dest, auto size, &read_bytes, null) == 0 {
+	read_bytes: DWORD #noinit;
+	if ReadFile(stream.handle, dest, auto size, &read_bytes, null) == 0 {
 		ec, estr :: os_get_last_error();
 		return 0, error(ec, "Cannot read: %", estr);
 	}

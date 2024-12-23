@@ -135,7 +135,7 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 	struct scope_entry *found_using = NULL;
 	struct scope_entry *ambiguous   = NULL;
 
-	struct scope *last_visited_file_scope = NULL;
+	struct scope *last_visited_module_scope = NULL;
 
 #define REPORTS 0
 
@@ -148,10 +148,11 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 	u64 hash = entry_hash(args->id->hash, args->layer);
 	while (scope) {
 		bassert(scope->kind != SCOPE_NONE);
-		if (scope->kind == args->stop_on) break;
+
 		if (!scope_is_local(scope)) {
 			// Global scopes should not have layers!!!
 			hash = entry_hash(args->id->hash, SCOPE_DEFAULT_LAYER);
+			if (args->local_only) break;
 		}
 
 		// Used scopes are handled in following way:
@@ -177,9 +178,9 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 		if (!found) {
 			for (usize injected_index = 0; injected_index < arrlenu(scope->injected) && !found; ++injected_index) {
 				struct scope *injected_scope = scope->injected[injected_index];
-				bassert(injected_scope->kind == SCOPE_FILE || injected_scope->kind == SCOPE_PRIVATE);
+				bassert(injected_scope->kind == SCOPE_MODULE);
 				bassert(injected_scope != scope);
-				if (last_visited_file_scope == injected_scope) continue; // @Comment!
+				if (last_visited_module_scope == injected_scope) continue; // @Comment!
 
 				const s64 index = tbl_lookup_index_with_key(injected_scope->entries, hash, args->id->str);
 				if (index != -1) {
@@ -199,14 +200,13 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 			break;
 		}
 
-		// Lookup in parent.
-		if (!args->in_tree) {
-			break;
-		}
-		if (args->out_of_local) *(args->out_of_local) = scope->kind == SCOPE_FN;
+		// Lookup in parent?
+		if (!args->in_tree) break;
+		if (args->out_of_function) *(args->out_of_function) = scope->kind == SCOPE_FN;
 
-		last_visited_file_scope = scope->kind == SCOPE_FILE ? scope : NULL;
-		scope                   = scope->parent;
+		last_visited_module_scope = scope->kind == SCOPE_MODULE ? scope : NULL;
+
+		scope = scope->parent;
 	}
 
 	if (!found && args->out_ambiguous) {
@@ -247,7 +247,7 @@ void scope_inject(struct scope *dest, struct scope *src) {
 	bmagic_assert(dest);
 	bmagic_assert(src);
 	bassert(dest != src && "Injecting scope to itself!");
-	bassert(src->kind == SCOPE_FILE || src->kind == SCOPE_PRIVATE);
+	bassert(src->kind == SCOPE_MODULE);
 	bassert(!scope_is_local(dest) && "Injection destination scope must be global!");
 	const bool is_locked = dest->kind == SCOPE_GLOBAL || dest->kind == SCOPE_NAMED || dest->kind == SCOPE_MODULE;
 	if (is_locked) scope_lock(dest);
@@ -298,8 +298,6 @@ const char *scope_kind_name(const struct scope *scope) {
 		return "Enum";
 	case SCOPE_NAMED:
 		return "Named";
-	case SCOPE_FILE:
-		return "File";
 	case SCOPE_MODULE:
 		return "Module";
 	}

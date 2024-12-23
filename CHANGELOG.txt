@@ -1,11 +1,15 @@
 Master
 ---------------------------------------------------------------------------------------
-Add symlink resolve for the current executable on macos.
+Add explicit module namespacing.
+Add math module.
 Add new #scope_private and #scope_public to freely enter and exit private scope block.
-Make #private directive deprecated.
+Add symlink resolve for the current executable on macos.
 Fix interp function callbacks without arguments.
+Make #private directive deprecated.
+Module congifuration use comma separators on all platforms.
 Paralelize MIR generation.
 Performance improvements.
+Redesign module system.
 
 0.11.2
 ---------------------------------------------------------------------------------------

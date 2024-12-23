@@ -26,9 +26,6 @@
 // SOFTWARE.
 // =================================================================================================
 
-#import "std/string"
-#load "std/math.bl"
-
 //! # Print
 //!
 //! `#import "std/print"`
@@ -70,7 +67,7 @@ PRINT_MAX_LENGTH :: 4096;
 print :: fn (format: string_view, args: ...) s32 {
 	buf: [PRINT_MAX_LENGTH]u8 #noinit;
 	w := _print_impl(buf, format, args);
-	std.write(os_stdout(), buf.ptr, auto w);
+	io.write(auto os_stdout(), buf.ptr, auto w); // @Cleanup 2024-12-23: Auto should not be required!
 	return w;
 }
 
@@ -79,7 +76,7 @@ print :: fn (format: string_view, args: ...) s32 {
 eprint :: fn (format: string_view, args: ...) s32 {
 	buf: [PRINT_MAX_LENGTH]u8 #noinit;
 	w := _print_impl(buf, format, args);
-	std.write(os_stderr(), buf.ptr, auto w);
+	io.write(auto os_stderr(), buf.ptr, auto w); // @Cleanup 2024-12-23: Auto should not be required!
 	return w;
 }
 
@@ -113,7 +110,7 @@ bprint :: fn (buf: []u8, format: string_view, args: ...) s32 {
 ///
 /// See also [print](#print).
 tprint :: fn (format: string_view, args: ...) string #inline {
-	buf := std.str_new(format.len, application_context.temporary_allocator);
+	buf := str_new(format.len, application_context.temporary_allocator);
 	_print_impl(&buf, format, args);
 	return buf;
 };
@@ -121,14 +118,14 @@ tprint :: fn (format: string_view, args: ...) string #inline {
 /// Write formatted input to the new heap-allocated string.
 ///
 /// !!! note
-///     Use `std.str_delete` to free memory used by string.
+///     Use `str_delete` to free memory used by string.
 ///
 /// !!! note
 ///     Created string is always zero terminated.
 ///
 /// See also [print](#print).
 sprint :: fn (format: string_view, args: ...) string {
-	buf := std.str_new(format.len);
+	buf := str_new(format.len);
 	_print_impl(&buf, format, args);
 	return buf;
 }
@@ -220,7 +217,12 @@ _print_impl :: fn {
 	};
 }
 
-#private
+#scope_private
+#import "std/math"
+#import "std/string"
+
+io :: #import "std/io";
+
 DEFAULT_REAL_TRAILING :: 6;
 
 __print_impl :: fn (buf: *?T, format: string_view, args: []Any, cur: *s32) {
@@ -267,15 +269,15 @@ print_any :: fn (buf: *?T, cur: *s32, any: *Any) {
 		info := cast(*TypeInfoReal) any.type_info;
 
 		real := f64_from_u8_ptr(any.data, info.bit_count);
-		if std.is_nan(real) {
+		if is_nan(real) {
 			print_string(buf, cur, "NaN");
 			return;
 		}
-		if std.is_ninf(real) {
+		if is_ninf(real) {
 			print_string(buf, cur, "-inf");
 			return;
 		}
-		if std.is_inf(real) {
+		if is_inf(real) {
 			print_string(buf, cur, "inf");
 			return;
 		}
@@ -586,13 +588,13 @@ print_type :: fn (buf: *?T, cur: *s32, info: *TypeInfo) {
 print_string :: fn {
 	fn (buf: *[]u8, cur: *s32, str: string_view) #inline {
 		if str.ptr == null { return; }
-		written :: cast(s32) std.min(buf.len-(@cur)-1, str.len);
+		written :: cast(s32) min(buf.len-(@cur)-1, str.len);
 		memcpy(ptr_shift_bytes(buf.ptr, @cur), str.ptr, auto written);
 		(@cur) += written;
 	};
 	fn (buf: *string, cur: *s32, str: string_view) #inline {
 		if str.ptr == null { return; }
-		(@cur) += std._str_append_str(buf, str);
+		(@cur) += _str_append_str(buf, str);
 	};
 }
 
@@ -632,8 +634,8 @@ print_f64 :: fn (buf: *?T, cur: *s32, v: f64, trailing: s32) {
 	print_u64(buf, cur, ipart, FmtIntBase.DEC, 1);
 	if adjusted_trailing != 0 {
 		print_string(buf, cur, ".");
-		fpart = fpart * std.pow(10., auto adjusted_trailing);
-		print_u64(buf, cur, cast(u64) std.round(fpart), FmtIntBase.DEC, adjusted_trailing);
+		fpart = fpart * pow(10., auto adjusted_trailing);
+		print_u64(buf, cur, cast(u64) round(fpart), FmtIntBase.DEC, adjusted_trailing);
 	}
 }
 

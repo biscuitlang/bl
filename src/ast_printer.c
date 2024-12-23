@@ -145,8 +145,10 @@ void print_load(struct ast *load, s32 pad, FILE *stream) {
 
 void print_import(struct ast *import, s32 pad, FILE *stream) {
 	print_head(import, pad, stream);
-	const str_t filepath = import->data.load.filepath;
-	fprintf(stream, STR_FMT, STR_ARG(filepath));
+	struct module *module = import->data.import.module;
+	if (module) {
+		fprintf(stream, STR_FMT, STR_ARG(module->modulepath));
+	}
 }
 
 void print_link(struct ast *link, s32 pad, FILE *stream) {

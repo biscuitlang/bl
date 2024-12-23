@@ -29,6 +29,7 @@
 #load "std/memory.bl"
 #load "std/debug.bl"
 #load "std/utils.bl"
+#load "std/error.bl"
 
 //! # Builtin
 //!
@@ -438,7 +439,7 @@ has_member :: fn (TStruct: type #comptime, member_name: string_view) bool {
 	info :: cast(*TypeInfoStruct) typeinfo(TStruct);
 	static_assert(info.kind == TypeKind.STRUCT);
 	loop i := 0; i < info.members.len; i += 1 {
-		if std.str_match(info.members[i].name, member_name) {
+		if str_match(info.members[i].name, member_name) {
 			return true;
 		}
 	}
@@ -450,7 +451,7 @@ has_member2 :: fn (TStruct: type #comptime, member_name: string_view) bool #comp
 	info :: cast(*TypeInfoStruct) typeinfo(TStruct);
 	static_assert(info.kind == TypeKind.STRUCT);
 	loop i := 0; i < info.members.len; i += 1 {
-		if std.str_match(info.members[i].name, member_name) {
+		if str_match(info.members[i].name, member_name) {
 			return true;
 		}
 	}
@@ -498,14 +499,14 @@ member_offset_bytes2 :: fn (type_info: *TypeInfoStruct, path: string_view) s64 {
 	rhs := path;
 	traverse := true;
 	loop traverse {
-		if !std.str_split_by_first(rhs, '/', &lhs, &rhs) {
+		if !str_split_by_first(rhs, '/', &lhs, &rhs) {
 			lhs = rhs;
 			traverse = false;
 		}
 		found := false;
 		loop i := 0; i < info.members.len; i += 1 {
 			member :: &info.members[i];
-			if std.str_match(member.name, lhs) {
+			if str_match(member.name, lhs) {
 				offset += member.offset_bytes;
 				info    = auto member.base_type;
 				found   = true;
@@ -535,4 +536,6 @@ member_ptr :: fn {
 	};
 }
 
-#private
+#scope_private
+
+#import "std/string"

@@ -1,33 +1,46 @@
 
 /* CURRENT TODO
-rename:
-#scope   -> #scope name
-
-#public  -> #scope_public  - publicly exported
-#module  -> #scope_module  - available inside current module
-#private -> #scope_private - available inside current file
 
 module :: fn (target: *Target) #module_entry {
     add_unit(target, "test.bl");
 }
 
-baz :: #import "std/string";
+Module Import TODO
+
+x import module once
+x inject into current scope
+- module explicit namespacing
+  - with injection in local scope???
+  - should be constant?
+  - do not work with using!
+- use commas for global separators
+- do we need link_runtime
+- how to handle platform incompatible messages
+- builder api
+- remove import policy
+- config separator inconsistency with compiler default settings
+- #load and #import semicollon inconsistency
 
 */
 
-#import "str"
+#import "std/print"
+str :: #import "str";
 
-homo :: fn () {}
+gala :: fn () {}
 
 main :: fn () s32 {
-	str.new();
-	str.delete();
+	print("hello!\n");
+
+	str.new2();
+	str.delete2();
 	str.append();
+	hololoo();
 	return 0;
 }
 
 #scope_private
-#load "test2.bl"
+hololoo :: fn () {}
+
 
 /* BUG
 

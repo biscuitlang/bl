@@ -1,13 +1,9 @@
-#import "std/print"
-
 /*
 
 TODO
 - overload to_string?
 
  */
-
-#scope std
 
 //! # String
 //!
@@ -28,8 +24,8 @@ TODO
 //!
 //! // Dynamic string allocated on heap.
 //! // New dynamic string can be created from string literal.
-//! my_string :: std.str_new("This is my string!");
-//! defer std.str_delete(&my_string);
+//! my_string :: str_new("This is my string!");
+//! defer str_delete(&my_string);
 //! ```
 //!
 //! BL strings are zero terminated except of sub-string view function (terminator cannot be added
@@ -139,9 +135,9 @@ str_concat :: fn (v: *string, args: ...) string {
 /// ```bl
 /// VERSION :: "1.0.0";
 ///
-/// path := std.str_new();
-/// defer std.str_delete(path);
-/// std.set_cwd(std.str_clear_concat(&path, "my-dir/project-", VERSION));
+/// path := str_new();
+/// defer str_delete(path);
+/// set_cwd(str_clear_concat(&path, "my-dir/project-", VERSION));
 /// ```
 str_clear_concat :: fn (v: *string, args: ...) string {
 	str_clear(v);
@@ -160,7 +156,7 @@ str_match :: fn (first: string_view, second: string_view, n := -1) bool {
 	range := n;
 	if range < 0 {
 		if first.len != second.len { return false; }
-		range = auto std.max(first.len, second.len);
+		range = auto max(first.len, second.len);
 	} else if first.len != second.len {
 		if first.len < range { return false; }
 		if second.len < range { return false; }
@@ -172,7 +168,7 @@ str_match :: fn (first: string_view, second: string_view, n := -1) bool {
 }
 
 str_compare :: fn (first: string_view, second: string_view) s32 {
-	len :: std.max(first.len, second.len);
+	len :: max(first.len, second.len);
 	loop i := 0; i < len; i += 1 {
 		f: u8; s: u8;
 		if i < first.len  { f = first[i]; }
@@ -328,7 +324,7 @@ strtof64 :: fn (str: string_view, count := -1) (f64, Error) {
 /// main :: fn () s32 {
 ///     lhs: string_view;
 ///     rhs: string_view;
-///     if std.str_split_by_last("this/is/my/epic/path", '/', &lhs, &rhs) {
+///     if str_split_by_last("this/is/my/epic/path", '/', &lhs, &rhs) {
 ///         print("lhs = %\n", lhs);
 ///         print("rhs = %\n", rhs);
 ///     }
@@ -375,7 +371,7 @@ str_split_by_last :: fn (str: string_view, delimiter: u8, lhs: *string_view, rhs
 /// main :: fn () s32 {
 ///     lhs: string_view;
 ///     rhs: string_view;
-///     if std.str_split_at_index("foobar", 3, &lhs, &rhs) {
+///     if str_split_at_index("foobar", 3, &lhs, &rhs) {
 ///         print("lhs = %\n", lhs);
 ///         print("rhs = %\n", rhs);
 ///     }
@@ -411,7 +407,7 @@ str_split_at_index :: fn (str: string_view, index: s32, lhs: *string_view = null
 /// main :: fn () s32 {
 ///     lhs: string_view;
 ///     rhs: string_view;
-///     if std.str_split_by_first("this/is/my/epic/path", '/', &lhs, &rhs) {
+///     if str_split_by_first("this/is/my/epic/path", '/', &lhs, &rhs) {
 ///         print("lhs = %\n", lhs);
 ///         print("rhs = %\n", rhs);
 ///     }
@@ -724,7 +720,12 @@ is_digit :: fn (c: u8, base := FmtIntBase.DEC) bool #inline {
 }
 
 
-#private
+#scope_private
+#import "std/print"
+#import "std/math"
+#import "std/array"
+
+C :: #import "libc";
 
 make_string :: fn (data: string_view, cap: s64, allocator: *Allocator) string {
 	tmp : string #noinit;

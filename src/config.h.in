@@ -87,6 +87,8 @@
 #	define ENVPATH_SEPARATOR ":"
 #endif
 
+#define CONFIG_SEPARATOR ","
+
 #define BUILD_API_FILE "build/build.bl"
 #define BUILTIN_FILE "builtin/a.bl"
 

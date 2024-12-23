@@ -1,5 +1,3 @@
-#scope C
-
 opendir :: fn (name: *char) *DIR #extern "opendir$INODE64";
 fdopendir :: fn (fd: int) *DIR #extern "fdopendir$INODE64";
 readdir :: fn (dirp: *DIR) *dirent_t #extern "readdir$INODE64";

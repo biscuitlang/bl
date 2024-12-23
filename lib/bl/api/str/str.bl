@@ -1,9 +1,29 @@
-// #import "std/print"
+#import "std/print"
 
-new :: fn () s32 {
-	// print("Hello\n");
+new2 :: fn () s32 {
+	print("Hello\n");
+	olo();
+	// array_push();
 	return 10;
 }
 
-delete :: fn () {
+delete2 :: fn () {
+	str_private();
+	str_private2();
+	append();
+
+	n := 10;
+	clamp(n, 0, 1);
+}
+
+#scope_private
+
+#load "str_private.bl"
+#load "str_private2.bl"
+
+#import "std/math";
+
+olo :: fn () {
+	str_private();
+	str_private2();
 }

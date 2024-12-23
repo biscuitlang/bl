@@ -1,7 +1,5 @@
 #import "os/posix/syscall"
 
-#scope C
-
 STDIN  : fd_t : 0;
 STDOUT : fd_t : 1;
 STDERR : fd_t : 2;

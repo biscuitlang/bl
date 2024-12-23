@@ -43,6 +43,8 @@ struct unit *unit_new(struct assembly *assembly, const str_t filepath, const str
 	struct unit *unit = bmalloc(sizeof(struct unit)); // @Performance 2024-09-14 Use arena?
 	bl_zeromem(unit, sizeof(struct unit));
 
+	blog("Create unit: " STR_FMT, STR_ARG(name));
+
 	const u32             thread_index = get_worker_index();
 	struct string_cache **string_cache = &assembly->thread_local_contexts[thread_index].string_cache;
 
@@ -53,13 +55,9 @@ struct unit *unit_new(struct assembly *assembly, const str_t filepath, const str
 	unit->dirpath  = get_dir_from_filepath(unit->filepath);
 	unit->filename = get_filename_from_filepath(unit->filepath);
 
-	unit->hash        = hash;
-	unit->loaded_from = load_from;
-
-	struct scope_arenas *scope_arenas = &assembly->thread_local_contexts[thread_index].scope_arenas;
-	bassert(assembly->gscope);
-	unit->file_scope           = scope_create(scope_arenas, SCOPE_FILE, parent_scope, NULL); // 2024-12-13 do we need location?
-	unit->file_scope->filename = unit->filename;
+	unit->hash         = hash;
+	unit->loaded_from  = load_from;
+	unit->parent_scope = parent_scope;
 
 	tokens_init(&unit->tokens);
 	put_tmp_str(tmp);

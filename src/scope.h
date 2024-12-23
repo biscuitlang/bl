@@ -96,7 +96,6 @@ enum scope_kind {
 	SCOPE_TYPE_STRUCT,
 	SCOPE_TYPE_ENUM,
 	SCOPE_NAMED,
-	SCOPE_FILE,
 	SCOPE_MODULE,
 };
 
@@ -141,12 +140,12 @@ bool scope_using_add(struct scope *scope, struct scope *other);
 void scope_inject(struct scope *dest, struct scope *src);
 
 typedef struct {
-	hash_t          layer;
-	struct id      *id;
-	bool            in_tree;
-	enum scope_kind stop_on;
+	hash_t     layer;
+	struct id *id;
+	bool       in_tree;
+	bool       local_only;
 
-	bool *out_of_local;
+	bool *out_of_function;
 
 	// When set lookup in usings is enabled automatically.
 	struct scope_entry **out_ambiguous;
@@ -163,7 +162,7 @@ void scope_get_full_name(str_buf_t *buf, struct scope *scope);
 
 static inline bool scope_is_local(const struct scope *scope) {
 	return scope->kind != SCOPE_GLOBAL && scope->kind != SCOPE_PRIVATE &&
-	       scope->kind != SCOPE_NAMED && scope->kind != SCOPE_FILE && scope->kind != SCOPE_MODULE;
+	       scope->kind != SCOPE_NAMED && scope->kind != SCOPE_MODULE;
 }
 
 static inline struct scope_entry *scope_entry_ref(struct scope_entry *entry) {

@@ -1,4 +1,3 @@
 version: 20221127
-default_scope: "str"
-src: "str.bl;str2.bl"
+src: "str.bl,str2.bl"
 

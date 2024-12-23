@@ -43,8 +43,8 @@ struct unit {
 	struct tokens tokens;
 	struct ast   *ast;
 	array(struct ast *) ublock_ast;
-	struct scope   *file_scope;
-	struct scope   *private_scope; // Optional, introduced by #scope_private block in the file.
+	struct scope   *parent_scope;
+	struct scope   *private_scope;
 	str_t           filepath;
 	str_t           dirpath;
 	str_t           name;

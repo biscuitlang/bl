@@ -530,6 +530,7 @@ static struct mir_instr *append_instr_decl_arg(struct context *ctx, append_instr
 
 static struct mir_instr *append_instr_decl_variant(struct context *ctx, struct ast *node, struct mir_instr *value, struct mir_instr *base_type, struct mir_variant *prev_variant, const bool is_flags);
 static struct mir_instr *append_instr_const_type(struct context *ctx, struct ast *node, struct mir_type *type);
+static struct mir_instr *append_instr_const_scope(struct context *ctx, struct ast *node, struct scope *scope);
 static struct mir_instr *append_instr_const_int(struct context *ctx, struct ast *node, struct mir_type *type, u64 val);
 static struct mir_instr *append_instr_const_float(struct context *ctx, struct ast *node, float val);
 static struct mir_instr *append_instr_const_double(struct context *ctx, struct ast *node, double val);
@@ -596,6 +597,7 @@ static struct mir_instr       *ast_expr_deref(struct context *ctx, struct ast *d
 static struct mir_instr       *ast_expr_call(struct context *ctx, struct ast *call);
 static struct mir_instr       *ast_expr_elem(struct context *ctx, struct ast *elem);
 static struct mir_instr       *ast_expr_null(struct context *ctx, struct ast *nl);
+static struct mir_instr       *ast_expr_import(struct context *ctx, struct ast *import);
 static struct mir_instr       *ast_expr_lit_int(struct context *ctx, struct ast *expr);
 static struct mir_instr       *ast_expr_lit_float(struct context *ctx, struct ast *expr);
 static struct mir_instr       *ast_expr_lit_double(struct context *ctx, struct ast *expr);
@@ -1507,19 +1509,16 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 
 	const bool is_locked = scope->kind == SCOPE_GLOBAL || scope->kind == SCOPE_NAMED || scope->kind == SCOPE_MODULE;
 	if (is_locked) scope_lock(scope);
-
-	const bool   is_private  = scope->kind == SCOPE_PRIVATE;
 	const hash_t layer_index = ctx->fn_generate.current_scope_layer;
 
-	struct scope_entry *collision = scope_lookup(scope,
-	                                             &(scope_lookup_args_t){
-	                                                 .layer   = layer_index,
-	                                                 .id      = id,
-	                                                 .in_tree = is_private,
-	                                                 .stop_on = is_private ? SCOPE_GLOBAL : SCOPE_NONE,
-	                                             });
+	scope_lookup_args_t lookup_args = {
+	    .layer = layer_index,
+	    .id    = id,
+	};
 
-	if (collision && is_private) {
+	struct scope_entry *collision = scope_lookup(scope, &lookup_args);
+
+	if (collision && scope->kind == SCOPE_PRIVATE) {
 		const bool collision_in_same_unit = (node ? node->location->unit : NULL) == (collision->node ? collision->node->location->unit : NULL);
 		if (!collision_in_same_unit) collision = NULL;
 	}
@@ -3894,6 +3893,16 @@ inline struct mir_instr *append_instr_const_type(struct context *ctx, struct ast
 	return tmp;
 }
 
+inline struct mir_instr *append_instr_const_scope(struct context *ctx, struct ast *node, struct scope *scope) {
+	struct mir_instr *tmp  = create_instr(ctx, MIR_INSTR_CONST, node);
+	tmp->value.type        = ctx->builtin_types->t_scope;
+	tmp->value.addr_mode   = MIR_VAM_RVALUE;
+	tmp->value.is_comptime = true;
+	MIR_CEV_WRITE_AS(struct scope *, &tmp->value, scope);
+	append_current_block(ctx, tmp);
+	return tmp;
+}
+
 inline struct mir_instr *append_instr_const_float(struct context *ctx, struct ast *node, float val) {
 	struct mir_instr *tmp = create_instr_const_float(ctx, node, val);
 	append_current_block(ctx, tmp);
@@ -5140,13 +5149,12 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 	enum mir_value_address_mode target_addr_mode = target_ptr->value.addr_mode;
 	struct ast                 *ast_member_ident = member_ptr->member_ident;
 
+	// @Cleanup 2024-12-23: This should go away with remove of named scopes.
 	if (target_type->kind == MIR_TYPE_NAMED_SCOPE) {
 		struct scope_entry *scope_entry = MIR_CEV_READ_AS(struct scope_entry *, &target_ptr->value);
-		bassert(scope_entry);
 		bmagic_assert(scope_entry);
 		bassert(scope_entry->kind == SCOPE_ENTRY_NAMED_SCOPE && "Expected named scope.");
 		struct scope *scope = scope_entry->data.scope;
-		bassert(scope);
 		bmagic_assert(scope);
 		struct id   *rid         = &ast_member_ident->data.ident.id;
 		struct unit *parent_unit = ast_member_ident->location->unit;
@@ -5159,8 +5167,9 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 		decl_ref->accept_incomplete_type    = false;
 		decl_ref->parent_unit               = parent_unit;
 		decl_ref->rid                       = rid;
-		// Do not lookup in parent scope tree!
-		decl_ref->is_explicit = true;
+
+		decl_ref->is_explicit = true; // Do not lookup in parent scope tree!
+
 		unref_instr(target_ptr);
 		erase_instr_tree(target_ptr, false, false);
 
@@ -5169,6 +5178,33 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 
 	if (mir_is_pointer_type(target_type)) {
 		target_type = mir_deref_type(target_type);
+	}
+
+	if (target_type->kind == MIR_TYPE_NAMED_SCOPE) {
+		// generate load instruction if needed
+		struct scope *scope = *MIR_CEV_READ_AS(struct scope **, &target_ptr->value);
+		bmagic_assert(scope);
+		bassert(scope->kind == SCOPE_MODULE);
+
+		struct id   *rid         = &ast_member_ident->data.ident.id;
+		struct unit *parent_unit = ast_member_ident->location->unit;
+		bassert(rid);
+		bassert(parent_unit);
+
+		struct mir_instr_decl_ref *decl_ref = (struct mir_instr_decl_ref *)mutate_instr(&member_ptr->base, MIR_INSTR_DECL_REF);
+		decl_ref->scope                     = scope;
+		decl_ref->scope_entry               = NULL;
+		decl_ref->scope_layer               = ctx->fn_generate.current_scope_layer;
+		decl_ref->accept_incomplete_type    = false;
+		decl_ref->parent_unit               = parent_unit;
+		decl_ref->rid                       = rid;
+
+		decl_ref->is_explicit = true; // Do not lookup in parent scope tree!
+
+		unref_instr(target_ptr);
+		erase_instr_tree(target_ptr, false, false);
+
+		return_zone(POSTPONE);
 	}
 
 	// Array type
@@ -5661,7 +5697,7 @@ struct result analyze_instr_type_info(struct context *ctx, struct mir_instr_type
 	return_zone(PASS);
 }
 
-static struct result lookup_ref(struct context *ctx, const struct mir_instr_decl_ref *ref, struct scope_entry **out_found, bool *out_of_local) {
+static struct result lookup_ref(struct context *ctx, const struct mir_instr_decl_ref *ref, struct scope_entry **out_found, bool *out_of_function) {
 	zone();
 	bassert(out_found);
 	bcheck_main_thread();
@@ -5669,46 +5705,30 @@ static struct result lookup_ref(struct context *ctx, const struct mir_instr_decl
 	struct scope_entry *found         = NULL;
 	struct scope_entry *ambiguous     = NULL;
 	struct scope       *private_scope = ref->parent_unit->private_scope;
-	if (private_scope && scope_is_subtree_of_kind(private_scope, SCOPE_NAMED) && !scope_is_subtree_of_kind(ref->scope, SCOPE_NAMED)) {
-		private_scope = NULL;
-	}
 
 	scope_lookup_args_t lookup_args = {
-	    .layer         = ref->scope_layer,
-	    .id            = ref->rid,
-	    .in_tree       = !ref->is_explicit,
-	    .out_of_local  = out_of_local,
-	    .out_ambiguous = &ambiguous,
+	    .layer           = ref->scope_layer,
+	    .id              = ref->rid,
+	    .in_tree         = !ref->is_explicit,
+	    .out_of_function = out_of_function,
+	    .out_ambiguous   = &ambiguous,
 	};
 
-	found = scope_lookup(ref->scope, &lookup_args);
-	/* @Cleanup.
-	if (!private_scope) { // reference in unit without private scope
-		found = scope_lookup(ref->scope, &lookup_args);
-	} else { // reference in unit with private scope
-		// I.
-		//
-		// In case the private scope is present in the unit we have to prioritize its symbols over the global ones
-		// but at te same time, we have to check ref->scope owner scope tree first to support shadowing (prioritize
-		// local variables in function (for example). So the forst search stops on file scope.
-		//
-		lookup_args.stop_on = SCOPE_FILE;
-		found               = scope_lookup(ref->scope, &lookup_args);
+	// In case the private scope is present, we have to search it too. Because the private scope can exist only
+	// in non-local scopes, we can reach global scope even if searching from the private one.
+	// Note that local symbols might shadow global ones.
 
-		// II.
-		//
-		// In case the symbol was not found, we have to search the private scope (to prioritize local file private
-		// symbols). Note that private scope must have parent, and since we search in_tree we might find symbols
-		// even in global/named scope across the assembly.
-		//
+	if (!private_scope || ref->is_explicit) {
+		found = scope_lookup(ref->scope, &lookup_args);
+	} else {
+		lookup_args.local_only = true;
+		found                  = scope_lookup(ref->scope, &lookup_args);
 		if (!found) {
-			bassert(private_scope->parent);
-			bassert(private_scope->parent->kind == SCOPE_NAMED || private_scope->parent->kind == SCOPE_FILE);
-			lookup_args.stop_on = SCOPE_NONE;
-			found               = scope_lookup(private_scope, &lookup_args);
+			lookup_args.local_only = false;
+			found                  = scope_lookup(private_scope, &lookup_args);
 		}
 	}
-	*/
+
 	if (ambiguous) {
 		report_error(AMBIGUOUS, ref->base.node, "Symbol is ambiguous.");
 		report_note(found->node, "First declaration found here.");
@@ -5724,11 +5744,11 @@ struct result analyze_instr_decl_ref(struct context *ctx, struct mir_instr_decl_
 	zone();
 	bassert(ref->rid && ref->scope);
 
-	struct scope_entry *found        = ref->scope_entry;
-	bool                out_of_local = false;
+	struct scope_entry *found           = ref->scope_entry;
+	bool                out_of_function = false;
 
 	if (!found) {
-		struct result r = lookup_ref(ctx, ref, &found, &out_of_local);
+		struct result r = lookup_ref(ctx, ref, &found, &out_of_function);
 		if (r.state != ANALYZE_PASSED) return_zone(r);
 		bassert(found);
 		ref->scope_entry = found;
@@ -5819,14 +5839,14 @@ struct result analyze_instr_decl_ref(struct context *ctx, struct mir_instr_decl_
 		bassert(type);
 		++var->ref_count;
 		// Check if we try get reference to incomplete structure type.
-		if (type->kind == MIR_TYPE_TYPE && !mir_is_in_comptime_fn(&ref->base)) { // @Cleanup: check this
+		if (type->kind == MIR_TYPE_TYPE && !mir_is_in_comptime_fn(&ref->base)) {
 			struct mir_type *t = MIR_CEV_READ_AS(struct mir_type *, &var->value);
 			bmagic_assert(t);
 			if (!ref->accept_incomplete_type && is_incomplete_struct_type(t)) {
 				bassert(t->user_id);
 				return_zone(WAIT(t->user_id->hash));
 			}
-		} else if (isnotflag(var->iflags, MIR_VAR_GLOBAL) && out_of_local) {
+		} else if (isnotflag(var->iflags, MIR_VAR_GLOBAL) && out_of_function) {
 			// Here we must handle situation when we try to reference variables declared in parent
 			// functions of local functions. (We try to implicitly capture those variables and this
 			// leads to invalid LLVM IR.)
@@ -6439,7 +6459,7 @@ struct result analyze_instr_load(struct context *ctx, struct mir_instr_load *loa
 
 	return_zone(PASS);
 
-INVALID_SRC : {
+INVALID_SRC: {
 	bassert(err_type);
 	str_buf_t type_name = mir_type2str(err_type, /* prefer_name */ true);
 	report_error(INVALID_TYPE, src->node, "Expected value of pointer type, got '" STR_FMT "'.", STR_ARG(type_name));
@@ -10223,6 +10243,15 @@ struct mir_instr *ast_expr_null(struct context *ctx, struct ast *nl) {
 	return append_instr_const_null(ctx, nl);
 }
 
+struct mir_instr *ast_expr_import(struct context *ctx, struct ast *import) {
+	if (!import->data.import.module) return NULL; // @Cleanup 2024-12-22: This should be assert.
+	if (!import->data.import.is_expression) return NULL;
+
+	struct scope *scope = import->data.import.module->scope;
+	bassert(scope);
+	return append_instr_const_scope(ctx, import, scope);
+}
+
 struct mir_instr *ast_expr_call(struct context *ctx, struct ast *call) {
 	struct ast  *ast_callee = call->data.expr_call.ref;
 	ast_nodes_t *ast_args   = call->data.expr_call.args;
@@ -11488,9 +11517,10 @@ struct mir_instr *ast(struct context *ctx, struct ast *node) {
 		return ast_call_loc(ctx, node);
 	case AST_TAG:
 		return ast_tag(ctx, node);
+	case AST_IMPORT:
+		return ast_expr_import(ctx, node);
 
 	case AST_LOAD:
-	case AST_IMPORT:
 	case AST_LINK:
 	case AST_PRIVATE:
 	case AST_PUBLIC:

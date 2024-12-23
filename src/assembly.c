@@ -218,7 +218,7 @@ static bool create_auxiliary_dir_tree_if_not_exist(const str_t _path, str_buf_t 
 	win_path_to_unix(tmp_path);
 	const str_t path = str_buf_view(tmp_path);
 #else
-	const str_t path  = _path;
+	const str_t path = _path;
 #endif
 	if (!dir_exists(path)) {
 		if (!create_dir_tree(path)) {
@@ -240,164 +240,6 @@ static bool create_auxiliary_dir_tree_if_not_exist(const str_t _path, str_buf_t 
 #endif
 	put_tmp_str(tmp_full_path);
 	return true;
-}
-
-static struct config *load_module_config(const char *modulepath, struct token *import_from) {
-	str_buf_t path = get_tmp_str();
-	str_buf_append_fmt(&path, "{s}/{s}", modulepath, MODULE_CONFIG_FILE);
-	struct config *conf = confload(str_buf_to_c(path));
-	put_tmp_str(path);
-	return conf;
-}
-
-static inline s32 get_module_version(struct config *config) {
-	bassert(config);
-	const char     *verstr = confreads(config, "/version", "0");
-	const uintmax_t ver    = strtoumax(verstr, NULL, 10);
-	if (ver == UINTMAX_MAX && errno == ERANGE) {
-		const char *filepath = confreads(config, "@filepath", NULL);
-		builder_warning("Cannot read module version '%s' expected integer value.", filepath);
-		return 0;
-	}
-	return (s32)ver;
-}
-
-typedef struct {
-	struct assembly *assembly;
-	struct token    *import_from;
-	const char      *modulepath;
-	struct scope    *parent_scope;
-	s32              is_supported_for_current_target;
-
-	char target_triple_str[TRIPLE_MAX_LEN];
-} import_elem_context_t;
-
-static void import_source(import_elem_context_t *ctx, const char *srcfile) {
-	str_buf_t path = get_tmp_str();
-	str_buf_append_fmt(&path, "{s}/{s}", ctx->modulepath, srcfile);
-	// @Cleanup: should we pass the import_from token here?
-	assembly_add_unit(ctx->assembly, str_buf_view(path), NULL, ctx->parent_scope, ctx->parent_scope);
-	put_tmp_str(path);
-}
-
-static void import_lib_path(import_elem_context_t *ctx, const char *dirpath) {
-	str_buf_t path = get_tmp_str();
-	str_buf_append_fmt(&path, "{s}/{s}", ctx->modulepath, dirpath);
-	if (!dir_exists(path)) {
-		builder_msg(MSG_ERR, ERR_FILE_NOT_FOUND, TOKEN_OPTIONAL_LOCATION(ctx->import_from), CARET_WORD, "Cannot find module imported library path '" STR_FMT "'.", STR_ARG(path));
-	} else {
-		assembly_add_lib_path(ctx->assembly, str_buf_to_c(path));
-	}
-	put_tmp_str(path);
-}
-
-static void validate_module_target(import_elem_context_t *ctx, const char *triple_str) {
-	if (strcmp(ctx->target_triple_str, triple_str) == 0) ++ctx->is_supported_for_current_target;
-}
-
-static void import_link(import_elem_context_t *ctx, const char *lib) {
-	assembly_add_native_lib(ctx->assembly, lib, NULL, false);
-}
-
-static void import_link_runtime_only(import_elem_context_t *ctx, const char *lib) {
-	assembly_add_native_lib(ctx->assembly, lib, NULL, true);
-}
-
-static bool import_module(struct assembly *assembly,
-                          struct config   *config,
-                          const char      *modulepath,
-                          struct token    *import_from,
-                          struct scope    *scope) {
-	zone();
-	import_elem_context_t ctx = {assembly, import_from, modulepath};
-
-	// @Performance 2024-08-02: We might want to cache this???
-	target_triple_to_string(&assembly->target->triple, ctx.target_triple_str, static_arrlenu(ctx.target_triple_str));
-
-	const s32 version = get_module_version(config);
-	builder_log("Import module '%s' version %d.", modulepath, version);
-
-	// Global
-	ctx.parent_scope = assembly->gscope;
-
-	const char *default_scope_name = confreads(config, "/default_scope", ""); // @Incomplete: maybe module_name???
-	if (is_str_valid_nonempty(default_scope_name)) {
-		blog("!!! Import new module: '%s' !!!", default_scope_name);
-		const u32             thread_index = get_worker_index();
-		struct scope_arenas  *scope_arenas = &assembly->thread_local_contexts[thread_index].scope_arenas;
-		struct string_cache **string_cache = &assembly->thread_local_contexts[thread_index].string_cache;
-		struct scope         *module_scope = scope_create(scope_arenas, SCOPE_MODULE, assembly->gscope, &import_from->location);
-		module_scope->name                 = scprint(string_cache, "{s}", default_scope_name);
-
-		// @Incomplete 2024-12-16: Check collisions!!!!!
-		// @Incomplete 2024-12-16: Check collisions!!!!!
-		// @Incomplete 2024-12-16: Check collisions!!!!!
-
-		struct ast *ast_node = NULL;                       // @Incomplete 2024-12-16: missing node.
-		struct id  *id       = bmalloc(sizeof(struct id)); // @Incomplete 2024-12-16: This will leak!!!! Only for testing the feature.
-		                                                   // We may should require symbol for this, but what about implicit imports???
-		id_init(id, module_scope->name);
-		struct scope_entry *scope_entry = scope_create_entry(scope_arenas, SCOPE_ENTRY_NAMED_SCOPE, id, ast_node, false);
-		scope_insert(scope, SCOPE_DEFAULT_LAYER, scope_entry);
-		scope_entry->data.scope = module_scope;
-
-		ctx.parent_scope = module_scope;
-	}
-
-	assembly_append_linker_options(assembly, confreads(config, "/linker_opt", ""));
-	process_tokens(&ctx,
-	               confreads(config, "/src", ""),
-	               ENVPATH_SEPARATOR,
-	               (process_tokens_fn_t)&import_source);
-	process_tokens(&ctx,
-	               confreads(config, "/linker_lib_path", ""),
-	               ENVPATH_SEPARATOR,
-	               (process_tokens_fn_t)&import_lib_path);
-	process_tokens(
-	    &ctx, confreads(config, "/link", ""), ENVPATH_SEPARATOR, (process_tokens_fn_t)&import_link);
-
-	// This is optional configuration entry, this way we might limit supported platforms of this module. In case the
-	// entry is missing from the config file, module is supposed to run anywhere.
-	// Another option might be check presence of platform specific entries, but we might have modules requiring some
-	// platform specific configuration only on some platforms, but still be fully functional on others...
-	if (process_tokens(
-	        &ctx, confreads(config, "/supported", ""), ",", (process_tokens_fn_t)&validate_module_target)) {
-
-		if (!ctx.is_supported_for_current_target) {
-			builder_msg(MSG_ERR,
-			            ERR_UNSUPPORTED_TARGET,
-			            TOKEN_OPTIONAL_LOCATION(ctx.import_from),
-			            CARET_WORD,
-			            "Module is not supported for compilation target platform triple '%s'. "
-			            "The module explicitly specifies supported platforms in 'supported' module configuration section. "
-			            "Module directory might contain information about how to compile module dependencies for your target. "
-			            "Module imported from '%s'.",
-			            ctx.target_triple_str,
-			            modulepath);
-		}
-	}
-
-	// Platform specific
-	assembly_append_linker_options(assembly,
-	                               read_config(config, assembly->target, "linker_opt", ""));
-	process_tokens(&ctx,
-	               read_config(config, assembly->target, "src", ""),
-	               ENVPATH_SEPARATOR,
-	               (process_tokens_fn_t)&import_source);
-	process_tokens(&ctx,
-	               read_config(config, assembly->target, "linker_lib_path", ""),
-	               ENVPATH_SEPARATOR,
-	               (process_tokens_fn_t)&import_lib_path);
-	process_tokens(&ctx,
-	               read_config(config, assembly->target, "link", ""),
-	               ENVPATH_SEPARATOR,
-	               (process_tokens_fn_t)&import_link);
-	process_tokens(&ctx,
-	               read_config(config, assembly->target, "link-runtime", ""),
-	               ENVPATH_SEPARATOR,
-	               (process_tokens_fn_t)&import_link_runtime_only);
-
-	return_zone(true);
 }
 
 // =================================================================================================
@@ -604,6 +446,7 @@ struct assembly *assembly_new(const struct target *target) {
 	assembly->target = target;
 
 	mtx_init(&assembly->units_lock, mtx_plain);
+	mtx_init(&assembly->modules_lock, mtx_plain);
 	spl_init(&assembly->custom_linker_opt_lock);
 	spl_init(&assembly->lib_paths_lock);
 	spl_init(&assembly->libs_lock);
@@ -615,40 +458,53 @@ struct assembly *assembly_new(const struct target *target) {
 
 	thread_local_init(assembly);
 
+	const u32            thread_index = get_worker_index();
+	struct scope_arenas *scope_arenas = &assembly->thread_local_contexts[thread_index].scope_arenas;
+
 	// set defaults
-	const u32 thread_index = get_worker_index();
-	assembly->gscope       = scope_create(&assembly->thread_local_contexts[thread_index].scope_arenas, SCOPE_GLOBAL, NULL, NULL);
-	scope_reserve(assembly->gscope, 64);
+	assembly->gscope       = scope_create(scope_arenas, SCOPE_GLOBAL, NULL, NULL);
+	assembly->module_scope = scope_create(scope_arenas, SCOPE_MODULE, assembly->gscope, NULL);
+	scope_reserve(assembly->gscope, 256);
+	scope_reserve(assembly->module_scope, 8192);
+
+	{
+		static struct id assembly_module_id;
+		id_init(&assembly_module_id, cstr("__assembly_module"));
+		struct scope_entry *scope_entry = scope_create_entry(scope_arenas, SCOPE_ENTRY_NAMED_SCOPE, &assembly_module_id, NULL, false);
+		scope_entry->data.scope         = assembly->module_scope;
+
+		scope_insert(assembly->gscope, SCOPE_DEFAULT_LAYER, scope_entry);
+	}
 
 	dl_init(assembly);
 	mir_init(assembly);
 
-	struct scope *gscope = assembly->gscope;
-
 	// Add units from target
 	for (usize i = 0; i < arrlenu(target->files); ++i) {
-		assembly_add_unit(assembly, make_str_from_c(target->files[i]), NULL, gscope, gscope);
+		assembly_add_unit(assembly, make_str_from_c(target->files[i]), NULL, assembly->module_scope);
 	}
 
 	const str_t preload_file = make_str_from_c(read_config(builder.config, assembly->target, "preload_file", ""));
+
+	struct scope *gscope = assembly->gscope;
 
 	// Add default units based on assembly kind
 	switch (assembly->target->kind) {
 	case ASSEMBLY_EXECUTABLE:
 		if (assembly->target->no_api) break;
-		assembly_add_unit(assembly, cstr(BUILTIN_FILE), NULL, gscope, gscope);
-		assembly_add_unit(assembly, preload_file, NULL, gscope, gscope);
+		assembly_add_unit(assembly, cstr(BUILTIN_FILE), NULL, gscope);
+		assembly_add_unit(assembly, preload_file, NULL, gscope);
 		break;
 	case ASSEMBLY_SHARED_LIB:
 		if (assembly->target->no_api) break;
-		assembly_add_unit(assembly, cstr(BUILTIN_FILE), NULL, gscope, gscope);
-		assembly_add_unit(assembly, preload_file, NULL, gscope, gscope);
+		assembly_add_unit(assembly, cstr(BUILTIN_FILE), NULL, gscope);
+		assembly_add_unit(assembly, preload_file, NULL, gscope);
 		break;
 	case ASSEMBLY_BUILD_PIPELINE:
-		assembly_add_unit(assembly, cstr(BUILTIN_FILE), NULL, gscope, gscope);
-		assembly_add_unit(assembly, preload_file, NULL, gscope, gscope);
-		assembly_add_unit(assembly, cstr(BUILD_API_FILE), NULL, gscope, gscope);
-		assembly_add_unit(assembly, cstr(BUILD_SCRIPT_FILE), NULL, gscope, gscope);
+		assembly_add_unit(assembly, cstr(BUILTIN_FILE), NULL, gscope);
+		assembly_add_unit(assembly, preload_file, NULL, gscope);
+		assembly_add_unit(assembly, cstr(BUILD_API_FILE), NULL, gscope);
+		assembly_add_unit(assembly, cstr(BUILD_SCRIPT_FILE), NULL, gscope);
 		break;
 	case ASSEMBLY_DOCS:
 		break;
@@ -683,6 +539,7 @@ void assembly_delete(struct assembly *assembly) {
 	arrfree(assembly->units);
 
 	mtx_destroy(&assembly->units_lock);
+	mtx_destroy(&assembly->modules_lock);
 	spl_destroy(&assembly->custom_linker_opt_lock);
 	spl_destroy(&assembly->lib_paths_lock);
 	spl_destroy(&assembly->libs_lock);
@@ -715,7 +572,7 @@ void assembly_append_linker_options(struct assembly *assembly, const char *opt) 
 	spl_unlock(&assembly->custom_linker_opt_lock);
 }
 
-static inline struct unit *assembly_lookup_unit(struct assembly *assembly, const hash_t hash, str_t filepath) {
+static inline struct unit *lookup_unit(struct assembly *assembly, const hash_t hash, str_t filepath) {
 	for (usize i = 0; i < arrlenu(assembly->units); ++i) {
 		struct unit *unit = assembly->units[i];
 		if (hash == unit->hash && str_match(filepath, unit->filepath)) {
@@ -725,7 +582,7 @@ static inline struct unit *assembly_lookup_unit(struct assembly *assembly, const
 	return NULL;
 }
 
-void assembly_add_unit(struct assembly *assembly, const str_t filepath, struct token *load_from, struct scope *parent_scope, struct scope *inject_scope) {
+void assembly_add_unit(struct assembly *assembly, const str_t filepath, struct token *load_from, struct scope *parent_scope) {
 	zone();
 	bassert(filepath.len && filepath.ptr);
 	struct unit *unit = NULL;
@@ -743,7 +600,7 @@ void assembly_add_unit(struct assembly *assembly, const str_t filepath, struct t
 	bool submit = false;
 
 	mtx_lock(&assembly->units_lock);
-	unit = assembly_lookup_unit(assembly, hash, str_buf_view(tmp_fullpath));
+	unit = lookup_unit(assembly, hash, str_buf_view(tmp_fullpath));
 	if (!unit) {
 		bassert(parent_scope);
 		unit = unit_new(assembly, str_buf_view(tmp_fullpath), filepath, hash, load_from, parent_scope);
@@ -753,9 +610,6 @@ void assembly_add_unit(struct assembly *assembly, const str_t filepath, struct t
 	}
 	mtx_unlock(&assembly->units_lock);
 	if (submit) builder_submit_unit(assembly, unit);
-
-	bassert(unit);
-	if (inject_scope) scope_inject(inject_scope, unit->file_scope);
 
 	put_tmp_str(tmp_fullpath);
 	return_zone();
@@ -785,112 +639,177 @@ DONE:
 	spl_unlock(&assembly->libs_lock);
 }
 
-static inline bool module_exist(const char *module_dir, const char *modulepath) {
+typedef struct {
+	struct assembly *assembly;
+	struct token    *import_from;
+	str_t            module_root_path;
+	struct scope    *parent_scope;
+	s32              is_supported_for_current_target;
+
+	char target_triple_str[TRIPLE_MAX_LEN];
+} import_elem_context_t;
+
+static void import_source(import_elem_context_t *ctx, const char *srcfile) {
 	str_buf_t path = get_tmp_str();
-	str_buf_append_fmt(&path, "{s}/{s}/{s}", module_dir, modulepath, MODULE_CONFIG_FILE);
-	const bool found = search_source_file(str_buf_view(path), SEARCH_FLAG_ABS, str_empty, NULL);
+	str_buf_append_fmt(&path, "{str}/{s}", ctx->module_root_path, srcfile);
+	assembly_add_unit(ctx->assembly, str_buf_view(path), ctx->import_from, ctx->parent_scope);
 	put_tmp_str(path);
-	return found;
 }
 
-bool assembly_import_module(struct assembly *assembly, const char *modulepath, struct token *import_from, struct scope *scope) {
-	zone();
-	bool state = false;
-	if (!is_str_valid_nonempty(modulepath)) {
+static void import_lib_path(import_elem_context_t *ctx, const char *dirpath) {
+	str_buf_t path = get_tmp_str();
+	str_buf_append_fmt(&path, "{str}/{s}", ctx->module_root_path, dirpath);
+	if (!dir_exists(path)) {
+		builder_msg(MSG_ERR, ERR_FILE_NOT_FOUND, TOKEN_OPTIONAL_LOCATION(ctx->import_from), CARET_WORD, "Cannot find module imported library path '" STR_FMT "'.", STR_ARG(path));
+	} else {
+		assembly_add_lib_path(ctx->assembly, str_buf_to_c(path));
+	}
+	put_tmp_str(path);
+}
+
+static void import_link(import_elem_context_t *ctx, const char *lib) {
+	assembly_add_native_lib(ctx->assembly, lib, NULL, false);
+}
+
+static inline struct module *lookup_module(struct assembly *assembly, const hash_t hash, str_t modulepath) {
+	for (usize i = 0; i < arrlenu(assembly->modules); ++i) {
+		struct module *module = assembly->modules[i];
+		if (hash == module->hash && str_match(modulepath, module->modulepath)) {
+			return module;
+		}
+	}
+	return NULL;
+}
+
+static struct module *import_module(struct assembly *assembly, str_t module_path, hash_t module_hash, struct token *import_from) {
+	builder_log("Import module: '" STR_FMT "'", STR_ARG(module_path));
+	bassert(mtx_trylock(&assembly->modules_lock) != thrd_success && "Unsafe import!");
+
+	struct config *config = confload(module_path.ptr);
+	if (!config) {
+		builder_msg(MSG_ERR,
+		            ERR_FILE_NOT_FOUND,
+		            TOKEN_OPTIONAL_LOCATION(import_from),
+		            CARET_WORD,
+		            "Failed to load module configuration file '" STR_FMT "'.",
+		            STR_ARG(module_path));
+		return NULL;
+	}
+
+	const str_t module_root_dir = get_dir_from_filepath(module_path);
+	const str_t module_name     = get_filename_from_filepath(module_root_dir);
+	blog("Module '" STR_FMT "' root: " STR_FMT, STR_ARG(module_name), STR_ARG(module_root_dir));
+
+	// I. Initialize module in assembly for later use...
+	struct module *module = bmalloc(sizeof(struct module)); // @Performance 2024-09-14 Use arena?
+	// bl_zeromem(module, sizeof(struct module)); // We set everything later...
+
+	const u32             thread_index = get_worker_index();
+	struct scope_arenas  *scope_arenas = &assembly->thread_local_contexts[thread_index].scope_arenas;
+	struct string_cache **string_cache = &assembly->thread_local_contexts[thread_index].string_cache;
+
+	module->scope      = scope_create(scope_arenas, SCOPE_MODULE, assembly->gscope, &import_from->location);
+	module->modulepath = scdup2(string_cache, module_path);
+	module->hash       = module_hash;
+
+	scope_reserve(module->scope, 1024);
+	module->scope->name = scdup2(string_cache, module_name);
+
+	arrput(assembly->modules, module);
+
+	// II. Read global module options.
+
+	import_elem_context_t ctx = {assembly, import_from, module_root_dir, module->scope};
+	assembly_append_linker_options(assembly, confreads(config, "/linker_opt", ""));
+
+	process_tokens(&ctx,
+	               confreads(config, "/src", ""),
+	               CONFIG_SEPARATOR,
+	               (process_tokens_fn_t)&import_source);
+
+	process_tokens(&ctx,
+	               confreads(config, "/linker_lib_path", ""),
+	               CONFIG_SEPARATOR,
+	               (process_tokens_fn_t)&import_lib_path);
+
+	process_tokens(&ctx, confreads(config, "/link", ""), ENVPATH_SEPARATOR, (process_tokens_fn_t)&import_link);
+
+	// III. Read target triple specific module options if any.
+	assembly_append_linker_options(assembly,
+	                               read_config(config, assembly->target, "linker_opt", ""));
+	process_tokens(&ctx,
+	               read_config(config, assembly->target, "src", ""),
+	               CONFIG_SEPARATOR,
+	               (process_tokens_fn_t)&import_source);
+	process_tokens(&ctx,
+	               read_config(config, assembly->target, "linker_lib_path", ""),
+	               CONFIG_SEPARATOR,
+	               (process_tokens_fn_t)&import_lib_path);
+	process_tokens(&ctx,
+	               read_config(config, assembly->target, "link", ""),
+	               CONFIG_SEPARATOR,
+	               (process_tokens_fn_t)&import_link);
+
+	return module;
+}
+
+struct module *assembly_import_module(struct assembly *assembly,
+                                      str_t            modulepath,
+                                      struct token    *import_from,
+                                      struct scope    *scope) {
+	struct module *module = NULL;
+
+	if (!modulepath.len) {
 		builder_msg(MSG_ERR,
 		            ERR_FILE_NOT_FOUND,
 		            TOKEN_OPTIONAL_LOCATION(import_from),
 		            CARET_WORD,
 		            "Module name is empty.");
-		goto DONE;
+		return module;
 	}
-
-	str_buf_t                       local_path  = get_tmp_str();
-	struct config                  *config      = NULL;
-	const struct target            *target      = assembly->target;
-	const char                     *module_dir  = target->module_dir.len > 0 ? str_buf_to_c(target->module_dir) : NULL;
-	const enum module_import_policy policy      = assembly->target->module_policy;
-	const bool                      local_found = module_dir ? module_exist(module_dir, modulepath) : false;
 
 	const str_t lib_dir = builder_get_lib_dir();
 
-	switch (policy) {
-	case IMPORT_POLICY_SYSTEM: {
-		if (local_found) {
-			str_buf_append_fmt(&local_path, "{s}/{s}", module_dir, modulepath);
-		} else {
-			str_buf_append_fmt(&local_path, "{str}/{s}", lib_dir, modulepath);
-		}
-		config = load_module_config(str_buf_to_c(local_path), import_from);
-		break;
+	str_buf_t module_config_path = get_tmp_str();
+	bool      found              = false;
+
+	// I. Lookup module config file in custom module directory if set.
+	const struct target *target = assembly->target;
+	if (target->module_dir.len) {
+		str_buf_t path = get_tmp_str();
+		str_buf_append_fmt(&path, "{str}/{str}/{s}", target->module_dir, modulepath, MODULE_CONFIG_FILE);
+		found = search_source_file(str_buf_view(path), SEARCH_FLAG_ABS, str_empty, &module_config_path);
+		put_tmp_str(path);
 	}
 
-	case IMPORT_POLICY_BUNDLE_LATEST:
-	case IMPORT_POLICY_BUNDLE: {
-		bassert(module_dir);
-		str_buf_t  system_path   = get_tmp_str();
-		const bool check_version = policy == IMPORT_POLICY_BUNDLE_LATEST;
-		str_buf_append_fmt(&local_path, "{s}/{s}", module_dir, modulepath);
-		str_buf_append_fmt(&system_path, "{str}/{s}", lib_dir, modulepath);
-		str_buf_t  tmp          = get_tmp_str();
-		const bool system_found = module_exist(str_to_c(&tmp, lib_dir), modulepath);
-		put_tmp_str(tmp);
-		// Check if module is present in module directory.
-		bool do_copy = !local_found;
-		if (check_version && local_found && system_found) {
-			s32 system_version = 0;
-			s32 local_version  = 0;
-			str_buf_clr(&system_path);
-			str_buf_append_fmt(&system_path, "{str}/{s}", lib_dir, modulepath);
-			config = load_module_config(str_buf_to_c(system_path), import_from);
-			if (config) system_version = get_module_version(config);
-			struct config *local_config = load_module_config(str_buf_to_c(local_path), import_from);
-			if (local_config) local_version = get_module_version(local_config);
-			confdelete(local_config);
-			do_copy = system_version > local_version;
-		}
-		if (do_copy) {
-			// Delete old one.
-			if (local_found) {
-				str_buf_t backup_name = get_tmp_str();
-				char      date[26];
-				date_time(date, static_arrlenu(date), "%d-%m-%Y_%H-%M-%S");
-				str_buf_append_fmt(&backup_name, "{str}_{s}.bak", local_path, date);
-				copy_dir(str_buf_view(local_path), str_buf_view(backup_name));
-				remove_dir(str_buf_view(local_path));
-				builder_info("Backup module '" STR_FMT "'.", STR_ARG(backup_name));
-				put_tmp_str(backup_name);
-			}
-			// Copy module from system to module directory.
-			builder_info("%s module '%s' in '%s'.",
-			             (check_version && local_found) ? "Update" : "Import",
-			             modulepath,
-			             module_dir);
-			if (!copy_dir(str_buf_view(system_path), str_buf_view(local_path))) {
-				builder_error("Cannot import module '%s'.", modulepath);
-			}
-		}
-		if (!config) config = load_module_config(str_buf_to_c(local_path), import_from);
-		put_tmp_str(system_path);
-		break;
+	// II. In case module config was not found, try to locate it in default lib directory.
+	if (!found) {
+		str_buf_t path = get_tmp_str();
+		str_buf_append_fmt(&path, "{str}/{str}/{s}", lib_dir, modulepath, MODULE_CONFIG_FILE);
+		found = search_source_file(str_buf_view(path), SEARCH_FLAG_ABS, str_empty, &module_config_path);
+		put_tmp_str(path);
 	}
 
-	default:
-		bassert("Invalid module import policy!");
-	}
-	if (config) {
-		state = import_module(assembly, config, str_buf_to_c(local_path), import_from, scope);
-	} else {
+	if (!found) {
 		builder_msg(MSG_ERR,
 		            ERR_FILE_NOT_FOUND,
 		            TOKEN_OPTIONAL_LOCATION(import_from),
 		            CARET_WORD,
 		            "Module not found.");
+		goto DONE;
 	}
-	put_tmp_str(local_path);
-	confdelete(config);
+
+	const hash_t module_hash = strhash(module_config_path);
+	mtx_lock(&assembly->modules_lock);
+	module = lookup_module(assembly, module_hash, str_buf_view(module_config_path));
+	if (!module) {
+		module = import_module(assembly, str_buf_view(module_config_path), module_hash, import_from);
+	}
+	mtx_unlock(&assembly->modules_lock);
+
 DONE:
-	return_zone(state);
+	put_tmp_str(module_config_path);
+	return module;
 }
 
 DCpointer assembly_find_extern(struct assembly *assembly, const str_t symbol) {
