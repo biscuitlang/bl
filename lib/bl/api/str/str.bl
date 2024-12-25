@@ -16,7 +16,7 @@ delete2 :: fn () {
 	clamp(n, 0, 1);
 }
 
-#scope_private
+#scope_module
 
 #load "str_private.bl"
 #load "str_private2.bl"

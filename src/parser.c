@@ -416,7 +416,7 @@ struct ast *parse_hash_directive(struct context *ctx, s32 expected_mask, enum ha
 		struct ast *load         = ast_create_node(ctx->ast_arena, AST_LOAD, tok_directive, current_scope);
 		load->data.load.filepath = get_token_value(ctx, tok_path).str;
 		if (ctx->assembly->target->kind != ASSEMBLY_DOCS) {
-			assembly_add_unit(ctx->assembly, load->data.load.filepath, tok_path, current_scope);
+			assembly_add_unit(ctx->assembly, load->data.load.filepath, tok_path, current_scope, ctx->unit->module);
 		}
 		return_zone(load);
 	}
@@ -556,6 +556,20 @@ struct ast *parse_hash_directive(struct context *ctx, s32 expected_mask, enum ha
 		bassert(scope_get(ctx)->kind == SCOPE_MODULE || scope_get(ctx)->kind == SCOPE_GLOBAL);
 
 		return_zone(ast_create_node(ctx->ast_arena, AST_PUBLIC, tok_directive, current_scope));
+	}
+
+	case HD_SCOPE_MODULE: {
+		struct scope *current_scope = scope_get(ctx);
+		bassert(current_scope);
+		if (current_scope->kind != SCOPE_MODULE_PRIVATE) {
+			report_warning(tok_directive, CARET_WORD, "The public scope marker directive is redundant in current context and will be ignored. The current scope is already public.");
+			return_zone(ast_create_node(ctx->ast_arena, AST_MODULE_PRIVATE, tok_directive, current_scope));
+		}
+
+		scope_pop(ctx);
+		bassert(scope_get(ctx)->kind == SCOPE_MODULE || scope_get(ctx)->kind == SCOPE_GLOBAL);
+
+		return_zone(ast_create_node(ctx->ast_arena, AST_MODULE_PRIVATE, tok_directive, current_scope));
 	}
 
 	case HD_ENABLE_IF: {
@@ -2533,7 +2547,7 @@ NEXT:
 	}
 
 	// load, import, link, test, private - enabled in global scope
-	const int enabled_hd = HD_LOAD | HD_PRIVATE | HD_IMPORT | HD_SCOPE_PRIVATE | HD_SCOPE_PUBLIC;
+	const int enabled_hd = HD_LOAD | HD_PRIVATE | HD_IMPORT | HD_SCOPE_PRIVATE | HD_SCOPE_PUBLIC | HD_SCOPE_MODULE;
 	if ((tmp = parse_hash_directive(ctx, enabled_hd, NULL, false))) {
 		arrput(ublock->data.ublock.nodes, tmp);
 		goto NEXT;

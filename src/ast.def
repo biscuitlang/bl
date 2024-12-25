@@ -4,6 +4,7 @@
     AST_IMPORT,
     AST_PRIVATE,
     AST_PUBLIC,
+	AST_MODULE_PRIVATE,
     AST_LINK,
     AST_IDENT,
     AST_UBLOCK,
@@ -60,6 +61,8 @@
 
 #ifdef GEN_AST_DATA
     struct ast_private        priv;
+    struct ast_public         pub;
+	struct ast_module_private module_private;
     struct ast_load           load;
     struct ast_import         import;
     struct ast_link           link;

@@ -45,6 +45,7 @@ struct unit {
 	array(struct ast *) ublock_ast;
 	struct scope   *parent_scope;
 	struct scope   *private_scope;
+	struct module  *module;
 	str_t           filepath;
 	str_t           dirpath;
 	str_t           name;
@@ -56,7 +57,7 @@ struct unit {
 };
 
 // The inject_to_scope is supposed to be valid scope (parent scope of the #load directive or global scope).
-struct unit *unit_new(struct assembly *assembly, const str_t filepath, const str_t name, const hash_t hash, struct token *load_from, struct scope *parent_scope);
+struct unit *unit_new(struct assembly *assembly, const str_t filepath, const str_t name, const hash_t hash, struct token *load_from, struct scope *parent_scope, struct module *module);
 void         unit_delete(struct unit *unit);
 // Returns single line from the unit source code, len does not count last new line char.
 const char *unit_get_src_ln(struct unit *unit, s32 line, long *len);

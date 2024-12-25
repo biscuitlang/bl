@@ -117,7 +117,7 @@ struct ast_load {
 
 struct ast_import {
 	struct module *module;
-	bool is_expression; // used in namespace wrapper
+	bool           is_expression; // used in namespace wrapper
 };
 
 struct ast_private {
@@ -125,6 +125,10 @@ struct ast_private {
 };
 
 struct ast_public {
+	void *_;
+};
+
+struct ast_module_private {
 	void *_;
 };
 

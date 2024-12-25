@@ -20,7 +20,7 @@
     HD_GEN(HD_TEST_FN, "test", 1 << 18)
     HD_GEN(HD_IMPORT, "import", 1 << 19)
     HD_GEN(HD_EXPORT, "export", 1 << 20)
-    /* 21 free */
+    HD_GEN(HD_SCOPE_MODULE, "scope_module", 1 << 21)
     HD_GEN(HD_THREAD_LOCAL, "thread_local", 1 << 22)
     HD_GEN(HD_FLAGS, "flags", 1 << 23)
     HD_GEN(HD_MAYBE_UNUSED, "maybe_unused", 1 << 24)

@@ -298,6 +298,8 @@ const char *scope_kind_name(const struct scope *scope) {
 		return "Enum";
 	case SCOPE_MODULE:
 		return "Module";
+	case SCOPE_MODULE_PRIVATE:
+		return "ModulePrivate";
 	}
 
 	return "<INVALID>";

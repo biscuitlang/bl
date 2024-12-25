@@ -11521,6 +11521,7 @@ struct mir_instr *ast(struct context *ctx, struct ast *node) {
 	case AST_LOAD:
 	case AST_LINK:
 	case AST_PRIVATE:
+	case AST_MODULE_PRIVATE:
 	case AST_PUBLIC:
 		break;
 	default:

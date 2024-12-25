@@ -482,37 +482,47 @@ struct assembly *assembly_new(const struct target *target) {
 	} else {
 		unit_parent_scope = assembly->gscope;
 	}
-	
+
 	dl_init(assembly);
 	mir_init(assembly);
 
 	// Add units from target
 	for (usize i = 0; i < arrlenu(target->files); ++i) {
-		assembly_add_unit(assembly, make_str_from_c(target->files[i]), NULL, unit_parent_scope);
+		assembly_add_unit(assembly, make_str_from_c(target->files[i]), NULL, unit_parent_scope, NULL);
 	}
 
 	const str_t preload_file = make_str_from_c(read_config(builder.config, assembly->target, "preload_file", ""));
 
 	// Add default units based on assembly kind
+	str_t default_units[5] = {0};
+	s32   default_unit_num = 0;
+
 	switch (assembly->target->kind) {
 	case ASSEMBLY_EXECUTABLE:
 		if (assembly->target->no_api) break;
-		assembly_add_unit(assembly, cstr(BUILTIN_FILE), NULL, assembly->gscope);
-		assembly_add_unit(assembly, preload_file, NULL, assembly->gscope);
+		default_units[0] = cstr(BUILTIN_FILE);
+		default_units[1] = preload_file;
+		default_unit_num = 2;
 		break;
 	case ASSEMBLY_SHARED_LIB:
 		if (assembly->target->no_api) break;
-		assembly_add_unit(assembly, cstr(BUILTIN_FILE), NULL, assembly->gscope);
-		assembly_add_unit(assembly, preload_file, NULL, assembly->gscope);
+		default_units[0] = cstr(BUILTIN_FILE);
+		default_units[1] = preload_file;
+		default_unit_num = 2;
 		break;
 	case ASSEMBLY_BUILD_PIPELINE:
-		assembly_add_unit(assembly, cstr(BUILTIN_FILE), NULL, assembly->gscope);
-		assembly_add_unit(assembly, preload_file, NULL, assembly->gscope);
-		assembly_add_unit(assembly, cstr(BUILD_API_FILE), NULL, assembly->gscope);
-		assembly_add_unit(assembly, cstr(BUILD_SCRIPT_FILE), NULL, assembly->gscope);
+		default_units[0] = cstr(BUILTIN_FILE);
+		default_units[1] = preload_file;
+		default_units[2] = cstr(BUILD_API_FILE);
+		default_units[3] = cstr(BUILD_SCRIPT_FILE);
+		default_unit_num = 4;
 		break;
 	case ASSEMBLY_DOCS:
 		break;
+	}
+
+	for (s32 i = 0; i < default_unit_num; ++i) {
+		assembly_add_unit(assembly, default_units[i], NULL, assembly->gscope, NULL);
 	}
 
 	if (assembly->target->kind != ASSEMBLY_DOCS) {
@@ -589,7 +599,7 @@ static inline struct unit *lookup_unit(struct assembly *assembly, const hash_t h
 	return NULL;
 }
 
-void assembly_add_unit(struct assembly *assembly, const str_t filepath, struct token *load_from, struct scope *parent_scope) {
+void assembly_add_unit(struct assembly *assembly, const str_t filepath, struct token *load_from, struct scope *parent_scope, struct module *module) {
 	zone();
 	bassert(filepath.len && filepath.ptr);
 	struct unit *unit = NULL;
@@ -610,7 +620,7 @@ void assembly_add_unit(struct assembly *assembly, const str_t filepath, struct t
 	unit = lookup_unit(assembly, hash, str_buf_view(tmp_fullpath));
 	if (!unit) {
 		bassert(parent_scope);
-		unit = unit_new(assembly, str_buf_view(tmp_fullpath), filepath, hash, load_from, parent_scope);
+		unit = unit_new(assembly, str_buf_view(tmp_fullpath), filepath, hash, load_from, parent_scope, module);
 		arrput(assembly->units, unit);
 
 		submit = true;
@@ -649,9 +659,11 @@ DONE:
 typedef struct {
 	struct assembly *assembly;
 	struct token    *import_from;
-	str_t            module_root_path;
 	struct scope    *parent_scope;
-	s32              is_supported_for_current_target;
+	struct module   *module;
+
+	str_t module_root_path;
+	s32   is_supported_for_current_target;
 
 	char target_triple_str[TRIPLE_MAX_LEN];
 } import_elem_context_t;
@@ -659,7 +671,7 @@ typedef struct {
 static void import_source(import_elem_context_t *ctx, const char *srcfile) {
 	str_buf_t path = get_tmp_str();
 	str_buf_append_fmt(&path, "{str}/{s}", ctx->module_root_path, srcfile);
-	assembly_add_unit(ctx->assembly, str_buf_view(path), ctx->import_from, ctx->parent_scope);
+	assembly_add_unit(ctx->assembly, str_buf_view(path), ctx->import_from, ctx->parent_scope, ctx->module);
 	put_tmp_str(path);
 }
 
@@ -715,9 +727,10 @@ static struct module *import_module(struct assembly *assembly, str_t module_path
 	struct scope_arenas  *scope_arenas = &assembly->thread_local_contexts[thread_index].scope_arenas;
 	struct string_cache **string_cache = &assembly->thread_local_contexts[thread_index].string_cache;
 
-	module->scope      = scope_create(scope_arenas, SCOPE_MODULE, assembly->gscope, &import_from->location);
-	module->modulepath = scdup2(string_cache, module_path);
-	module->hash       = module_hash;
+	module->scope         = scope_create(scope_arenas, SCOPE_MODULE, assembly->gscope, &import_from->location);
+	module->modulepath    = scdup2(string_cache, module_path);
+	module->hash          = module_hash;
+	module->private_scope = NULL;
 
 	scope_reserve(module->scope, 1024);
 	module->scope->name = scdup2(string_cache, module_name);
@@ -726,7 +739,7 @@ static struct module *import_module(struct assembly *assembly, str_t module_path
 
 	// II. Read global module options.
 
-	import_elem_context_t ctx = {assembly, import_from, module_root_dir, module->scope};
+	import_elem_context_t ctx = {assembly, import_from, module->scope, module, module_root_dir};
 	assembly_append_linker_options(assembly, confreads(config, "/linker_opt", ""));
 
 	process_tokens(&ctx,

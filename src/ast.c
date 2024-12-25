@@ -68,6 +68,8 @@ const char *ast_get_name(const struct ast *n) {
 		return "Link";
 	case AST_PRIVATE:
 		return "Private";
+	case AST_MODULE_PRIVATE:
+		return "ModulePrivate";
 	case AST_PUBLIC:
 		return "Public";
 	case AST_IDENT:

@@ -20,10 +20,12 @@ x use commas for global separators
 - remove import policy
 - config separator inconsistency with compiler default settings
 - #load and #import semicollon inconsistency
+- framework path on macos
 
 */
 
 #import "std/print"
+
 str :: #import "str";
 
 gala :: fn () {}

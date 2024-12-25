@@ -36,10 +36,8 @@
 #include <windows.h>
 #endif
 
-#define EXPECTED_ARRAY_COUNT 64
-
 // public
-struct unit *unit_new(struct assembly *assembly, const str_t filepath, const str_t name, const hash_t hash, struct token *load_from, struct scope *parent_scope) {
+struct unit *unit_new(struct assembly *assembly, const str_t filepath, const str_t name, const hash_t hash, struct token *load_from, struct scope *parent_scope, struct module *module) {
 	struct unit *unit = bmalloc(sizeof(struct unit)); // @Performance 2024-09-14 Use arena?
 	bl_zeromem(unit, sizeof(struct unit));
 
@@ -58,6 +56,8 @@ struct unit *unit_new(struct assembly *assembly, const str_t filepath, const str
 	unit->hash         = hash;
 	unit->loaded_from  = load_from;
 	unit->parent_scope = parent_scope;
+
+	unit->module = module;
 
 	tokens_init(&unit->tokens);
 	put_tmp_str(tmp);
