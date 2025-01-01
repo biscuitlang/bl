@@ -1,8 +1,34 @@
+#import "os/posix/syscall"
+
 #scope C
 
-SEEK_SET :: 0;
-SEEK_CUR :: 1;
-SEEK_END :: 2;
+SEEK_SET : fd_t : 0;
+SEEK_CUR : fd_t : 1;
+SEEK_END : fd_t : 2;
+
+FIONREAD :: 0x4004667F;
+
+POLLIN   : short : 0x0001;
+POLLPRI  : short : 0x0002;
+POLLOUT  : short : 0x0004;
+POLLERR  : short : 0x0008;
+POLLHUP  : short : 0x0010;
+POLLNVAL : short : 0x0020;
+
+F_DUPFD  :: 0;
+F_GETFD  :: 1;
+F_SETFD  :: 2;
+F_GETFL  :: 3;
+F_SETFL  :: 4;
+F_GETOWN :: 5;
+F_SETOWN :: 6;
+F_GETLK  :: 7;
+F_SETLK  :: 8;
+
+F_OK :: 0;
+X_OK :: (1<<0);
+W_OK :: (1<<1);
+R_OK :: (1<<2);
 
 char      :: s8;
 uchar     :: u8;
@@ -41,25 +67,48 @@ nlink_t :: u16;
 time_t :: long;
 timezone :: long;
 off_t :: longlong;
+fd_t :: s32;
+
+pollfd :: struct {
+	fd: int;
+	events: short;
+	revents: short;
+}
+
+nfds_t :: u32;
+
+tm :: struct {
+	tm_sec: int;
+	tm_min: int;
+	tm_hour: int;
+	tm_mday: int;
+	tm_mon: int;
+	tm_year: int;
+	tm_wday: int;
+	tm_yday: int;
+	tm_isdst: int;
+	tm_gmtoff: long;
+	tm_zone: *char;
+}
 
 stat_t :: struct {
-		st_dev: dev_t;
-		st_mode: mode_t;
-		st_nlink: nlink_t;
-		st_ino: ino64_t;
-		st_uid: uid_t;
-		st_gid: gid_t;
-		st_rdev: dev_t;
-		st_atimespec: timespec;
-		st_mtimespec: timespec;
-		st_ctimespec: timespec;
-		st_birthtimespec: timespec;
-		st_size: off_t;
-		st_blocks: blkcnt_t;
-		st_blksize: blksize_t;
-		st_flags: u32;
-		st_gen: u32;
-		st_lspare: s32;
+	st_dev: dev_t;
+	st_mode: mode_t;
+	st_nlink: nlink_t;
+	st_ino: ino64_t;
+	st_uid: uid_t;
+	st_gid: gid_t;
+	st_rdev: dev_t;
+	st_atimespec: timespec;
+	st_mtimespec: timespec;
+	st_ctimespec: timespec;
+	st_birthtimespec: timespec;
+	st_size: off_t;
+	st_blocks: blkcnt_t;
+	st_blksize: blksize_t;
+	st_flags: u32;
+	st_gen: u32;
+	st_lspare: s32;
 	st_qspare: [2]s64;
 }
 
@@ -86,12 +135,18 @@ STDIN  :: 0;
 STDOUT :: 1;
 STDERR :: 2;
 
-SIGHUP  :: 1;
 SIGINT  :: 2;
-SIGQUIT :: 3;
 SIGILL  :: 4;
-SIGTRAP :: 5;
 SIGABRT :: 6;
+SIGFPE  :: 8;
+SIGSEGV :: 11;
+SIGTERM :: 15;
+SIGHUP  :: 1;
+SIGQUIT :: 3;
+SIGTRAP :: 5;
+SIGKILL :: 9;
+SIGPIPE :: 13;
+SIGALRM :: 14;
 
 DARWIN_MAXPATHLEN :: 1024;
 
@@ -341,3 +396,27 @@ errno :: fn () s32 #inline {
 	_errno_location :: fn () *int #extern "__error";
 	return @_errno_location();
 }
+pipe :: fn (p: *int /* pointer to 2 element array */) int #extern "pipe";
+fork :: fn () pid_t #extern "fork";
+dup :: fn (oldfd: C.int) int #extern "dup";
+dup2 :: fn (oldfd: C.int, newfd: C.int) int #extern "dup2";
+execv :: fn (file: *char, args: **char) int #extern "execv";
+execvp :: fn (file: *char, args: **char) int #extern "execvp";
+poll :: fn (fds: *pollfd, nfds: nfds_t, timeout: int) int #extern "poll";
+access :: fn (path: *C.char, mode: int) int #extern "access";
+
+kill :: fn (pid: pid_t, sig: s32) s32 #inline {
+	return auto syscall(SYS_kill, auto pid, auto sig);
+}
+
+ioctl :: fn (fd: fd_t, request: s32, arg: s64) s32 #inline {
+	return auto syscall(SYS_ioctl, fd, request, arg);
+}
+
+fcntl :: fn (fd: fd_t, request: int, flags: int = 0) int #inline {
+	return auto syscall(SYS_fcntl, fd, request, flags);
+}
+
+time :: fn (tloc: *time_t) time_t #extern "time";
+localtime :: fn (timep: *time_t) *tm #extern "localtime";
+strftime :: fn (buf: *char, buf_size: size_t, fmt: *char, t: *tm) size_t #extern "strftime";

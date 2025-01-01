@@ -1,5 +1,5 @@
 version: 20240803
-supported: "x86_64-pc-linux-gnu, x86_64-unknown-linux-gnu"
+supported: "x86_64-pc-linux-gnu, x86_64-unknown-linux-gnu, arm64-apple-darwin"
 src: "syscall.bl"
 
 x86_64-pc-linux-gnu:
@@ -7,3 +7,6 @@ x86_64-pc-linux-gnu:
 
 x86_64-unknown-linux-gnu:
   src: "x86_64-linux-gnu/syscall.bl"
+
+arm64-apple-darwin:
+  src: "arm64-apple-darwin/syscall.bl"
