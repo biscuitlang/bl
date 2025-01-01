@@ -1,4 +1,4 @@
-#private
+#scope_private
 vargs_functions :: fn () #test {
 	_0 :: fn (args: ...s32) {
 		test_eq(args.len, 0);

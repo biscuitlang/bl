@@ -1,6 +1,6 @@
 #import "std/thread"
 
-#private
+#scope_private
 
 allocator :: &default_temporary_allocator;
 

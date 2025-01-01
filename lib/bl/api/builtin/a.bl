@@ -480,6 +480,13 @@ member_offset_bytes :: fn (TStruct: type #comptime, path: string_view) s64 {
 	return member_offset_bytes2(auto typeinfo(TStruct), path);
 }
 
+member_offset_bytes_comptime :: fn (TStruct: type #comptime, path: string_view) s64 #comptime {
+	static_assert(typeinfo(TStruct).kind == TypeKind.STRUCT);
+	assert(path.len > 0);
+
+	return member_offset_bytes2(auto typeinfo(TStruct), path);
+}
+
 member_offset_bytes2 :: fn (type_info: *TypeInfoStruct, path: string_view) s64 {
 	assert(path.len > 0);
 

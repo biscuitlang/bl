@@ -1,4 +1,4 @@
-#private
+#scope_private
 
 TAG1 : u32 : 1;
 TAG2 : u32 : 2;

@@ -1,4 +1,4 @@
-#private
+#scope_private
 
 simple_fn :: fn () #test {
 	get :: fn () s32 #comptime {

@@ -1,4 +1,4 @@
-#private
+#scope_private
 debug_print_log :: fn () #test {
 	application_context.print_log_fn = &test_logger;
 	{

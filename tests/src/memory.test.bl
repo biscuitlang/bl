@@ -1,4 +1,4 @@
-#private
+#scope_private
 
 swap_test_1 :: fn () #test {
 	a := 10;

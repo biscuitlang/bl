@@ -1,12 +1,23 @@
 
 /* CURRENT TODO
+rename:
+#scope   -> #scope name
+
+#public  -> #scope_public  - publicly exported
+#module  -> #scope_module  - available inside current module
+#private -> #scope_private - available inside current file
+
+module :: fn (target: *Target) #module_entry {
+    add_unit(target, "test.bl");
+}
 
 */
 
-#import "std/fs"
+#load "test2.bl"
 
 main :: fn () s32 {
-	std.read_entire_file("hello");
+	foo();
+	foobar();
 	return 0;
 }
 

@@ -1,4 +1,4 @@
-#private
+#scope_private
 size_of :: fn () #test {
 	assert(sizeof(u8) == 1);
 	assert(sizeof(u16) == 2);

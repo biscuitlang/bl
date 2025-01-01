@@ -1,4 +1,4 @@
-#private
+#scope_private
 typeinfo_s8 :: fn () #test {
 	info := cast(*TypeInfoInt) typeinfo(s8);
 	test_eq(info.kind, TypeKind.INT);

@@ -1,4 +1,4 @@
-#private
+#scope_private
 
 f1 :: fn (list: *string) {
 	defer std.str_append(list, "B");

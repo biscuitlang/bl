@@ -1,4 +1,4 @@
-#private
+#scope_private
 fib :: fn (n: s32) s32 {
 	if n == 0 || n == 1 {
 		return n;

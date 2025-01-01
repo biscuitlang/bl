@@ -1,4 +1,4 @@
-#private
+#scope_private
 
 any_forwarding :: fn () #test {
 	info :: foo(bar());

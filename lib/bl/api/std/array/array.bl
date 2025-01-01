@@ -63,6 +63,23 @@ array_terminate :: fn (_arr: *[..]?T) #inline {
 ///     a new empty element without any initialization.
 array_push :: fn { impl_push_empty; impl_push; }
 
+#scope_private
+impl_push :: fn (arr: *[..]?T, v: T) *T #inline {
+	data      :: v;
+	elem_size :: sizeof(T);
+	dest      :: impl_push_empty(arr);
+	memcpy(auto dest, auto &data, elem_size);
+	return dest;
+}
+
+impl_push_empty :: fn (arr: *[..]?T) *T {
+	elem_size :: sizeof(T);
+	arr.len += 1;
+	_array_ensure_space(auto arr, elem_size, auto arr.len, alignof(T));
+	return auto _array_get_elem_ptr(auto arr, elem_size, arr.len - 1);
+}
+#scope_public
+
 /// Append all `data` at the dynamic array end. New heap allocation is done here only in cases when
 /// there is not enough memory allocated to store all values.
 /// Does nothing when `data.len < 1`.
@@ -235,19 +252,3 @@ _array_ensure_space :: fn (arr: *_Array, elem_size: usize, needed_elems: usize, 
 	arr.allocated_elems = extended_needed_elems;
 }
 
-#private
-
-impl_push :: fn (arr: *[..]?T, v: T) *T #inline {
-	data      :: v;
-	elem_size :: sizeof(T);
-	dest      :: impl_push_empty(arr);
-	memcpy(auto dest, auto &data, elem_size);
-	return dest;
-}
-
-impl_push_empty :: fn (arr: *[..]?T) *T {
-	elem_size :: sizeof(T);
-	arr.len += 1;
-	_array_ensure_space(auto arr, elem_size, auto arr.len, alignof(T));
-	return auto _array_get_elem_ptr(auto arr, elem_size, arr.len - 1);
-}

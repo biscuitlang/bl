@@ -1534,7 +1534,7 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 	if (!scope_is_local(scope)) scope_unlock(scope);
 	return_zone(entry);
 
-COLLIDE: {
+COLLIDE : {
 	if (!scope_is_local(scope)) scope_unlock(scope);
 	char *err_msg = (collision->is_builtin || is_builtin) ? "Symbol name collision with compiler builtin '" STR_FMT "'." : "Duplicate symbol";
 	report_error(DUPLICATE_SYMBOL, node, err_msg, STR_ARG(id->str));
@@ -4664,6 +4664,9 @@ static struct result analyze_instr_compound_regular(struct context *ctx, struct 
 	zone();
 	bcheck_main_thread();
 
+	struct id *missing_any = lookup_builtins_any(ctx);
+	if (missing_any) return_zone(WAIT(missing_any->hash));
+
 	if (cmp->is_multiple_return_value) {
 		bassert(cmp->base.value.type == NULL && "Multi-return compound expression is supposed to have type of the return type of the "
 		                                        "current function, not explicitly specified one!");
@@ -5022,6 +5025,10 @@ struct result analyze_instr_set_initializer(struct context *ctx, struct mir_inst
 
 struct result analyze_instr_vargs(struct context *ctx, struct mir_instr_vargs *vargs) {
 	zone();
+
+	struct id *missing_any = lookup_builtins_any(ctx);
+	if (missing_any) return_zone(WAIT(missing_any->hash));
+
 	struct mir_type *type   = vargs->type;
 	mir_instrs_t    *values = vargs->values;
 	bassert(type && values);
@@ -6427,7 +6434,7 @@ struct result analyze_instr_load(struct context *ctx, struct mir_instr_load *loa
 
 	return_zone(PASS);
 
-INVALID_SRC: {
+INVALID_SRC : {
 	bassert(err_type);
 	str_buf_t type_name = mir_type2str(err_type, /* prefer_name */ true);
 	report_error(INVALID_TYPE, src->node, "Expected value of pointer type, got '" STR_FMT "'.", STR_ARG(type_name));
@@ -7916,6 +7923,7 @@ static mir_call_analyze_stage_fn_t analyze_call_generated_with_placeholders_pipe
 struct result analyze_call_stage_resolve_called_object(struct context *ctx, struct mir_instr_call *call) {
 	zone();
 	bassert(call->callee);
+
 	struct id *missing_any = lookup_builtins_any(ctx);
 	if (missing_any) return_zone(WAIT(missing_any->hash));
 
@@ -8440,6 +8448,7 @@ struct result analyze_call_stage_finalize(struct context *ctx, struct mir_instr_
 struct result analyze_instr_call(struct context *ctx, struct mir_instr_call *call) {
 	zone();
 	bassert(call->callee);
+
 	if (!call->analyze_pipeline) call->analyze_pipeline = analyze_call_default_pipeline;
 	while (*call->analyze_pipeline) {
 		const mir_call_analyze_stage_fn_t *current_pipeline = call->analyze_pipeline;
@@ -11479,6 +11488,7 @@ struct mir_instr *ast(struct context *ctx, struct ast *node) {
 	case AST_IMPORT:
 	case AST_LINK:
 	case AST_PRIVATE:
+	case AST_PUBLIC:
 	case AST_SCOPE:
 		break;
 	default:

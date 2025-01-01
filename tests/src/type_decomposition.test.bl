@@ -1,4 +1,4 @@
-#private
+#scope_private
 
 Foo :: struct {
 	i: s32;

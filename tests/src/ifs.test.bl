@@ -1,4 +1,4 @@
-#private
+#scope_private
 f1_called := 0;
 f2_called := 0;
 f3_called := 0;

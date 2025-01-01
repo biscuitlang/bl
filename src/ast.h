@@ -50,7 +50,7 @@ enum ast_flags {
 	FLAG_EXTERN = 1 << 0, // methods marked as extern
 	// 1 << 1, free
 	FLAG_COMPILER     = 1 << 2,  // compiler internal
-	FLAG_PRIVATE      = 1 << 3,  // declared in private scope
+	FLAG_PRIVATE      = 1 << 3,  // declared in private scope (might be nested in named scope!)
 	FLAG_INLINE       = 1 << 4,  // inline function
 	FLAG_NO_INLINE    = 1 << 5,  // no inline function
 	FLAG_ENTRY        = 1 << 6,  // marking entry point function
@@ -119,6 +119,10 @@ struct ast_import {
 };
 
 struct ast_private {
+	void *_;
+};
+
+struct ast_public {
 	void *_;
 };
 
