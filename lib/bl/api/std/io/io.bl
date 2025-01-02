@@ -220,5 +220,6 @@ copy_stream :: fn (dest: *Stream, src: *Stream, buffer_size := 512 #comptime) Er
 }
 
 #scope_private
-#import "std/math";
+#import "std/math"
 #import "std/array"
+#import "std/string"

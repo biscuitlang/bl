@@ -1,4 +1,4 @@
+#scope_private
 #import "std/debug_allocator"
 
-#private
-// TODO?
+// TODO

@@ -1,4 +1,5 @@
 version: 20220923
+src: "fs.bl"
 
 x86_64-pc-windows-msvc:
   src: "_fs.win32.bl"

@@ -1,6 +1,6 @@
+#scope_private
 #import "std/bucket_array"
-
-#private
+#import "std/array"
 
 TEST_COUNT :: 1000;
 
@@ -10,7 +10,6 @@ Data :: struct {
 }
 
 push_and_erase :: fn () #test {
-	using std;
 	arr: BucketArray(Data);
 	defer bucket_array_terminate(&arr);
 
@@ -32,7 +31,6 @@ push_and_erase :: fn () #test {
 }
 
 iteration :: fn () #test {
-	using std;
 	arr: BucketArray(Data);
 	defer bucket_array_terminate(&arr);
 
@@ -51,7 +49,6 @@ iteration :: fn () #test {
 }
 
 iteration_on_empty :: fn () #test {
-	using std;
 	arr: BucketArray(Data);
 	defer bucket_array_terminate(&arr);
 
@@ -63,7 +60,6 @@ iteration_on_empty :: fn () #test {
 }
 
 iteration_on_single_value :: fn () #test {
-	using std;
 	arr: BucketArray(Data);
 	defer bucket_array_terminate(&arr);
 
@@ -80,7 +76,6 @@ iteration_on_single_value :: fn () #test {
 }
 
 clearing :: fn () #test {
-	using std;
 	arr: BucketArray(Data);
 	defer bucket_array_terminate(&arr);
 

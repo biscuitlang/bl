@@ -8,8 +8,6 @@
 //! @@@examples/static_array.bl
 //! ```
 
-#scope std
-
 /// Create **Static Array** type.
 ///
 /// ```bl
@@ -70,7 +68,7 @@ sarray_typeof_elem :: fn (TArr: type #comptime) type #comptime {
 	return @TArr.data.ptr;
 }
 
-#private
+#scope_private
 impl_push :: fn (arr: *?TArr, value: sarray_typeof_elem(TArr)) *sarray_typeof_elem(TArr) #inline {
 	elem :: impl_push_empty(arr);
 	memcpy(auto elem, auto &value, sizeof(value));

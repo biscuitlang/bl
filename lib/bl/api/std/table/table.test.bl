@@ -1,6 +1,7 @@
+#scope_private
 #import "std/table"
+#import "std/math"
 
-#private
 TEST_COUNT :: 100000;
 //TEST_COUNT :: 10;
 
@@ -60,10 +61,9 @@ DATA :: [50]string_view.{
 // =================================================================================================
 // Global
 // =================================================================================================
-g_tbl: std.Table(s32, s32);
+g_tbl: Table(s32, s32);
 
 test_insert :: fn () #test {
-	using std;
 	loop i := 0; i < TEST_COUNT; i += 1 {
 		value :: tbl_insert(&g_tbl, i, i);
 		test_eq(@value, i);
@@ -71,7 +71,6 @@ test_insert :: fn () #test {
 }
 
 test_lookup :: fn () #test {
-	using std;
 	loop i := 0; i < TEST_COUNT; i += 1 {
 		value, found :: tbl_lookup(&g_tbl, i);
 		test_true(found);
@@ -80,7 +79,6 @@ test_lookup :: fn () #test {
 }
 
 test_contains :: fn () #test {
-	using std;
 	loop i := 0; i < TEST_COUNT; i += 1 {
 		test_true(tbl_contains(&g_tbl, i));
 	}
@@ -89,7 +87,6 @@ test_contains :: fn () #test {
 }
 
 test_terminate :: fn () #test {
-	using std;
 	tbl_terminate(&g_tbl);
 }
 
@@ -98,7 +95,6 @@ test_terminate :: fn () #test {
 // =================================================================================================
 
 test_clear :: fn () #test {
-	using std;
 	tbl: Table(s32, s32);
 	defer tbl_terminate(&tbl);
 
@@ -119,7 +115,6 @@ test_clear :: fn () #test {
 }
 
 test_struct :: fn () #test {
-	using std;
 	Elem :: struct {
 		a: s32;
 		b: string_view;
@@ -148,7 +143,6 @@ test_struct :: fn () #test {
 }
 
 test_hashing_1 :: fn () #test {
-	using std;
 	index :: fn (i: u64) u64 {
 		if i % 2 == 0 { return i * -1; }
 		return i;
@@ -168,8 +162,6 @@ test_hashing_1 :: fn () #test {
 }
 
 test_hashing_2 :: fn () #test {
-	using std;
-
 	tbl: Table(string_view, s32);
 	defer tbl_terminate(&tbl);
 
@@ -185,7 +177,6 @@ test_hashing_2 :: fn () #test {
 }
 
 test_string_keys_1 :: fn () #test {
-	using std;
 	tbl: Table(string_view, s32);
 	defer tbl_terminate(&tbl);
 
@@ -197,7 +188,6 @@ test_string_keys_1 :: fn () #test {
 }
 
 test_string_keys_2 :: fn () #test {
-	using std;
 	tbl: Table(string_view, s32);
 	defer tbl_terminate(&tbl);
 
@@ -213,7 +203,6 @@ test_string_keys_2 :: fn () #test {
 }
 
 test_insert_empty :: fn () #test {
-	using std;
 	tbl: Table(s32, s32);
 	defer tbl_terminate(&tbl);
 	loop i := 0; i < TEST_COUNT; i += 1 {
@@ -224,7 +213,6 @@ test_insert_empty :: fn () #test {
 }
 
 test_erase :: fn () #test {
-	using std;
 	tbl: Table(s32, s32);
 	defer tbl_terminate(&tbl);
 
@@ -240,23 +228,21 @@ test_erase :: fn () #test {
 }
 
 test_erase2 :: fn () #test {
-	using std;
 	tbl: Table(u64, s32);
 	defer tbl_terminate(&tbl);
 
 	loop i : u64 = 0; i < auto TEST_COUNT; i += 1 {
-		tbl_insert(&tbl, std.U64_MAX - i, auto i);
+		tbl_insert(&tbl, U64_MAX - i, auto i);
 	}
 	test_eq(tbl.len, TEST_COUNT);
 
 	loop i : u64 = 0; i < auto TEST_COUNT; i += 1 {
-		test_true(tbl_erase(&tbl, std.U64_MAX - i));
+		test_true(tbl_erase(&tbl, U64_MAX - i));
 	}
 	test_eq(tbl.len, 0);
 }
 
 test_erase3 :: fn () #test {
-	using std;
 	tbl: Table(string_view, s32);
 	defer tbl_terminate(&tbl);
 

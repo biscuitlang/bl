@@ -1,13 +1,9 @@
-#import "os/posix/pthread"
-#import "os/posix/semaphore"
-#load "sync.bl"
+#scope_module
 
-#scope _sync_impl
+_Mutex :: pthread_mutex_t;
+_Condition :: pthread_cond_t;
 
-Mutex :: pthread_mutex_t;
-Condition :: pthread_cond_t;
-
-mutex_init :: fn (mutex: *Mutex) Error #inline {
+_mutex_init :: fn (mutex: *_Mutex) Error #inline {
 	state :: pthread_mutex_init(mutex, null);
 	if state != 0 {
 		estr :: cast(*u8) C.strerror(state);
@@ -16,7 +12,7 @@ mutex_init :: fn (mutex: *Mutex) Error #inline {
 	return OK;
 }
 
-mutex_terminate :: fn (mutex: *Mutex) Error #inline {
+_mutex_terminate :: fn (mutex: *_Mutex) Error #inline {
 	state :: pthread_mutex_destroy(mutex);
 	if state != 0 {
 		estr :: cast(*u8) C.strerror(state);
@@ -25,7 +21,7 @@ mutex_terminate :: fn (mutex: *Mutex) Error #inline {
 	return OK;
 }
 
-mutex_lock :: fn (mutex: *Mutex) Error #inline {
+_mutex_lock :: fn (mutex: *_Mutex) Error #inline {
 	state :: pthread_mutex_lock(mutex);
 	if state != 0 {
 		estr :: cast(*u8) C.strerror(state);
@@ -34,7 +30,7 @@ mutex_lock :: fn (mutex: *Mutex) Error #inline {
 	return OK;
 }
 
-mutex_try_lock :: fn (mutex: *Mutex) (bool, Error) #inline {
+_mutex_try_lock :: fn (mutex: *_Mutex) (bool, Error) #inline {
 	state :: pthread_mutex_lock(mutex);
 	if state == 0 {
 		return true, OK;
@@ -46,7 +42,7 @@ mutex_try_lock :: fn (mutex: *Mutex) (bool, Error) #inline {
 	return false, error("Cannot lock mutex: '%' (%).", estr, state);
 }
 
-mutex_unlock :: fn (mutex: *Mutex) Error #inline {
+_mutex_unlock :: fn (mutex: *_Mutex) Error #inline {
 	state :: pthread_mutex_unlock(mutex);
 	if state != 0 {
 		estr :: cast(*u8) C.strerror(state);
@@ -55,7 +51,7 @@ mutex_unlock :: fn (mutex: *Mutex) Error #inline {
 	return OK;
 }
 
-condition_init :: fn (condition: *Condition) Error #inline {
+_condition_init :: fn (condition: *_Condition) Error #inline {
 	state :: pthread_cond_init(condition, null);
 	if state != 0 {
 		estr :: cast(*u8) C.strerror(state);
@@ -64,7 +60,7 @@ condition_init :: fn (condition: *Condition) Error #inline {
 	return OK;
 }
 
-condition_wait :: fn (condition: *Condition, mutex: *Mutex) Error #inline {
+_condition_wait :: fn (condition: *_Condition, mutex: *_Mutex) Error #inline {
 	state :: pthread_cond_wait(condition, mutex);
 	if state != 0 {
 		estr :: cast(*u8) C.strerror(state);
@@ -73,7 +69,7 @@ condition_wait :: fn (condition: *Condition, mutex: *Mutex) Error #inline {
 	return OK;
 }
 
-condition_signal :: fn (condition: *Condition) Error #inline {
+_condition_signal :: fn (condition: *_Condition) Error #inline {
 	state :: pthread_cond_signal(condition);
 	if state != 0 {
 		estr :: cast(*u8) C.strerror(state);
@@ -81,3 +77,10 @@ condition_signal :: fn (condition: *Condition) Error #inline {
 	}
 	return OK;
 }
+
+#scope_private
+
+#import "os/posix/pthread"
+#import "os/posix/semaphore"
+
+C :: #import "libc";

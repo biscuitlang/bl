@@ -1,28 +1,29 @@
+#scope_private
+
 #import "std/dlib"
 #import "std/fs"
+#import "std/string"
 
-#private
 dl_open_test1 :: fn () #test {
-	lib, err :: std.library_open("foobar");
+	lib, err :: library_open("foobar");
 	test_not_ok(err);
 }
 
 dl_open_test2 :: fn () #test {
-	lib, err :: std.library_open();
-	defer std.library_close(lib);
+	lib, err :: library_open();
+	defer library_close(lib);
 	test_ok(err);
 	test_not_null(lib);
 }
 
 dl_sym_test1 :: fn () #test {
-	lib, err1 :: std.library_open();
-	defer std.library_close(lib);
-	sym, err2 :: std.library_get_symbol(lib, "foobar");
+	lib, err1 :: library_open();
+	defer library_close(lib);
+	sym, err2 :: library_get_symbol(lib, "foobar");
 	test_not_ok(err2);
 }
 
 dl_test_lib :: fn () #test {
-	using std;
 	head :: path_split(#file);
 	lib_name :: str_new(head);
 	defer str_delete(&lib_name);

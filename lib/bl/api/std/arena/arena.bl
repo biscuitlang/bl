@@ -1,7 +1,5 @@
-#scope std
-
 //! # Arena Allocator
-//! 
+//!
 //! `#import "std/arena"`
 //!
 //! Simple arena allocator is memory storage operating on internally pre-allocated memory block. Arena can be used
@@ -14,7 +12,7 @@
 //! memory allocated using arena becomes invalid).
 //!
 //! ### Supported Operations
-//! 
+//!
 //!     - [x] Allocate
 //!     - [-] Reallocate (Cause an error.)
 //!     - [-] Free
@@ -25,7 +23,7 @@
 //! - [release_allocator](/modules/memory/#release_allocator) should be called to release all resources used by arena.
 //!
 
-/// Alignment of each arena allocation. This value should be large enough to properly align all possible data, we also 
+/// Alignment of each arena allocation. This value should be large enough to properly align all possible data, we also
 /// can use this value to precisely predict required arena size in advance.
 ARENA_ALIGNMENT :: DEFAULT_ALIGNMENT;
 
@@ -40,7 +38,7 @@ ArenaAllocator :: struct #base Allocator {
 	allocated: usize;
 }
 
-/// Make new arena instance. In case the `size` is not 0, the arena memory chunk is preallocated right away to 
+/// Make new arena instance. In case the `size` is not 0, the arena memory chunk is preallocated right away to
 /// `size` bytes. The `allocator` is used to preallocate memory chunk in case it's specified, otherwise default
 /// allocator set in application context is used.
 ///
@@ -56,7 +54,7 @@ arena_make :: fn (size: usize = 0, allocator: *Allocator = null) ArenaAllocator 
 		if err { panic(err); }
 		reset(&a);
 	}
-	
+
 	return a;
 }
 
@@ -79,18 +77,18 @@ arena_required_additional_space :: fn (count_of_allocations: s32) usize #inline 
 #private
 
 handler :: fn (
-	a: *ArenaAllocator, 
-	operation: AllocOp, 
-	_: *u8, 
-	size: usize, 
-	_: usize, 
-	_: string_view, 
+	a: *ArenaAllocator,
+	operation: AllocOp,
+	_: *u8,
+	size: usize,
+	_: usize,
+	_: string_view,
 	_: s32
 ) (mem: *u8, err: Error) {
 	using AllocOp;
 	switch operation {
 		ALLOCATE {
-			return allocate(a, size, ARENA_ALIGNMENT); 
+			return allocate(a, size, ARENA_ALIGNMENT);
 		}
 		REALLOCATE {
 			assert(false, "Reallocation is not supported by arena allocator!");
@@ -121,7 +119,7 @@ allocate :: fn (a: *ArenaAllocator, size: usize, alignment: usize) (mem: *u8, er
 		return null, error("Not enough space in arena!");
 	}
 	mem := a.top;
-	mem = auto ((cast(usize) mem) + alignment - 1 & mask); 
+	mem = auto ((cast(usize) mem) + alignment - 1 & mask);
 
 	// Adjust next top pointer.
 	a.top = auto (cast(usize) a.top + allocation_size);

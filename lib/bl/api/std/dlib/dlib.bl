@@ -4,8 +4,6 @@
 //!
 //! Dynamic library tools for runtime library loading and symbol resolving.
 
-#scope std
-
 // In order to support dynamic library loading even in VM runtime we need to internally pass the
 // symbol resolve through dyncall wrapper, this cannot be done on client side, thus we have compiler
 // support for it. All '__dlib_*' external functions are provided by the compiler binary in case of
@@ -17,9 +15,9 @@ Library :: *u8;
 /// Dynamically loads library specified by `lib_name` and return it's handle or null with error.
 /// When `lib_name` is empty, current binary will be loaded. Use `library_close` call to close
 /// library when it's not needed anymore.
-library_open :: fn (lib_name := std.str_view_empty) (Library, Error) #inline {
+library_open :: fn (lib_name := str_view_empty) (Library, Error) #inline {
 	clib_name : *s8 = null;
-	if lib_name.len > 0 { clib_name = std.strtoc(lib_name); }
+	if lib_name.len > 0 { clib_name = strtoc(lib_name); }
 	lib :: __dlib_open(clib_name);
 	if !lib {
 		return null, error("Failed to load library '%'.", lib_name);
@@ -29,7 +27,7 @@ library_open :: fn (lib_name := std.str_view_empty) (Library, Error) #inline {
 
 /// Resolve named symbol in library and return pointer to it.
 library_get_symbol :: fn (lib: Library, sym_name: string_view) (*u8, Error) #inline {
-	sym :: __dlib_symbol(lib, std.strtoc(sym_name));
+	sym :: __dlib_symbol(lib, strtoc(sym_name));
 	if !sym {
 		return null, error("Cannot find symbol '%' in the library.", sym_name);
 	}
@@ -41,7 +39,9 @@ library_close :: fn (lib: Library) #inline {
 	__dlib_close(lib);
 }
 
-#private
+#scope_private
+#import "std/string"
+C :: #import "libc";
 
 //
 // VM execution api
