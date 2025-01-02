@@ -1,11 +1,9 @@
-#import "std/thread"
-
 #scope_private
+#import "std/thread"
 
 allocator :: &default_temporary_allocator;
 
 contcurent_allocation :: fn () #test {
-	using std;
 	WORKER_COUNT :: 8;
 	workers: [WORKER_COUNT]Thread;
 	loop i := 0; i < workers.len; i += 1 {

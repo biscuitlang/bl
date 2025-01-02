@@ -31,14 +31,9 @@
 #include "tokens_inline_utils.h"
 #include <setjmp.h>
 
-#define report_error(code, tok, pos, format, ...) \
-	builder_msg(MSG_ERR, ERR_##code, &(tok)->location, (pos), (format), ##__VA_ARGS__)
-
-#define report_warning(tok, pos, format, ...) \
-	builder_msg(MSG_WARN, 0, &(tok)->location, (pos), (format), ##__VA_ARGS__)
-
-#define report_note(tok, pos, format, ...) \
-	builder_msg(MSG_ERR_NOTE, 0, &(tok)->location, (pos), (format), ##__VA_ARGS__)
+#define report_error(code, tok, pos, format, ...) builder_msg(MSG_ERR, ERR_##code, &(tok)->location, (pos), (format), ##__VA_ARGS__)
+#define report_warning(tok, pos, format, ...) builder_msg(MSG_WARN, 0, &(tok)->location, (pos), (format), ##__VA_ARGS__)
+#define report_note(tok, pos, format, ...) builder_msg(MSG_ERR_NOTE, 0, &(tok)->location, (pos), (format), ##__VA_ARGS__)
 
 #define scope_push(ctx, scope) arrput((ctx)->scope_stack, (scope))
 #define scope_pop(ctx) arrpop((ctx)->scope_stack)
@@ -528,46 +523,38 @@ struct ast *parse_hash_directive(struct context *ctx, s32 expected_mask, enum ha
 	case HD_SCOPE_PRIVATE: {
 		struct scope *current_scope = scope_get(ctx);
 		bassert(current_scope);
-		if (current_scope->kind == SCOPE_PRIVATE) {
-			report_warning(tok_directive, CARET_WORD, "The private scope marker directive is redundant in current context and will be ignored. The current scope is already private.");
-			return_zone(ast_create_node(ctx->ast_arena, AST_PRIVATE, tok_directive, current_scope));
-		}
-
 		struct scope *scope = ctx->unit->private_scope;
 		if (!scope) {
-			scope = scope_create(ctx->scope_arenas, SCOPE_PRIVATE, current_scope, &tok_directive->location);
+			struct module *module       = ctx->unit->module;
+			struct scope  *parent_scope = module ? module->private_scope : ctx->unit->parent_scope;
+			bassert(parent_scope);
+			scope = scope_create(ctx->scope_arenas, SCOPE_PRIVATE, parent_scope, &tok_directive->location);
 			scope_reserve(scope, 256);
 			ctx->unit->private_scope = scope;
 		}
 
-		scope_push(ctx, scope);
+		scope_set(ctx, scope);
 		return_zone(ast_create_node(ctx->ast_arena, AST_PRIVATE, tok_directive, current_scope));
 	}
 
 	case HD_SCOPE_PUBLIC: {
 		struct scope *current_scope = scope_get(ctx);
 		bassert(current_scope);
-		if (current_scope->kind != SCOPE_PRIVATE) {
-			report_warning(tok_directive, CARET_WORD, "The public scope marker directive is redundant in current context and will be ignored. The current scope is already public.");
-			return_zone(ast_create_node(ctx->ast_arena, AST_PUBLIC, tok_directive, current_scope));
-		}
-
-		scope_pop(ctx);
-		bassert(scope_get(ctx)->kind == SCOPE_MODULE || scope_get(ctx)->kind == SCOPE_GLOBAL);
-
+		scope_set(ctx, ctx->unit->parent_scope);
 		return_zone(ast_create_node(ctx->ast_arena, AST_PUBLIC, tok_directive, current_scope));
 	}
 
 	case HD_SCOPE_MODULE: {
 		struct scope *current_scope = scope_get(ctx);
 		bassert(current_scope);
-		if (current_scope->kind != SCOPE_MODULE_PRIVATE) {
-			report_warning(tok_directive, CARET_WORD, "The public scope marker directive is redundant in current context and will be ignored. The current scope is already public.");
-			return_zone(ast_create_node(ctx->ast_arena, AST_MODULE_PRIVATE, tok_directive, current_scope));
+		struct module *module = ctx->unit->module;
+		if (!module) {
+			report_error(EXPECTED_MODULE, tok_directive, CARET_WORD, "Module private scope cannot be created outside of module.");
+			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_directive, current_scope));
 		}
 
-		scope_pop(ctx);
-		bassert(scope_get(ctx)->kind == SCOPE_MODULE || scope_get(ctx)->kind == SCOPE_GLOBAL);
+		bassert(module->private_scope);
+		scope_set(ctx, module->private_scope);
 
 		return_zone(ast_create_node(ctx->ast_arena, AST_MODULE_PRIVATE, tok_directive, current_scope));
 	}
@@ -622,8 +609,7 @@ NEXT:
 	} else if (rq) {
 		struct token *tok_err = tokens_peek(ctx->tokens);
 		if (tokens_peek_2nd(ctx->tokens)->sym == SYM_RBLOCK) {
-			report_error(
-			    EXPECTED_NAME, tok_err, CARET_WORD, "Expected expression after comma ','.");
+			report_error(EXPECTED_NAME, tok_err, CARET_WORD, "Expected expression after comma ','.");
 			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_begin, scope_get(ctx)));
 		}
 	}

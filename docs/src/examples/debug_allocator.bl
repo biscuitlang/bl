@@ -1,9 +1,8 @@
 #import "std/debug_allocator"
 
-debug_allocator: std.DebugAllocator;
+debug_allocator: DebugAllocator;
 
 main :: fn () s32 {
-	using std;
 	// Initialize debug allocator with current context allocator.
 	debug_allocator = debug_allocator_make(application_context.allocator);
 	// Always cleanup at the end of the scope.

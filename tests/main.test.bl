@@ -1,11 +1,8 @@
-#import "std/debug_allocator"
 #import "std/test"
-#import "std/pool"
 
-debug_allocator: std.DebugAllocator;
+debug_allocator: DebugAllocator;
 
 main :: fn () s32 {
-	using std;
 	debug_allocator = debug_allocator_make(application_context.allocator);
 	defer debug_allocator_release(&debug_allocator);
 	application_context.allocator = &debug_allocator;
@@ -21,6 +18,13 @@ main :: fn () s32 {
 }
 
 #scope_private
+
+#import "std/debug_allocator"
+#import "std/pool"
+#import "std/print"
+
+io :: #import "std/io";
+
 my_logger :: fn (kind: PrintLogKind, file: string_view, line: s32, format: string_view, args: ...) {
 	output_stream := os_stdout();
 	buf: [PRINT_MAX_LENGTH]u8 #noinit;
@@ -41,5 +45,5 @@ my_logger :: fn (kind: PrintLogKind, file: string_view, line: s32, format: strin
 	}
 	w += bprint(slice_range(buf, w), format, args);
 	w += bprint(slice_range(buf, w), "\n");
-	std.write(output_stream, buf.ptr, auto w);
+	io.write(output_stream, buf.ptr, auto w);
 };

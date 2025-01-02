@@ -1,4 +1,8 @@
 #import "std/fs"
+#import "std/string"
+#import "std/print"
+#import "std/io"
+#import "std/array"
 
 main :: fn () s32 {
 	variables();
@@ -214,11 +218,11 @@ dynamic_strings :: fn () {
 	// default API in 'std' namespace.
 
 	// Allocate new dynamic string.
-	str :: std.str_new("Hello");
-	defer std.str_delete(&str);
+	str :: str_new("Hello");
+	defer str_delete(&str);
 
 	// Append the string.
-	std.str_append(&str, " World!");
+	str_append(&str, " World!");
 
 	// Print the string.
 	print_log("str = %", str);
@@ -392,8 +396,6 @@ comptime_functions :: fn () {
 	// existing in result executable produced by the compiler.
 
 	load_file_to_stack :: fn () []u8 #comptime { // Marked as comptime.
-		using std;
-
 		// Load current source file.
 		stream, open_err :: open_file(#file);
 		defer close_file(&stream);

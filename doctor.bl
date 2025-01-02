@@ -1,7 +1,11 @@
 #!blc -silent-run
-#import "extra/argparse"
 #import "std/fs"
 #import "std/io"
+#import "std/print"
+#import "std/string"
+#import "std/array"
+
+argparse :: #import "extra/argparse";
 
 TEMPORARY_DIR :: "tmp-doctor";
 TEST_SRC_DIR :: "tests/src";
@@ -94,8 +98,6 @@ compiler: string_view;
 main_file: string_view;
 
 main :: fn () s32 {
-	using std;
-
 	defer temporary_release();
 
 	working_directory = get_working_directory();
@@ -109,18 +111,17 @@ main :: fn () s32 {
 	defer cleanup();
 
 	{
-		using argparse;
-		parser: Parser #noinit;
-		init(&parser, "Biscuit Language auto-testing tool.");
-		defer terminate(&parser);
-		set_executable_name(&parser, command_line_arguments[0]);
-		add_usage(&parser, "[options]");
-		add_positional(&parser, &args.cases, "--test-cases", "-tc", "List of test cases to execute.");
-		add(&parser, &args.keep_temporary, "--keep-temporary", "", "Keep created temporary directory.");
-		_, parse_error :: parse(&parser, command_line_arguments);
+		parser: argparse.Parser #noinit;
+		argparse.init(&parser, "Biscuit Language auto-testing tool.");
+		defer argparse.terminate(&parser);
+		argparse.set_executable_name(&parser, command_line_arguments[0]);
+		argparse.add_usage(&parser, "[options]");
+		argparse.add_positional(&parser, &args.cases, "--test-cases", "-tc", "List of test cases to execute.");
+		argparse.add(&parser, &args.keep_temporary, "--keep-temporary", "", "Keep created temporary directory.");
+		_, parse_error :: argparse.parse(&parser, command_line_arguments);
 		if parse_error {
 			print_err(parse_error);
-			print_help(&parser);
+			argparse.print_help(&parser);
 			return 1;
 		}
 		if parser.help {
@@ -226,7 +227,6 @@ main :: fn () s32 {
 }
 
 cleanup :: fn () {
-	using std;
 	set_cwd(working_directory);
 	if !args.keep_temporary {
 		remove_all_dir(temporary_directory);
@@ -234,7 +234,6 @@ cleanup :: fn () {
 }
 
 test_file :: fn (results: *[..]Result, filepath: string_view, kind: TestKind) {
-	using std;
 	using State;
 	name: string_view;
 	if !str_split_by_last(filepath, '/', null, &name) {
@@ -334,16 +333,11 @@ report :: fn (result: *Result, msg := "") {
 }
 
 list_dir :: fn (paths: *[..]string_view, dir: string_view) {
-	using std;
-
 	VisitData :: struct {
 		paths: *[..]string_view;
 	};
 
-	// @Cleanup: std.FileVisitInfo should work also as Info -> remove std. after fix
-	//           using propagation into nested functions.
-	visitor :: fn (info: *std.FileVisitInfo, data: *VisitData) Error {
-		using std;
+	visitor :: fn (info: *FileVisitInfo, data: *VisitData) Error {
 		if !info.is_directory {
 			_, ext :: path_splitext(info.filepath);
 			if str_match(ext, ".bl") {
@@ -362,7 +356,6 @@ list_dir :: fn (paths: *[..]string_view, dir: string_view) {
 }
 
 get_working_directory :: fn () string_view {
-	using std;
 	lhs: string_view;
 	if str_split_by_last(#file, '/', &lhs, null) {
 		return str_new(lhs, &default_temporary_allocator);
@@ -400,8 +393,6 @@ get_exe_name :: fn () string_view #comptime {
 }
 
 get_expected_error :: fn (filepath: string_view) (is_present: bool, error: s32) {
-	using std;
-
 	stream, err_open :: open_file(filepath, OpenFileMode.READ);
 	defer close_file(&stream);
 	if err_open { print_err("%", err_open); return false, 0; }
@@ -512,7 +503,7 @@ strtoerr :: fn (s: string_view) s32 {
 	info :: cast(*TypeInfoEnum) typeinfo(BlError);
 	loop i := 0; i < info.variants.len; i += 1 {
 		variant :: &info.variants[i];
-		if std.str_match(variant.name, s) { return auto variant.value; }
+		if str_match(variant.name, s) { return auto variant.value; }
 	}
 	return -1;
 }

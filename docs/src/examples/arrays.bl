@@ -1,3 +1,5 @@
+#import "std/print"
+
 main :: fn () s32 {
 	// This is array variable as consist of 10 numbers of s32 type.
 	// In this case we do not initialize the array we only reserve
@@ -22,8 +24,8 @@ main :: fn () s32 {
 
 
 
-	// Arrays could be initialized in same way like other variables even in 
-	// declaration by compound initializer. We can let compiler inver variable 
+	// Arrays could be initialized in same way like other variables even in
+	// declaration by compound initializer. We can let compiler inver variable
 	// type here like we did with other variables in previous example.
 	another_array := [4]s32.{1, 2, 3, 4};
 
@@ -44,7 +46,7 @@ main :: fn () s32 {
 	print("sizeof([4]s32) is %B\n", s2);
 
 	// sizeof is very useful operator especially in cases we want to know
-	// how much space we need to allocate for value of desired type, but 
+	// how much space we need to allocate for value of desired type, but
 	// there are more use cases of this.
 
 

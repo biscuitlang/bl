@@ -1,0 +1,16 @@
+#scope_private
+#import "../../../tests/src/module1"
+named :: #import "../../../tests/src/module1";
+
+implicitly_injected :: fn () #test {
+	foo();
+}
+
+through_namespace :: fn () #test {
+	named.foo();
+}
+
+through_using :: fn () #test {
+	using named;
+	foo();
+}

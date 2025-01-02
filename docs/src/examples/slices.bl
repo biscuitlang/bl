@@ -1,3 +1,5 @@
+#import "std/print"
+
 main :: fn () s32 {
 	// Declare slice variable, no allocation is done here, my_slice.len is zero
 	// and my_slice.ptr is null.
@@ -7,7 +9,7 @@ main :: fn () s32 {
 	alloc_slice(&my_slice, 10);
 
 	// Release memory allocated by 'alloc_slice' when it's no longer needed. Defer
-	// statement will execute 'free_slice' function at the end of current 
+	// statement will execute 'free_slice' function at the end of current
 	// scope.
 	defer free_slice(&my_slice);
 
@@ -43,16 +45,16 @@ main :: fn () s32 {
 	print("slice_from_array = %\n", slice_from_array);
 
 	// This implicit conversion can be useful in function calls. We can now call
-	// function 'gimme_slice' with any slice containing numbers of s32 type. If 
-	// you try this with regular arrays you will be able to pass only arrays of 
-	// the exact same size defined in array type of the function argument. 
-	// Passing of array will cause copying of whole array on callee side, passing 
+	// function 'gimme_slice' with any slice containing numbers of s32 type. If
+	// you try this with regular arrays you will be able to pass only arrays of
+	// the exact same size defined in array type of the function argument.
+	// Passing of array will cause copying of whole array on callee side, passing
 	// slice is much more effective, since it's only len and ptr to data.
 	gimme_slice(my_slice);
 	gimme_slice(slice_from_array);
 
 	// Due to implicit conversion from array to slice we can call 'gimme_slice'
-	// function directly with an array argument, it will be passed into the 
+	// function directly with an array argument, it will be passed into the
 	// function as a slice.
 	gimme_slice(array);
 

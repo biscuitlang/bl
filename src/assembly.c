@@ -658,7 +658,6 @@ DONE:
 
 typedef struct {
 	struct assembly *assembly;
-	struct token    *import_from;
 	struct scope    *parent_scope;
 	struct module   *module;
 
@@ -671,7 +670,7 @@ typedef struct {
 static void import_source(import_elem_context_t *ctx, const char *srcfile) {
 	str_buf_t path = get_tmp_str();
 	str_buf_append_fmt(&path, "{str}/{s}", ctx->module_root_path, srcfile);
-	assembly_add_unit(ctx->assembly, str_buf_view(path), ctx->import_from, ctx->parent_scope, ctx->module);
+	assembly_add_unit(ctx->assembly, str_buf_view(path), NULL, ctx->parent_scope, ctx->module);
 	put_tmp_str(path);
 }
 
@@ -679,7 +678,7 @@ static void import_lib_path(import_elem_context_t *ctx, const char *dirpath) {
 	str_buf_t path = get_tmp_str();
 	str_buf_append_fmt(&path, "{str}/{s}", ctx->module_root_path, dirpath);
 	if (!dir_exists(path)) {
-		builder_msg(MSG_ERR, ERR_FILE_NOT_FOUND, TOKEN_OPTIONAL_LOCATION(ctx->import_from), CARET_WORD, "Cannot find module imported library path '" STR_FMT "'.", STR_ARG(path));
+		builder_msg(MSG_ERR, ERR_FILE_NOT_FOUND, NULL, CARET_NONE, "Cannot find module imported library path '" STR_FMT "'.", STR_ARG(path));
 	} else {
 		assembly_add_lib_path(ctx->assembly, str_buf_to_c(path));
 	}
@@ -727,10 +726,12 @@ static struct module *import_module(struct assembly *assembly, str_t module_path
 	struct scope_arenas  *scope_arenas = &assembly->thread_local_contexts[thread_index].scope_arenas;
 	struct string_cache **string_cache = &assembly->thread_local_contexts[thread_index].string_cache;
 
-	module->scope         = scope_create(scope_arenas, SCOPE_MODULE, assembly->gscope, &import_from->location);
-	module->modulepath    = scdup2(string_cache, module_path);
-	module->hash          = module_hash;
-	module->private_scope = NULL;
+	module->scope      = scope_create(scope_arenas, SCOPE_MODULE, assembly->gscope, NULL);
+	module->modulepath = scdup2(string_cache, module_path);
+	module->hash       = module_hash;
+
+	// 2025-01-01: We might want to create module private scope only in cases it's used, but that would require some additional locking.
+	module->private_scope = scope_create(scope_arenas, SCOPE_MODULE_PRIVATE, module->scope, NULL);
 
 	scope_reserve(module->scope, 1024);
 	module->scope->name = scdup2(string_cache, module_name);
@@ -739,7 +740,7 @@ static struct module *import_module(struct assembly *assembly, str_t module_path
 
 	// II. Read global module options.
 
-	import_elem_context_t ctx = {assembly, import_from, module->scope, module, module_root_dir};
+	import_elem_context_t ctx = {assembly, module->scope, module, module_root_dir};
 	assembly_append_linker_options(assembly, confreads(config, "/linker_opt", ""));
 
 	process_tokens(&ctx,

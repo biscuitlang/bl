@@ -1,4 +1,5 @@
 #scope_private
+#import "std/math"
 
 TAG1 : u32 : 1;
 TAG2 : u32 : 2;
@@ -38,13 +39,13 @@ struct_member_flags :: fn () #test {
 }
 
 T3 :: struct {
-	a: s32 #tag std.U64_MAX;
-	b: s32 #tag std.U32_MAX;
+	a: s32 #tag U64_MAX;
+	b: s32 #tag U32_MAX;
 }
 
 struct_member_tags2 :: fn () #test {
 	info := cast(*TypeInfoStruct) typeinfo(T3);
 	test_eq(info.members.len, 2);
-	test_eq(info.members[0].tag, std.U64_MAX);
-	test_eq(info.members[1].tag, std.U32_MAX);
+	test_eq(info.members[0].tag, U64_MAX);
+	test_eq(info.members[1].tag, U32_MAX);
 }

@@ -9,11 +9,12 @@ Module Import TODO
 
 x import module once
 x inject into current scope
-- module explicit namespacing
+x module explicit namespacing
   - with injection in local scope???
-  - should be constant?
-  - do not work with using!
+  x should be constant?
+  x do not work with using!
 x use commas for global separators
+- scope lookup should scan injected scopes recursively?
 - do we need link_runtime
 - how to handle platform incompatible messages
 - builder api
@@ -24,24 +25,15 @@ x use commas for global separators
 
 */
 
-#import "std/print"
-
-str :: #import "str";
-
-gala :: fn () {}
+// foo :: #import "str";
+#import "str";
+// #import "extra/draw"
+// #import "extra/argparse"
 
 main :: fn () s32 {
-	print("hello!\n");
-
-	str.new2();
-	str.delete2();
-	str.append();
-	hololoo();
+	olo();
 	return 0;
 }
-
-#scope_private
-hololoo :: fn () {}
 
 
 /* BUG

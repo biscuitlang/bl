@@ -1,12 +1,3 @@
-#import "extra/gl"
-#import "extra/glm"
-#import "extra/png"
-#import "extra/freetype2"
-#import "std/fs"
-#import "std/table"
-
-#scope draw
-
 //! # Draw
 //!
 //! `#import "extra/draw"`
@@ -37,8 +28,6 @@
 //! to draw bunch of colored rectangles we must set the propper shader first:
 //!
 //! ```bl
-//! using draw;
-//! using glm;
 //! set_shader_color(); // Prepare renderer for rendering of colored rectangles.
 //!
 //! rect(10.f, 10.f, 100.f, 100.f, v4.{ 1.f, 0.f, 0.f, 1.f });
@@ -110,7 +99,7 @@ init :: fn (viewport_width: s32, viewport_height: s32, initialize_opengl := true
 /// can be used e.g. in case of the window resize.
 set_viewport_size :: fn (viewport_width: s32, viewport_height: s32) {
 	gl.Viewport(0, 0, viewport_width, viewport_height);
-	glm.mat4_init_ortho(&view_matrix, 0.f, auto viewport_width, auto viewport_height, 0.f, 0.f, 1.f);
+	mat4_init_ortho(&view_matrix, 0.f, auto viewport_width, auto viewport_height, 0.f, 0.f, 1.f);
 }
 
 toggle_gamma_correction :: fn (v: bool) #inline {
@@ -136,7 +125,7 @@ terminate :: fn (terminate_opengl := true) {
 }
 
 /// Fill the current frame buffer with `color`. This is usually called each frame.
-clear_color :: fn (color := glm.v4_zero) #inline {
+clear_color :: fn (color := v4_zero) #inline {
 	gl.ClearColor(color.x, color.y, color.z, color.w);
 	gl.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
@@ -174,8 +163,7 @@ set_shader_font :: fn (font: *Font) #inline {
 
 /// Draw a single colored rectangle or texture into the frame buffer.
 rect :: fn {
-	fn (position_x: f32, position_y: f32, width: f32, height: f32, color := glm.v4_one) #inline {
-		using glm;
+	fn (position_x: f32, position_y: f32, width: f32, height: f32, color := v4_one) #inline {
 		add_rect([4]v2.{
 			v2.{ position_x,         position_y          },
 			v2.{ position_x + width, position_y          },
@@ -183,8 +171,7 @@ rect :: fn {
 			v2.{ position_x + width, position_y + height }
 		}, [4]v4.{ color, color, color, color });
 	};
-	fn (position_x: f32, position_y: f32, width: f32, height: f32, colors: []glm.v4) #inline {
-		using glm;
+	fn (position_x: f32, position_y: f32, width: f32, height: f32, colors: []v4) #inline {
 		assert(colors.len == 4, "You have to provide color for each rectangle corner.");
 		add_rect([4]v2.{
 			v2.{ position_x,         position_y          },
@@ -196,14 +183,11 @@ rect :: fn {
 }
 
 /// Draw a single colored rectangle or texture into the frame buffer.
-rect_centered :: fn (center_x: f32, center_y: f32, width: f32, height: f32, color := glm.v4_one) #inline {
+rect_centered :: fn (center_x: f32, center_y: f32, width: f32, height: f32, color := v4_one) #inline {
 	rect(center_x - width * 0.5f, center_y - height * 0.5f, width, height, color);
 }
 
-rect_rounded :: fn (position_x: f32, position_y: f32, width: f32, height: f32, r: f32, inner_color := glm.v4_one, outer_color := glm.v4_one) #inline {
-	using glm;
-	using std;
-
+rect_rounded :: fn (position_x: f32, position_y: f32, width: f32, height: f32, r: f32, inner_color := v4_one, outer_color := v4_one) #inline {
 	if r == 0.f {
 		rect(position_x, position_y, width, height, inner_color);
 		return;
@@ -278,14 +262,13 @@ rect_rounded :: fn (position_x: f32, position_y: f32, width: f32, height: f32, r
 	};
 	array_push_all(&index_buffer, indices);
 
-	add_segment :: fn (px: f32, py: f32, r: f32, c: glm.v4, corner_index: u32, segment: s32) #inline {
-		using std;
+	add_segment :: fn (px: f32, py: f32, r: f32, c: v4, corner_index: u32, segment: s32) #inline {
 		base_index :: cast(u32) vertex_buffer.len;
-		steps :: max(cast(u32) (r * 0.25f), 3);
+		steps :: math.max(cast(u32) (r * 0.25f), 3);
 
 		loop i : u32 = 0; i < steps+1; i += 1 {
-			a :: (cast(f32) i / cast(f32) steps) * F32_HALF_PI + F32_HALF_PI * auto segment;
-			array_push(&vertex_buffer, v2.{ px - r * sin(a), py - r * cos(a) } );
+			a :: (cast(f32) i / cast(f32) steps) * math.F32_HALF_PI + math.F32_HALF_PI * auto segment;
+			array_push(&vertex_buffer, v2.{ px - r * math.sin(a), py - r * math.cos(a) } );
 			array_push(&color_buffer, c);
 		}
 
@@ -305,8 +288,7 @@ rect_rounded :: fn (position_x: f32, position_y: f32, width: f32, height: f32, r
 }
 
 /// Draw a single colored rectangle or texture with rotation into the frame buffer.
-rect_centered_rotated :: fn (center_x: f32, center_y: f32, width: f32, height: f32, angle_in_radians: f32, color := glm.v4_one) #inline {
-	using glm;
+rect_centered_rotated :: fn (center_x: f32, center_y: f32, width: f32, height: f32, angle_in_radians: f32, color := v4_one) #inline {
 	pivot :: v2.{ width * 0.5f, height * 0.5f };
 	q :: quat_axis_angle(v3.{ 0.f, 0.f, 1.f }, angle_in_radians);
 	v_1 := quat_rotate_v3(q, v3.{ -pivot.x,  pivot.y });
@@ -323,25 +305,22 @@ rect_centered_rotated :: fn (center_x: f32, center_y: f32, width: f32, height: f
 }
 
 /// Draw text into the frame buffer.
-text :: fn (position_x: f32, position_y: f32, text: string_view, text_color: glm.v4 = glm.v4_one) #inline {
-	code(position_x, position_y, text, []u8.{}, [1]glm.v4.{ text_color });
+text :: fn (position_x: f32, position_y: f32, text: string_view, text_color: v4 = v4_one) #inline {
+	code(position_x, position_y, text, []u8.{}, [1]v4.{ text_color });
 }
 
-code :: fn (position_x: f32, position_y: f32, code: string_view, character_color_indices: []u8, color_table: []glm.v4) #inline {
-	using glm;
-	using std;
-
+code :: fn (position_x: f32, position_y: f32, code: string_view, character_color_indices: []u8, color_table: []v4) #inline {
 	assert(color_table.len > 0);
 	assert(context.font, "No font set, please call 'set_shader_font' first.");
 	assert(context.shader == &text_shader, "Invalid current shader in use, please call 'set_shader_font' first.");
 
 	if code.len == 0 { return; }
 
-	// fixed_position_x :: std.ceil(position_x);
-	// fixed_position_y :: std.ceil(position_y);
+	// fixed_position_x :: math.ceil(position_x);
+	// fixed_position_y :: math.ceil(position_y);
 
-	fixed_position_x :: std.round(position_x);
-	fixed_position_y :: std.round(position_y);
+	fixed_position_x :: math.round(position_x);
+	fixed_position_y :: math.round(position_y);
 
 	aw :: cast(f32) context.font.atlas.width;
 	ah :: cast(f32) context.font.atlas.height;
@@ -355,7 +334,7 @@ code :: fn (position_x: f32, position_y: f32, code: string_view, character_color
 
 	converted_bytes: s32;
 	loop converted_bytes < code.len {
-		word :: std.str_sub(code, converted_bytes);
+		word :: str_sub(code, converted_bytes);
 
 		text_color := color_table[0];
 		if converted_bytes < character_color_indices.len {
@@ -386,7 +365,7 @@ code :: fn (position_x: f32, position_y: f32, code: string_view, character_color
 		p.x += ci.advance_x;
 		p.y += ci.advance_y;
 
-		if w < std.F32_EPSILON || h < std.F32_EPSILON { continue; }
+		if w < math.F32_EPSILON || h < math.F32_EPSILON { continue; }
 
 		base_index :: cast(u32) vertex_buffer.len;
 		gx :: fixed_position_x + x2;
@@ -479,7 +458,6 @@ texture_terminate :: fn (texture: *Texture) {
 
 /// Loads `png` image from `filepath` into `out_data`. The `out_data` shoud be released by `free` call on caller side.
 png_load_from_file :: fn (filepath: string_view, out_data: **u8, out_width: *u32, out_height: *u32, out_bit_depth: *u8, out_format: *TextureFormat) Error {
-	using std;
 	stream, err_input :: open_file(filepath, OpenFileMode.READ);
 	if err_input { return err_input; }
 	defer close_file(&stream);
@@ -488,14 +466,11 @@ png_load_from_file :: fn (filepath: string_view, out_data: **u8, out_width: *u32
 }
 
 png_load_from_memory :: fn (data: []u8, out_data: **u8, out_width: *u32, out_height: *u32, out_bit_depth: *u8, out_format: *TextureFormat) Error {
-	using std;
 	stream :: make_data_stream(data);
 	return png_load_from_stream(&stream, out_data, out_width, out_height, out_bit_depth, out_format);
 }
 
-png_load_from_stream :: fn (stream: *std.Stream, out_data: **u8, out_width: *u32, out_height: *u32, out_bit_depth: *u8, out_format: *TextureFormat) Error {
-	using std;
-
+png_load_from_stream :: fn (stream: *io.Stream, out_data: **u8, out_width: *u32, out_height: *u32, out_bit_depth: *u8, out_format: *TextureFormat) Error {
 	assert(stream);
 	err_sig :: png_validate_signature(stream);
 	if err_sig { return err_sig; }
@@ -560,7 +535,7 @@ png_load_from_stream :: fn (stream: *std.Stream, out_data: **u8, out_width: *u32
 // Font Rendering
 // =================================================================================================
 Font :: struct {
-	char_table: std.Table(u32, GlyphInfo);
+	char_table: Table(u32, GlyphInfo);
 	atlas: Texture;
 	size: f32;
 	height: f32;
@@ -592,14 +567,13 @@ font_generate_char_set :: fn (chars: string_view, out_set: *[..]u32) {
 /// Initialize new `font` from the 'TTF' file at `directory/filename` at required `size`. Custom `char_set` can be specified in case
 /// we need to render some non-ascii unicode characters. Each loaded font must be terminated by [font_terminate](#drawfont_terminate).
 font_init_at_size :: fn (font: *Font, directory: string_view, filename: string_view, size: s32, char_set := []u32.{}) Error {
-	using FreeType;
 	filepath := filename;
 	if directory.len > 0 {
 		filepath = tprint("%/%", directory, filename);
 	}
-	face: *Face;
-	err :: New_Face(freetype_library, filepath.ptr, 0, &face);
-	defer Done_Face(face);
+	face: *ft2.Face;
+	err :: ft2.New_Face(freetype_library, filepath.ptr, 0, &face);
+	defer ft2.Done_Face(face);
 	if err != 0 {
 		return error("Cannot load font % with error %!", filepath, err);
 	}
@@ -608,11 +582,9 @@ font_init_at_size :: fn (font: *Font, directory: string_view, filename: string_v
 }
 
 font_init_at_size_from_memory :: fn (font: *Font, file_data: []u8, size: s32, char_set := []u32.{}) Error {
-	using FreeType;
-
-	face: *Face;
-	err :: New_Memory_Face(freetype_library, file_data.ptr, auto file_data.len, 0, &face);
-	defer Done_Face(face);
+	face: *ft2.Face;
+	err :: ft2.New_Memory_Face(freetype_library, file_data.ptr, auto file_data.len, 0, &face);
+	defer ft2.Done_Face(face);
 	if err != 0 {
 		return error("Cannot load font with error %!", err);
 	}
@@ -623,7 +595,7 @@ font_init_at_size_from_memory :: fn (font: *Font, file_data: []u8, size: s32, ch
 /// Terminate loaded font.
 font_terminate :: fn (font: *Font) {
 	if !font { return; }
-	std.tbl_terminate(&font.char_table);
+	tbl_terminate(&font.char_table);
 	texture_terminate(&font.atlas);
 }
 
@@ -635,11 +607,10 @@ font_set_tab_size :: fn (font: *Font, space_count: s32) {
 }
 
 text_size :: fn (text: string_view, font: *Font, _len := -1) (width: f32, height: f32) {
-	using std;
 	assert(font);
 
 	len := text.len;
-	if _len > -1 { len = min(text.len, _len); }
+	if _len > -1 { len = math.min(text.len, _len); }
 
 	w := 0.f;
 	converted_bytes: s32;
@@ -662,7 +633,7 @@ text_size :: fn (text: string_view, font: *Font, _len := -1) (width: f32, height
 			w += glyph.advance_x;
 		}
 	}
-	return ceil(w), font.height;
+	return math.ceil(w), font.height;
 }
 
 get_character_count_to_fit :: fn (text: string_view, font: *Font, fit_to: f32, split_by_words := false) s32 {
@@ -671,7 +642,7 @@ get_character_count_to_fit :: fn (text: string_view, font: *Font, fit_to: f32, s
 	converted_bytes, num, last_space_position: s32;
 	space_glyph :: get_glyph_utf32(font, cast(u32) ' ');
 	loop converted_bytes < text.len {
-		rest :: std.str_sub(text, converted_bytes);
+		rest :: str_sub(text, converted_bytes);
 		glyph: *GlyphInfo;
 		if rest[0] == '\t' {
 			w += space_glyph.advance_x * auto font.tab_size;
@@ -723,7 +694,21 @@ clear_scissor :: fn () {
 	gl.Disable(GL_SCISSOR_TEST);
 }
 
-#private
+#scope_private
+#import "extra/gl"
+#import "extra/glm"
+#import "std/fs"
+#import "std/table"
+#import "std/print"
+#import "std/array"
+#import "std/string"
+
+io   :: #import "std/io";
+math :: #import "std/math";
+png  :: #import "extra/png";
+ft2  :: #import "extra/freetype2";
+C    :: #import "libc";
+
 Context :: struct {
 	shader:  *Shader;
 	texture: *Texture;
@@ -750,13 +735,13 @@ make_context_font :: fn (font: *Font) Context #inline {
 }
 
 context:             Context;
-view_matrix:         glm.mat4;
+view_matrix:         mat4;
 simple_color_shader: Shader;
 texture_shader:      Shader;
 text_shader:         Shader;
-vertex_buffer:       [..]glm.v2;
-color_buffer:        [..]glm.v4;
-uv_buffer:           [..]glm.v2;
+vertex_buffer:       [..]v2;
+color_buffer:        [..]v4;
+uv_buffer:           [..]v2;
 index_buffer:        [..]u32;
 
 apply_gamma_correction := false;
@@ -772,7 +757,7 @@ glbuffers: struct {
 	vao: GLuint;
 };
 
-freetype_library: FreeType.Library;
+freetype_library: ft2.Library;
 
 is_initialized: bool;
 
@@ -780,9 +765,8 @@ is_initialized: bool;
 // Rendering
 // =================================================================================================
 
-add_rect :: fn (v: []glm.v2, colors: []glm.v4) {
+add_rect :: fn (v: []v2, colors: []v4) {
 	assert(context.shader == &simple_color_shader || context.shader == &texture_shader, "Invalid current shader in use, please call 'set_shader_*' first.");
-	using glm;
 	base_index :: cast(u32) vertex_buffer.len;
 	array_push_all(&vertex_buffer, v);
 	if shader_has_attribute(context.shader, ShaderAttribute.COLOR) {
@@ -819,7 +803,7 @@ do_render :: fn () {
 	gl.BindBuffer(GL_ARRAY_BUFFER, glbuffers.vbo[VBO_VERTEX]);
 	gl.BufferData(
 		GL_ARRAY_BUFFER,
-		auto cast(usize)vertex_buffer.len * sizeof(glm.v2),
+		auto cast(usize)vertex_buffer.len * sizeof(v2),
 		auto vertex_buffer.ptr,
 		USAGE
 	);
@@ -828,7 +812,7 @@ do_render :: fn () {
 		gl.BindBuffer(GL_ARRAY_BUFFER, glbuffers.vbo[VBO_COLOR]);
 		gl.BufferData(
 			GL_ARRAY_BUFFER,
-			auto cast(usize)color_buffer.len * sizeof(glm.v4),
+			auto cast(usize)color_buffer.len * sizeof(v4),
 			auto color_buffer.ptr,
 			USAGE
 		);
@@ -838,7 +822,7 @@ do_render :: fn () {
 		gl.BindBuffer(GL_ARRAY_BUFFER, glbuffers.vbo[VBO_UV]);
 		gl.BufferData(
 			GL_ARRAY_BUFFER,
-			auto cast(usize)uv_buffer.len * sizeof(glm.v2),
+			auto cast(usize)uv_buffer.len * sizeof(v2),
 			auto uv_buffer.ptr,
 			USAGE
 		);
@@ -872,16 +856,16 @@ do_render :: fn () {
 	gl.BindVertexArray(glbuffers.vao);
 
 	gl.BindBuffer(GL_ARRAY_BUFFER, glbuffers.vbo[VBO_VERTEX]);
-	shader_attrib_ptr(context.shader, VERTEX, glm.v2, 0);
+	shader_attrib_ptr(context.shader, VERTEX, v2, 0);
 
 	if shader_has_attribute(context.shader, COLOR) {
 		gl.BindBuffer(GL_ARRAY_BUFFER, glbuffers.vbo[VBO_COLOR]);
-		shader_attrib_ptr(context.shader, COLOR, glm.v4, 0);
+		shader_attrib_ptr(context.shader, COLOR, v4, 0);
 	}
 
 	if shader_has_attribute(context.shader, UV) {
 		gl.BindBuffer(GL_ARRAY_BUFFER, glbuffers.vbo[VBO_UV]);
-		shader_attrib_ptr(context.shader, UV, glm.v2, 0);
+		shader_attrib_ptr(context.shader, UV, v2, 0);
 	}
 
 	gl.BindBuffer(GL_ELEMENT_ARRAY_BUFFER, glbuffers.ebo);
@@ -976,8 +960,6 @@ Shader :: struct {
 }
 
 shader_init :: fn (shader: *Shader, source: string_view, name: string_view) Error {
-	using std;
-
 	if shader.handle != 0 {
 		gl.DeleteProgram(shader.handle);
 		zeromem(auto shader, sizeof(@shader));
@@ -1030,7 +1012,6 @@ shader_has_uniform :: fn (shader: *Shader, kind: ShaderUniform) bool #inline {
 }
 
 shader_bind_uniform :: fn (shader: *Shader, kind: ShaderUniform, v: ?T) {
-	using glm;
 	id :: shader.uniform_locs[auto kind];
 	if id == -1 { return; } // not used or presented in shader program
 
@@ -1060,7 +1041,6 @@ shader_bind_uniform :: fn (shader: *Shader, kind: ShaderUniform, v: ?T) {
 }
 
 shader_attrib_ptr :: fn (shader: *Shader, kind: ShaderAttribute, T: Any, offset: s64) {
-	using glm;
 	id :: shader.attrib_locs[auto kind];
 	if T.type_info.kind != TypeKind.TYPE { panic("Invalid type!"); }
 	if offset == -1 { return; } // no such data in buffer
@@ -1112,9 +1092,9 @@ link :: fn (vs: u32, fs: u32) u32 {
 	if is_linked != GL_TRUE {
 		max_length := 0;
 		gl.GetProgramiv(program, GL_INFO_LOG_LENGTH, &max_length);
-		info := std.str_new(max_length);
+		info := str_new(max_length);
 		info.len = max_length;
-		defer std.str_delete(&info);
+		defer str_delete(&info);
 		gl.GetProgramInfoLog(program, max_length, &max_length, info.ptr);
 		print_err("Shader linker error: \n%\n", info);
 		gl.DeleteProgram(program);
@@ -1142,9 +1122,9 @@ compile_unit :: fn (kind: u32, source: string_view) u32 {
 	if is_compiled != GL_TRUE {
 		max_length := 0;
 		gl.GetShaderiv(shader, GL_INFO_LOG_LENGTH, &max_length);
-		info := std.str_new(max_length);
+		info := str_new(max_length);
 		info.len = max_length;
-		defer std.str_delete(&info);
+		defer str_delete(&info);
 		gl.GetShaderInfoLog(shader, max_length, &max_length, info.ptr);
 		print_err(info);
 
@@ -1157,13 +1137,12 @@ compile_unit :: fn (kind: u32, source: string_view) u32 {
 // =================================================================================================
 // PNG
 // =================================================================================================
+
 PNG_SIG_LENGTH :: 8;
 
-png_validate_signature :: fn (stream: *std.Stream) Error {
-	using std;
-
+png_validate_signature :: fn (stream: *io.Stream) Error {
 	data: [PNG_SIG_LENGTH]u8 #noinit;
-	read_bytes, err_read :: read(stream, data.ptr, data.len);
+	read_bytes, err_read :: io.read(stream, data.ptr, data.len);
 	if err_read { return err_read; }
 	if read_bytes != PNG_SIG_LENGTH {
 		return error("Png data stream malformed.");
@@ -1186,18 +1165,17 @@ png_handle_error :: fn (_: png.structp, msg: png.const_charp) {
 }
 
 png_reader :: fn (png_ptr: png.structp, out_bytes: png.bytep, count: png.size_t) {
-	using std;
-	stream :: cast(*Stream) png.get_io_ptr(png_ptr);
-	_, err_read :: read(stream, out_bytes, auto count);
+	stream :: cast(*io.Stream) png.get_io_ptr(png_ptr);
+	_, err_read :: io.read(stream, out_bytes, auto count);
 	if err_read { panic(); }
 }
 
-ReadDataStream :: struct #base std.Stream {
+ReadDataStream :: struct #base io.Stream {
 	buf:      []u8;
 	position: s64;
 }
 
-READ_DATA_STREAM_VTABLE :: std.StreamVTable.{
+READ_DATA_STREAM_VTABLE :: io.StreamVTable.{
 	read  = auto &data_read,
 };
 
@@ -1212,7 +1190,6 @@ data_read :: fn (stream: *ReadDataStream, dest: *u8, bytes_to_read: s64) (s64, E
 }
 
 make_data_stream :: fn (data: []u8) ReadDataStream {
-	using std;
 	tmp: ReadDataStream;
 	tmp.vtable = &READ_DATA_STREAM_VTABLE;
 	tmp.buf    = data;
@@ -1252,40 +1229,35 @@ ASCII_CHAR_TABLE :: [95]u32.{
 };
 
 font_library_init :: fn () Error {
-	err := FreeType.Init_FreeType(&freetype_library);
+	err := ft2.Init_FreeType(&freetype_library);
 	if err != 0 {
 		return error("Cannot initialize freetype! (%)", err);
 	}
-	// module :: "cff";
-	// prop :: "hinting-engine";
-	// hinting_engine :: FreeType.HINTING_ADOBE;
-	// FreeType.Property_Set(freetype_library, auto module.ptr, auto prop.ptr, auto &hinting_engine);
 	return OK;
 }
 
 font_library_terminate :: fn () {
-	FreeType.Done_FreeType(freetype_library);
+	ft2.Done_FreeType(freetype_library);
 }
 
-font_init :: fn (font: *Font, face: *FreeType.Face, size: s32, char_set: []u32) Error {
-	using FreeType;
+font_init :: fn (font: *Font, face: *ft2.Face, size: s32, char_set: []u32) Error {
 	zeromem(auto font, sizeof(@font));
 
-	err: Error;
+	err: ft2.Error;
 
 	//err := Set_Char_Size(face, 0, 64 * size, 72, 72);
-	err = Set_Pixel_Sizes(face, 0, auto size);
+	err = ft2.Set_Pixel_Sizes(face, 0, auto size);
 	if err != 0 {
 		return error("Cannot set font size! (%)", err);
 	}
 
-	err = Select_Charmap(face, ENCODING_UNICODE);
+	err = ft2.Select_Charmap(face, ft2.ENCODING_UNICODE);
 	if err != 0 {
 		return error("Cannot set encoding! (%)", err);
 	}
 
 	font.size = auto size;
-	std.tbl_init(&font.char_table, 256);
+	tbl_init(&font.char_table, 256);
 
 	// Use default char set if not specified.
 	if char_set.len == 0 {
@@ -1308,36 +1280,34 @@ get_glyph_utf32 :: fn (font: *Font, c: u32) *GlyphInfo #inline {
 		default;
 	}
 
-	glyph_info :: std.tbl_lookup_ptr(&font.char_table, c);
-	if glyph_info == null { return std.tbl_lookup_ptr(&font.char_table, auto '?'); }
+	glyph_info :: tbl_lookup_ptr(&font.char_table, c);
+	if glyph_info == null { return tbl_lookup_ptr(&font.char_table, auto '?'); }
 	return glyph_info;
 }
 
 get_char_table :: fn (font: *Font, char_set: []u32) {
 	loop i := 0; i < char_set.len; i += 1 {
-		std.tbl_insert(&font.char_table, char_set[i]);
+		tbl_insert(&font.char_table, char_set[i]);
 	}
 }
 
-prepare_atlas :: fn (font: *Font, face: *FreeType.Face) {
-	using FreeType;
-
+prepare_atlas :: fn (font: *Font, face: *ft2.Face) {
 	glyph_slot :: face.glyph;
 	atlas_w, atlas_h, row_w, row_h: u32;
 	loop i := 0; i < font.char_table.len; i += 1 {
 		char_code :: font.char_table.keys[i];
-		glyph_index := cast(u32) Get_Char_Index(face, char_code);
+		glyph_index := cast(u32) ft2.Get_Char_Index(face, char_code);
 		if glyph_index == 0 {
 			print_err("Glyph % not found!", char_code);
 			continue;
 		}
 
-		if Load_Glyph(face, glyph_index, LOAD_DEFAULT) != 0 {
+		if ft2.Load_Glyph(face, glyph_index, ft2.LOAD_DEFAULT) != 0 {
 			print_err("Cannot load glyph!");
 			continue;
 		}
 
-		if Render_Glyph(face.glyph, RENDER_MODE_LCD) != 0 {
+		if ft2.Render_Glyph(face.glyph, ft2.RENDER_MODE_LCD) != 0 {
 			print_err("Cannot render glyph!");
 			continue;
 		}
@@ -1345,7 +1315,7 @@ prepare_atlas :: fn (font: *Font, face: *FreeType.Face) {
 		gw :: glyph_slot.bitmap.width;
 		gh :: glyph_slot.bitmap.rows;
 		row_w += gw;
-		row_h = std.max(row_h, gh);
+		row_h = math.max(row_h, gh);
 	}
 	atlas_w = row_w;
 	atlas_h = row_h;
@@ -1364,29 +1334,28 @@ prepare_atlas :: fn (font: *Font, face: *FreeType.Face) {
 	gl.BindTexture(GL_TEXTURE_2D, 0);
 }
 
-gen_glyphs :: fn (font: *Font, face: *FreeType.Face) {
+gen_glyphs :: fn (font: *Font, face: *ft2.Face) {
 	ox, oy: u32;
 	max_height, max_base_offset_y: f32;
 
 	gl.BindTexture(GL_TEXTURE_2D, font.atlas.handle);
 
-	using FreeType;
 	loop i := 0; i < font.char_table.len; i += 1 {
 		glyph_info := &font.char_table.values[i];
 		char_code ::  font.char_table.keys[i];
 
-		glyph_index := cast(u32) Get_Char_Index(face, char_code);
+		glyph_index := cast(u32) ft2.Get_Char_Index(face, char_code);
 		if glyph_index == 0 {
 			print_err("Glyph % not found!", char_code);
 			continue;
 		}
 
-		if Load_Glyph(face, glyph_index, LOAD_DEFAULT) != 0 {
+		if ft2.Load_Glyph(face, glyph_index, ft2.LOAD_DEFAULT) != 0 {
 			print_err("Cannot load glyph!");
 			continue;
 		}
 
-		if Render_Glyph(face.glyph, RENDER_MODE_LCD) != 0 {
+		if ft2.Render_Glyph(face.glyph, ft2.RENDER_MODE_LCD) != 0 {
 			print_err("Cannot render glyph!");
 			continue;
 		}
@@ -1417,9 +1386,9 @@ gen_glyphs :: fn (font: *Font, face: *FreeType.Face) {
 		};
 
 		if char_code < 127 {
-			max_base_offset_y = std.max(cast(f32) (face.glyph.metrics.horiBearingY >> 6), max_base_offset_y);
+			max_base_offset_y = math.max(cast(f32) (face.glyph.metrics.horiBearingY >> 6), max_base_offset_y);
 		}
-		max_height        = std.max(cast(f32) (face.glyph.metrics.height >> 6), max_height);
+		max_height        = math.max(cast(f32) (face.glyph.metrics.height >> 6), max_height);
 		ox += width;
 	}
 

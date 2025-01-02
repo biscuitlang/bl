@@ -14,3 +14,6 @@ sem_post :: fn (s: *sem_t) C.int #extern "sem_post";
 sem_trywait :: fn (s: *sem_t) C.int #extern "sem_trywait";
 sem_wait :: fn (s: *sem_t) C.int #extern "sem_wait";
 
+#scope_private
+C :: #import "libc";
+

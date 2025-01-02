@@ -1,10 +1,10 @@
 #import "std/fs"
+#import "std/print"
+#import "std/string"
+#import "std/array"
 
 main :: fn () s32 {
-	using std;
-
 	visitor :: fn (info: *FileVisitInfo, list: *[..]string) Error {
-		using std;
 		if info.is_directory { return OK; }
 		_, ext :: path_splitext(info.filename);
 		if str_match(ext, ".bl") {

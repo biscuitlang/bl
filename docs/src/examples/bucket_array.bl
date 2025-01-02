@@ -1,4 +1,5 @@
 #import "std/bucket_array"
+#import "std/print"
 
 Entity :: struct {
 	id: s32;
@@ -7,7 +8,6 @@ Entity :: struct {
 }
 
 main :: fn () s32 {
-	using std;
 	arr: BucketArray(Entity);
 	// Release all allocated memory
 	defer bucket_array_terminate(&arr);

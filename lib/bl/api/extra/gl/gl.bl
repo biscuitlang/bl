@@ -1,6 +1,3 @@
-#load "std/debug.bl"
-#load "std/utils.bl"
-
 GLbitfield :: u32;
 GLboolean  :: u8;
 GLbyte     :: s8;
@@ -757,7 +754,6 @@ gl: *_Gl = null;
 /// Initialize OpenGL virtual table and set the `gl` global variable. Custom instance can be optionaly provided to
 /// hold the vtable.
 gl_init :: fn (custom_instance: *_Gl = null) {
-	using std;
 	assert(!gl, "OpenGL is already initialized!");
 
 	gl = custom_instance;
@@ -815,17 +811,17 @@ gl_check :: fn (loc := #call_location) bool {
 
 gl_get_version :: fn () string_view #inline {
 	assert(gl, "OpenGL is not initialized, call gl_init first!");
-	return std.ctostr(auto gl.GetString(GL_VERSION));
+	return ctostr(auto gl.GetString(GL_VERSION));
 }
 
 gl_get_vendor :: fn () string_view #inline {
 	assert(gl, "OpenGL is not initialized, call gl_init first!");
-	return std.ctostr(auto gl.GetString(GL_VENDOR));
+	return ctostr(auto gl.GetString(GL_VENDOR));
 }
 
 gl_get_renderer :: fn () string_view #inline {
 	assert(gl, "OpenGL is not initialized, call gl_init first!");
-	return std.ctostr(auto gl.GetString(GL_RENDERER));
+	return ctostr(auto gl.GetString(GL_RENDERER));
 }
 
 gl_get_version_numbers :: fn () (major: s32, minor: s32) #inline {
@@ -838,31 +834,33 @@ gl_get_version_numbers :: fn () (major: s32, minor: s32) #inline {
 }
 
 gl_get_extensions :: fn () []string_view #inline {
-	using std;
 	assert(gl, "OpenGL is not initialized, call gl_init first!");
 
 	extension_count: GLint;
 	gl.GetIntegerv(GL_NUM_EXTENSIONS, &extension_count);
 	result :: new_slice(string_view, extension_count);
 	loop i := 0; i < extension_count; i += 1 {
-		result[i] = std.ctostr(auto gl.GetStringi(GL_EXTENSIONS, auto i));
+		result[i] = ctostr(auto gl.GetStringi(GL_EXTENSIONS, auto i));
 	}
 	return result;
 }
 
 gl_has_extension :: fn (ext: string_view) bool {
-	using std;
 	assert(gl, "OpenGL is not initialized, call gl_init first!");
 	extension_count: GLint;
 	gl.GetIntegerv(GL_NUM_EXTENSIONS, &extension_count);
 	loop i := 0; i < extension_count; i += 1 {
-		name :: std.ctostr(auto gl.GetStringi(GL_EXTENSIONS, auto i));
+		name :: ctostr(auto gl.GetStringi(GL_EXTENSIONS, auto i));
 		if str_match(name, ext) { return true; }
 	}
 	return false;
 }
 
-#private
+#scope_module
+#import "std/string"
+C :: #import "libc";
+
+#scope_private
 TAG_SKIP : u32 : 1;
 
 instance_impl: _Gl;

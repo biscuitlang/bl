@@ -1,4 +1,5 @@
 #import "std/test"
+#import "std/string"
 
 build :: fn () #build_entry {
 	defer temporary_release();
@@ -13,7 +14,7 @@ build :: fn () #build_entry {
 }
 
 	parent_dir: string_view;
-	std.str_split_by_last(get_output_dir(exe), '/', null, &parent_dir);
+	str_split_by_last(get_output_dir(exe), '/', null, &parent_dir);
 	test_eq(parent_dir, "build_api_test");
 
 	expected_triple :: get_default_triple();

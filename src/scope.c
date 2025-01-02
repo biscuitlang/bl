@@ -39,27 +39,8 @@ BL_STATIC_ASSERT(sizeof(BL_TBL_HASH_T) == sizeof(u64), "Scope require hash value
 static void scope_dtor(struct scope *scope) {
 	bmagic_assert(scope);
 	tbl_free(scope->entries);
-	arrfree(scope->usings);
 	arrfree(scope->injected);
 	mtx_destroy(&scope->lock);
-}
-
-static inline struct scope_entry *lookup_usings(struct scope *scope, struct id *id, struct scope_entry **out_ambiguous) {
-	zone();
-	bassert(scope && id && out_ambiguous);
-	struct scope_entry *found = NULL;
-	for (usize i = 0; i < arrlenu(scope->usings); ++i) {
-		struct scope_entry *entry =
-		    scope_lookup(scope->usings[i], &(scope_lookup_args_t){.id = id});
-		if (!entry) continue;
-		if (!found) {
-			found = entry;
-		} else {
-			*out_ambiguous = entry;
-			break;
-		}
-	}
-	return_zone(found);
 }
 
 void scope_arenas_init(struct scope_arenas *arenas, u32 owner_thread_index) {
@@ -132,9 +113,6 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 	bassert(scope && args->id);
 
 	struct scope_entry *found       = NULL;
-	struct scope_entry *found_using = NULL;
-	struct scope_entry *ambiguous   = NULL;
-
 	struct scope *last_visited_module_scope = NULL;
 
 #define REPORTS 0
@@ -155,17 +133,6 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 			if (args->local_only) break;
 		}
 
-		// Used scopes are handled in following way:
-		// If we found symbol in one of used scopes we can eventually use it as found result,
-		// however function local symbols are preferred (and can eventually hide symbols from
-		// used scope). This approach does not apply for global symbols; in case we have global
-		// with the same name as one of symbols from used scopes we must report an error (symbol
-		// is ambiguous). An ambiguous symbol is also symbol found in more than one of used
-		// scopes and must be also reported.
-		if (!found_using && args->out_ambiguous) {
-			found_using = lookup_usings(scope, args->id, &ambiguous);
-		}
-
 		const bool is_locked = scope->kind == SCOPE_GLOBAL || scope->kind == SCOPE_MODULE;
 		if (is_locked) scope_lock(scope);
 
@@ -175,30 +142,29 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 			bassert(found);
 		}
 
-		if (!found) {
-			for (usize injected_index = 0; injected_index < arrlenu(scope->injected) && !found; ++injected_index) {
+		if (!found || args->lookup_ambiguous) {
+			for (usize injected_index = 0; injected_index < arrlenu(scope->injected); ++injected_index) {
 				struct scope *injected_scope = scope->injected[injected_index];
-				bassert(injected_scope->kind == SCOPE_MODULE);
+				// bassert(injected_scope->kind == SCOPE_MODULE);
 				bassert(injected_scope != scope);
 				if (last_visited_module_scope == injected_scope) continue; // @Comment!
 
 				const s64 index = tbl_lookup_index_with_key(injected_scope->entries, hash, args->id->str);
 				if (index != -1) {
-					found = injected_scope->entries[index].value;
-					bassert(found);
+					struct scope_entry *found_injected = injected_scope->entries[index].value;
+					bassert(found_injected);
+					if (found && args->lookup_ambiguous) {
+						if (!arrlen(args->ambiguous)) arrput(args->ambiguous, found);
+						arrput(args->ambiguous, found_injected);
+					}
+					found = found_injected;
+					if (!args->lookup_ambiguous) break;
 				}
 			}
 		}
 
 		if (is_locked) scope_unlock(scope);
-
-		if (found) {
-			if (!scope_is_local(found->parent_scope) && found_using) {
-				bassert(args->out_ambiguous);
-				(*args->out_ambiguous) = found_using;
-			}
-			break;
-		}
+		if (found) break;
 
 		// Lookup in parent?
 		if (!args->in_tree) break;
@@ -209,12 +175,6 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 		scope = scope->parent;
 	}
 
-	if (!found && args->out_ambiguous) {
-		// Maybe we have some result coming from used scopes, and it can also be ambiguous (same
-		// inside multiple of used scopes).
-		found                  = found_using;
-		(*args->out_ambiguous) = ambiguous;
-	}
 #if REPORTS
 	if (found) hit++;
 	printf("(%3.0f%%) [%d/%d]\n", ((f32)hit / (f32)total) * 100.f, hit, total);
@@ -230,27 +190,15 @@ void scope_unlock(struct scope *scope) {
 	mtx_unlock(&scope->lock);
 }
 
-bool scope_using_add(struct scope *scope, struct scope *other) {
-	bmagic_assert(scope);
-	bmagic_assert(other);
-	for (usize i = 0; i < arrlenu(scope->usings); ++i) {
-		if (other == scope->usings[i]) {
-			// mtx_unlock(&scope->lock); @Cleanup 2024-12-13 This is probably some leftover???
-			return false;
-		}
-	}
-	arrput(scope->usings, other);
-	return true;
-}
-
 void scope_inject(struct scope *dest, struct scope *src) {
 	bmagic_assert(dest);
 	bmagic_assert(src);
 	bassert(dest != src && "Injecting scope to itself!");
-	bassert(src->kind == SCOPE_MODULE);
-	bassert(!scope_is_local(dest) && "Injection destination scope must be global!");
+	// bassert(src->kind == SCOPE_MODULE);
+	// bassert(!scope_is_local(dest) && "Injection destination scope must be global!");
 	const bool is_locked = dest->kind == SCOPE_GLOBAL || dest->kind == SCOPE_MODULE;
 	if (is_locked) scope_lock(dest);
+	if (arrlen(dest->injected) == 0) arrsetcap(dest->injected, 8); // Preallocate a bit...
 	for (usize i = 0; i < arrlenu(dest->injected); ++i) {
 		if (src == dest->injected[i]) {
 			if (is_locked) scope_unlock(dest);

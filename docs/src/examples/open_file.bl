@@ -1,19 +1,20 @@
 #import "std/fs"
+#import "std/print"
+#import "std/io"
+#import "std/string"
 
 main :: fn () s32 {
-	using std;
-
 	stream, open_err :: open_file(#file);
 	defer close_file(&stream);
-	if open_err { 
-		print_err(open_err); 
-		return 1; 
+	if open_err {
+		print_err(open_err);
+		return 1;
 	}
 
 	str := str_new();
 	defer str_delete(&str);
 	read_bytes, read_err :: read_string(&stream, &str);
-	if read_err { 
+	if read_err {
 		print_err(read_err);
 		return 2;
 	}

@@ -1,3 +1,5 @@
+#import "std/print"
+
 Color :: enum {
 	RED;    // default value 0
 	GREEN;  // default value 1

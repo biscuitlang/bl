@@ -1,5 +1,3 @@
-#scope png
-
 uint_16 :: u16;
 int_16 :: s16;
 uint_32 :: u32;
@@ -45,4 +43,4 @@ get_io_ptr :: fn (ptr: structp) voidp #extern "png_get_io_ptr";
 get_IHDR :: fn (ptr: structp, info_ptr: infop, width: *uint_32, height: *uint_32, bit_depth: *s32, color_type: *s32, interlace_method: *s32, compression_method: *s32, filter_method: *s32) uint_32 #extern "png_get_IHDR";
 read_update_info :: fn (ptr: structp, info_ptr: infop) #extern "png_read_update_info";
 get_rowbytes :: fn (ptr: const_structp, info_ptr: const_infop) size_t #extern "png_get_rowbytes";
-read_image :: fn (ptr: structp, image: bytepp) #extern "png_read_image"; 
+read_image :: fn (ptr: structp, image: bytepp) #extern "png_read_image";

@@ -1,7 +1,7 @@
 #scope_private
-check_nans :: fn () #test {
-	using std;
+#import "std/math"
 
+check_nans :: fn () #test {
 	test_false(nan(f32) == nan(f32));
 	test_false(nan(f64) == nan(f64));
 
@@ -19,8 +19,6 @@ check_nans :: fn () #test {
 }
 
 check_inf :: fn () #test {
-	using std;
-
 	a :: inf(f32);
 	test_true(is_inf(a));
 

@@ -1507,7 +1507,7 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 		return_zone(ctx->analyze->unnamed_entry);
 	}
 
-	const bool is_locked = scope->kind == SCOPE_GLOBAL || scope->kind == SCOPE_MODULE;
+	const bool is_locked = scope->kind == SCOPE_GLOBAL || scope->kind == SCOPE_MODULE || scope->kind == SCOPE_MODULE_PRIVATE;
 	if (is_locked) scope_lock(scope);
 	const hash_t layer_index = ctx->fn_generate.current_scope_layer;
 
@@ -4571,10 +4571,10 @@ struct result analyze_instr_using(struct context *ctx, struct mir_instr_using *u
 
 	switch (type->kind) {
 	case MIR_TYPE_NAMED_SCOPE: {
-		struct scope_entry *entry = MIR_CEV_READ_AS(struct scope_entry *, &scope_expr->value);
-		bmagic_assert(entry);
-		bassert(entry->kind == SCOPE_ENTRY_NAMED_SCOPE);
-		used_scope = entry->data.scope;
+		struct scope *scope = MIR_CEV_READ_AS(struct scope *, &scope_expr->value);
+		bmagic_assert(scope);
+		bassert(scope->kind == SCOPE_MODULE);
+		used_scope = scope;
 		break;
 	}
 	case MIR_TYPE_TYPE: {
@@ -4595,9 +4595,8 @@ struct result analyze_instr_using(struct context *ctx, struct mir_instr_using *u
 	bassert(used_scope);
 	if (scope_is_subtree_of(using->scope, used_scope)) {
 		report_warning(using->base.node, "Attempt to use current scope. The using statement will be ignored.");
-	} else if (!scope_using_add(using->scope, used_scope)) {
-		// @Cleanup: Cause problems in polymorph!
-		// report_warning(using->base.node, "Scope is already exposed in current context. The using statement will be ignored.");
+	} else {
+		scope_inject(using->scope, used_scope);
 	}
 	using->base.value.type = type;
 	return_zone(PASS);
@@ -4919,6 +4918,10 @@ struct result analyze_var(struct context *ctx, struct mir_var *var, const bool c
 	case MIR_TYPE_VOID:
 		// Allocated type is void type.
 		report_error(INVALID_TYPE, var->decl_node, "Cannot allocate void variable.");
+		return_zone(FAIL);
+	case MIR_TYPE_NAMED_SCOPE:
+		if (isnotflag(var->iflags, MIR_VAR_MUTABLE)) break;
+		report_error(INVALID_TYPE, var->decl_node, "Named module import scope wrapper must be immutable.");
 		return_zone(FAIL);
 	default:
 		break;
@@ -5703,15 +5706,15 @@ static struct result lookup_ref(struct context *ctx, const struct mir_instr_decl
 	bcheck_main_thread();
 
 	struct scope_entry *found         = NULL;
-	struct scope_entry *ambiguous     = NULL;
 	struct scope       *private_scope = ref->parent_unit->private_scope;
+	if (!private_scope) private_scope = ref->parent_unit->module ? ref->parent_unit->module->private_scope : NULL;
 
 	scope_lookup_args_t lookup_args = {
-	    .layer           = ref->scope_layer,
-	    .id              = ref->rid,
-	    .in_tree         = !ref->is_explicit,
-	    .out_of_function = out_of_function,
-	    .out_ambiguous   = &ambiguous,
+	    .layer            = ref->scope_layer,
+	    .id               = ref->rid,
+	    .in_tree          = !ref->is_explicit,
+	    .out_of_function  = out_of_function,
+	    .lookup_ambiguous = true,
 	};
 
 	// In case the private scope is present, we have to search it too. Because the private scope can exist only
@@ -5729,14 +5732,20 @@ static struct result lookup_ref(struct context *ctx, const struct mir_instr_decl
 		}
 	}
 
-	if (ambiguous) {
-		report_error(AMBIGUOUS, ref->base.node, "Symbol is ambiguous.");
-		report_note(found->node, "First declaration found here.");
-		report_note(ambiguous->node, "Another declaration found here.");
+	if (lookup_args.ambiguous) {
+		report_error(AMBIGUOUS, ref->base.node, "Symbol is ambiguous. Multiple symbols with the same name found in current scope. "
+		                                        "This might be caused by using statement or incorrect module import namespacing.");
+		for (s32 i = 0; i < arrlen(lookup_args.ambiguous); ++i) {
+			report_note(lookup_args.ambiguous[i]->node, "Possible implementation found here.");
+		}
+		arrfree(lookup_args.ambiguous);
+		lookup_args.ambiguous = NULL;
+
 		return_zone(FAIL);
 	}
 	if (!found) return_zone(WAIT(ref->rid->hash));
 	*out_found = found;
+
 	return_zone(PASS);
 }
 

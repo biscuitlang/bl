@@ -30,7 +30,9 @@ pthread_cond_init :: fn (cv: *pthread_cond_t, cattr: *pthread_condattr_t) C.int 
 pthread_cond_signal :: fn (cond: *pthread_cond_t) C.int #extern "pthread_cond_signal";
 pthread_cond_wait :: fn (cond: *pthread_cond_t, mutex: *pthread_mutex_t) C.int #extern "pthread_cond_wait";
 
-#private
+#scope_private
+
+C :: #import "libc";
 
 // @Incomplete: These may differ across platforms?!
 // @Incomplete: These may differ across platforms?!

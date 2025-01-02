@@ -1,8 +1,0 @@
-// @ERR_DUPLICATE_SYMBOL@
-main :: fn () s32 { return 0; }
-
-#scope Foo
-foo :: fn() {}
-
-#scope_private
-foo :: fn () {}

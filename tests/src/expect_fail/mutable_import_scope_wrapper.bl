@@ -1,0 +1,3 @@
+// @ERR_INVALID_TYPE@
+foo := #import "std/print";
+main :: fn () s32 { return 0; }

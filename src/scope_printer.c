@@ -45,12 +45,17 @@ hash_table(struct lookup_entry) lookup;
 static str_t scope_print_dot_name(struct scope *scope, str_buf_t *buf) {
 	buf->len = 0;
 	str_buf_append_fmt(buf, "[{s}]", scope_kind_name(scope));
+
 	if (scope->name.len > 0) {
-		str_buf_append_fmt(buf, " - {str}", scope->name);
+		str_buf_append_fmt(buf, " {str}", scope->name);
+	} else if (scope->kind == SCOPE_MODULE_PRIVATE) {
+		str_buf_append_fmt(buf, " {str}", scope->parent->name);
 	}
-	if (scope->filename.len > 0) {
-		str_buf_append_fmt(buf, " - {str}", scope->filename);
+
+	if (scope->location && scope->location->unit) {
+		str_buf_append_fmt(buf, " in <i>{str}</i>", scope->location->unit->filename);
 	}
+
 	return str_buf_view(*buf);
 }
 
@@ -141,11 +146,13 @@ void assembly_dump_scope_structure(struct assembly *assembly, FILE *stream, enum
 	str_buf_t buf = get_tmp_str();
 	for (s32 i = 0; i < arrlen(flatten_scopes); ++i) {
 		struct scope *scope = flatten_scopes[i];
+		if (!tbl_len(scope->entries)) continue;
 		switch (scope->kind) {
 		case SCOPE_PRIVATE:
-			if (mode == SCOPE_DUMP_MODE_INJECTION) break;
+			// if (mode == SCOPE_DUMP_MODE_INJECTION) break;
 		case SCOPE_GLOBAL:
-		case SCOPE_MODULE: {
+		case SCOPE_MODULE:
+		case SCOPE_MODULE_PRIVATE: {
 			struct lookup_entry entry = (struct lookup_entry){.hash = scope, .id = i};
 			tbl_insert(lookup, entry);
 			print_data(scope, stream, i, &buf);
@@ -158,11 +165,13 @@ void assembly_dump_scope_structure(struct assembly *assembly, FILE *stream, enum
 
 	for (s32 i = 0; i < arrlen(flatten_scopes); ++i) {
 		struct scope *scope = flatten_scopes[i];
+		if (!tbl_len(scope->entries)) continue;
 		switch (scope->kind) {
 		case SCOPE_PRIVATE:
-			if (mode == SCOPE_DUMP_MODE_INJECTION) break;
+			// if (mode == SCOPE_DUMP_MODE_INJECTION) break;
 		case SCOPE_GLOBAL:
-		case SCOPE_MODULE: {
+		case SCOPE_MODULE:
+		case SCOPE_MODULE_PRIVATE: {
 			if (mode == SCOPE_DUMP_MODE_PARENTING) {
 				scope_print_dot_parenting(scope, stream);
 			} else {

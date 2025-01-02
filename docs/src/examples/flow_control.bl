@@ -1,3 +1,5 @@
+#import "std/print"
+
 main :: fn () s32 {
 	// Declare bool variable and set it to true.
 	should_print := true;
@@ -19,15 +21,15 @@ main :: fn () s32 {
 		// break call.
 		if i == 10 { break; }
 
-		print("Hello!\n"); 
-		
+		print("Hello!\n");
+
 		// Increase value of i by one.
 		i += 1;
 	}
 
 
 
-	// Check break condition directly by loop statement. 
+	// Check break condition directly by loop statement.
 	j := 0;
 	loop j < 10 { // Continue looping when j is less than 10.
 		print("j = %\n", j);  // Use % delimiter to print value of j.
@@ -37,8 +39,8 @@ main :: fn () s32 {
 
 
 	// And finally...
-	loop k := 0; k < 10; k += 1 { 
-		print("k = %\n", k);  
+	loop k := 0; k < 10; k += 1 {
+		print("k = %\n", k);
 	}
 
 

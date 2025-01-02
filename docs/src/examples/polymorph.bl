@@ -7,9 +7,11 @@
  */
 
 #import "std/array"
+#import "std/print"
+#import "std/string"
 
 intro :: fn () {
-	// Consider the following example; we need simple 'compare' function to perform comparison of two 
+	// Consider the following example; we need simple 'compare' function to perform comparison of two
 	// values.
 	compare :: fn (a: s32, b: s32) bool {
 		return a == b;
@@ -34,7 +36,7 @@ intro :: fn () {
 
 	// This function does not exist until it's used somewhere, we can think about it as if it was
 	// a recipe for 'compare' function. Type '?T' (it can be any other name '?TValue', '?TKey' etc) is
-	// replaced with the actual type used for the argument 'a' when the function is called. The 
+	// replaced with the actual type used for the argument 'a' when the function is called. The
 	// question mark before the type name 'T' here is important, it means basically that 'T' can
 	// be replaced. However, all other 'T' in the argument list are just references to the actual
 	// replaced type used for 'a' argument.
@@ -46,23 +48,23 @@ intro :: fn () {
 	result3 := compare_poly(a3, b3);
 	print("compare_poly(%, %) = %\n", a3, b3, result3);
 
-	// Since the type of 'b' is dependent on the type of 'a' argument, the following code would 
+	// Since the type of 'b' is dependent on the type of 'a' argument, the following code would
 	// not compile.
 	a4: s32 = 10;
 	b4: f32 = 20.f; // using floating point number
-	// result4 := compare_poly(a4, b4); // Compiler error 
+	// result4 := compare_poly(a4, b4); // Compiler error
 
-	/* 
+	/*
 
 		polymorph.bl:47:29: error(0035): No implicit cast for type 'f32' and 's32'.
 		   46 |     b4: f32 = 20.f; // using floating point number
 		>  47 |     result4 := compare_poly(a4, b4); // Compiler error
 			  |                                 ^^
-		   48 | } 
+		   48 | }
 
 	 */
 
-	// But we call call the same function with different value types now. 
+	// But we call call the same function with different value types now.
 	a5: f32 = 10.f;
 	b5: f32 = 20.f;
 	result5 := compare_poly(a5, b5);
@@ -72,10 +74,10 @@ intro :: fn () {
 	// by the compiler. One for 's32' and one for 'f32' types. When we call 'compare_poly' again with
 	// 'f32' values, compiler will try to reuse already existing function if possible (same for
 	// 's32').
-	
+
 	// What if we call the 'compare_poly' function with arguments which cannot be compared by '=='
-	// operator? 
-	
+	// operator?
+
 	a6: string_view = "hello";
 	b6: string_view = "world";
 	// result6 := compare_poly(a6, b6); // Compiler error
@@ -83,25 +85,25 @@ intro :: fn () {
 	/*
 
 		polymorph.bl:30:18: error(0035): Invalid operation for string_view type.
-		   29 |     compare_poly :: fn (a: ?T, b: T) bool {                                 
-		>  30 |         return a == b;                                                      
-			  |                  ^^                                                         
-		   31 |     };                                                                      
-																							
+		   29 |     compare_poly :: fn (a: ?T, b: T) bool {
+		>  30 |         return a == b;
+			  |                  ^^
+		   31 |     };
+
 		polymorph.bl:29:5: In polymorph of function with substitution: T = string_view;
-		   28 |     // or we can use polymorphic function in this case and let the compiler do all work.                                                                        
-		>  29 |     compare_poly :: fn (a: ?T, b: T) bool {                                 
-			  |     ^^^^^^^^^^^^                                                            
-		   30 |         return a == b;                                                      
-																							
-		polymorph.bl:79:16: First called here:                                              
+		   28 |     // or we can use polymorphic function in this case and let the compiler do all work.
+		>  29 |     compare_poly :: fn (a: ?T, b: T) bool {
+			  |     ^^^^^^^^^^^^
+		   30 |         return a == b;
+
+		polymorph.bl:79:16: First called here:
 		   78 |     b6: string_view = "world";
-		>  79 |     result6 := compare_poly(a6, b6);                                        
-			  |                ^^^^^^^^^^^^                                                 
-		   80 | }                                                                           
+		>  79 |     result6 := compare_poly(a6, b6);
+			  |                ^^^^^^^^^^^^
+		   80 | }
 
 	 */
-	
+
 	// We can handle such situations quite easily, see the next section.
 }
 
@@ -119,9 +121,9 @@ specialization :: fn () {
 		// the function-type specialization.
 		#if T == string_view {
 			// Do this when 'T' is 'string_view'.
-			are_the_same = std.str_match(a, b);
+			are_the_same = str_match(a, b);
 		} else {
-			// Do this for all other types. 
+			// Do this for all other types.
 			are_the_same = a == b;
 		}
 		return are_the_same;
@@ -135,7 +137,7 @@ specialization :: fn () {
 	// implementation is generated.
 	result1 := compare_poly(a1, b1);
 	print("compare_poly(%, %) = %\n", a1, b1, result1);
-  
+
 
 	// The same but now with strings.
 	a2: string_view = "hello";
@@ -154,7 +156,7 @@ specialization :: fn () {
 		a: s32;
 		b: bool;
 	};
-	
+
 	a3: Data;
 	b3: Data;
 	// result3 := compare_poly(a3, b3); // Compiler error
@@ -183,11 +185,11 @@ specialization :: fn () {
 
 	// Yes, again the '==' operator is not valid for our 'Data' type. We can consider this as
 	// mistake in our program and introduce some meaningful error report.
-	
+
 	compare_poly_safe :: fn (a: ?T, b: T) bool {
 		are_the_same := false;
 		#if T == string_view {
-			are_the_same = std.str_match(a, b);
+			are_the_same = str_match(a, b);
 		} else {
 			is_number :: T == s32 || T == f32;
 			#if is_number {
@@ -240,7 +242,7 @@ function_interface_matching :: fn () {
 
 	numbers: [..]s32;
 	strings: [..]string_view;
-	
+
 	// Cleanup at the end of the scope.
 	defer array_terminate(&numbers);
 	defer array_terminate(&strings);
@@ -301,12 +303,12 @@ function_interface_matching_with_sub_types :: fn () {
 	print("TypeOfValues = %\n", TypeOfValues);
 
 	// Or go even more deeper.
-	TypeOfKey :: @Table.keys.ptr; // use @ to convert *T to T 
+	TypeOfKey :: @Table.keys.ptr; // use @ to convert *T to T
 	print("TypeOfKey = %\n", TypeOfKey);
 
 	// There is probably no need to use this feature like this, but it can be really useful in
 	// polymorph functions.
-	
+
 	// The following function can insert values into our table:
 	insert :: fn (table: *?T, key: @T.keys.ptr, value: @T.values.ptr) {
 		array_push(&table.keys, key);
@@ -342,7 +344,7 @@ function_interface_matching_with_sub_types :: fn () {
 		keys: [..]u64;
 		values: [..]bool;
 	};
-	
+
 	another_table: AnotherTable;
 	insert(&another_table, 10, true);
 	insert(&another_table, 20, false);
@@ -381,8 +383,8 @@ function_interface_matching_with_sub_types :: fn () {
 main :: fn () s32 {
 	intro();
 	specialization();
-	function_interface_matching(); 
-	function_interface_matching_with_sub_types(); 
+	function_interface_matching();
+	function_interface_matching_with_sub_types();
 	return 0;
 }
 

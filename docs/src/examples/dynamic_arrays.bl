@@ -1,11 +1,12 @@
 // First of all we must load API functions for dynamic array. The #load hash
 // directive can be used to "include" other source files.
 #import "std/array"
+#import "std/print"
 
 main :: fn () s32 {
-	// Now we create new dynamic array to store numbers. No heap alloacation 
-	// is done here, we only specify element type of the array. As it's with 
-	// regular static arrays or slices, we can access the element count via 
+	// Now we create new dynamic array to store numbers. No heap alloacation
+	// is done here, we only specify element type of the array. As it's with
+	// regular static arrays or slices, we can access the element count via
 	// .len and allocated memory block via .ptr member. Compared to static
 	// arrays, there is additional member .allocated telling us how many
 	// elements could array handle till next allocation is needed.

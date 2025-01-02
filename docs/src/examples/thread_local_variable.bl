@@ -1,4 +1,5 @@
 #import "std/thread"
+#import "std/print"
 
 COUNT :: 50;
 counter: s32 #thread_local;
@@ -6,11 +7,11 @@ counter: s32 #thread_local;
 main :: fn () s32 {
 	print("Start thread!!!\n");
 	defer print("Threads joined!!!\n");
-	t1 :: std.thread_create(&first);
-	t2 :: std.thread_create(&second);
-	std.thread_join(t1);
-	std.thread_join(t2);
-	
+	t1 :: thread_create(&first);
+	t2 :: thread_create(&second);
+	thread_join(t1);
+	thread_join(t2);
+
 	assert(counter == 0);
 	return 0;
 }

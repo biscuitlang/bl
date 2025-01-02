@@ -1,6 +1,3 @@
-#load "gl.bl"
-#import "std/dlib"
-
 WGL_NUMBER_PIXEL_FORMATS_ARB     :: 0x2000;
 WGL_DRAW_TO_WINDOW_ARB           :: 0x2001;
 WGL_DRAW_TO_BITMAP_ARB           :: 0x2002;
@@ -63,21 +60,19 @@ WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB    :: 0x0002;
 WGL_CONTEXT_CORE_PROFILE_BIT_ARB          :: 0x00000001;
 WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB :: 0x00000002;
 
-wglCopyContext :: fn (_: win32.HGLRC, _: win32.HGLRC, _: win32.UINT) win32.BOOL #extern "wglCopyContext";
-wglCreateContext :: fn (_: win32.HDC) win32.HGLRC #extern "wglCreateContext";
-wglCreateLayerContext :: fn (_: win32.HDC, _: C.int) win32.HGLRC #extern "wglCreateLayerContext";
-wglDeleteContext :: fn (_: win32.HGLRC) win32.BOOL #extern "wglDeleteContext";
-wglGetCurrentContext :: fn () win32.HGLRC #extern "wglGetCurrentContext";
-wglGetCurrentDC :: fn () win32.HDC #extern "wglGetCurrentDC";
-wglGetProcAddress :: fn (_: win32.LPCSTR) win32.PROC #extern "wglGetProcAddress";
-wglMakeCurrent :: fn (_: win32.HDC, _: win32.HGLRC) win32.BOOL #extern "wglMakeCurrent";
-wglShareLists :: fn (_: win32.HGLRC, _: win32.HGLRC) win32.BOOL #extern "wglShareLists";
-wglUseFontBitmapsA :: fn (_: win32.HDC, _: win32.DWORD, _: win32.DWORD, _: win32.DWORD) win32.BOOL #extern "wglUseFontBitmapsA";
-wglUseFontBitmapsW :: fn (_: win32.HDC, _: win32.DWORD, _: win32.DWORD, _: win32.DWORD) win32.BOOL #extern "wglUseFontBitmapsW";
+wglCopyContext :: fn (_: HGLRC, _: HGLRC, _: UINT) BOOL #extern "wglCopyContext";
+wglCreateContext :: fn (_: HDC) HGLRC #extern "wglCreateContext";
+wglCreateLayerContext :: fn (_: HDC, _: C.int) HGLRC #extern "wglCreateLayerContext";
+wglDeleteContext :: fn (_: HGLRC) BOOL #extern "wglDeleteContext";
+wglGetCurrentContext :: fn () HGLRC #extern "wglGetCurrentContext";
+wglGetCurrentDC :: fn () HDC #extern "wglGetCurrentDC";
+wglGetProcAddress :: fn (_: LPCSTR) PROC #extern "wglGetProcAddress";
+wglMakeCurrent :: fn (_: HDC, _: HGLRC) BOOL #extern "wglMakeCurrent";
+wglShareLists :: fn (_: HGLRC, _: HGLRC) BOOL #extern "wglShareLists";
+wglUseFontBitmapsA :: fn (_: HDC, _: DWORD, _: DWORD, _: DWORD) BOOL #extern "wglUseFontBitmapsA";
+wglUseFontBitmapsW :: fn (_: HDC, _: DWORD, _: DWORD, _: DWORD) BOOL #extern "wglUseFontBitmapsW";
 
 WGL :: struct {
-	using win32;
-
 	ChoosePixelFormatARB: *fn (hdc: HDC, piAttribIList: *C.int, pfAttribFList: *f32, nMaxFormats: UINT, piFormats: *C.int, nNumFormats: *UINT) BOOL;
 	CreateContextAttribsARB: *fn (hDC: HDC, hshareContext: HGLRC, attribList: *C.int) HGLRC;
 	SwapIntervalEXT: *fn (v: C.int) BOOL;
@@ -94,21 +89,25 @@ wgl_init :: fn () {
 
 __gl_get_proc :: fn (proc_name: string_view) *u8 {
 	if proc_name.len == 0 { return null; }
-	p := wglGetProcAddress(std.strtoc(proc_name));
+	p := wglGetProcAddress(strtoc(proc_name));
 	ip :: cast(s64) p;
 	if ip != 0 && ip != 0x1 && ip != 0x2 && ip != 0x3 { return p; }
 
 	// @Performance: open for each symbol???
 	// @Performance: open for each symbol???
 	// @Performance: open for each symbol???
-	module, err1 :: std.library_open("opengl32");
+	module, err1 :: library_open("opengl32");
 	if err1 {
 		panic("[GL]: %", err1);
 		return null;
 	}
-	defer std.library_close(module);
+	defer library_close(module);
 
-	sym :: std.library_get_symbol(module, proc_name);
+	sym :: library_get_symbol(module, proc_name);
 	return sym;
 }
+
+#scope_private
+#import "std/dlib"
+#import "os/windows"
 

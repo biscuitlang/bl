@@ -1,5 +1,3 @@
-#scope clipboard
-
 init :: fn () {
 	_cb = clipboard_new(null);
 	if !_cb { panic("Cannot initialize clipboard!"); }
@@ -26,7 +24,9 @@ get :: fn () string_view {
 	return string_view.{ len, auto _tmp };
 }
 
-#private
+#scope_private
+C :: #import "libc";
+
 clipboard_c :: u8;
 
 clipboard_new :: fn (opts: *u8) *clipboard_c #extern;

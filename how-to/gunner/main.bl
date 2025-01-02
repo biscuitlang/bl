@@ -1,6 +1,14 @@
-#import "extra/glfw3"
-#import "extra/draw"
+#import "std/print"
+#import "std/string"
+#import "std/array"
 #import "extra/mabl"
+#import "extra/glm"
+
+draw :: #import "extra/draw";
+glfw :: #import "extra/glfw3";
+math :: #import "std/math";
+
+C :: #import "libc";
 
 Mode :: enum {
 	UNKNOWN;
@@ -9,7 +17,7 @@ Mode :: enum {
 }
 
 Ship :: struct {
-	position: glm.v2;
+	position: v2;
 	move_left: bool;
 	move_right: bool;
 	move_up: bool;
@@ -20,23 +28,23 @@ Ship :: struct {
 }
 
 Star :: struct {
-	position: glm.v2;
+	position: v2;
 	size: f32;
 	speed: f32;
 }
 
 Bullet :: struct {
-	position: glm.v2;
+	position: v2;
 }
 
 Stone :: struct {
-	position: glm.v2;
+	position: v2;
 	rotation: f32;
 	speed: f32;
 }
 
 PowerUp :: struct {
-	position: glm.v2;
+	position: v2;
 	rotation: f32;
 }
 
@@ -67,7 +75,7 @@ bullet_texture: draw.Texture;
 stone_texture: draw.Texture;
 power_texture: draw.Texture;
 
-audio_engine: miniaudio.ma_engine;
+audio_engine: ma_engine;
 
 mode := Mode.UNKNOWN;
 next_mode := Mode.UNKNOWN;
@@ -82,6 +90,8 @@ score: s32;
 restart_game := false;
 
 main :: fn () s32 {
+	using glfw;
+
 	// Initialize GLFW.
 	if glfw.Init() == 0 {
 		print_glfw_error();
@@ -90,82 +100,82 @@ main :: fn () s32 {
 	defer glfw.Terminate();
 
 	// Create GLFW window.
-	glfw.WindowHint(glfw.CONTEXT_VERSION_MAJOR, 3);
-	glfw.WindowHint(glfw.CONTEXT_VERSION_MINOR, 3);
-	glfw.WindowHint(glfw.OPENGL_FORWARD_COMPAT, 1);
-	glfw.WindowHint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE);
-	glfw.WindowHint(glfw.DOUBLEBUFFER, glfw.TRUE);
-	glfw.WindowHint(glfw.RESIZABLE, glfw.FALSE);
+	WindowHint(CONTEXT_VERSION_MAJOR, 3);
+	WindowHint(CONTEXT_VERSION_MINOR, 3);
+	WindowHint(OPENGL_FORWARD_COMPAT, 1);
+	WindowHint(OPENGL_PROFILE, OPENGL_CORE_PROFILE);
+	WindowHint(DOUBLEBUFFER, TRUE);
+	WindowHint(RESIZABLE, FALSE);
 
-	window = glfw.CreateWindow(
+	window = CreateWindow(
 		WINDOW_WIDTH,
 		WINDOW_HEIGHT,
-		std.strtoc(WINDOW_TITLE), // Convert bl string_view to C string.
+		strtoc(WINDOW_TITLE), // Convert bl string_view to C string.
 		null,
 		null
 	);
-	defer glfw.DestroyWindow(window);
+	defer DestroyWindow(window);
 
 	if !window {
 		print_glfw_error();
 		panic("Cannot create GLFW window.\n");
 	}
 
-	glfw.MakeContextCurrent(window);
-	glfw.SwapInterval(1);
+	MakeContextCurrent(window);
+	SwapInterval(1);
 
-	glfw.SetKeyCallback(window, &key_callback);
+	SetKeyCallback(window, &key_callback);
+
+	using draw;
 
 	draw.init(WINDOW_WIDTH, WINDOW_HEIGHT);
 	defer draw.terminate();
-	
+
 	err: Error;
-	err = draw.texture_init(&ship_texture, ".", "ship.png");
+	err = texture_init(&ship_texture, ".", "ship.png");
 	if err { panic(err); }
-	defer draw.texture_terminate(&ship_texture);
+	defer texture_terminate(&ship_texture);
 
-	err = draw.texture_init(&star_texture, ".", "star.png");
+	err = texture_init(&star_texture, ".", "star.png");
 	if err { panic(err); }
-	defer draw.texture_terminate(&star_texture);
+	defer texture_terminate(&star_texture);
 
-	err = draw.texture_init(&bg_texture, ".", "background.png");
+	err = texture_init(&bg_texture, ".", "background.png");
 	if err { panic(err); }
-	defer draw.texture_terminate(&bg_texture);
+	defer texture_terminate(&bg_texture);
 
-	err = draw.texture_init(&bullet_texture, ".", "bullet.png");
+	err = texture_init(&bullet_texture, ".", "bullet.png");
 	if err { panic(err); }
-	defer draw.texture_terminate(&bullet_texture);
+	defer texture_terminate(&bullet_texture);
 
-	err = draw.texture_init(&stone_texture, ".", "stone.png");
+	err = texture_init(&stone_texture, ".", "stone.png");
 	if err { panic(err); }
-	defer draw.texture_terminate(&stone_texture);
+	defer texture_terminate(&stone_texture);
 
-	err = draw.texture_init(&power_texture, ".", "power.png");
+	err = texture_init(&power_texture, ".", "power.png");
 	if err { panic(err); }
-	defer draw.texture_terminate(&power_texture);
+	defer texture_terminate(&power_texture);
 
-	err = draw.font_init_at_size(&font, ".", "font.ttf", 32);
+	err = font_init_at_size(&font, ".", "font.ttf", 32);
 	if err { panic(err); }
-	defer draw.font_terminate(&font);
+	defer font_terminate(&font);
 
-	result :: miniaudio.ma_engine_init(null, &audio_engine);
-	if result != miniaudio.ma_result.SUCCESS {
+	result :: ma_engine_init(null, &audio_engine);
+	if result != ma_result.SUCCESS {
 		panic("Failed to initialize audio engine with error: %", result);
 	}
-	defer miniaudio.ma_engine_uninit(&audio_engine);
+	defer ma_engine_uninit(&audio_engine);
 
 	set_game_mode(Mode.GAME);
 	change_game_mode();
 
 	// Game loop comes here!
-	time_current := glfw.GetTime();
-	loop glfw.WindowShouldClose(window) == 0 {
-		glfw.PollEvents();
-		using draw;
-		using glm;
+	time_current := GetTime();
+	loop WindowShouldClose(window) == 0 {
+		PollEvents();
 
 		time_previous :: time_current;
-		time_current = glfw.GetTime();
+		time_current = GetTime();
 		dt := cast(f32) (time_current - time_previous);
 
 		// Clear the frame.
@@ -189,7 +199,7 @@ main :: fn () s32 {
 		flush();
 
 		// Swap buffers to see rendered stuff.
-		glfw.SwapBuffers(window);
+		SwapBuffers(window);
 
 		change_game_mode();
 
@@ -247,12 +257,10 @@ change_game_mode :: fn () {
 }
 
 play_sound :: fn (directory: string_view, filename: string_view) #inline {
-	miniaudio.ma_engine_play_sound(&audio_engine, std.strtoc(tprint("%/%", directory, filename)), null);
+	ma_engine_play_sound(&audio_engine, strtoc(tprint("%/%", directory, filename)), null);
 }
 
 start_game :: fn () {
-	using glm;
-
 	score = 0;
 	random_seed_time();
 	array_clear(&bullets);
@@ -270,7 +278,6 @@ start_game :: fn () {
 }
 
 handle_game_input :: fn (dt: f32) {
-	using glm;
 	if ship.move_left  { ship.position.x -= dt * SHIP_MOVE_SPEED; }
 	if ship.move_right { ship.position.x += dt * SHIP_MOVE_SPEED; }
 	if ship.move_up    { ship.position.y -= dt * SHIP_MOVE_SPEED; }
@@ -287,8 +294,7 @@ handle_game_input :: fn (dt: f32) {
 	ship.fire_timeout -= dt;
 }
 
-is_point_in_rect :: fn (p: glm.v2, rect_center: glm.v2, w: f32, h: f32) bool #inline {
-	using glm;
+is_point_in_rect :: fn (p: v2, rect_center: v2, w: f32, h: f32) bool #inline {
 	rect_min :: v2.{ rect_center.x - w * 0.5f, rect_center.y - h * 0.5f };
 	if p.x < rect_min.x { return false; }
 	if p.y < rect_min.y { return false; }
@@ -298,8 +304,7 @@ is_point_in_rect :: fn (p: glm.v2, rect_center: glm.v2, w: f32, h: f32) bool #in
 	return true;
 }
 
-is_rect_in_rect :: fn (c1: glm.v2, w1: f32, h1: f32, c2: glm.v2, w2: f32, h2: f32) bool #inline {
-	using glm;
+is_rect_in_rect :: fn (c1: v2, w1: f32, h1: f32, c2: v2, w2: f32, h2: f32) bool #inline {
 	min1 :: v2.{ c1.x - w1 * 0.5f, c1.y - h1 * 0.5f };
 	min2 :: v2.{ c2.x - w2 * 0.5f, c2.y - h2 * 0.5f };
 	max1 :: v2.{ c1.x + w1 * 0.5f, c1.y + h1 * 0.5f };
@@ -380,7 +385,7 @@ simulate_game :: fn (dt: f32) {
 		if is_rect_in_rect(ship.position, auto ship_texture.width, auto ship_texture.height, power_up.position, auto power_texture.width, auto power_texture.height) {
 			is_power_up_dead = true;
 			ship.power += POWER_UP_ADD_POWER;
-			ship.power = std.min(ship.power, 1.f);
+			ship.power = math.min(ship.power, 1.f);
 			play_sound(".", "powerup.ogg");
 		}
 
@@ -395,7 +400,7 @@ simulate_game :: fn (dt: f32) {
 		stone := array_push(&stones);
 		stone.position.x = auto random_number(0, WINDOW_WIDTH);
 		stone.position.y = auto random_number(-100, -40);
-		stone.rotation   = cast(f32) random_number(0, 1) * cast(f32) std.TWO_PI;
+		stone.rotation   = cast(f32) random_number(0, 1) * cast(f32) math.TWO_PI;
 		stone.speed      = auto random_number(STONE_SPEED / 2, STONE_SPEED);
 	}
 
@@ -403,7 +408,7 @@ simulate_game :: fn (dt: f32) {
 		power_up := array_push(&powerups);
 		power_up.position.x = auto random_number(0, WINDOW_WIDTH);
 		power_up.position.y = auto random_number(-100, -40);
-		power_up.rotation   = cast(f32) random_number(0, 1) * cast(f32) std.TWO_PI;
+		power_up.rotation   = cast(f32) random_number(0, 1) * cast(f32) math.TWO_PI;
 		power_up_timeout = POWER_UP_TIMEOUT;
 	} else {
 		power_up_timeout -= dt;
@@ -413,8 +418,6 @@ simulate_game :: fn (dt: f32) {
 
 draw_game :: fn () {
 	using draw;
-	using glm;
-
 	set_shader_texture(&bg_texture);
 	rect(0.f, 0.f, auto WINDOW_WIDTH, auto WINDOW_HEIGHT);
 
@@ -454,7 +457,6 @@ draw_game :: fn () {
 
 draw_after_screen :: fn (_: f32) {
 	using draw;
-
 	set_shader_texture(&bg_texture);
 	rect(0.f, 0.f, auto WINDOW_WIDTH, auto WINDOW_HEIGHT);
 

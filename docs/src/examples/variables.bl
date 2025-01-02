@@ -1,3 +1,5 @@
+#import "std/print"
+
 // Global variable is visible in whole source. This variable is initialized
 // by constant literal '10' which is known in compile time.
 MyGlobal : s32 = 10;
@@ -7,7 +9,7 @@ CannotChangeThis : f32 : 10.f;
 
 // Global without initialization will be automatically set to it's default
 // value, in this case it's zero.
-DefaultValueGlobal: s32; 
+DefaultValueGlobal: s32;
 
 main :: fn () s32 {
 	// Local variables are declared in local scope of main function or
@@ -17,7 +19,7 @@ main :: fn () s32 {
 	number = 20; // Number is mutable, and since now it's value is 20.
 
 	// Use of the print function to print out variable value.
-	// '%' is used as placeholder in the string saying where the print 
+	// '%' is used as placeholder in the string saying where the print
 	// function should place our value.
 	print("number is %\n", number);
 
@@ -31,7 +33,7 @@ main :: fn () s32 {
 	print("other_number is %\n", other_number);
 
 
-	// Type of the variable can be inferred from type of initialization 
+	// Type of the variable can be inferred from type of initialization
 	// value.
 	boolean := true; // Inferred bool type.
 
