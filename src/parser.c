@@ -548,7 +548,7 @@ struct ast *parse_hash_directive(struct context *ctx, s32 expected_mask, enum ha
 		bassert(current_scope);
 		struct module *module = ctx->unit->module;
 		if (!module) {
-			report_error(EXPECTED_MODULE, tok_directive, CARET_WORD, "Module private scope cannot be created outside of module.");
+			report_error(UNEXPECTED_DIRECTIVE, tok_directive, CARET_WORD, "Module private scope cannot be created outside of module.");
 			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_directive, current_scope));
 		}
 

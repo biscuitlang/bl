@@ -10,7 +10,7 @@ Module Import TODO
 x import module once
 x inject into current scope
 x module explicit namespacing
-  - with injection in local scope???
+  x with injection in local scope???
   x should be constant?
   x do not work with using!
 x use commas for global separators
@@ -25,15 +25,15 @@ x use commas for global separators
 
 */
 
-// foo :: #import "str";
-// #import "str";
-// #import "extra/draw"
-// #import "extra/argparse"
-
+#import "extra/draw"
+#load "test2.bl"
 main :: fn () s32 {
-	foo :: #import "str";
 	return 0;
 }
+
+#scope_private
+#load "test2.bl"
+
 
 
 /* BUG

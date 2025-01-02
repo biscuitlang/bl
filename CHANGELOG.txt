@@ -7,6 +7,7 @@ Add new #scope_private and #scope_public to freely enter and exit private scope 
 Add symlink resolve for the current executable on macos.
 Compiler will report all possible ambiguous symbol in case there is more of them.
 Fix interp function callbacks without arguments.
+Load directive now loads source units multiple times in case the #load directive appears in different scope context.
 Make #private directive deprecated.
 Module congifuration use comma separators on all platforms.
 Paralelize MIR generation.

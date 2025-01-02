@@ -589,10 +589,10 @@ void assembly_append_linker_options(struct assembly *assembly, const char *opt) 
 	spl_unlock(&assembly->custom_linker_opt_lock);
 }
 
-static inline struct unit *lookup_unit(struct assembly *assembly, const hash_t hash, str_t filepath) {
+static inline struct unit *lookup_unit(struct assembly *assembly, const hash_t hash, str_t filepath, struct scope *parent_scope) {
 	for (usize i = 0; i < arrlenu(assembly->units); ++i) {
 		struct unit *unit = assembly->units[i];
-		if (hash == unit->hash && str_match(filepath, unit->filepath)) {
+		if (hash == unit->hash && parent_scope == unit->parent_scope && str_match(filepath, unit->filepath)) {
 			return unit;
 		}
 	}
@@ -602,6 +602,7 @@ static inline struct unit *lookup_unit(struct assembly *assembly, const hash_t h
 void assembly_add_unit(struct assembly *assembly, const str_t filepath, struct token *load_from, struct scope *parent_scope, struct module *module) {
 	zone();
 	bassert(filepath.len && filepath.ptr);
+	bassert(parent_scope);
 	struct unit *unit = NULL;
 
 	str_buf_t    tmp_fullpath = get_tmp_str();
@@ -617,9 +618,8 @@ void assembly_add_unit(struct assembly *assembly, const str_t filepath, struct t
 	bool submit = false;
 
 	mtx_lock(&assembly->units_lock);
-	unit = lookup_unit(assembly, hash, str_buf_view(tmp_fullpath));
+	unit = lookup_unit(assembly, hash, str_buf_view(tmp_fullpath), parent_scope);
 	if (!unit) {
-		bassert(parent_scope);
 		unit = unit_new(assembly, str_buf_view(tmp_fullpath), filepath, hash, load_from, parent_scope, module);
 		arrput(assembly->units, unit);
 
@@ -716,7 +716,6 @@ static struct module *import_module(struct assembly *assembly, str_t module_path
 
 	const str_t module_root_dir = get_dir_from_filepath(module_path);
 	const str_t module_name     = get_filename_from_filepath(module_root_dir);
-	blog("Module '" STR_FMT "' root: " STR_FMT, STR_ARG(module_name), STR_ARG(module_root_dir));
 
 	// I. Initialize module in assembly for later use...
 	struct module *module = bmalloc(sizeof(struct module)); // @Performance 2024-09-14 Use arena?
