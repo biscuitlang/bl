@@ -1,0 +1,3 @@
+this_should_be_visible_outside_of_module :: fn () {}
+#scope_module
+this_should_be_visible_only_in_module2 :: fn () {}

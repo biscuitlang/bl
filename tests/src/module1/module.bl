@@ -1,5 +1,8 @@
+#load "module3.bl"
+
 foo :: fn () {
 	this_should_be_visible_only_in_module();
+	this_should_be_visible_only_in_module2();
 }
 
 #scope_module
