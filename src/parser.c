@@ -134,8 +134,7 @@ static struct ast *_parse_expr(struct context *ctx, s32 p);
 static struct ast *parse_expr_atom(struct context *ctx);
 static struct ast *parse_expr_primary(struct context *ctx);
 static struct ast *parse_expr_unary(struct context *ctx);
-static struct ast                    *
-parse_expr_binary(struct context *ctx, struct ast *lhs, struct ast *rhs, struct token *op);
+static struct ast *parse_expr_binary(struct context *ctx, struct ast *lhs, struct ast *rhs, struct token *op);
 static struct ast *parse_expr_addrof(struct context *ctx);
 static struct ast *parse_expr_deref(struct context *ctx);
 static struct ast *parse_expr_type(struct context *ctx);

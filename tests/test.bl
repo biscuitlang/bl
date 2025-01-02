@@ -26,12 +26,12 @@ x use commas for global separators
 */
 
 // foo :: #import "str";
-#import "str";
+// #import "str";
 // #import "extra/draw"
 // #import "extra/argparse"
 
 main :: fn () s32 {
-	olo();
+	foo :: #import "str";
 	return 0;
 }
 

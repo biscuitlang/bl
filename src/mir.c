@@ -4913,16 +4913,22 @@ struct result analyze_var(struct context *ctx, struct mir_var *var, const bool c
 		return_zone(FAIL);
 	case MIR_TYPE_FN_GROUP:
 		if (isnotflag(var->iflags, MIR_VAR_MUTABLE)) break;
-		report_error(INVALID_TYPE, var->decl_node, "Function group must be immutable.");
+		report_error(INVALID_MUTABILITY, var->decl_node, "Function group must be immutable.");
 		return_zone(FAIL);
 	case MIR_TYPE_VOID:
 		// Allocated type is void type.
 		report_error(INVALID_TYPE, var->decl_node, "Cannot allocate void variable.");
 		return_zone(FAIL);
 	case MIR_TYPE_NAMED_SCOPE:
-		if (isnotflag(var->iflags, MIR_VAR_MUTABLE)) break;
-		report_error(INVALID_TYPE, var->decl_node, "Named module import scope wrapper must be immutable.");
-		return_zone(FAIL);
+		if (isflag(var->iflags, MIR_VAR_MUTABLE)) {
+			report_error(INVALID_MUTABILITY, var->decl_node, "Named module import scope wrapper must be immutable.");
+			return_zone(FAIL);
+		}
+		if (scope_is_local(var->entry->parent_scope)) {
+			report_error(UNEXPECTED_DECL, var->decl_node, "Module import is allowed only in global scope for now.");
+			return_zone(FAIL);
+		}
+		break;
 	default:
 		break;
 	}
