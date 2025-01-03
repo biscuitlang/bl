@@ -28,7 +28,7 @@
 
 //! # Utils
 //!
-//! `#load "std/utils.bl"`
+//! Available by default.
 //!
 //! Set of various utility functions.
 

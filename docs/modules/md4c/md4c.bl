@@ -127,3 +127,6 @@ MD_PARSER :: struct {
 }
 MD_RENDERER :: MD_PARSER;
 md_parse :: fn (text: *MD_CHAR, size: MD_SIZE, parser: *MD_PARSER, userdata: *C.void_ptr) C.int #extern;
+
+#scope_private
+C  :: #import "libc";

@@ -25,6 +25,8 @@ To start a new project, we simply need to create a file containing the *main* fu
 The content of *hello.bl* can look like this:
 
 ```bl
+#import "std/print"
+
 main :: fn () s32 {
 	print("Hello world!\n");
 	return 0;
@@ -33,7 +35,7 @@ main :: fn () s32 {
 
 ### Print
 
-Inside the function body, we call *print* function to print the passed string "Hello world!" into the standard output. The declaration of the *print* function looks like this:
+Inside the function body, we call *print* function to print the passed string "Hello world!" into the standard output. The declaration of the *print* function may look like this:
 
 ```bl
 print :: fn (format: string_view, args: ...) s32 {
@@ -41,7 +43,7 @@ print :: fn (format: string_view, args: ...) s32 {
 }
 ```
 
-It's declared inside *std/print* module and it's available by default. From the declaration you can see it takes *format* and *args* as input arguments. The type of the *format* argument is compiler internal type *string_view* (representation of any string in the language); *args* argument type is *...* which allows any number of additional values to be passed into the function.
+It's declared inside *std/print* module. From the declaration you can see it takes *format* and *args* as input arguments. The type of the *format* argument is compiler internal type *string_view* (representation of any string in the language); *args* argument type is *...* which allows any number of additional values to be passed into the function.
 
 ### Return
 
@@ -1966,26 +1968,19 @@ Where the *defer* is used to `close_file` and `str_delete`; we can nicely couple
 
 # Code Structure
 
-A BL code is organized into scopes similar to C++ namespaces. Each scope groups entities inside, and can limit their visibility from the outside. Scopes can be used also to avoid naming collisions. They are organized into a tree structure, where one scope may contain a bunch of other scopes. In this chapter, we describe all possible scope kinds in detail.
+The top-level building stone of each BL program is called assembly. Each assembly can be compiled into executable file or library. 
+
+A BL code itself is organized into scopes. Each scope groups entities inside, and can limit their visibility from the outside. Scopes can be used also to avoid naming collisions. They are organized into a tree structure, where one scope may contain a bunch of other scopes. In this chapter, we describe all possible scope kinds in detail.
 
 ## Global Scope
 
-The global scope is created implicitly and encloses all symbols and other scopes in the program. It's the top scope without any parent scope. You can use `#load` or `#import` directives to add symbols from other files in the global scope of our program. Consider we have two files, one called *utils.bl* containing the *my_print_log* function declared in global scope, and the other file containing the *main* function. We can use a `#load` followed by the file name to make the *my_print_log* function available in the *main*. The `#load` should be followed by the *filepath* relative to the file we're loading from, but it can be any *absolute* existing path to the other file. The `#import` is meant to be used with [modules](manual.html#Modules).
+The global scope is implicitly created root scope of the assembly containing builtin symbols provided by the compiler out of the box. The user code is organized into modules, where implicitly created `__assembly_module` acts like an entry point of the program, and contains the `main` entry function. Other modules can be imported into your program by `#import` directive. The `#load` directive can be used to insert individual source files.
 
-```bl
-// utils.bl
-my_print_log :: fn (text: string_view) {}
-```
+## Module Scope
 
-```bl
-// main.bl
-#load "utils.bl"
+The module scope is the root scope of each module (for example `std/print`, `std/string`, ... ), where each module provides some specific piece od functionality. Symbols from one module are not accessible from the other unless we use `#import` directive. When module A is imported into module B, all symbols in the module scope of A are visible to B, but not the other way around.
 
-main :: fn () s32 {
-	my_print_log("Hello");
-	return 0;
-}
-```
+As mentioned in [Global Scope](manual.html#global-scope) section, even the entry point of the program is encapsulated into implicit module, however, for simplicity, we usually refer to this implicit module scope as the global scope. 
 
 ### Load
 
@@ -1993,11 +1988,27 @@ main :: fn () s32 {
 #load "<path/to/your/file.bl>"
 ```
 
-Loads source code in a single file into the current global scope of your project. Every file is loaded only once even if we load it from multiple locations. The *filepath* may be any existing absolute or relative path, in case the path is relative, the compiler lookup the file using the following lookup order (the first hit is used):
+The easiest way to add code from other source files into your program is by using the `#load` directive. You can think about it as if it was a simple code insertion. All code from loaded files is inserted into the scope where each load is called. The target scope of the load process is important, the file is not loaded again in case it's already present the target scope, and code from loaded source file A is visible to loaded source file B (and vice-versa) in case both files are loaded in the same scope.
+
+```bl
+// Load two files into current scope.
+#load "A.bl" // A can use symbols from B.
+#load "B.bl" // B can use symbols from A.
+
+#load "A.bl" // Does nothing, A is already present in this scope.
+
+main :: fn () s32 {
+    function_from_a();
+    function_from_b();
+    return 0;
+}
+```
+
+Compiler will lookup source files according to the following rules.
 
 **Lookup order:**
 
-- Current file parent directory.
+- Load target file parent directory.
 - BL API directory set in `install-location/etc/bl.yaml`.
 - System *PATH* environment variable.
 
@@ -2007,53 +2018,60 @@ Loads source code in a single file into the current global scope of your project
 #import "<path/to/your/module>"
 ```
 
-The import is supposed to be used with BL [modules](manual.html#Modules).
+The import directive can be used to import symbols from one module to the other. Module importing does not act like an insertion, thus even if you import two modules in the same target scope, code in both of them remains separated. Even if the same module is imported multiple times, it's compiled only once.
 
-See also [Module Import Policy](modules_build.html#ModuleImportPolicy).
+In case one module is imported multiple times in the same scope (without explicit namespacing), compiler will produce errors when symbols from such module are used (they are ambiguous). 
 
-## Named Scope
-
-The named scope may be introduced in a source file if we want to prevent possible name collisions with other symbols in the global scope. In the previous example, we've introduced `my_print_log`  function, but we probably don't want to call it like this in a production code; we prefer only `print_log` name. The problem is, the `print_log` function already exists in the *standard library* and is imported by default. To fix this we may enclose our function into named scope called *utils*.
+Internally this process of import is called *scope injection*. The list of symbols from imported module scope is injected into the target scope.
 
 ```bl
-// utils.bl
-#scope utils
+// We're importing symbols from std/print module into scope where the
+// #import directive is called.
+#import "std/print"
 
-print_log :: fn (text: string_view) {}
-```
-
-```bl
-// main.bl
-#load "utils.bl"
+// All symbols from 'std/print' are now visible in this scope.
 
 main :: fn () s32 {
-	// Print is now nested in 'utils' scope.
-	utils.print_log("Hello");
-	return 0;
+    print("Hello!\n"); // Call the function from 'std/print' module.
+    return 0;
 }
 ```
-The named scope in *utils.bl* file is now introduced by `#scope` directive followed by the scope name. Everything in the file after the `#scope` directive is added into *utils* named scope. There is currently no possibility to create named scope nested in another named scope; this restriction mainly exists only to keep the scope structure relatively flat.
 
-As you can see, the `print_log` function is now accessible only through `.` operator and it's nested in the named scope called *utils*.
+In some cases we wan't to encapsulate symbols from imported module to prevent collisions with our code, we can do so by wrapping the imported symbols into namespace.
 
-## Public Scope
+```bl
+print :: fn () {} // This is my print implementation.
 
-The public scope `#scope_public` can be introduced in a source file to switch back from current private scope (basically, it can be used to terminate private scope block). Functions or variables in public scope can be used from current file or from other files as well. All global declarations in BL are public by default until a private scope directive is introduced.
+// The print module also contains print function, so we wrap all symbols 
+// from the module into namespace 'foo' to prevent name collision.
+foo :: #import "std/print"; 
+
+main :: fn () s32 {
+    // Call our print.
+    print();
+
+    // Call print from the imported module.
+    foo.print("Hello\n");
+
+    return 0;
+}
+```
+
+More information about how to create modules can be found in [modules](manual.html#Modules) section.
+
 
 ## Private Scope
 
-The *private* scope may be created by `#scope_private` directive in a source file, everything declared after this directive (in private block) is accessible only inside the current file. The *private* scope can be terminated by *public* scope directive.
+The *private* scope may be created by `#scope_private` directive in a source file, everything declared after this directive (in private block) is accessible only inside the current file. The *private* scope can be terminated by the *public* scope directive.
 
 The main purpose of a *private* scope is to hide some internal implementations which should not be accessible from the outside world.
 
 ```bl
-// utils.bl
-#scope utils
-
 print_log :: fn (text: string_view) {
 	// We can access the private stuff since it's in the same file.
 	set_output_color(Color.BLUE);
 	defer set_output_color(Color.NORMAL);
+
 	// Use default print to print the message.
 	print(text);
 }
@@ -2076,69 +2094,120 @@ set_output_color :: fn (color: Color) {
 }
 ```
 
+Note that private block can be used to limit symbol visibility from loaded files or imported modules.
+
+```bl
+// Symbols from the print module are visible in the current module.
+#import "std/print"
+
+#scope_private
+
+// Symbols from string module are visible only in the current file.
+#import "std/string"
+```
+
+## Public Scope
+
+The public scope `#scope_public` can be introduced in a source file to switch back from current private or module private scope. Functions or variables in public scope can be used from current file or from other files as well. All global declarations in BL are public by default.
+
+```bl
+// This function is public by default and can be called 
+// anywhere in the current module.
+say_hello :: fn () {
+    num += 1;
+    print("Hello\n");
+}
+
+// Introduce the private block to limit visibility of following symbols to
+// current file.
+#scope_private
+
+// This variable is private and visible only inside the current file.
+num: s32;
+
+// Switch back to public block.
+#scope_public
+
+// This function can be again called anywhere in the current module.
+hello_count :: fn () {
+    print("Hello count: %\n", num);
+}
+```
+
+## Module Private Scope
+
+All symbols in a module can be visible to other modules by default when imported. We might use module private scope block to limit the symbol visibility only to the current module. Consider following files to be part of the same module:
+
+**File A**
+```bl
+// When module is imported this function becomes available
+// to the importer.
+say_hello :: fn () {
+    say("Hello");
+}
+
+// Introduce scope private block; it's content is visible only in the current
+// module.
+#scope_module
+
+// The imported symbols from the print module are available only in
+// the current module.
+#import "std/print"
+
+// This function can be used only in the current module.
+say :: fn (text: string_view) {
+    print("%\n", text);
+}
+```
+
+**File B**
+```bl
+// This function has the same visibility as 'say_hello'.
+say_bye :: fn () {
+    // Use module private function from File A.
+    say("Bye");
+}
+```
+
 ## Local Scope
 
-Local scopes are created implicitly for each function since the usage of symbols, declared in the function, is strictly limited to be used only inside that function. The compiler creates local scopes also for structures, unions and enums, where the content of those is again accessible using the `.` operator.
+Local scopes are created implicitly for each function since the usage of symbols, declared in the function, is strictly limited to be used only inside that function. The compiler creates local scopes also for structures, unions and enums.
 
 ## Using
 
 The *using* statement may be added in local scopes to reduce the amount of code you have to write. It makes the content of "used" scope directly available in the scope the *using* is living in. Be careful using this feature, it may introduce symbol ambiguity and the compiler may complain.
 
-Currently, the *using* supports named scopes and enums, it's not allowed for structures and unions, since it may make the code less readable.
+Currently, the *using* supports module namespaces and enums, it's not allowed for structures and unions, since it may make the code less readable, however this is still open question, and we might allow it in the future.
 
 ```bl
-// main.bl
-#load "utils.bl"
+foo :: #import "std/print";
+
+Color :: enum {
+    RED;
+    GREEN;
+    BLUE;
+}
 
 main :: fn () s32 {
-	using utils;
+    foo.print("Hello\n");
+    
+    // Content of module namespace foo becomes directly available.
+    using foo;
+    print("Hello\n");
 
-	// This is not valid, compiler don't known if you mean 'print_log' from the
-	// standard library or the one from utils.bl.
-	print_log("Hello");
-	return 0;
-}
-```
-
-```text
-main.bl:9:5: error(0078): Symbol is ambiguous.
-   8 |     // standard library or the one from utils.bl.
->  9 |     print_log("Hello");
-     |     ^^^^^^^^^
-  10 |     return 0;
-
-debug.bl:38:1: First declaration found here.
-   37 | /// Print debug log using current application_context `print_log_fn` function.
->  38 | print_log :: fn (format: string_view, args: ...) #inline {
-      | ^^^^^^^^^
-   39 |     application_context.print_log_fn(PrintLogKind.MESSAGE, "", 0, format, args);
-
-utils.bl:4:1: Another declaration found here.
-   3 |
->  4 | print_log :: fn (text: string_view) {
-     | ^^^^^^^^^
-   5 |     // We can access the private stuff since it's in the same file.
-```
-
-However, we can use this feature in *utils.bl* like this:
-
-```bl
-set_output_color :: fn (color: Color) {
+    set_color(Color.RED);
+    
+    // Content of enum scope Color becomes directly available.
     using Color;
-	// Content of Color is now available in current scope.
+    set_color(RED);
 
-    switch color {
-    	// No need to write 'Color.' before each variant.
-        NORMAL {}
-        RED {}
-        BLUE {}
-    }
+    return 0;
 }
 ```
 
 # Modules
 
-A module in BL is a chunk of reusable multi-platform code bundled with a configuration file in a single module *root* directory. See the following example of the *thread* module.
+A module in BL is a chunk of reusable code bundled with a configuration file in a single module *root* directory. See the following example of the *thread* module.
 
 ```text
 thread/
@@ -2149,10 +2218,11 @@ thread/
   thread.test.bl    - unit tests
 ```
 
-Modules can be imported into other projects using the `#import` directive followed by the module root directory path. The configuration file *module.yaml* is mandatory for each module and must be located in the module *root* directory. In general, the configuration file tells the compiler which source files should be loaded, which libraries are needed and what is the module version. See the module configuration example.
+Modules can be imported into other modules using the `#import` directive followed by the module root directory path. The configuration file *module.yaml* is mandatory for each module, and must be located in the module *root* directory. In general, the configuration file tells the compiler which source files should be loaded, which libraries are needed and what is the module version. See the module configuration example.
 
 ```yaml
 version: 20221021
+src: "thread.bl"
 
 x86_64-pc-windows-msvc:
   src: "_thread.win32.bl"
@@ -2175,8 +2245,6 @@ To import the `thread` module use the *root* directory path:
 #import "path/to/module/thread"
 ```
 
-See also [Module Import Policy](modules_build.html#ModuleImportPolicy).
-
 !!! note
     Modules will be redesigned in the future to support the full set of features required by the build system. The long-term plan is to have the module configuration written directly in BL.
 
@@ -2188,17 +2256,17 @@ The configuration file entries may be *global* or *platform-specific*, see the f
 
 The *global* options are applied to the module on all target platforms.
 
-- `version: <N>` - Module version number used during import to distinguish various versions of the same module, see also `ModuleImportPolicy` for more information.
-- `supported: "[triple,...]"` - Optional list of target triples supported by module separated by comma. When module depends on some platform specific libraries (which are supposed to be bundled with the module), we might allow this module only on platforms we've provided the precompiled binaries for. Error is generated when module is used on target not included in this list.
+- `version: <N>` - Module version number used during import to distinguish various versions of the same module.
+- `supported: "[triple,...]"` - Optional list of target triples supported by module separated by comma. When module depends on some platform specific libraries (which are supposed to be bundled with the module), we might allow this module only on platforms we've provided the precompiled binaries for. Error is generated when module is used on target not included in this list. You can get a list of all supported platforms using the `blc --target-supported` command.
 
 ### Global or Platform-Specific Options
 
 All the following options may be applied globally or just for a specific target platform.
 
-- `src: "<FILE1[;FILE2;...]>"` - List of source file paths relative to the module *root* directory separated by **platform-specific** separator (`:` on Windows and `;` on Unix).
+- `src: "<FILE1[,FILE2,...]>"` - List of source file paths relative to the module *root* directory separated by comma.
 - `linker_opt: "<OPTIONS>"` - Additional runtime linker options.
-- `linker_lib_path: "<DIR1;[DIR2;...]>"` - Additional linker lookup directories relative to the module *root* directory.
-- `link: "<LIB1[;LIB2;...]>` - Libraries to link. Note that libraries listed here are dynamically loaded during compilation (may be executed in compile-time).
+- `linker_lib_path: "<DIR1,[DIR2,...]>"` - Additional linker lookup directories relative to the module *root* directory.
+- `link: "<LIB1[,LIB2,...]>` - Libraries to link. Note that libraries listed here are dynamically loaded during compilation (may be executed in compile-time).
 
 ```yaml
 # The version is required to be global.
@@ -2223,6 +2291,7 @@ x86_64-pc-linux-gnu:
 - Additional information should be in `README.txt` file, we might provide instruction how to compile module dependencies if there are any.
 - Bundled platform specific libraries usually in folders with target triple names.
 
+
 # Libraries
 
 > TODO
@@ -2234,6 +2303,8 @@ The full *runtime type introspection* is supported in BL. You can use `typeinfo(
 This feature may be handy for automatic serialization of any kind, the good example is the [print](modules_print.html#print) which gives you automatically pretty print of any passed value or type.
 
 ```bl
+#import "std/print"
+
 main :: fn () s32 {
     // yields pointer to TypeInfo constant structure
     info := typeinfo(s32);
@@ -2346,7 +2417,7 @@ Report warning in compile-time.
 	```
 - `#scope_private` - See [here](manual.html#Private-Scope).
 - `#scope_public` - See [here](manual.html#Public-Scope).
-- `#scope` - See [here](manual.html#Named-Scope).
+- `#scope_module` - See [here](manual.html#Module-Scope).
 - `#tag` - See [here](manual.html#Member-Tagging).
 - `#test` - See [here](manual.html#Unit-Testing).
 - `#thread_local` - See [here](manual.html#Global).
@@ -2463,6 +2534,8 @@ Options:
                            Set custom path to the 'bl.yaml' configuration file.
   --reg-split=<off|on>     Enable/disable splitting of structures passed into the function by value into registers.
   --run-tests              Execute all unit tests in compile time.
+  --scope-dump-injection   Print scope injection structure in dot Graphviz format.
+  --scope-dump-parenting   Print scope parenting structure in dot Graphviz format.
   --silent                 Disable compiler console logging.
   --stats                  Print compilation statistics.
   --syntax-only            Check syntax and exit.

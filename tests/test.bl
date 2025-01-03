@@ -18,21 +18,17 @@ x use commas for global separators
 - do we need link_runtime
 - how to handle platform incompatible messages
 - builder api
-- remove import policy
+x remove import policy
 - config separator inconsistency with compiler default settings
 - #load and #import semicollon inconsistency
 - framework path on macos
 
 */
 
-#import "extra/draw"
-#load "test2.bl"
+#import "extra/freetype2"
 main :: fn () s32 {
 	return 0;
 }
-
-#scope_private
-#load "test2.bl"
 
 
 

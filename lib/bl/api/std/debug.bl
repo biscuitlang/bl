@@ -28,7 +28,7 @@
 
 //! # Debug
 //!
-//! `#load "std/debug.bl"`
+//! Available by default.
 //!
 //! Set of common debugging tools.
 

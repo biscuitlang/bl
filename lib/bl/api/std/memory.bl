@@ -1,8 +1,6 @@
 //! # Memory
 //!
-//! ```bl
-//! #load "std/memory.bl"
-//! ```
+//! Available by default.
 //!
 //! Toolset for manipulation with the system memory.
 //!

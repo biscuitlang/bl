@@ -65,13 +65,6 @@ enum assembly_di_kind {
 	ASSEMBLY_DI_CODEVIEW = 1, // Emit MS CodeView debug info (PDB file).
 };
 
-// keep in sync with build.bl
-enum module_import_policy {
-	IMPORT_POLICY_SYSTEM        = 0,
-	IMPORT_POLICY_BUNDLE        = 1,
-	IMPORT_POLICY_BUNDLE_LATEST = 2,
-};
-
 enum assert_mode {
 	ASSERT_DEFAULT         = 0,
 	ASSERT_ALWAYS_ENABLED  = 1,
@@ -188,8 +181,6 @@ struct target {
 	str_buf_t default_custom_linker_opt;
 	str_buf_t out_dir;
 	str_buf_t module_dir;
-
-	enum module_import_policy module_policy;
 
 	struct {
 		s32    argc;
@@ -308,9 +299,8 @@ void           target_add_lib(struct target *target, const char *lib);
 void           target_append_linker_options(struct target *target, const char *option);
 void           target_set_vm_args(struct target *target, s32 argc, char **argv);
 void           target_set_output_dir(struct target *target, const char *dirpath);
-void           target_set_module_dir(struct target            *target,
-                                     const char               *dir,
-                                     enum module_import_policy policy);
+void           target_set_module_dir(struct target *target,
+                                     const char    *dir);
 bool           target_is_triple_valid(struct target_triple *triple);
 bool           target_init_default_triple(struct target_triple *triple);
 s32            target_triple_to_string(const struct target_triple *triple, char *buf, s32 buf_len);

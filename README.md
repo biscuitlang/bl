@@ -37,6 +37,8 @@ See the installation guide [here](https://biscuitlang.org).
 
 # Example
 ```rust
+#import "std/print"
+
 HelloWorld :: struct {
     hello: s32;
     world: s32;

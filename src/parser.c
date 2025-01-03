@@ -546,14 +546,28 @@ struct ast *parse_hash_directive(struct context *ctx, s32 expected_mask, enum ha
 	case HD_SCOPE_MODULE: {
 		struct scope *current_scope = scope_get(ctx);
 		bassert(current_scope);
-		struct module *module = ctx->unit->module;
-		if (!module) {
-			report_error(UNEXPECTED_DIRECTIVE, tok_directive, CARET_WORD, "Module private scope cannot be created outside of module.");
-			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_directive, current_scope));
-		}
+		if (ctx->assembly->target->kind != ASSEMBLY_DOCS) {
+			struct module *module = ctx->unit->module;
+			if (!module) {
+				report_error(UNEXPECTED_DIRECTIVE, tok_directive, CARET_WORD, "Module private scope cannot be created outside of module.");
+				return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_directive, current_scope));
+			}
 
-		bassert(module->private_scope);
-		scope_set(ctx, module->private_scope);
+			bassert(module->private_scope);
+			scope_set(ctx, module->private_scope);
+		} else {
+			// Create fake private scope even for module private one, we need it just to skip generation of documentation
+			// for private module stuff.
+			struct scope *scope = ctx->unit->private_scope;
+			if (!scope) {
+				struct scope *parent_scope = ctx->unit->parent_scope;
+				scope                      = scope_create(ctx->scope_arenas, SCOPE_PRIVATE, parent_scope, &tok_directive->location);
+				scope_reserve(scope, 256);
+				ctx->unit->private_scope = scope;
+			}
+
+			scope_set(ctx, scope);
+		}
 
 		return_zone(ast_create_node(ctx->ast_arena, AST_MODULE_PRIVATE, tok_directive, current_scope));
 	}
@@ -584,8 +598,7 @@ struct ast *parse_expr_compound(struct context *ctx, struct ast *prev) {
 
 	struct ast *type = prev;
 
-	struct ast *compound =
-	    ast_create_node(ctx->ast_arena, AST_EXPR_COMPOUND, tok_begin, scope_get(ctx));
+	struct ast *compound              = ast_create_node(ctx->ast_arena, AST_EXPR_COMPOUND, tok_begin, scope_get(ctx));
 	compound->data.expr_compound.type = type;
 
 	// parse values

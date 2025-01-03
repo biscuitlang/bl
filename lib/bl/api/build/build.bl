@@ -424,34 +424,13 @@ get_output_dir :: fn (target: *Target) string_view {
 	return ctostr(cdir);
 }
 
-/// Specify import module policy in [set_module_dir](#set_module_dir) function call. Module
-/// dependencies of any target can be treated in different ways depending on use case and needs of
-/// programmer. Sometimes program stability and maintainability is more important than use of
-/// latest versions of modules. These flags can specify how local modules should be updated.
-ModuleImportPolicy :: enum s32 {
-	/// Use system modules but prefer local ones in module directory. This option disables any
-	/// copying and version check. Local module directory can contain custom project related
-	/// modules you don't want to expose to the whole system. This is the **default** option.
-	SYSTEM = 0;
-
-	/// Bundle only missing modules from system into the local module folder and ignore if there is
-	/// newer version available. Individual module updates can be done by renaming old one and
-	/// re-run compilation. Custom modules (not coming from main API folder are kept untouched.)
-	BUNDLE = 1;
-
-	/// Bundle all missing modules from system into the local module folder and update old ones
-	/// also. Custom modules (not coming from main API folder are kept untouched.) Compiler will
-	/// create `.bak` backup directory for every module before any updates.
-	BUNDLE_LATEST = 2;
-}
-
-/// Sets module directory `dir` for `target`. All imported modules will be copied into this
-/// directory according to chosen [ModuleImportPolicy](#moduleimportpolicy). Module policy is set
-/// to `SYSTEM` by default even if this function has not been called.
-set_module_dir :: fn (target: *Target, dir: string_view, policy := ModuleImportPolicy.SYSTEM) {
+/// Sets module directory `dir` for `target`. If #import directive is used, compiler will search the
+/// `dir` first when searching modules. In case the module is not found, default compiler API location
+/// will be used.
+set_module_dir :: fn (target: *Target, dir: string_view) {
 	if !target { panic("Invalid target!"); }
 	if str_is_empty(dir) { return; }
-	__set_module_dir(target, strtoc(dir), auto policy);
+	__set_module_dir(target, strtoc(dir));
 }
 
 /// Get module directory specified by [set_module_dir](#set_module_dir) or default one.
@@ -460,12 +439,6 @@ get_module_dir :: fn (target: *Target) string_view {
 	cdir :: __get_module_dir(target);
 	if !cdir { return str_view_empty; }
 	return ctostr(cdir);
-}
-
-/// Get module import policy specified by [set_module_dir](#set_module_dir) or default one.
-get_module_import_policy :: fn (target: *Target) ModuleImportPolicy {
-	if !target { panic("Invalid target!"); }
-	return auto __get_module_import_policy(target);
 }
 
 /// Returns target triple of the current host machine.
@@ -500,9 +473,8 @@ __link_library :: fn (target: *Target, name: *C.char) #extern;
 __append_linker_options :: fn (target: *Target, option: *C.char) #extern;
 __set_output_dir :: fn (target: *Target, dir: *C.char) #extern;
 __get_output_dir :: fn (target: *Target) *C.char #extern;
-__set_module_dir :: fn (target: *Target, dir: *C.char, policy: C.int) #extern;
+__set_module_dir :: fn (target: *Target, dir: *C.char) #extern;
 __get_module_dir :: fn (target: *Target) *C.char #extern;
-__get_module_import_policy :: fn (target: *Target) C.int #extern;
 __get_default_triple :: fn (triple: *TargetTriple) #extern;
 __triple_to_string :: fn (triple: *TargetTriple, buf: *C.char, buf_len: C.int) C.int #extern;
 __builder_get_options :: fn (opt: *BuilderOptions) #extern;

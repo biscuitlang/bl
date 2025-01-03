@@ -1,6 +1,0 @@
-// #import "std/print"
-
-append :: fn () {
-	// print("Hello\n");
-}
-

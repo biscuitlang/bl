@@ -1,7 +1,13 @@
+io :: #import "std/io";
+C  :: #import "libc";
+
 #import "std/fs"
 #import "std/pool"
 #import "md4c"
 #import "std/table"
+#import "std/string"
+#import "std/print"
+#import "std/array"
 
 MD_PAGES :: [_]string_view.{
 	"index",
@@ -65,7 +71,7 @@ MD_PAGES_MODULES :: [_]string_view.{
 	"modules/glwindow.win32",
 	"modules/miniaudio",
 	"modules/png",
-	"modules/ui",
+	// "modules/ui",
 	"modules/vulkan",
 };
 
@@ -118,7 +124,7 @@ MODULES_MENU :: [_]MenuItem.{
 	.{ id = "modules_glwindow.win32.html", title = "extra/glwindow", level = 2},
 	.{ id = "modules_miniaudio.html", title = "extra/miniaudio", level = 2},
 	.{ id = "modules_png.html", title = "extra/png", level = 2},
-	.{ id = "modules_ui.html", title = "extra/ui", level = 2},
+	// .{ id = "modules_ui.html", title = "extra/ui", level = 2},
 	.{ id = "modules_vulkan.html", title = "extra/vulkan", level = 2},
 };
 
@@ -135,15 +141,15 @@ MODULE_SRC :: [_]string_view.{
 	"extra/glwindow/glwindow.win32.bl",
 	"extra/mabl/miniaudio.bl",
 	"extra/png/png.bl",
-	"extra/ui/ui.bl",
-	"extra/ui/ui_common.bl",
+	// "extra/ui/ui.bl",
+	// "extra/ui/ui_common.bl",
 	"extra/vulkan/vulkan.bl",
-	"os/macos/macos.bl",
-	"os/posix/pthread/pthread.bl",
-	"os/posix/semaphore/semaphore.bl",
-	"os/posix/syscall/syscall.bl",
-	"os/posix/syscall/x86_64-linux-gnu/syscall.bl",
-	"os/windows/winapi.bl",
+	// "os/macos/macos.bl",
+	// "os/posix/pthread/pthread.bl",
+	// "os/posix/semaphore/semaphore.bl",
+	// "os/posix/syscall/syscall.bl",
+	// "os/posix/syscall/x86_64-linux-gnu/syscall.bl",
+	// "os/windows/winapi.bl",
 	"std/arena/arena.bl",
 	"std/array/array.bl",
 	"std/async/async.bl",
@@ -156,7 +162,7 @@ MODULE_SRC :: [_]string_view.{
 	"std/fs/fs.bl",
 	"std/growing_buffer_stream/growing_buffer_stream.bl",
 	"std/io/io.bl",
-	"std/math.bl",
+	"std/math/math.bl",
 	"std/memory.bl",
 	"std/pool/pool.bl",
 	"std/print/print.bl",
@@ -174,7 +180,7 @@ Lang :: enum {
 	BL;
 }
 
-include_file_cache: std.Table(u32, string);
+include_file_cache: Table(u32, string);
 
 root_dir:   string;
 src_dir:    string;
@@ -191,7 +197,6 @@ main :: fn () s32 {
 	LIB_DIR        :: "../lib/bl/api";
 	MODULE_OUT_DIR :: tprint("%/%", SRC_DIR, "modules");
 
-	using std;
 	defer temporary_release();
 
 	root_dir :: get_root_dir();
@@ -235,7 +240,7 @@ main :: fn () s32 {
 
 	search_json := str_new(1024 * 10);
 	defer str_delete(&search_json);
-	std.str_append(&search_json, "[");
+	str_append(&search_json, "[");
 
 	menu :: str_new(256);
 	defer str_delete(&menu);
@@ -255,7 +260,7 @@ main :: fn () s32 {
 		temporary_reset();
 	}
 
-	std.str_append(&search_json, "]");
+	str_append(&search_json, "]");
 
 	generate_modules_page("modules", menu, MODULES_MENU);
 	temporary_reset();
@@ -277,12 +282,10 @@ main :: fn () s32 {
 }
 
 copy_additional_files :: fn () Error {
-	using std;
 	return copy_file(tprint("%/%", src_dir, "examples/demo.bl"), tprint("%/%", side_dir, "demo.bl"), true);
 }
 
 generate_module_documentation :: fn () Error {
-	using std;
 	print_info("Generate BL API documentation in '%'.\n", module_dir);
 	measure_elapsed_ms_begin();
 
@@ -330,8 +333,6 @@ Ctx :: struct {
 }
 
 md2html :: fn (name: string_view, menu: string_view, search_json: *string) Error {
-	using std;
-
 	measure_elapsed_ms_begin();
 	allocator :: application_context.temporary_allocator;
 
@@ -388,7 +389,6 @@ md2html :: fn (name: string_view, menu: string_view, search_json: *string) Error
 }
 
 generate_modules_page :: fn (name: string_view, menu: string_view, module_list: []MenuItem) {
-	using std;
 	allocator :: application_context.temporary_allocator;
 	content   :: str_new(2048, allocator);
 	page_menu :: str_new(2048, allocator);
@@ -408,12 +408,11 @@ generate_modules_page :: fn (name: string_view, menu: string_view, module_list: 
 }
 
 generate_page :: fn (filepath: string_view, menu: string_view, content: string_view, page_menu := "", scripts := "") Error {
-	using std;
-
 	file, file_err :: open_file(filepath, OpenFileMode.WRITE | OpenFileMode.CREATE);
 	defer close_file(&file);
 	if file_err then return file_err;
 
+	using io;
 	write_string(&file, tprint(
 		"<!DOCTYPE html>\n"
 		"<html lang=\"en\">\n"
@@ -465,19 +464,16 @@ generate_page :: fn (filepath: string_view, menu: string_view, content: string_v
 }
 
 write_search_db :: fn (db: string_view) Error {
-	using std;
 	file, file_err :: open_file(tprint("%/search.json", side_dir), OpenFileMode.WRITE | OpenFileMode.CREATE);
 	defer close_file(&file);
 	if file_err then return file_err;
 
-	write_string(&file, db);
+	io.write_string(&file, db);
 
 	return OK;
 }
 
 generate_menu_entries :: fn (dest: *string, entries: []MenuItem) {
-	using std;
-
 	level := -1;
 	loop i := 0; i < entries.len; i += 1 {
 		item :: &entries[i];
@@ -507,13 +503,13 @@ generate_menu_entries :: fn (dest: *string, entries: []MenuItem) {
 add_search_entry :: fn (ctx: *Ctx, id: string_view, text: string_view) {
 	if !ctx.search_json then return;
 	if (@ctx.search_json)[ctx.search_json.len-1] != '[' {
-		std.str_append(ctx.search_json, ",");
+		str_append(ctx.search_json, ",");
 	}
-	std.str_concat(ctx.search_json, "{\"id\":\"", id, "\",\"file\":\"", ctx.output_file, "\",\"text\":\"", text, "\"}");
+	str_concat(ctx.search_json, "{\"id\":\"", id, "\",\"file\":\"", ctx.output_file, "\",\"text\":\"", text, "\"}");
 }
 
-load_whole_file :: fn (stream: *std.Stream, allocator: *Allocator = null) (data: string, err: Error) {
-	using std;
+load_whole_file :: fn (stream: *io.Stream, allocator: *Allocator = null) (data: string, err: Error) {
+	using io;
 	using StreamLocator;
 
 	prev_location, err1  :: seek(stream, CURRENT);
@@ -537,7 +533,6 @@ load_whole_file :: fn (stream: *std.Stream, allocator: *Allocator = null) (data:
 }
 
 enter_block :: fn (kind: MD_BLOCKTYPE, detail: *C.void_ptr, ctx: *Ctx) C.int {
-	using std;
 	using MD_BLOCKTYPE;
 
 	switch kind {
@@ -578,7 +573,6 @@ enter_block :: fn (kind: MD_BLOCKTYPE, detail: *C.void_ptr, ctx: *Ctx) C.int {
 }
 
 leave_block :: fn (kind: MD_BLOCKTYPE, detail: *C.void_ptr, ctx: *Ctx) C.int {
-	using std;
 	using MD_BLOCKTYPE;
 
 	switch kind {
@@ -610,7 +604,6 @@ leave_block :: fn (kind: MD_BLOCKTYPE, detail: *C.void_ptr, ctx: *Ctx) C.int {
 }
 
 enter_span :: fn (kind: MD_SPANTYPE, detail: *C.void_ptr, ctx: *Ctx) C.int {
-	using std;
 	using MD_SPANTYPE;
 
 	switch kind {
@@ -627,7 +620,6 @@ enter_span :: fn (kind: MD_SPANTYPE, detail: *C.void_ptr, ctx: *Ctx) C.int {
 }
 
 leave_span :: fn (kind: MD_SPANTYPE, _: *C.void_ptr, ctx: *Ctx) C.int {
-	using std;
 	using MD_SPANTYPE;
 
 	switch kind {
@@ -641,7 +633,6 @@ leave_span :: fn (kind: MD_SPANTYPE, _: *C.void_ptr, ctx: *Ctx) C.int {
 }
 
 text :: fn (kind: MD_TEXTTYPE, ptr: *MD_CHAR, len: MD_SIZE, ctx: *Ctx) C.int {
-	using std;
 	using MD_TEXTTYPE;
 
 	str := string_view.{ len = auto len, ptr = auto ptr };
@@ -735,15 +726,14 @@ BL_KEYWORDS :: [_]string_view.{
 };
 
 BL_DIRECTIVES :: [_]string_view.{
-	"load", "enable_if", "call_location", "extern", "compiler", "private",
+	"load", "enable_if", "call_location", "extern", "compiler",
 	"inline", "noinline", "file", "line", "base", "entry", "build_entry",
 	"if", "tag", "noinit", "intrinsic", "test", "import", "export",
-	"scope", "thread_local", "flags", "maybe_unused", "comptime", "obsolete",
+	"scope_private", "scope_public", "scope_module", "thread_local",
+	"flags", "maybe_unused", "comptime", "obsolete",
 };
 
 append_bl_code :: fn (ctx: *Ctx, code: string_view) {
-	using std;
-
 	tokenizer := Tokenizer.{
 		bytes =  code,
 		index =  0,
@@ -817,21 +807,19 @@ append_bl_comment :: fn (ctx: *Tokenizer) bool {
 
 	if len > 0 {
 		code :: string_view.{ len, &ctx.bytes[start_index] };
-		std.str_concat(ctx.dest, "<span class=\"syntax-comment\">", code, "</span>");
+		str_concat(ctx.dest, "<span class=\"syntax-comment\">", code, "</span>");
 	}
 
 	return true;
 }
 
 append_bl_identifier_or_keyword :: fn (ctx: *Tokenizer) bool {
-	using std;
-
 	start_index := ctx.index;
 	len := 0;
 
 	loop ctx.index < ctx.bytes.len {
 		c :: ctx.bytes[ctx.index];
-		if c == '_' || std.is_alpha(c) || (len > 0 && std.is_digit(c)) {
+		if c == '_' || is_alpha(c) || (len > 0 && is_digit(c)) {
 			len       += 1;
 			ctx.index += 1;
 		} else {
@@ -854,7 +842,6 @@ append_bl_identifier_or_keyword :: fn (ctx: *Tokenizer) bool {
 }
 
 append_bl_directive :: fn (ctx: *Tokenizer) bool {
-	using std;
 	if ctx.bytes[ctx.index] != '#' then return false;
 
 	start_index := ctx.index;
@@ -863,7 +850,7 @@ append_bl_directive :: fn (ctx: *Tokenizer) bool {
 
 	loop ctx.index < ctx.bytes.len {
 		c :: ctx.bytes[ctx.index];
-		if c != '_' && std.is_alpha(c) == false { break; }
+		if c != '_' && is_alpha(c) == false { break; }
 		len       += 1;
 		ctx.index += 1;
 	}
@@ -889,7 +876,6 @@ append_bl_directive :: fn (ctx: *Tokenizer) bool {
 }
 
 fix_text :: fn (ctx: *Ctx, text: string_view) string_view {
-	using std;
 	result :: &ctx.fix_text_tmp;
 	result.len = 0;
 	loop i := 0; i < text.len; i += 1 {
@@ -904,7 +890,6 @@ fix_text :: fn (ctx: *Ctx, text: string_view) string_view {
 }
 
 include_file :: fn (filepath: string_view) (content: string_view, err: Error) {
-	using std;
 	hash :: str_hash(filepath);
 
 	fullpath :: tprint("%/%", src_dir, filepath);
@@ -928,8 +913,6 @@ include_file :: fn (filepath: string_view) (content: string_view, err: Error) {
 }
 
 get_root_dir :: fn () string {
-	using std;
-
 	exec_path :: os_get_exec_path();
 	defer str_delete(&exec_path);
 
@@ -951,10 +934,7 @@ get_blc_branch :: fn () string_view #inline {
 }
 
 list_files_recursive :: fn (dirpath: string_view, out: *string) {
-	using std;
-
-	visitor :: fn (info: *std.FileVisitInfo, data: *string) Error {
-		using std;
+	visitor :: fn (info: *FileVisitInfo, data: *string) Error {
 		ignore :: info.filename.len > 0 && info.filename[0] == '_';
 		if info.is_directory {
 			info.step_into_directory = !ignore;
@@ -990,7 +970,6 @@ cmd :: fn (fmt: string_view, args: ...) Error {
 }
 
 cmd_read_stdout :: fn (fmt: string_view, args: ...) (out: string_view, err: Error) {
-	using std;
 	cmd :: tprint(fmt, args);
 
 	tmp  := str_new(128, application_context.temporary_allocator);

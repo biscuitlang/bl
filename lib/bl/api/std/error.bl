@@ -28,7 +28,7 @@
 
 //! # Error Handling
 //!
-//! `#load "std/error.bl"`
+//! Available by default.
 //!
 //! There is no support for *exceptions* of any kind in BL, however, there are a few features in the
 //! language helping with error handling such as [defer](/book/control_flow/#defer) and

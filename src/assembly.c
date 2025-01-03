@@ -260,10 +260,9 @@ struct target *target_new(const char *name) {
 	str_buf_append(&target->out_dir, cstr("."));
 
 	// Setup some defaults.
-	target->opt           = ASSEMBLY_OPT_DEBUG;
-	target->kind          = ASSEMBLY_EXECUTABLE;
-	target->module_policy = IMPORT_POLICY_SYSTEM;
-	target->reg_split     = true;
+	target->opt       = ASSEMBLY_OPT_DEBUG;
+	target->kind      = ASSEMBLY_EXECUTABLE;
+	target->reg_split = true;
 #ifdef BL_DEBUG
 	target->verify_llvm = true;
 #endif
@@ -352,7 +351,7 @@ void target_append_linker_options(struct target *target, const char *option) {
 	str_buf_append_fmt(&target->default_custom_linker_opt, "{s} ", option);
 }
 
-void target_set_module_dir(struct target *target, const char *dir, enum module_import_policy policy) {
+void target_set_module_dir(struct target *target, const char *dir) {
 	bmagic_assert(target);
 	if (!dir) {
 		builder_error("Cannot create module directory.");
@@ -362,7 +361,6 @@ void target_set_module_dir(struct target *target, const char *dir, enum module_i
 		builder_error("Cannot create module directory '%s'.", dir);
 		return;
 	}
-	target->module_policy = policy;
 }
 
 bool target_is_triple_valid(struct target_triple *triple) {
@@ -465,7 +463,8 @@ struct assembly *assembly_new(const struct target *target) {
 	assembly->gscope = scope_create(scope_arenas, SCOPE_GLOBAL, NULL, NULL);
 	scope_reserve(assembly->gscope, 256);
 
-	struct scope *unit_parent_scope = NULL;
+	dl_init(assembly);
+	mir_init(assembly);
 
 	if (assembly->target->kind != ASSEMBLY_DOCS) {
 		assembly->module_scope = scope_create(scope_arenas, SCOPE_MODULE, assembly->gscope, NULL);
@@ -478,17 +477,20 @@ struct assembly *assembly_new(const struct target *target) {
 
 		scope_insert(assembly->gscope, SCOPE_DEFAULT_LAYER, scope_entry);
 
-		unit_parent_scope = assembly->module_scope;
+		struct scope *unit_parent_scope = assembly->module_scope;
+
+		// Add units from target
+		for (usize i = 0; i < arrlenu(target->files); ++i) {
+			assembly_add_unit(assembly, make_str_from_c(target->files[i]), NULL, unit_parent_scope, NULL);
+		}
 	} else {
-		unit_parent_scope = assembly->gscope;
-	}
-
-	dl_init(assembly);
-	mir_init(assembly);
-
-	// Add units from target
-	for (usize i = 0; i < arrlenu(target->files); ++i) {
-		assembly_add_unit(assembly, make_str_from_c(target->files[i]), NULL, unit_parent_scope, NULL);
+		// Add units from target, for the documentation we create separate scope for each file to prevent
+		// symbol collisions.
+		for (usize i = 0; i < arrlenu(target->files); ++i) {
+			struct scope *unit_parent_scope = scope_create(scope_arenas, SCOPE_GLOBAL, assembly->gscope, NULL);
+			scope_reserve(unit_parent_scope, 256);
+			assembly_add_unit(assembly, make_str_from_c(target->files[i]), NULL, unit_parent_scope, NULL);
+		}
 	}
 
 	const str_t preload_file = make_str_from_c(read_config(builder.config, assembly->target, "preload_file", ""));
@@ -689,6 +691,10 @@ static void import_link(import_elem_context_t *ctx, const char *lib) {
 	assembly_add_native_lib(ctx->assembly, lib, NULL, false);
 }
 
+static void validate_module_target(import_elem_context_t *ctx, const char *triple_str) {
+	if (strcmp(ctx->target_triple_str, triple_str) == 0) ++ctx->is_supported_for_current_target;
+}
+
 static inline struct module *lookup_module(struct assembly *assembly, const hash_t hash, str_t modulepath) {
 	for (usize i = 0; i < arrlenu(assembly->modules); ++i) {
 		struct module *module = assembly->modules[i];
@@ -740,6 +746,9 @@ static struct module *import_module(struct assembly *assembly, str_t module_path
 	// II. Read global module options.
 
 	import_elem_context_t ctx = {assembly, module->scope, module, module_root_dir};
+	// @Performance 2024-08-02: We might want to cache this???
+	target_triple_to_string(&assembly->target->triple, ctx.target_triple_str, static_arrlenu(ctx.target_triple_str));
+
 	assembly_append_linker_options(assembly, confreads(config, "/linker_opt", ""));
 
 	process_tokens(&ctx,
@@ -752,7 +761,26 @@ static struct module *import_module(struct assembly *assembly, str_t module_path
 	               CONFIG_SEPARATOR,
 	               (process_tokens_fn_t)&import_lib_path);
 
-	process_tokens(&ctx, confreads(config, "/link", ""), ENVPATH_SEPARATOR, (process_tokens_fn_t)&import_link);
+	process_tokens(&ctx, confreads(config, "/link", ""), CONFIG_SEPARATOR, (process_tokens_fn_t)&import_link);
+
+	// This is optional configuration entry, this way we might limit supported platforms of this module. In case the
+	// entry is missing from the config file, module is supposed to run anywhere.
+	// Another option might be check presence of platform specific entries, but we might have modules requiring some
+	// platform specific configuration only on some platforms, but still be fully functional on others...
+	if (process_tokens(&ctx, confreads(config, "/supported", ""), ",", (process_tokens_fn_t)&validate_module_target)) {
+		if (!ctx.is_supported_for_current_target) {
+			builder_msg(MSG_ERR,
+			            ERR_UNSUPPORTED_TARGET,
+			            TOKEN_OPTIONAL_LOCATION(import_from),
+			            CARET_WORD,
+			            "Module is not supported for compilation target platform triple '%s'. "
+			            "The module explicitly specifies supported platforms in 'supported' module configuration section. "
+			            "Module directory might contain information about how to compile module dependencies for your target. "
+			            "Module configuration is imported from '%s'.",
+			            ctx.target_triple_str,
+			            module_path.ptr);
+		}
+	}
 
 	// III. Read target triple specific module options if any.
 	assembly_append_linker_options(assembly,
