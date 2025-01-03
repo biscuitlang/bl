@@ -5158,7 +5158,6 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 	enum mir_value_address_mode target_addr_mode = target_ptr->value.addr_mode;
 	struct ast                 *ast_member_ident = member_ptr->member_ident;
 
-	// @Cleanup 2024-12-23: This should go away with remove of named scopes.
 	if (target_type->kind == MIR_TYPE_NAMED_SCOPE) {
 		struct scope_entry *scope_entry = MIR_CEV_READ_AS(struct scope_entry *, &target_ptr->value);
 		bmagic_assert(scope_entry);
@@ -5347,7 +5346,6 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
                                                      &(scope_lookup_args_t){
 			                                                   .layer = scope_layer,
 			                                                   .id    = rid,
-                                                         //.in_tree = true,
                                                      });
 			if (!found) {
 				report_error(UNKNOWN_SYMBOL, member_ptr->member_ident, "Unknown type member.");

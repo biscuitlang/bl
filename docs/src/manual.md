@@ -948,8 +948,10 @@ my_function :: fn (person_1: *Person, person_2: Person, age: s32) {
 In some cases we want to provide less boilerplate API and call functions only with some of the arguments from the argument list, this is possible using argument default values.
 
 ```bl
+math :: #import "std/math";
+
 compare :: fn (a: f32, b: f32, epsilon: f32 = 0.1f) bool {
-    return std.abs(a - b) < epsilon;
+    return math.abs(a - b) < epsilon;
 }
 
 main :: fn () s32 {
@@ -964,7 +966,7 @@ The explicit `f32` type is optional for the `epsilon` with default value since w
 
 ```bl
 compare :: fn (a: f32, b: f32, epsilon := 0.1f) bool {
-    return std.abs(a - b) < epsilon;
+    return abs(a - b) < epsilon;
 }
 ```
 
@@ -972,7 +974,7 @@ One limitation here is that the arguments with default values must go very last 
 
 ```bl
 compare :: fn (epsilon := 0.1f, a: f32, b: f32) bool {
-    return std.abs(a - b) < epsilon;
+    return abs(a - b) < epsilon;
 }
 ```
 
@@ -981,7 +983,7 @@ test2.bl:1:16: error(0035): All arguments with default value must be listed last
                             argument list. Before arguments without default value.
 >  1 | compare :: fn (epsilon := 0.1f, a: f32, b: f32) bool {
      |                ^^^^^^^
-   2 |     return std.abs(a - b) < epsilon;
+   2 |     return abs(a - b) < epsilon;
 ```
 
 ### Call Location
@@ -1203,6 +1205,8 @@ sort :: fn (list: []s32, cmp: *fn(a: *s32, b: *s32) bool)  {
 We pass a `list` slice of numbers and we want it to be sorted with use of some custom `cmp` comparator. The comparator in this case is a pointer to any function taking *\*s32*, *\*s32* and returning *bool*. The easiest way to provide such a function is to create an anonymous callback and pass its address.
 
 ```bl
+#import "std/print"
+
 main :: fn () s32 {
     numbers: []s32;
     alloc_slice(&numbers, 10);
@@ -1224,6 +1228,8 @@ main :: fn () s32 {
 More functions can be associated with one name with explicit function overloading groups. A call to a group of functions is replaced with a proper function call during compilation, based on provided arguments.
 
 ```bl
+#import "std/print"
+
 group :: fn { s32_add; f32_add; }
 
 s32_add :: fn (a: s32, b: s32) s32 {
@@ -1440,10 +1446,12 @@ table_insert :: fn (table: *Table, key: ?TKey, value: ?TValue) {
 In some cases we want to specify explicitly what implementation should be used for some specific type, i.e. in a function doing a comparison of two values, we can provide specific handling for string:
 
 ```bl
+#import "std/string"
+
 is_equal :: fn { // function group
     // Implementation used for strings only.
     fn (a: string_view, b: string_view) bool {
-        return std.str_compare(a, b);
+        return str_compare(a, b);
     };
 
     // Implementation used for all other types.
@@ -1502,8 +1510,10 @@ my_add :: fn (a: s32, b: s32) s32 #export "add" {
 Every call to such a function is going to be evaluated in compile-time and replaced by constant eventually.
 
 ```bl
+#import "std/string"
+
 hash_string :: fn (s: string_view) u32 #comptime {
-    return std.str_hash(s);
+    return str_hash(s);
 }
 ```
 

@@ -30,7 +30,7 @@
 
 //! # Test
 //!
-//! `#load "std/test.bl"`
+//! `#import "std/test.bl"`
 //!
 //! Integrated unit testing API.
 
@@ -240,7 +240,8 @@ test_is_error :: fn (got_err: Error, expected_code: s32, loc := #call_location) 
 /// ### Example
 ///
 /// ```bl
-/// #load "std/test.bl"
+/// #import "std/test.bl"
+/// #import "std/print"
 ///
 /// my_test :: fn () #test {
 ///     print("Hello from test case!!!\n");
@@ -321,7 +322,7 @@ test_run :: fn (print_results := true) s32 {
 #import "std/print"
 
 math :: #import "std/math";
-C :: #import "libc";
+C    :: #import "libc";
 
 TestRun :: struct {
 	func: *fn();
