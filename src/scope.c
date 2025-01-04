@@ -93,9 +93,6 @@ void scope_insert(struct scope *scope, hash_t layer, struct scope_entry *entry) 
 	zone();
 	bassert(scope);
 	bassert(entry && entry->id);
-	if (scope->kind == SCOPE_GLOBAL) {
-		bcheck_main_thread();
-	}
 	const u64 hash = entry_hash(entry->id->hash, layer);
 	bassert(tbl_lookup_index_with_key(scope->entries, hash, entry->id->str) == -1 && "Duplicate scope entry key!!!");
 	entry->parent_scope              = scope;
