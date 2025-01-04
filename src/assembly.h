@@ -46,6 +46,11 @@
 struct builder;
 struct builder_options;
 
+enum scope_dump_mode {
+	SCOPE_DUMP_MODE_PARENTING,
+	SCOPE_DUMP_MODE_INJECTION,
+};
+
 enum assembly_kind {
 	ASSEMBLY_EXECUTABLE     = 0,
 	ASSEMBLY_SHARED_LIB     = 1,
@@ -319,11 +324,6 @@ struct module   *assembly_import_module(struct assembly *assembly,
                                         struct token    *import_from,
                                         struct scope    *scope);
 DCpointer        assembly_find_extern(struct assembly *assembly, const str_t symbol);
-
-enum scope_dump_mode {
-	SCOPE_DUMP_MODE_PARENTING,
-	SCOPE_DUMP_MODE_INJECTION,
-};
 
 // Print the top-level scope structure as dot graph.
 void assembly_dump_scope_structure(struct assembly *assembly, FILE *stream, enum scope_dump_mode mode);

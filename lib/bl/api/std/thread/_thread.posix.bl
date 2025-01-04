@@ -1,6 +1,8 @@
 #scope_module
 #import "os/posix/pthread"
 
+C :: #import "libc";
+
 Handle :: pthread_t;
 
 create :: fn (entry: ThreadEntryFn, ctx: *u8) (Handle, Error) {

@@ -1,7 +1,7 @@
 // =================================================================================================
 // bl
 //
-// File:   macos.bl 
+// File:   macos.bl
 // Author: Martin Dorazil
 // Date:   26/2/20
 //
@@ -26,8 +26,6 @@
 // SOFTWARE.
 // =================================================================================================
 
-#scope macos
-
 CFAllocatorRef :: *u8;
 CFIndex :: s64;
 CFStringRef :: *u8;
@@ -44,12 +42,12 @@ CFStringEncoding :: enum u32 {
 	WindowsLatin1 = 0x0500;
 	ISOLatin1 = 0x0201;
 	NextStepLatin = 0x0B01;
-	ASCII = 0x0600; 
+	ASCII = 0x0600;
 	Unicode = 0x0100;
 	UTF8 = 0x08000100;
 	NonLossyASCII = 0x0BFF;
 
-	UTF16 = 0x0100; 
+	UTF16 = 0x0100;
 	UTF16BE = 0x10000100;
 	UTF16LE = 0x14000100;
 
@@ -136,7 +134,7 @@ FSEventStreamCallback :: * fn (
 	eventPaths: *u8,
 	eventFlags: *FSEventStreamEventFlags,
 	eventIds: *FSEventStreamEventId
-); 
+);
 
 FSEventStreamCreate :: fn (
 	allocator: CFAllocatorRef,
@@ -146,7 +144,7 @@ FSEventStreamCreate :: fn (
 	sinceWhen: FSEventStreamEventId,
 	latency: CFTimeInterval,
 	flags: FSEventStreamCreateFlags
-) FSEventStreamRef #extern "FSEventStreamCreate"; 
+) FSEventStreamRef #extern "FSEventStreamCreate";
 
 FSEventStreamScheduleWithRunLoop :: fn (
 	streamRef: FSEventStreamRef,
@@ -174,3 +172,6 @@ MachTimebaseInfo :: struct {
 
 mach_timebase_info :: fn (info: *MachTimebaseInfo) C.int #extern "mach_timebase_info";
 mach_absolute_time :: fn () u64 #extern "mach_absolute_time";
+
+#scope_private
+C :: #import "libc";
