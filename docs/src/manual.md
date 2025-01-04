@@ -1520,6 +1520,8 @@ hash_string :: fn (s: string_view) u32 #comptime {
 The `hash` function can be later called the same way as any other regular function, but the call itself is replaced by the constant result value in the final binary.
 
 ```bl
+#import "std/print"
+
 main :: fn () s32 {
     // 'hash_string' is executed in compile-time and 'hash' value is initialized
     // later in runtime with pre-calculated constant.
@@ -1709,6 +1711,8 @@ In this chapter, we'll focus on language features focused on conditional code ex
 The *if-else*, as in many other languages, splits the code into two branches and executes one or the other based on some runtime condition.  The first branch is executed only if the condition is *true*. The expression after *if* statement is required to be a *bool* or at least convertible to *bool* type. The implicit conversion is applied only to the pointer values where the *null* pointer converts to *false* implicitly.
 
 ```bl
+#import "std/print"
+
 main :: fn () s32 {
     do_it := true;
 
@@ -1722,6 +1726,8 @@ main :: fn () s32 {
 Notice that we don't need additional brackets around the condition like in C-like languages.  We can optionally introduce the *else* block executed if the *if* condition is *false*.
 
 ```bl
+#import "std/print"
+
 main :: fn () s32 {
     do_it := false;
 
@@ -1739,6 +1745,8 @@ main :: fn () s32 {
 In some cases we might need only simple single line piece of code executed conditionally. To make it possible, since brackets around the if statement expression are not required, we've introduced `then` keyword. All following examples are valid.
 
 ```bl
+#import "std/print"
+
 main :: fn () s32 {
 	expr := true;
 
@@ -1760,6 +1768,8 @@ main :: fn () s32 {
 We can also create the whole conditional chain:
 
 ```bl
+#import "std/print"
+
 Color :: enum {
     RED;
     GREEN;
@@ -1816,6 +1826,8 @@ main :: fn () s32 {
 A *switch* can compare one numeric value against multiple values and switch execution flow to matching case. The `default` case can be used for all other values we don't explicitly handle. While the expression after *switch* keyword is supposed to be a runtime value, the *case* values must be known in compile-time. Currently, the *switch* can be used only with *integer* types.
 
 ```bl
+#import "std/print"
+
 Color :: enum {
     RED;
     GREEN;
@@ -1888,6 +1900,8 @@ switch color {
 Another common way how to manage program control flow is looping. This is a well-known concept available in a lot of languages. We simply run some part of code N-times where N is based on some condition. In BL there is only a single *loop* keyword for loops followed by an optional condition. We can use *break* and *continue* statements inside loops. The *break* statement will simply interrupt looping and skip out of the *loop* body. The *continue* statement will immediately jump to the next loop iteration.
 
 ```bl
+#import "std/print"
+
 main :: fn () s32 {
     count :: 10;
     i := 0;
@@ -1930,6 +1944,8 @@ main :: fn () s32 {
 One, not so common concept is a *defer* statement. The *defer* statement can be used for the "deferring" execution of some expressions. All deferred expressions will be executed at the end of the current scope in **reverse** order. This is usually useful for some cleanup (i.e. closing a file or freeing memory). When the scope is terminated by return all previous defers up the scope tree will be called after evaluation of return value. See the following example:
 
 ```bl
+#import "std/print"
+    
 main :: fn () s32 {
     defer print("1\n");
 

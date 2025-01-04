@@ -1,7 +1,5 @@
 #load "ui_common.bl"
 
-#scope ui
-
 // Scale of the UI for conversion from device independent pixels to raw pixels.
 scale_factor := 1.f;
 global_alpha := 1.f;
@@ -47,8 +45,6 @@ InitInfo :: struct {
 }
 
 init :: fn (info: *InitInfo) {
-	using std;
-
 	main_font = info.font;
 	icon_font = info.font_icons;
 
@@ -83,12 +79,11 @@ get_default_style_ref :: fn {
 };
 
 begin :: fn () {
-	edit_tmp = std.str_new();
-	num_conversion_tmp = std.str_new();
+	edit_tmp = str_new();
+	num_conversion_tmp = str_new();
 }
 
 end :: fn () {
-	using std;
 	tbl_terminate(&buttons);
 	tbl_terminate(&scroll_areas);
 	tbl_terminate(&lists);
@@ -109,7 +104,7 @@ end :: fn () {
 	reset_allocator(&context_pool);
 }
 
-frame_begin :: fn (viewport_size: glm.v2, dt: f32) {
+frame_begin :: fn (viewport_size: v2, dt: f32) {
 	delta_time = dt;
 
 	push(make_rect(0.f, 0.f, viewport_size.x, viewport_size.y));
@@ -165,7 +160,7 @@ Window :: struct {
 	flags: WindowFlags;
 	focus: bool;
 
-	move_start: glm.v2;
+	move_start: v2;
 	z_order: s32;
 	hash: u64;
 	is_moving: bool;
@@ -216,7 +211,7 @@ window_begin :: fn (window: *Window) bool {
 	}
 
 	if (!is_flag(window.flags, NO_RESIZE)) {
-		min_size :: glm.v2.{ 50.f , 50.f };
+		min_size :: v2.{ 50.f , 50.f };
 		using WindowResize;
 		switch window.resize {
 			NONE;
@@ -337,7 +332,7 @@ window_begin :: fn (window: *Window) bool {
 			if is_point_in_rect(make_rect(mouse_rect.x + mouse_rect.w - offset, mouse_rect.y + mouse_rect.h - offset, offset, offset), mouse) {
 				// bottom-right
 				#if PLATFORM == Platform.WINDOWS {
-					win32.SetCursor(win32.LoadCursorA(null, win32.IDC_SIZENWSE));
+					SetCursor(LoadCursorA(null, IDC_SIZENWSE));
 				}
 				if lmb_pressed_over_window {
 					window.resize = WindowResize.BOTTOM_RIGHT;
@@ -345,7 +340,7 @@ window_begin :: fn (window: *Window) bool {
 			} else if is_point_in_rect(make_rect(mouse_rect.x + mouse_rect.w - offset, mouse_rect.y, offset, mouse_rect.h - offset), mouse) {
 				// right
 				#if PLATFORM == Platform.WINDOWS {
-					win32.SetCursor(win32.LoadCursorA(null, win32.IDC_SIZEWE));
+					SetCursor(LoadCursorA(null, IDC_SIZEWE));
 				}
 				if lmb_pressed_over_window {
 					window.resize = WindowResize.RIGHT;
@@ -353,7 +348,7 @@ window_begin :: fn (window: *Window) bool {
 			} else if is_point_in_rect(make_rect(mouse_rect.x + offset, mouse_rect.y + mouse_rect.h - offset, mouse_rect.w - offset * 2.f, offset), mouse) {
 				// bottom
 				#if PLATFORM == Platform.WINDOWS {
-					win32.SetCursor(win32.LoadCursorA(null, win32.IDC_SIZENS));
+					SetCursor(LoadCursorA(null, IDC_SIZENS));
 				}
 				if lmb_pressed_over_window {
 					window.resize = WindowResize.BOTTOM;
@@ -361,7 +356,7 @@ window_begin :: fn (window: *Window) bool {
 			} else if is_point_in_rect(make_rect(mouse_rect.x, mouse_rect.y + mouse_rect.h - offset, offset, offset), mouse) {
 				// bottom-left
 				#if PLATFORM == Platform.WINDOWS {
-					win32.SetCursor(win32.LoadCursorA(null, win32.IDC_SIZENESW));
+					SetCursor(LoadCursorA(null, IDC_SIZENESW));
 				}
 				if lmb_pressed_over_window {
 					window.resize = WindowResize.BOTTOM_LEFT;
@@ -369,7 +364,7 @@ window_begin :: fn (window: *Window) bool {
 			} else if is_point_in_rect(make_rect(mouse_rect.x, mouse_rect.y, offset, mouse_rect.h - offset), mouse) {
 				// left
 				#if PLATFORM == Platform.WINDOWS {
-					win32.SetCursor(win32.LoadCursorA(null, win32.IDC_SIZEWE));
+					SetCursor(LoadCursorA(null, IDC_SIZEWE));
 				}
 				if lmb_pressed_over_window {
 					window.resize = WindowResize.LEFT;
@@ -427,7 +422,6 @@ item_title :: fn (rect: Rect, text: string_view, style: *LabelStyle = null) Rect
 //
 
 button_begin :: fn (rect: Rect, flags := ButtonFlags.DEFAULT, _style: *ButtonStyle = null, index : u64 = 0, loc := #call_location) (clicked: bool, button_state: *Button, is_hovered: bool) {
-	using std;
 	using ButtonState;
 	using ButtonFlags;
 
@@ -455,7 +449,7 @@ button_begin :: fn (rect: Rect, flags := ButtonFlags.DEFAULT, _style: *ButtonSty
 	is_mouse_over :: is_disabled == false && hover.elem == hash && current_window_hash == hover.window;
 
 	button.t += dt * 0.01f;
-	button.t = clamp(button.t, 0.f, 1.f);
+	button.t = math.clamp(button.t, 0.f, 1.f);
 
 	if button.state == NORMAL {
 		if is_mouse_over && (!is_flag(flags, DISABLED)) {
@@ -556,7 +550,7 @@ scroll_area_begin :: fn (_style: *ScrollAreaStyle = null, index : u64 = 0, loc :
 		set_scroll_area_hover(hash);
 	}
 
-	content_h :: std.max(area.rect.h, 1.f) + 4.f;
+	content_h :: math.max(area.rect.h, 1.f) + 4.f;
 	has_scrollbar :: content_h > content_rect.h;
 	if has_scrollbar {
 		// scroll handle
@@ -575,7 +569,7 @@ scroll_area_begin :: fn (_style: *ScrollAreaStyle = null, index : u64 = 0, loc :
 
 		if area.is_scrolling {
 			area.rect.y = (area.move_start.y - mouse.y) / ratio;
-			area.rect.y = std.ceil(area.rect.y);
+			area.rect.y = math.ceil(area.rect.y);
 			if api.is_lmb_release() {
 				area.is_scrolling = false;
 
@@ -648,11 +642,11 @@ list_item_begin :: fn (item_offset := 2, _item_height := -1, _color := TRANSPARE
 	push(rect);
 
 	color := _color;
-	if color.w < std.F32_EPSILON && list.colorize_items_base_color.w > 0.f {
+	if color.w < math.F32_EPSILON && list.colorize_items_base_color.w > 0.f {
 		if (list.index % 2) == 0 {
 			color = list.colorize_items_base_color;
 		} else {
-			color = glm.mul(list.colorize_items_base_color, 1.5f);
+			color = mul(list.colorize_items_base_color, 1.5f);
 		}
 	}
 
@@ -670,7 +664,7 @@ list_item_separator :: fn (height := 8) #inline {
 	list_item_end();
 }
 
-list_background_color :: fn (color: glm.v4) glm.v4 #inline {
+list_background_color :: fn (color: v4) v4 #inline {
 	assert(current_list);
 	tmp :: current_list.colorize_items_base_color;
 	current_list.colorize_items_base_color = color;
@@ -711,7 +705,7 @@ textbox :: fn {
 // Canvas
 //
 
-canvas_begin :: fn (background_color: glm.v4 = TRANSPARENT) Rect {
+canvas_begin :: fn (background_color: v4 = TRANSPARENT) Rect {
 	rect :: peek();
 	push(rect_translated(rect));
 	fill_current_rect(background_color);
@@ -722,33 +716,32 @@ canvas_end :: fn () {
 	pop();
 }
 
-canvas_rect :: fn (rect: Rect, color: glm.v4) {
-	using glm;
+canvas_rect :: fn (rect: Rect, color: v4) {
 	_, mask := peek();
 	if !is_valid_clipping_mask(mask) { return; }
-	if color.w < std.F32_EPSILON { return; }
+	if color.w < math.F32_EPSILON { return; }
 
 	c := color;
 	c.w = global_alpha;
 	the_rect :: rect_scaled(rect_to_global(rect), scale_factor);
-	mask = glm.mul(mask, scale_factor);
+	mask = mul(mask, scale_factor);
 
 	api.draw_rect(v3.{ the_rect.x, the_rect.y, get_current_depth() }, v2.{ the_rect.w, the_rect.h }, c, mask);
 }
 
-canvas_text :: fn (pos: glm.v2, text: string_view, font: Font, color: glm.v4) {
+canvas_text :: fn (pos: v2, text: string_view, font: Font, color: v4) {
 	_, mask := peek();
 	if !is_valid_clipping_mask(mask) { return; }
-	if color.w < std.F32_EPSILON { return; }
+	if color.w < math.F32_EPSILON { return; }
 
 	rect := Rect.{ pos.x, pos.y };
 	rect = rect_scaled(rect_to_global(rect), scale_factor);
 	c := color;
 
-	mask = glm.mul(mask, scale_factor);
+	mask = mul(mask, scale_factor);
 	c.w = global_alpha;
 
-	api.draw_text(glm.v3.{ rect.x, rect.y, get_current_depth() }, text, font, c, mask);
+	api.draw_text(v3.{ rect.x, rect.y, get_current_depth() }, text, font, c, mask);
 }
 
 //
@@ -757,7 +750,7 @@ canvas_text :: fn (pos: glm.v2, text: string_view, font: Font, color: glm.v4) {
 
 // The color picker internally works over HSV values, which cannot be correctly stored in RGB(A) values, so we need to set reset to true each
 // time the picker is supposed to pick another color.
-color_picker :: fn (color: *glm.v4, base_color: glm.v4, reset := false, edit_alpha := true,  index : u64 = 0, loc := #call_location) (applied: bool, cancelled: bool) {
+color_picker :: fn (color: *v4, base_color: v4, reset := false, edit_alpha := true,  index : u64 = 0, loc := #call_location) (applied: bool, cancelled: bool) {
 	hash :: get_hash(loc, index);
 	mouse :: api.get_mouse_position();
 
@@ -768,7 +761,7 @@ color_picker :: fn (color: *glm.v4, base_color: glm.v4, reset := false, edit_alp
 	// We have to do all editing on HVS copy of the input color, since RGB does not preserve all HSV values correctly.
 	if is_new || reset {
 		picker.hsv   = rgba_to_hsv(remove_gamma(@color));
-		picker.alpha = std.clamp(color.w, 0.f, 1.f);
+		picker.alpha = math.clamp(color.w, 0.f, 1.f);
 	}
 
 	parent_rect :: peek();
@@ -785,15 +778,14 @@ color_picker :: fn (color: *glm.v4, base_color: glm.v4, reset := false, edit_alp
 
 	hs_rect_height :: content_rect.h - values_rect_height - slider_rect_height - button_rect_height;
 
-	pointer_color :: add_gamma(hsv_to_rgba(glm.v3.{ picker.hsv.x + 180.f, 1.f, 1.f }, 1.f));
+	pointer_color :: add_gamma(hsv_to_rgba(v3.{ picker.hsv.x + 180.f, 1.f, 1.f }, 1.f));
 
 	// Draw HS palette
 	hs_rect, hs_mouse_rect :: push(make_rect(content_rect.x, content_rect.y, content_rect.w, hs_rect_height)); {
-		using glm;
 		rect, mask := peek();
 		if is_valid_clipping_mask(mask) {
 			rect = rect_scaled(rect, scale_factor);
-			mask = glm.mul(mask, scale_factor);
+			mask = mul(mask, scale_factor);
 
 			api.draw_hs_rect(v3.{ rect.x, rect.y, get_current_depth() }, v2.{ rect.w, rect.h }, mask);
 
@@ -816,9 +808,8 @@ color_picker :: fn (color: *glm.v4, base_color: glm.v4, reset := false, edit_alp
 				}
 
 				if picker.is_hs_edit && hs_rect.w > 0.f {
-					using std;
-					picker.hsv.x = clamp((mouse.x - hs_mouse_rect.x) / hs_rect.w * 360.f, 0.f, 360.f);
-					picker.hsv.y = clamp(1.f - (mouse.y - hs_mouse_rect.y) / hs_rect.h, 0.f, 1.f);
+					picker.hsv.x = math.clamp((mouse.x - hs_mouse_rect.x) / hs_rect.w * 360.f, 0.f, 360.f);
+					picker.hsv.y = math.clamp(1.f - (mouse.y - hs_mouse_rect.y) / hs_rect.h, 0.f, 1.f);
 				}
 			}
 		}
@@ -826,11 +817,10 @@ color_picker :: fn (color: *glm.v4, base_color: glm.v4, reset := false, edit_alp
 
 	// Draw Value gradient panel.
 	v_rect, v_mouse_rect :: push(make_rect(content_rect.x, content_rect.y + hs_rect_height, content_rect.w, slider_rect_height)); {
-		using glm;
 		rect, mask := peek();
 		if is_valid_clipping_mask(mask) {
 			rect = rect_scaled(rect, scale_factor);
-			mask = glm.mul(mask, scale_factor);
+			mask = mul(mask, scale_factor);
 
 			c0 :: add_gamma(hsv_to_rgba(v3.{ picker.hsv.x, picker.hsv.y, 0.f }));
 			c1 :: add_gamma(hsv_to_rgba(v3.{ picker.hsv.x, picker.hsv.y, 1.f }));
@@ -852,8 +842,7 @@ color_picker :: fn (color: *glm.v4, base_color: glm.v4, reset := false, edit_alp
 				}
 
 				if picker.is_v_edit && v_rect.w > 0.f {
-					using std;
-					picker.hsv.z = clamp((mouse.x - v_mouse_rect.x) / v_rect.w, 0.f, 1.f);
+					picker.hsv.z = math.clamp((mouse.x - v_mouse_rect.x) / v_rect.w, 0.f, 1.f);
 				}
 			}
 		}
@@ -874,10 +863,8 @@ color_picker :: fn (color: *glm.v4, base_color: glm.v4, reset := false, edit_alp
 			rgba_changed = rgba_changed || textbox("Alpha", &rgba.w);
 		}
 		if rgba_changed {
-			using std;
-
 			picker.hsv = rgba_to_hsv(remove_gamma(rgba));
-			picker.alpha = clamp(rgba.w, 0.f, 1.f);
+			picker.alpha = math.clamp(rgba.w, 0.f, 1.f);
 		}
 	} pop();
 
@@ -895,7 +882,7 @@ color_picker :: fn (color: *glm.v4, base_color: glm.v4, reset := false, edit_alp
 			|| textbox("Value", &tmp_hsv.z);
 
 		if hsv_changed {
-			using std;
+			using math;
 			picker.hsv.x = clamp(tmp_hsv.x, 0.f, 360.f);
 			picker.hsv.y = clamp(tmp_hsv.y * 0.01f, 0.f, 1.f);
 			picker.hsv.z = clamp(tmp_hsv.z * 0.01f, 0.f, 1.f);
@@ -903,11 +890,10 @@ color_picker :: fn (color: *glm.v4, base_color: glm.v4, reset := false, edit_alp
 
 		// Draw preview.
 		list_item_begin(); {
-			using glm;
 			rect, mask := peek();
 			if is_valid_clipping_mask(mask) {
 				rect = rect_scaled(rect, scale_factor);
-				mask = glm.mul(mask, scale_factor);
+				mask = mul(mask, scale_factor);
 
 				rgba :: add_gamma(hsv_to_rgba(picker.hsv, picker.alpha));
 				api.draw_rect(v3.{ rect.x, rect.y, get_current_depth() }, v2.{ rect.w * 0.5f, rect.h }, base_color, mask);
@@ -943,11 +929,20 @@ get_list_item_height :: fn () f32 {
 	return line_height;
 }
 
-#private
+#scope_module
+#import "std/string"
+#import "std/table"
+#import "std/array"
+#import "std/print"
+#import "std/pool"
+
+#import "extra/glm"
+
+math :: #import "std/math";
+
+#scope_private
 
 Node :: struct {
-	using glm;
-
 	rect: Rect;
 	mask: v4;
 }
@@ -963,7 +958,7 @@ WindowResize :: enum {
 
 ScrollArea :: struct {
 	rect: Rect;
-	move_start: glm.v2;
+	move_start: v2;
 	yoff: f32;
 	is_scrolling: bool;
 }
@@ -973,7 +968,7 @@ Textbox :: struct {
 	marker: s64;
 
 	wait_for_lmb_release: bool;
-	last_click_positon:   glm.v2;
+	last_click_positon:   v2;
 }
 
 ButtonState :: enum {
@@ -993,12 +988,12 @@ Button :: struct {
 List :: struct {
 	y: f32;
 	index: s32;
-	colorize_items_base_color: glm.v4;
+	colorize_items_base_color: v4;
 	title_width: f32;
 }
 
 ColorPicker :: struct {
-	hsv: glm.v3;
+	hsv: v3;
 	alpha: f32;
 	is_hs_edit: bool;
 	is_v_edit: bool;
@@ -1020,11 +1015,11 @@ ITEM_LABEL_RATIO :: 0.4f;
 ITEM_LABEL_VALUE_GAP :: 8.f;
 
 api: Api;
-context_pool: std.PoolAllocator;
+context_pool: PoolAllocator;
 
 use_light_theme := false;
 
-canvas_size: glm.v2;
+canvas_size: v2;
 
 main_font: Font;
 icon_font: Font;
@@ -1051,11 +1046,11 @@ num_conversion_tmp: string;
 edit_lines_tmp: [..]TextBoxLine;
 
 // Widget internal states
-buttons:       std.Table(u64, *Button);
-scroll_areas:  std.Table(u64, *ScrollArea);
-lists:         std.Table(u64, *List);
-textboxes:     std.Table(u64, *Textbox);
-color_pickers: std.Table(u64, *ColorPicker);
+buttons:       Table(u64, *Button);
+scroll_areas:  Table(u64, *ScrollArea);
+lists:         Table(u64, *List);
+textboxes:     Table(u64, *Textbox);
+color_pickers: Table(u64, *ColorPicker);
 
 window_stack: [..]*Window;
 
@@ -1089,8 +1084,7 @@ get_current_depth :: fn () f32 #inline {
 	return auto get_current_window_order();
 }
 
-get_ctx :: fn (tbl: *?T, hash: u64) (ctx: std.tbl_typeof_value(T), is_new: bool) {
-	using std;
+get_ctx :: fn (tbl: *?T, hash: u64) (ctx: tbl_typeof_value(T), is_new: bool) {
 	ctx, found := tbl_lookup(tbl, hash);
 	if found { return ctx, false; }
 
@@ -1145,11 +1139,11 @@ push_window :: fn (window: *Window) #inline {
 }
 
 push :: fn (rect: Rect, expand := Expand.NONE) (rect: Rect, mouse_rect: Rect) {
-	adjust_mask :: fn (mask: glm.v4) glm.v4 #inline {
+	adjust_mask :: fn (mask: v4) v4 #inline {
 		if nodes.len == 0 { return mask; }
 		_, parent :: peek();
-		using std;
-		return glm.v4.{
+		using math;
+		return v4.{
 			max(mask.x, parent.x),
 			max(mask.y, parent.y),
 			min(mask.z, parent.z),
@@ -1177,7 +1171,7 @@ pop :: fn (n := 1) #inline {
 	}
 }
 
-peek :: fn () (rect: Rect, mask: glm.v4) #inline {
+peek :: fn () (rect: Rect, mask: v4) #inline {
 	assert(nodes.len > 0);
 	node :: &nodes[nodes.len - 1];
 	return node.rect, node.mask;
@@ -1210,24 +1204,23 @@ rect_to_global :: fn (rect: Rect, expand := Expand.NONE) Rect #inline {
 	return global_rect;
 }
 
-rect_to_mask :: fn (rect: Rect) glm.v4 #inline {
-	return glm.v4.{ rect.x, rect.y, rect.x + rect.w, rect.y + rect.h };
+rect_to_mask :: fn (rect: Rect) v4 #inline {
+	return v4.{ rect.x, rect.y, rect.x + rect.w, rect.y + rect.h };
 }
 
-mask_to_rect :: fn (mask: glm.v4) Rect #inline {
+mask_to_rect :: fn (mask: v4) Rect #inline {
 	return make_rect(mask.x, mask.y, mask.z - mask.x, mask.w - mask.y);
 }
 
 // Returns whether the rectangle was drown according to current mask.
-fill_current_rect :: fn (color: glm.v4) bool {
-	using glm;
+fill_current_rect :: fn (color: v4) bool {
 	rect, mask := peek();
 	if is_valid_clipping_mask(mask) {
-		if color.w < std.F32_EPSILON { return true; }
+		if color.w < math.F32_EPSILON { return true; }
 		c := color;
 		c.w = global_alpha;
 		rect = rect_rounded(rect_scaled(rect, scale_factor));
-		mask = glm.mul(mask, scale_factor);
+		mask = mul(mask, scale_factor);
 
 			mask.x -= 0.5f;
 			mask.y -= 0.5f;
@@ -1245,7 +1238,7 @@ draw_label :: fn (text: string_view, style: *LabelStyle) #inline {
 	if !is_valid_clipping_mask(mask) { return; }
 
 	rect = rect_rounded(rect_scaled(rect, scale_factor));
-	mask = glm.mul(mask, scale_factor);
+	mask = mul(mask, scale_factor);
 	w, h := api.get_text_size(text, style.font, -1);
 
 	switch style.vertical_alignment {
@@ -1267,7 +1260,7 @@ draw_label :: fn (text: string_view, style: *LabelStyle) #inline {
 
 	c := style.color;
 	// c.w = global_alpha;
-	api.draw_text(glm.v3.{ rect.x, rect.y, get_current_depth() }, text, style.font, c, mask);
+	api.draw_text(v3.{ rect.x, rect.y, get_current_depth() }, text, style.font, c, mask);
 }
 
 //
@@ -1279,7 +1272,7 @@ button_impl :: fn (rect: Rect, text := "", flags := ButtonFlags.DEFAULT, _style:
 	clicked, button_state :: button_begin(rect, flags, style, index, loc);
 	defer button_end();
 
-	if !std.str_is_empty(text) {
+	if !str_is_empty(text) {
 		parent_rect :: peek();
 		label_style := style.label;
 
@@ -1383,7 +1376,7 @@ label_item_impl :: fn (text: string_view, _style: *LabelStyle = null) #inline {
 checkbox_impl :: fn (rect: Rect, value: *bool, _style: *CheckboxStyle = null, index : u64 = 0, loc := #call_location) bool {
 	style :: get_style(_style);
 
-	size :: std.min(rect.w, rect.h);
+	size :: math.min(rect.w, rect.h);
 
 	button_style := &style.off;
 	icon := style.off_icon;
@@ -1478,8 +1471,6 @@ variants_item_impl :: fn (name: string_view, value: Any, flags := VariantsFlags.
 //
 
 intbox_item_impl :: fn (name: string_view, value: *s64, flags := TextboxFlags.DEFAULT, style: *TextboxStyle = null, index : u64 = 0, loc := #call_location) bool {
-	using std;
-
 	str_clear(&num_conversion_tmp);
 	str_append(&num_conversion_tmp, @value);
 	if textbox_item_impl(name, &num_conversion_tmp, flags | TextboxFlags.NUMBER_INPUT, style, null, index, loc) {
@@ -1503,8 +1494,6 @@ floatbox_item_impl :: fn (name: string_view, value: *f32, flags := TextboxFlags.
 }
 
 floatbox_impl :: fn (rect: Rect, value: *f32, flags := TextboxFlags.DEFAULT, style: *TextboxStyle = null, index : u64 = 0, loc := #call_location) bool {
-	using std;
-
 	str_clear(&num_conversion_tmp);
 	str_append(&num_conversion_tmp, fmt_real(@value, 3));
 	if textbox_impl(rect, &num_conversion_tmp, flags | TextboxFlags.NUMBER_INPUT, style, null, index, loc) {
@@ -1597,7 +1586,7 @@ textbox_impl :: fn (rect: Rect, text: *string, flags := TextboxFlags.DEFAULT, _s
 
 	if use_tmp_string && is_focused_for_first_time {
 		target_text.len = 0;
-		std.str_append(target_text, @text);
+		str_append(target_text, @text);
 	}
 
 	lines := calculate_line_offsets(@target_text, edit_rect, style.text.font);
@@ -1613,7 +1602,7 @@ textbox_impl :: fn (rect: Rect, text: *string, flags := TextboxFlags.DEFAULT, _s
 		mouse.x -= edit_rect.x;
 		mouse.y -= edit_rect.y;
 
-		ln   :: std.clamp(cast(s64) (mouse.y / line_height), 0, lines.len-1);
+		ln   :: math.clamp(cast(s64) (mouse.y / line_height), 0, lines.len-1);
 		line :: lines[ln];
 
 		line_text :: get_line_text(@target_text, line);
@@ -1633,15 +1622,15 @@ textbox_impl :: fn (rect: Rect, text: *string, flags := TextboxFlags.DEFAULT, _s
 			cl += char_len;
 		}
 
-		cl = std.clamp(cl, 0, auto line_text.len);
+		cl = math.clamp(cl, 0, auto line_text.len);
 		position :: line.start_index + cl;
 		textbox.cursor = position;
-		if textbox.marker == -1 && glm.length(glm.sub(api.get_mouse_position(), textbox.last_click_positon)) > 1.f {
+		if textbox.marker == -1 && length(sub(api.get_mouse_position(), textbox.last_click_positon)) > 1.f {
 			textbox.marker = position;
 		}
 	}
 
-	textbox.marker = std.min(target_text.len, textbox.marker);
+	textbox.marker = math.min(target_text.len, textbox.marker);
 
 	changed := false;
 	if is_focused {
@@ -1679,8 +1668,6 @@ textbox_impl :: fn (rect: Rect, text: *string, flags := TextboxFlags.DEFAULT, _s
 }
 
 handle_textbox_input :: fn (textbox: *Textbox, lines: []TextBoxLine, target_text: *string, original_text: *string, flags: TextboxFlags) bool {
-	using std;
-
 	is_number :: fn (str: string_view) bool {
 		if str.len != 1 { return false; }
 		if str[0] >= '0' && str[0] <= '9' { return true; }
@@ -1793,9 +1780,9 @@ handle_textbox_input :: fn (textbox: *Textbox, lines: []TextBoxLine, target_text
 
 	if api.is_key_press(CLIPBOARD_PASTE) {
 		orig_text := api.get_clipboard();
-		text :: std.str_new(orig_text, application_context.temporary_allocator);
+		text :: str_new(orig_text, application_context.temporary_allocator);
 		cut_textbox_selection(textbox, target_text);
-		std.str_replace_all(&text, '\r');
+		str_replace_all(&text, '\r');
 
 		if text.len > 0 {
 			result_text, first_line: string_view;
@@ -1861,7 +1848,7 @@ handle_textbox_input :: fn (textbox: *Textbox, lines: []TextBoxLine, target_text
 draw_textbox_selection :: fn (textbox: *Textbox, target_text: string_view, lines: []TextBoxLine, style: *TextboxStyle, line_height: f32) {
 	edit_rect, edit_mask := peek();
 	edit_rect = rect_scaled(edit_rect, scale_factor);
-	edit_mask = glm.mul(edit_mask, scale_factor);
+	edit_mask = mul(edit_mask, scale_factor);
 
 	height :: line_height * scale_factor;
 
@@ -1878,8 +1865,8 @@ draw_textbox_selection :: fn (textbox: *Textbox, target_text: string_view, lines
 			break;
 		}
 
-		select_start_index :: std.max(start_index, line.start_index);
-		select_end_index   :: std.min(end_index, line_end_index);
+		select_start_index :: math.max(start_index, line.start_index);
+		select_end_index   :: math.min(end_index, line_end_index);
 
 		if select_start_index < select_end_index {
 			left  :: string_view.{ select_start_index - line.start_index, &target_text[line.start_index] };
@@ -1889,8 +1876,8 @@ draw_textbox_selection :: fn (textbox: *Textbox, target_text: string_view, lines
 			end_x   := api.get_text_size(right, main_font, -1);
 
 			api.draw_rect(
-				glm.v3.{ edit_rect.x + start_x, edit_rect.y + yoff, get_current_depth() },
-				glm.v2.{ end_x, height },
+				v3.{ edit_rect.x + start_x, edit_rect.y + yoff, get_current_depth() },
+				v2.{ end_x, height },
 				style.selection_color,
 				edit_mask
 			);
@@ -1925,12 +1912,12 @@ draw_textbox_text :: fn (target_text: string_view, lines: []TextBoxLine, style: 
 	}
 }
 
-adjust_textbox_scrolling_to_make_cursor_visible :: fn (mask: glm.v4, line_height: f32, line: s32) {
+adjust_textbox_scrolling_to_make_cursor_visible :: fn (mask: v4, line_height: f32, line: s32) {
 	assert(current_scroll_area);
 
 	cursor_shape := make_rect(0.f, 1.f + line_height * auto line, 0.f, line_height);
 	cursor_shape = rect_scaled(rect_to_global(cursor_shape), scale_factor);
-	cursor_mask :: glm.mul(mask, scale_factor);
+	cursor_mask :: mul(mask, scale_factor);
 
 	viewport_height :: cursor_mask.w - cursor_mask.y;
 	cursor_from_top :: cursor_shape.y - cursor_mask.y;
@@ -1940,10 +1927,10 @@ adjust_textbox_scrolling_to_make_cursor_visible :: fn (mask: glm.v4, line_height
 		current_scroll_area.rect.y -= cursor_from_top / scale_factor;
 	}
 
-	current_scroll_area.rect.y = std.min(current_scroll_area.rect.y, 0.f);
+	current_scroll_area.rect.y = math.min(current_scroll_area.rect.y, 0.f);
 }
 
-draw_textbox_cursor :: fn (text: string_view, rect: Rect, mask: glm.v4, style: *TextboxStyle, line_height: f32, cursor: s32, line: s32) {
+draw_textbox_cursor :: fn (text: string_view, rect: Rect, mask: v4, style: *TextboxStyle, line_height: f32, cursor: s32, line: s32) {
 	w :: api.get_text_size(text, style.text.font, cursor);
 	cursor_shape := make_rect(rect.x + 0.5f, rect.y + 1.f + line_height * auto line, 0.5f, line_height);
 	cursor_color := style.cursor_color;
@@ -1954,14 +1941,14 @@ draw_textbox_cursor :: fn (text: string_view, rect: Rect, mask: glm.v4, style: *
 	}
 
 	cursor_shape = rect_scaled(rect_to_global(cursor_shape), scale_factor);
-	cursor_mask :: glm.mul(mask, scale_factor);
+	cursor_mask :: mul(mask, scale_factor);
 
 	cursor_shape.x += w;
 
 
 	api.draw_rect(
-		glm.v3.{ cursor_shape.x, cursor_shape.y, get_current_depth() },
-		glm.v2.{ cursor_shape.w, cursor_shape.h },
+		v3.{ cursor_shape.x, cursor_shape.y, get_current_depth() },
+		v2.{ cursor_shape.w, cursor_shape.h },
 		cursor_color,
 		cursor_mask
 	);
@@ -2111,7 +2098,7 @@ get_style :: fn {
 }
 
 unicode_char_to_utf8_with_fallback :: fn (c: u32, fallback: string_view = "?") string_view #inline {
-	tmp :: std.str_new(4, application_context.temporary_allocator);
+	tmp :: str_new(4, application_context.temporary_allocator);
 	err :: utf32_to_utf8_single_char(c, &tmp);
 	if err {
 		print_err(err);
@@ -2226,8 +2213,8 @@ cut_textbox_selection :: fn (textbox: *Textbox, target_text: *string) bool {
 
 get_textbox_selection_range :: fn (textbox: *Textbox) (start: s64, end: s64)  #inline {
 	if textbox.marker == -1 { return 0, 0; }
-	start_index :: std.min(textbox.marker, textbox.cursor);
-	end_index   :: std.max(textbox.marker, textbox.cursor);
+	start_index :: math.min(textbox.marker, textbox.cursor);
+	end_index   :: math.max(textbox.marker, textbox.cursor);
 	return start_index, end_index;
 }
 

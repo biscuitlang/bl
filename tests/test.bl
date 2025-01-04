@@ -25,8 +25,32 @@ x remove import policy
 
 */
 
-#import "extra/freetype2"
+Camera :: struct {
+	n: s32;
+}
+
+Collider :: struct {
+	n: s32;
+}
+
+EntityKind :: enum {
+	CAMERA;
+	COLLIDER;
+}
+
+entity_type_to_kind :: fn (T: type #comptime) EntityKind #inline {
+	kind: EntityKind;
+
+	using EntityKind;
+	if T == Camera      { kind = CAMERA; }
+	if T == Collider    { kind = COLLIDER; }
+	return kind;
+}
+
+#import "std/string"
+
 main :: fn () s32 {
+	entity_type_to_kind(Camera);
 	return 0;
 }
 

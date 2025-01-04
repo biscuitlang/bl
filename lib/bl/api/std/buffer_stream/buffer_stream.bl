@@ -4,7 +4,7 @@
 //!
 //!
 
-BufferStream :: struct #base Stream {
+BufferStream :: struct #base io.Stream {
 	data: []u8;
 	position: s64;
 }
@@ -20,16 +20,17 @@ buffer_stream_terminate :: fn (stream: *BufferStream) {
 }
 
 #scope_private
-#import "std/io"
+io   :: #import "std/io";
+math :: #import "std/math";
 
-STREAM_VTABLE :: StreamVTable.{
+STREAM_VTABLE :: io.StreamVTable.{
 	read  = auto &read,
 	write = auto &write,
-	seek = auto &seek,
+	seek  = auto &seek,
 };
 
 read :: fn (stream: *BufferStream, dest: *u8, bytes_to_read: s64) (s64, Error) {
-	size :: min(stream.data.len - stream.position, bytes_to_read);
+	size :: math.min(stream.data.len - stream.position, bytes_to_read);
 	if size <= 0 { return 0, error("Stream read out of the data bounds."); }
 	memcpy(dest, &stream.data[stream.position], auto size);
 	stream.position += size;
@@ -48,14 +49,14 @@ write :: fn (stream: *BufferStream, src: *u8, bytes_to_write: s64) (s64, Error) 
 	return bytes_to_write, OK;
 }
 
-seek :: fn (stream: *BufferStream, locator: StreamLocator, offset: s64) (position: s64, err: Error) {
+seek :: fn (stream: *BufferStream, locator: io.StreamLocator, offset: s64) (position: s64, err: Error) {
 	new_position : s64 = 0;
-	using StreamLocator;
+	using io.StreamLocator;
 	switch locator {
 		CURRENT { new_position = stream.position + offset; }
 		BEGIN   { new_position = offset; }
 		END     { new_position = stream.data.len + offset; }
 	}
-	stream.position = clamp(new_position, 0, stream.data.len);
+	stream.position = math.clamp(new_position, 0, stream.data.len);
 	return stream.position, OK;
 }

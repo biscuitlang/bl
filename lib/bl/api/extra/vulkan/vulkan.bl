@@ -10398,3 +10398,6 @@ VkPhysicalDeviceRayTracingValidationFeaturesNV :: struct {
 	pNext: *u8;
 	rayTracingValidation: VkBool32;
 }
+
+#scope_private
+C :: #import "libc";

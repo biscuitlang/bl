@@ -133,6 +133,8 @@ str_concat :: fn (v: *string, args: ...) string {
 /// **hint**: Use this function in case you need create only temporary string i.e. file path.
 ///
 /// ```bl
+/// #import "std/string"
+///
 /// VERSION :: "1.0.0";
 ///
 /// path := str_new();
@@ -321,6 +323,9 @@ strtof64 :: fn (str: string_view, count := -1) (f64, Error) {
 /// ### Example
 ///
 /// ```bl
+/// #import "std/string"
+/// #import "std/print"
+///
 /// main :: fn () s32 {
 ///     lhs: string_view;
 ///     rhs: string_view;
@@ -368,6 +373,9 @@ str_split_by_last :: fn (str: string_view, delimiter: u8, lhs: *string_view, rhs
 /// ### Example
 ///
 /// ```bl
+/// #import "std/string"
+/// #import "std/print"
+///
 /// main :: fn () s32 {
 ///     lhs: string_view;
 ///     rhs: string_view;
@@ -404,6 +412,9 @@ str_split_at_index :: fn (str: string_view, index: s32, lhs: *string_view = null
 /// ### Example
 ///
 /// ```bl
+/// #import "std/string"
+/// #import "std/print"
+///
 /// main :: fn () s32 {
 ///     lhs: string_view;
 ///     rhs: string_view;
@@ -504,8 +515,10 @@ str_split_by :: fn (str: string_view, delimiter: u8, allocator: *Allocator = nul
 /// ### Example
 ///
 /// ```bl
+/// #import "std/string"
+/// #import "std/print"
+///
 /// main :: fn () s32 {
-///     using std;
 ///     path := "/home/travis/develop/foo";
 ///     str_tokenize(path, '/', &fn (token: string_view) bool {
 ///         print("TOKEN: %\n", token);
