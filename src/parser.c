@@ -435,7 +435,14 @@ struct ast *parse_hash_directive(struct context *ctx, s32 expected_mask, enum ha
 			if (module) {
 				import->data.import.module = module;
 				if (!is_in_expression) {
-					scope_inject(current_scope, module->scope);
+					if (scope_is_subtree_of(current_scope, module->scope)) {
+						report_error(INVALID_DIRECTIVE,
+						             tok_directive,
+						             CARET_WORD,
+						             "Module cannot import itself.");
+					} else {
+						scope_inject(current_scope, module->scope);
+					}
 				} else {
 					import->data.import.is_expression = true;
 				}
