@@ -112,8 +112,8 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 	zone();
 	bassert(scope && args->id);
 
-	struct scope_entry *found       = NULL;
-	struct scope *last_visited_module_scope = NULL;
+	struct scope_entry *found                     = NULL;
+	struct scope       *last_visited_module_scope = NULL;
 
 #define REPORTS 0
 
@@ -143,11 +143,15 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 		}
 
 		if (!found || args->lookup_ambiguous) {
+			// Ignore layers for injected scopes.
+			const u64 hash = entry_hash(args->id->hash, SCOPE_DEFAULT_LAYER);
 			for (usize injected_index = 0; injected_index < arrlenu(scope->injected); ++injected_index) {
 				struct scope *injected_scope = scope->injected[injected_index];
-				// bassert(injected_scope->kind == SCOPE_MODULE);
 				bassert(injected_scope != scope);
-				if (last_visited_module_scope == injected_scope) continue; // @Comment!
+				if (last_visited_module_scope == injected_scope) {
+					blog("Skip injected scope!");
+					continue;
+				}
 
 				const s64 index = tbl_lookup_index_with_key(injected_scope->entries, hash, args->id->str);
 				if (index != -1) {
@@ -198,13 +202,13 @@ void scope_inject(struct scope *dest, struct scope *src) {
 	// bassert(!scope_is_local(dest) && "Injection destination scope must be global!");
 	const bool is_locked = dest->kind == SCOPE_GLOBAL || dest->kind == SCOPE_MODULE;
 	if (is_locked) scope_lock(dest);
-	if (arrlen(dest->injected) == 0) arrsetcap(dest->injected, 8); // Preallocate a bit...
 	for (usize i = 0; i < arrlenu(dest->injected); ++i) {
 		if (src == dest->injected[i]) {
 			if (is_locked) scope_unlock(dest);
 			return;
 		}
 	}
+	if (arrlen(dest->injected) == 0) arrsetcap(dest->injected, 8); // Preallocate a bit...
 	arrput(dest->injected, src);
 	if (is_locked) scope_unlock(dest);
 }
