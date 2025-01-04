@@ -1,2 +1,6 @@
 version: 20240617
+supported: "x86_64-pc-windows-msvc"
 src: "ui.bl"
+
+x86_64-pc-windows-msvc:
+  src: "ui.win32.bl"

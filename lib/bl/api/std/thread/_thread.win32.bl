@@ -1,12 +1,9 @@
-#load "thread.bl"
+#scope_module
+Handle :: HANDLE;
 
-#scope _thread_impl
-
-Handle :: win32.HANDLE;
-
-create :: fn (entry: std.ThreadEntryFn, ctx: *u8) (Handle, Error) {
+create :: fn (entry: ThreadEntryFn, ctx: *u8) (Handle, Error) {
 	if !entry { return null, error(ERR_INVALID_HANDLE, "Cannot create thread. Handle is invalid."); }
-	thread :: win32.CreateThread(null, 0, auto entry, auto ctx, 0, null);
+	thread :: CreateThread(null, 0, auto entry, auto ctx, 0, null);
 	if !thread {
 		ec, estr :: os_get_last_error();
 		return null, error(ec, "Cannot create thread: %.", estr);
@@ -16,16 +13,16 @@ create :: fn (entry: std.ThreadEntryFn, ctx: *u8) (Handle, Error) {
 
 join :: fn (thread: Handle) (exit_code: s32, err: Error) {
 	if !thread { error(ERR_INVALID_HANDLE, "Cannot join. Handle is invalid."); }
-	if win32.WaitForSingleObject(thread, win32.INFINITE) == win32.WAIT_FAILED {
+	if WaitForSingleObject(thread, INFINITE) == WAIT_FAILED {
 		ec, estr :: os_get_last_error();
 		return -1, error(ec, "Cannot join: %.", estr);
 	}
 	exit_code: u32;
-	if win32.GetExitCodeThread(thread, &exit_code) == 0 {
+	if GetExitCodeThread(thread, &exit_code) == 0 {
 		ec, estr :: os_get_last_error();
 		return -1, error(ec, "Cannot join: %.", estr);
 	}
-	if win32.CloseHandle(thread) == 0 {
+	if CloseHandle(thread) == 0 {
 		ec, estr :: os_get_last_error();
 		return -1, error(ec, "Cannot join: %.", estr);
 	}
@@ -33,19 +30,21 @@ join :: fn (thread: Handle) (exit_code: s32, err: Error) {
 }
 
 current :: fn () Handle #inline {
-	return win32.GetCurrentThread();
+	return GetCurrentThread();
 }
 
 current_id :: fn () u64 #inline {
-	return auto win32.GetCurrentThreadId();
+	return auto GetCurrentThreadId();
 }
 
 exit :: fn (exit_code: s32) Error {
 	thread :: current();
-	if win32.TerminateThread(thread, auto exit_code) == 1 {
+	if TerminateThread(thread, auto exit_code) == 1 {
 		ec, estr :: os_get_last_error();
 		return error(ec, "Cannot exit thread: %.", estr);
 	}
 	return OK;
 }
 
+#scope_private
+#import "os/windows";

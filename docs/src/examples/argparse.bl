@@ -1,4 +1,5 @@
 #import "extra/argparse"
+#import "std/print"
 
 MyOptLevel :: enum {
 	DEBUG;
@@ -17,8 +18,6 @@ MyArgs :: struct {
 }
 
 main :: fn () s32 {
-	using argparse;
-
 	// Create and initialize new instance of argument parser.
 	parser: Parser;
 	init(&parser, "This is cool testing application parsing command-line arguments, enjoy!");

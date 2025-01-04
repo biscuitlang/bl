@@ -1,10 +1,7 @@
+#scope_private
 #import "std/async"
 
-#private
-
 single_job :: fn () #test {
-	using std;
-
 	one: Async(s32, s32);
 
 	async(&one, 5, &fn (count: s32) s32 {
@@ -13,7 +10,7 @@ single_job :: fn () #test {
 		}
 		return count;
 	});
-	
+
 	result :: async_wait(&one);
 	test_eq(result, 5);
 }

@@ -1,7 +1,10 @@
 #import "std/io"
+#import "std/print"
+#import "std/math"
+#import "std/string"
 
-// Custom stream implementation based on std.Stream.
-MyStream :: struct #base std.Stream {
+// Custom stream implementation based on Stream.
+MyStream :: struct #base Stream {
 	// Preallocated static buffer.
 	buffer: [64]u8;
 	// Current position in the buffer array.
@@ -10,14 +13,13 @@ MyStream :: struct #base std.Stream {
 
 // Virtual table of the stream setting up stream API functions. Our implementation
 // does not support seeking, so the seek function is null.
-MY_STRAM_VTABLE :: std.StreamVTable.{
+MY_STRAM_VTABLE :: StreamVTable.{
 	read  = auto &my_read,
 	write = auto &my_write
 };
 
 // Actual read function implementation.
 my_read :: fn (stream: *MyStream, dest: *u8, bytes_to_read: s64) (s64, Error) {
-	using std;
 	size := min(stream.position, bytes_to_read);
 	stream.position -= size;
 	if stream.position < 0 {
@@ -32,7 +34,7 @@ my_read :: fn (stream: *MyStream, dest: *u8, bytes_to_read: s64) (s64, Error) {
 
 // Actual write function implementation.
 my_write :: fn (stream: *MyStream, src: *u8, bytes_to_write: s64) (s64, Error) {
-	size :: std.min(stream.buffer.len - stream.position, bytes_to_write);
+	size :: min(stream.buffer.len - stream.position, bytes_to_write);
 	if size > 0 {
 		// size may be zero even in case the buffer is full.
 		memcpy(&stream.buffer[stream.position], src, auto size);
@@ -47,8 +49,6 @@ init_stream :: fn (stream: *MyStream) {
 }
 
 main :: fn () s32 {
-	using std;
-
 	stream: MyStream #noinit;
 	init_stream(&stream);
 

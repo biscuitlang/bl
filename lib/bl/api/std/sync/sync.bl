@@ -1,17 +1,15 @@
 //! # Thread synchronization
-//! 
+//!
 //! `#import "std/sync"`
 //!
 //! Multiplatform implementation of various thread synchronization tools.
-//! 
+//!
 //! !!! todo
 //!     Improve documentation.
 
-#scope std
-
 /// Mutex type.
-Mutex :: _sync_impl.Mutex;
-Condition :: _sync_impl.Condition;
+Mutex :: _Mutex;
+Condition :: _Condition;
 
 Semaphore :: struct {
 	mutex: Mutex;
@@ -21,28 +19,28 @@ Semaphore :: struct {
 
 /// Initialize mutex. Call [mutex_terminate](#mutex_terminate) when mutex is no longer needed.
 mutex_init :: fn (mutex: *Mutex) Error #inline {
-	return _sync_impl.mutex_init(mutex);
+	return _mutex_init(mutex);
 }
 
 /// Terminate mutex.
 mutex_terminate :: fn (mutex: *Mutex) Error #inline {
-	return _sync_impl.mutex_terminate(mutex);
+	return _mutex_terminate(mutex);
 }
 
 /// Lock mutex and enter critical section.
 mutex_lock :: fn (mutex: *Mutex) Error #inline {
-	return _sync_impl.mutex_lock(mutex);
+	return _mutex_lock(mutex);
 }
 
 /// Try to lock the `mutex`. Returns `true` in case the mutex was locked or `false` if `mutex`
 /// is already locked or en error occurred.
 mutex_try_lock :: fn (mutex: *Mutex) (bool, Error) #inline {
-	return _sync_impl.mutex_try_lock(mutex);
+	return _mutex_try_lock(mutex);
 }
 
 /// Unlock previously locked mutex and leave critical section.
 mutex_unlock :: fn (mutex: *Mutex) Error #inline {
-	return _sync_impl.mutex_unlock(mutex);
+	return _mutex_unlock(mutex);
 }
 
 /// Initialize `semaphore` object with `value`.
@@ -88,7 +86,7 @@ semaphore_post :: fn (sem: *Semaphore) Error #inline {
 }
 
 condition_init :: fn (condition: *Condition) Error #inline {
-	return _sync_impl.condition_init(condition);
+	return _condition_init(condition);
 }
 
 condition_terminate :: fn (_: *Condition) Error #inline {
@@ -97,9 +95,9 @@ condition_terminate :: fn (_: *Condition) Error #inline {
 }
 
 condition_wait :: fn (condition: *Condition, mutex: *Mutex) Error #inline {
-	return _sync_impl.condition_wait(condition, mutex);
+	return _condition_wait(condition, mutex);
 }
 
 condition_signal :: fn (condition: *Condition) Error #inline {
-	return _sync_impl.condition_signal(condition);
+	return _condition_signal(condition);
 }

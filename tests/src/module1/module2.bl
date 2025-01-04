@@ -1,0 +1,3 @@
+bar :: fn () {
+	this_should_be_visible_only_in_module();
+}

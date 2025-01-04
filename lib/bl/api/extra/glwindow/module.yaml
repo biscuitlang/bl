@@ -1,4 +1,4 @@
 version: 20220923
-
+supported: "x86_64-pc-windows-msvc"
 x86_64-pc-windows-msvc:
   src: "glwindow.win32.bl"

@@ -28,7 +28,7 @@
 
 //! # Utils
 //!
-//! `#load "std/utils.bl"`
+//! Available by default.
 //!
 //! Set of various utility functions.
 
@@ -86,26 +86,26 @@ is_valid_bitflags :: fn (T: type #comptime) bool #comptime {
 /// Reads environment variable specified by `var` name. Result is empty in case no such variable was
 /// found or has no content. It's caller responsibility to delete result string.
 env_get :: fn (var: string_view) string {
-	out :: cast(*u8) C.getenv(std.strtoc(var));
-	if !out { return std.str_new(); }
-	return std.str_new(out);
+	out :: cast(*u8) C.getenv(strtoc(var));
+	if !out { return str_new(); }
+	return str_new(out);
 }
 
 /// Sets environment variable.
 env_set :: fn (var: string_view, value: string_view) #inline {
 	tmp :: sprint("%=%", var, value);
-	defer std.str_delete(&tmp);
-	C.putenv(std.strtoc(tmp));
+	defer str_delete(&tmp);
+	C.putenv(strtoc(tmp));
 }
 
-/// Sets seed for `std.rand` or utility function [random_number](#random_number) based on current
+/// Sets seed for `rand` or utility function [random_number](#random_number) based on current
 /// system tick time.
 random_seed_time :: fn () #inline {
 	C.srand(auto os_tick_ms());
 }
 
 /// Generates random number in specified range <min, max> using standard libc rand generator.
-/// Random number generator seed is supposed to be set by :ref:`random_seed_time` or by `std.srand`
+/// Random number generator seed is supposed to be set by :ref:`random_seed_time` or by `srand`
 /// call.
 random_number :: fn (min := 0, max := 1) s32 #inline {
 	return C.rand() % (max + 1 - min) + min;
@@ -167,11 +167,11 @@ next_pow_2 :: fn (n: s64) s64 #inline {
 /// Converts UTF8 encoded string to UTF32.
 utf8_to_utf32 :: fn (utf8_str: string_view, out_utf32_str: *[..]u32) Error {
 	assert(out_utf32_str);
-	if std.str_is_empty(utf8_str) { return OK; }
+	if str_is_empty(utf8_str) { return OK; }
 	array_reserve(out_utf32_str, utf8_str.len);
 	converted_bytes: s32;
 	loop converted_bytes < utf8_str.len {
-		word :: std.str_sub(utf8_str, converted_bytes);
+		word :: str_sub(utf8_str, converted_bytes);
 		utf32word, decoded_bytes, err_decode :: utf8_to_utf32_single_char(word);
 		if err_decode { return err_decode; }
 		converted_bytes += decoded_bytes;
@@ -181,7 +181,7 @@ utf8_to_utf32 :: fn (utf8_str: string_view, out_utf32_str: *[..]u32) Error {
 }
 
 utf8_to_utf32_single_char :: fn (utf8: string_view) (utf32: u32, decoded_bytes: s32, state: Error) #inline {
-	if std.str_is_empty(utf8) { return 0, 0, error("Unable to convert UTF8 to UTF32, input character is empty."); }
+	if str_is_empty(utf8) { return 0, 0, error("Unable to convert UTF8 to UTF32, input character is empty."); }
 	if utf8[0] < 0x80 { // single byte encoding
 		return auto utf8[0], 1, OK;
 	}
@@ -227,7 +227,7 @@ utf8_to_utf32_single_char :: fn (utf8: string_view) (utf32: u32, decoded_bytes: 
 utf32_to_utf8 :: fn (utf32_str: []u32, out_utf8_str: *string) Error {
 	assert(out_utf8_str);
 	if utf32_str.len == 0 { return OK; }
-	std.str_reserve(out_utf8_str, utf32_str.len);
+	str_reserve(out_utf8_str, utf32_str.len);
 	loop i := 0; i < utf32_str.len; i += 1 {
 		err :: utf32_to_utf8_single_char(utf32_str[i], out_utf8_str);
 		if err { return err; }
@@ -239,7 +239,7 @@ utf32_to_utf8 :: fn (utf32_str: []u32, out_utf8_str: *string) Error {
 utf32_to_utf8_single_char :: fn (utf32_char: u32, out_utf8_str: *string) Error {
 	append :: fn (str: *string, char: u32) #inline {
 		tmp :: string_view.{ len = 1, ptr = auto &char };
-		std.str_append(str, tmp);
+		str_append(str, tmp);
 	};
 
 	if utf32_char <= 0x7F {
@@ -279,13 +279,13 @@ utf32_to_utf8_single_char :: fn (utf32_char: u32, out_utf8_str: *string) Error {
 reinterpret_read_any :: fn (T: type #comptime, value: Any) T #inline {
 	assert(value.data && value.type_info);
 	tmp: T;
-	memcpy(auto &tmp, value.data, std.min(sizeof(T), value.type_info.size_bytes));
+	memcpy(auto &tmp, value.data, math.min(sizeof(T), value.type_info.size_bytes));
 	return tmp;
 }
 
 reinterpret_write_any :: fn (dest: Any, value: ?T) usize #inline {
 	assert(dest.data && dest.type_info);
-	bytes :: std.min(sizeof(T), dest.type_info.size_bytes);
+	bytes :: math.min(sizeof(T), dest.type_info.size_bytes);
 	memcpy(dest.data, auto &value, bytes);
 	return bytes;
 }
@@ -296,3 +296,10 @@ ternary :: fn (expr: bool, a: ?T, b: T) T #inline #obsolete "Use language builti
 	return b;
 };
 
+#scope_private
+#import "std/string"
+#import "std/print"
+#import "std/array"
+
+C    :: #import "libc";
+math :: #import "std/math" #maybe_unused;

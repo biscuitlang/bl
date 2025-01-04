@@ -1,23 +1,33 @@
 
 /* CURRENT TODO
-rename:
-#scope   -> #scope name
-
-#public  -> #scope_public  - publicly exported
-#module  -> #scope_module  - available inside current module
-#private -> #scope_private - available inside current file
 
 module :: fn (target: *Target) #module_entry {
     add_unit(target, "test.bl");
 }
 
+Module Import TODO
+
+x import module once
+x inject into current scope
+x module explicit namespacing
+  x with injection in local scope???
+  x should be constant?
+  x do not work with using!
+x use commas for global separators
+- scope lookup should scan injected scopes recursively?
+- do we need link_runtime
+- how to handle platform incompatible messages
+- builder api
+x remove import policy
+- config separator inconsistency with compiler default settings
+- #load and #import semicollon inconsistency
+- framework path on macos
+
 */
 
-#load "test2.bl"
+#import "std/fs"
 
 main :: fn () s32 {
-	foo();
-	foobar();
 	return 0;
 }
 

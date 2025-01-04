@@ -1,5 +1,3 @@
-#scope win32
-
 TRUE :: 1;
 FALSE :: 0;
 MAX_PATH :: 260;
@@ -1210,3 +1208,6 @@ PathCreateFromUrlA :: fn (pszUrl: PCSTR, pszPath: PSTR, pcchPath: *DWORD, dwFlag
 UrlCreateFromPathA :: fn (pszPath: PCSTR, pszUrl: PSTR, pcchUrl: *DWORD, dwFlags: DWORD) HRESULT #extern "UrlCreateFromPathA";
 
 GetLocalTime :: fn (lpSystemTime: LPSYSTEMTIME) #extern "GetLocalTime";
+
+#scope_private
+C  :: #import "libc";

@@ -1,9 +1,6 @@
 // @ERR_UNKNOWN_SYMBOL@
+#load "../scope_injection2.bl"
 main :: fn () s32 {
-	foo();
+	baz();
 	return 0;
 }
-
-#scope Foo
-#scope_private
-foo :: fn () {}

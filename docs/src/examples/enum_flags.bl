@@ -1,3 +1,5 @@
+#import "std/print"
+
 OpenMode :: enum #flags {
 	READ;   // 1
 	WRITE;  // 2
@@ -18,7 +20,7 @@ main :: fn () s32 {
 	// Set mode to combination of WRITE nad CREATE flags.
 	mode = OpenMode.WRITE_CREATE;
 	print("mode = %\n", mode);
-	
+
 	// Note that we can use the | (or) operator on the flags enumerators. To toggle one additional
 	// flag like this:
 	mode |= OpenMode.APPEND;

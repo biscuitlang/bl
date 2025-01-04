@@ -229,6 +229,7 @@ set(SOURCE_FILES
 	src/obj_writer.c
 	src/parser.c
 	src/scope.c
+	src/scope_printer.c
 	src/setup.c
 	src/table.c
 	src/threading.c

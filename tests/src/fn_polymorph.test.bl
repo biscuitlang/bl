@@ -1,4 +1,6 @@
 #scope_private
+#import "std/array"
+
 Foo :: struct {
 	a: s32;
 	b: s32;
@@ -36,7 +38,7 @@ swap :: fn (a: *?T, b: *T) {
 
 test_poly_swap_1 :: fn () #test {
 	a := 10;
-	b := 20;    
+	b := 20;
 	swap(&a, &b);
 	test_eq(a, 20);
 	test_eq(b, 10);
@@ -81,7 +83,7 @@ test_poly_sum_3 :: fn () #test {
 	defer free_slice(&slice);
 	loop i := 0; i < slice.len; i += 1 {
 		slice[i] = i;
-	}    
+	}
 	test_eq(sum(slice), 45);
 }
 
@@ -104,14 +106,14 @@ test_poly_local_1 :: fn () #test {
 
 recursive :: fn (v: ?T) T {
 	result := v;
-	if result < 10 { 
+	if result < 10 {
 		result = recursive(result+1);
 	}
 	return result;
 }
 
 test_recursive_poly :: fn () #test {
-	test_eq(recursive(0), 10);    
+	test_eq(recursive(0), 10);
 }
 
 test_poly_default_arg :: fn () #test {
@@ -119,8 +121,8 @@ test_poly_default_arg :: fn () #test {
 		return a + b;
 	};
 
-	test_eq(foo(10), 20);    
-	test_eq(foo(10, 20), 30);    
+	test_eq(foo(10), 20);
+	test_eq(foo(10, 20), 30);
 }
 
 test_poly_vargs :: fn () #test {
@@ -132,8 +134,8 @@ test_poly_vargs :: fn () #test {
 		return result;
 	};
 
-	test_eq(foo(10), 10);    
-	test_eq(foo(10, 20), 30);    
+	test_eq(foo(10), 10);
+	test_eq(foo(10, 20), 30);
 }
 
 get_type :: fn (T: type #comptime) T #comptime {

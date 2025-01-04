@@ -1,8 +1,8 @@
+#scope_private
 #import "std/thread"
 
-#private
 thread_create_test :: fn () #test {
-	t, err :: std.thread_create(null);
+	t, err :: thread_create(null);
 	test_not_ok(err);
 }
 
@@ -13,11 +13,11 @@ thread_create_test2 :: fn () #test {
 		_worker_called += 1;
 		return 0;
 	};
-	
-	t, err :: std.thread_create(&worker);
+
+	t, err :: thread_create(&worker);
 	test_ok(err);
 
-	code, err2 :: std.thread_join(t);
+	code, err2 :: thread_join(t);
 	test_ok(err2);
 	test_eq(code, 0);
 	test_eq(_worker_called, 1);
@@ -29,11 +29,11 @@ thread_create_test3 :: fn () #test {
 		_worker_called += 1;
 		return 666;
 	};
-	
-	t, err :: std.thread_create(&worker);
+
+	t, err :: thread_create(&worker);
 	test_ok(err);
 
-	code, err2 :: std.thread_join(t);
+	code, err2 :: thread_join(t);
 	test_ok(err2);
 	test_eq(code, 666);
 	test_eq(_worker_called, 1);
@@ -50,12 +50,12 @@ thread_create_test4 :: fn () #test {
 		_worker_called += 1;
 		return ctx.i;
 	};
- 
+
 	ctx := MyContext.{10};
-	t, err :: std.thread_create(&worker, auto &ctx);
+	t, err :: thread_create(&worker, auto &ctx);
 	test_ok(err);
 
-	code, err2 :: std.thread_join(t);
+	code, err2 :: thread_join(t);
 	test_ok(err2);
 	test_eq(code, 10);
 	test_eq(_worker_called, 1);
@@ -65,15 +65,15 @@ thread_create_test4 :: fn () #test {
 thread_exit_test :: fn () #test {
 	worker :: fn (_ctx: *u8) s32 {
 		_worker_called += 1;
-		std.thread_exit(10);
+		thread_exit(10);
 		unreachable;
 		return 0;
 	};
- 
-	t, err :: std.thread_create(&worker);
+
+	t, err :: thread_create(&worker);
 	test_ok(err);
 
-	code, err2 :: std.thread_join(t);
+	code, err2 :: thread_join(t);
 	test_ok(err2);
 	test_eq(code, 10);
 	test_eq(_worker_called, 1);

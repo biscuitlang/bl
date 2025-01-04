@@ -1,0 +1,8 @@
+#scope_private
+
+#load "scope_injection1.bl"
+
+should_compile :: fn () #test {
+	foo();
+	baz();
+}

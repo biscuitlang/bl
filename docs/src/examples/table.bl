@@ -1,7 +1,7 @@
 #import "std/table"
+#import "std/print"
 
 main :: fn () s32 {
-	using std;
 	table: Table(string_view, s32);
 	defer tbl_terminate(&table);
 

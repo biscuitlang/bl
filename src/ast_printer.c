@@ -73,8 +73,8 @@ static void print_load(struct ast *load, s32 pad, FILE *stream);
 static void print_import(struct ast *import, s32 pad, FILE *stream);
 static void print_link(struct ast *link, s32 pad, FILE *stream);
 static void print_private(struct ast *private, s32 pad, FILE *stream);
+static void print_module_private(struct ast *private, s32 pad, FILE *stream);
 static void print_public(struct ast *private, s32 pad, FILE *stream);
-static void print_scope(struct ast *scope, s32 pad, FILE *stream);
 static void print_call_loc(struct ast *call_loc, s32 pad, FILE *stream);
 static void print_block(struct ast *block, s32 pad, FILE *stream);
 static void print_unrecheable(struct ast *unr, s32 pad, FILE *stream);
@@ -145,8 +145,10 @@ void print_load(struct ast *load, s32 pad, FILE *stream) {
 
 void print_import(struct ast *import, s32 pad, FILE *stream) {
 	print_head(import, pad, stream);
-	const str_t filepath = import->data.load.filepath;
-	fprintf(stream, STR_FMT, STR_ARG(filepath));
+	struct module *module = import->data.import.module;
+	if (module) {
+		fprintf(stream, STR_FMT, STR_ARG(module->modulepath));
+	}
 }
 
 void print_link(struct ast *link, s32 pad, FILE *stream) {
@@ -158,17 +160,12 @@ void print_private(struct ast *private, s32 pad, FILE *stream) {
 	print_head(private, pad, stream);
 }
 
-void print_public(struct ast *public, s32 pad, FILE *stream) {
-	print_head(public, pad, stream);
+void print_module_private(struct ast *module, s32 pad, FILE *stream) {
+	print_head(module, pad, stream);
 }
 
-void print_scope(struct ast *scope, s32 pad, FILE *stream) {
-	print_head(scope, pad, stream);
-	struct ast *ident = scope->data.scope.ident;
-	if (ident) {
-		const str_t s = ident->data.ident.id.str;
-		fprintf(stream, "'" STR_FMT "' ", STR_ARG(s));
-	}
+void print_public(struct ast *public, s32 pad, FILE *stream) {
+	print_head(public, pad, stream);
 }
 
 void print_call_loc(struct ast *call_loc, s32 pad, FILE *stream) {
@@ -523,12 +520,12 @@ void print_node(struct ast *node, s32 pad, FILE *stream) {
 		print_private(node, pad, stream);
 		break;
 
-	case AST_PUBLIC:
-		print_public(node, pad, stream);
+	case AST_MODULE_PRIVATE:
+		print_module_private(node, pad, stream);
 		break;
 
-	case AST_SCOPE:
-		print_scope(node, pad, stream);
+	case AST_PUBLIC:
+		print_public(node, pad, stream);
 		break;
 
 	case AST_CALL_LOC:

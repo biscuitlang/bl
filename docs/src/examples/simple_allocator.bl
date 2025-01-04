@@ -1,3 +1,5 @@
+#import "std/print"
+
 MyAllocator :: struct #base Allocator {
 	buffer: []u8;
 	used_bytes: usize;
@@ -15,7 +17,7 @@ my_allocator_handler :: fn (
 	allocator: *MyAllocator,
 	// Operation specify whether we do allocation or free.
 	operation: AllocOp,
-	// Pointer to the previously allocated memory. 
+	// Pointer to the previously allocated memory.
 	_: *u8,
 	// Count of bytes to be allocated.
 	size: usize,

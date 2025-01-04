@@ -25,8 +25,6 @@
 //! !!! note
 //!     Organizing data into buckets leads to less allocations, faster free and better memory locality.
 
-#scope std
-
 /// Create a new **BucketArray** type based on `TElem` element type.
 ///
 /// ```bl
@@ -172,7 +170,9 @@ bucket_array_typeof_elem :: fn (TArr: type #comptime) type #comptime {
 	return (@(@TArr.buckets.ptr).elems.ptr).value;
 }
 
-#private
+#scope_private
+#import "std/array"
+
 BUCKET_ELEM_COUNT :: cast(s64) sizeof(u64) * 8 #maybe_unused;
 FULL : u64 : 0xffffffff #maybe_unused;
 MASK : u64 : 0x00000001 #maybe_unused;

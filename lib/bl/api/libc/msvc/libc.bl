@@ -1,5 +1,3 @@
-#scope C
-
 char      :: s8;
 uchar     :: u8;
 short     :: s16;

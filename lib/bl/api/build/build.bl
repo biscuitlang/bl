@@ -175,6 +175,9 @@ Target :: struct { // !!! ABI sync TargetOptions !!!
 	print_tokens: bool;
 	/// Print out AST.
 	print_ast: bool;
+	/// Print assembly scope structure in dot Graphviz format.
+	print_scopes: bool;
+	print_scopes_mode: ScopeDumpMode;
 	/// Emit LLVM IR code into file.
 	emit_llvm: bool;
 	/// Emit asm code into file.
@@ -201,6 +204,11 @@ Target :: struct { // !!! ABI sync TargetOptions !!!
 	enable_experimental_targets: bool;
 	/// Target triple according to LLVM.
 	triple: TargetTriple;
+}
+
+ScopeDumpMode :: enum {
+	PARENTING = 0;
+	INJECTION = 1;
 }
 
 /// Specification of compiler output binary kind.
@@ -306,13 +314,13 @@ AssertMode :: enum s32 {
 /// ```
 add_executable :: fn (name: string_view) *Target {
 	if name.len == 0 { panic("Invalid executable name!"); }
-	return __add_target(std.strtoc(name), cast(s32) TargetKind.EXECUTABLE);
+	return __add_target(strtoc(name), cast(s32) TargetKind.EXECUTABLE);
 }
 
 /// Add new shared library target target into the current compilation queue.
 add_library :: fn (name: string_view) *Target {
 	if name.len == 0 { panic("Invalid library name!"); }
-	return __add_target(std.strtoc(name), cast(s32) TargetKind.SHARED_LIBRARY);
+	return __add_target(strtoc(name), cast(s32) TargetKind.SHARED_LIBRARY);
 }
 
 /// Add new source file into the `target`. Function does nothing when `filepath` is already present
@@ -320,7 +328,7 @@ add_library :: fn (name: string_view) *Target {
 add_unit :: fn (target: *Target, filepath: string_view) {
 	if !target { panic("Invalid target!"); }
 	if filepath.len == 0 { panic("Invalid unit path!"); }
-	__add_unit(target, std.strtoc(filepath));
+	__add_unit(target, strtoc(filepath));
 }
 
 /// Start compilation of the `target` assembly and return `ok` or `error` in case compilation failed.
@@ -344,7 +352,7 @@ add_lib_path :: fn (target: *Target, path: string_view) {
 	if !target { panic("Invalid target!"); }
 	if path.len == 0 { panic("Invalid library path!"); }
 
-	__add_lib_path(target, std.strtoc(path));
+	__add_lib_path(target, strtoc(path));
 }
 
 /// Add system library. Only name is required (without extension and prefix). Compiler will lookup
@@ -384,7 +392,7 @@ link_library :: fn (target: *Target, name: string_view) {
 	if !target { panic("Invalid target!"); }
 	if name.len == 0 { panic("Invalid library name!"); }
 
-	__link_library(target, std.strtoc(name));
+	__link_library(target, strtoc(name));
 }
 
 /// Appends raw string data directly to linker command. Passed option is added without any
@@ -392,7 +400,7 @@ link_library :: fn (target: *Target, name: string_view) {
 append_linker_options :: fn (target: *Target, option: string_view) {
 	if !target { panic("Invalid target!"); }
 	if option.len == 0 { return; }
-	__append_linker_options(target, std.strtoc(option));
+	__append_linker_options(target, strtoc(option));
 }
 
 /// Set build output directory. This is directory where all output files will be written. For
@@ -404,60 +412,33 @@ append_linker_options :: fn (target: *Target, option: string_view) {
 /// Specified directory will be used also for build temporary files.
 set_output_dir :: fn (target: *Target, dir: string_view) {
 	if !target { panic("Invalid target!"); }
-	if std.str_is_empty(dir) { return; }
-	__set_output_dir(target, std.strtoc(dir));
+	if str_is_empty(dir) { return; }
+	__set_output_dir(target, strtoc(dir));
 }
 
 /// Get output directory specified by [set_output_dir](#set_output_dir) or empty string.
 get_output_dir :: fn (target: *Target) string_view {
 	if !target { panic("Invalid target!"); }
 	cdir :: __get_output_dir(target);
-	if !cdir { return std.str_view_empty; }
-	return std.ctostr(cdir);
+	if !cdir { return str_view_empty; }
+	return ctostr(cdir);
 }
 
-/// Specify import module policy in [set_module_dir](#set_module_dir) function call. Module
-/// dependencies of any target can be treated in different ways depending on use case and needs of
-/// programmer. Sometimes program stability and maintainability is more important than use of
-/// latest versions of modules. These flags can specify how local modules should be updated.
-ModuleImportPolicy :: enum s32 {
-	/// Use system modules but prefer local ones in module directory. This option disables any
-	/// copying and version check. Local module directory can contain custom project related
-	/// modules you don't want to expose to the whole system. This is the **default** option.
-	SYSTEM = 0;
-
-	/// Bundle only missing modules from system into the local module folder and ignore if there is
-	/// newer version available. Individual module updates can be done by renaming old one and
-	/// re-run compilation. Custom modules (not coming from main API folder are kept untouched.)
-	BUNDLE = 1;
-
-	/// Bundle all missing modules from system into the local module folder and update old ones
-	/// also. Custom modules (not coming from main API folder are kept untouched.) Compiler will
-	/// create `.bak` backup directory for every module before any updates.
-	BUNDLE_LATEST = 2;
-}
-
-/// Sets module directory `dir` for `target`. All imported modules will be copied into this
-/// directory according to chosen [ModuleImportPolicy](#moduleimportpolicy). Module policy is set
-/// to `SYSTEM` by default even if this function has not been called.
-set_module_dir :: fn (target: *Target, dir: string_view, policy := ModuleImportPolicy.SYSTEM) {
+/// Sets module directory `dir` for `target`. If #import directive is used, compiler will search the
+/// `dir` first when searching modules. In case the module is not found, default compiler API location
+/// will be used.
+set_module_dir :: fn (target: *Target, dir: string_view) {
 	if !target { panic("Invalid target!"); }
-	if std.str_is_empty(dir) { return; }
-	__set_module_dir(target, std.strtoc(dir), auto policy);
+	if str_is_empty(dir) { return; }
+	__set_module_dir(target, strtoc(dir));
 }
 
 /// Get module directory specified by [set_module_dir](#set_module_dir) or default one.
 get_module_dir :: fn (target: *Target) string_view {
 	if !target { panic("Invalid target!"); }
 	cdir :: __get_module_dir(target);
-	if !cdir { return std.str_view_empty; }
-	return std.ctostr(cdir);
-}
-
-/// Get module import policy specified by [set_module_dir](#set_module_dir) or default one.
-get_module_import_policy :: fn (target: *Target) ModuleImportPolicy {
-	if !target { panic("Invalid target!"); }
-	return auto __get_module_import_policy(target);
+	if !cdir { return str_view_empty; }
+	return ctostr(cdir);
 }
 
 /// Returns target triple of the current host machine.
@@ -474,10 +455,15 @@ get_default_triple :: fn () TargetTriple {
 triple_to_string :: fn (triple: TargetTriple) string_view {
 	buf: [128]C.char #noinit;
 	len :: __triple_to_string(&triple, buf.ptr, auto buf.len);
-	return tprint("%", std.ctostr(buf.ptr, len));
+	return tprint("%", ctostr(buf.ptr, len));
 }
 
-#private
+#scope_private
+#import "std/string"
+#import "std/print"
+
+C :: #import "libc";
+
 __add_target :: fn (name: *C.char, kind: C.int) *Target #extern;
 __add_unit :: fn (target: *Target, filepath: *C.char) #extern;
 __compile :: fn (target: *Target) C.int #extern;
@@ -487,9 +473,8 @@ __link_library :: fn (target: *Target, name: *C.char) #extern;
 __append_linker_options :: fn (target: *Target, option: *C.char) #extern;
 __set_output_dir :: fn (target: *Target, dir: *C.char) #extern;
 __get_output_dir :: fn (target: *Target) *C.char #extern;
-__set_module_dir :: fn (target: *Target, dir: *C.char, policy: C.int) #extern;
+__set_module_dir :: fn (target: *Target, dir: *C.char) #extern;
 __get_module_dir :: fn (target: *Target) *C.char #extern;
-__get_module_import_policy :: fn (target: *Target) C.int #extern;
 __get_default_triple :: fn (triple: *TargetTriple) #extern;
 __triple_to_string :: fn (triple: *TargetTriple, buf: *C.char, buf_len: C.int) C.int #extern;
 __builder_get_options :: fn (opt: *BuilderOptions) #extern;

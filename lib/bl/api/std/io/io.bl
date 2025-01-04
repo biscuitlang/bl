@@ -13,8 +13,6 @@
 //! @@@examples/streams.bl
 //! ```
 
-#scope std
-
 Stream :: struct {
 	vtable: *StreamVTable;
 }
@@ -220,3 +218,8 @@ copy_stream :: fn (dest: *Stream, src: *Stream, buffer_size := 512 #comptime) Er
 	}
 	return state;
 }
+
+#scope_private
+#import "std/math"
+#import "std/array"
+#import "std/string"

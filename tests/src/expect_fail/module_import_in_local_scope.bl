@@ -1,0 +1,7 @@
+// @ERR_UNEXPECTED_DECL@
+main :: fn () s32 {
+	named :: #import "../../../tests/src/module1";
+	return 0;
+}
+
+

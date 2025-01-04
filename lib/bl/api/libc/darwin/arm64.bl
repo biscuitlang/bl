@@ -1,5 +1,3 @@
-#scope C
-
 opendir :: fn (name: *char) *DIR #extern "opendir";
 fdopendir :: fn (fd: int) *DIR #extern "fdopendir";
 readdir :: fn (dirp: *DIR) *dirent_t #extern "readdir";

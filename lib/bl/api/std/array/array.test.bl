@@ -1,6 +1,6 @@
+#scope_private
 #import "std/array"
 
-#private
 test_members :: fn () #test {
 	test_true(has_member(_Array, "len"));
 	test_true(has_member(_Array, "ptr"));

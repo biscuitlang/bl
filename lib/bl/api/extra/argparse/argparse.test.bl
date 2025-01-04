@@ -1,9 +1,8 @@
-#private
-
+#scope_private
 #import "extra/argparse"
+#import "std/string"
 
 empty_args :: fn () #test {
-	using argparse;
 	parser: Parser;
 	init(&parser);
 	defer terminate(&parser);
@@ -14,7 +13,6 @@ empty_args :: fn () #test {
 }
 
 no_args :: fn () #test {
-	using argparse;
 	parser: Parser;
 	init(&parser);
 	defer terminate(&parser);
@@ -25,7 +23,6 @@ no_args :: fn () #test {
 }
 
 help :: fn () #test {
-	using argparse;
 	parser: Parser;
 	init(&parser);
 	defer terminate(&parser);
@@ -38,7 +35,6 @@ help :: fn () #test {
 }
 
 invalid_flag :: fn () #test {
-	using argparse;
 	parser: Parser;
 	init(&parser);
 	defer terminate(&parser);
@@ -51,7 +47,6 @@ invalid_flag :: fn () #test {
 }
 
 custom_flag :: fn () #test {
-	using argparse;
 	parser: Parser;
 	init(&parser);
 	defer terminate(&parser);
@@ -66,7 +61,6 @@ custom_flag :: fn () #test {
 }
 
 number_arg :: fn () #test {
-	using argparse;
 	parser: Parser;
 	init(&parser);
 	defer terminate(&parser);
@@ -108,7 +102,6 @@ number_arg :: fn () #test {
 }
 
 number_arg_u8 :: fn () #test {
-	using argparse;
 	parser: Parser;
 	init(&parser);
 	defer terminate(&parser);
@@ -137,7 +130,6 @@ number_arg_u8 :: fn () #test {
 }
 
 float_arg :: fn () #test {
-	using argparse;
 	parser: Parser;
 	init(&parser);
 	defer terminate(&parser);
@@ -178,7 +170,6 @@ float_arg :: fn () #test {
 }
 
 double_arg :: fn () #test {
-	using argparse;
 	parser: Parser;
 	init(&parser);
 	defer terminate(&parser);
@@ -219,13 +210,12 @@ double_arg :: fn () #test {
 }
 
 string_arg :: fn () #test {
-	using argparse;
 	parser: Parser;
 	init(&parser);
 	defer terminate(&parser);
 
-	str := std.str_new();
-	defer std.str_delete(&str);
+	str := str_new();
+	defer str_delete(&str);
 	add(&parser, &str, "--str", "-s", "Test string.");
 
 	{ // OK
@@ -253,7 +243,6 @@ string_arg :: fn () #test {
 }
 
 string_view_arg :: fn () #test {
-	using argparse;
 	parser: Parser;
 	init(&parser);
 	defer terminate(&parser);
@@ -292,7 +281,6 @@ TestEnum :: enum {
 }
 
 enum_arg :: fn () #test {
-	using argparse;
 	parser: Parser;
 	init(&parser);
 	defer terminate(&parser);
@@ -343,7 +331,6 @@ enum_arg :: fn () #test {
 }
 
 required_arg :: fn () #test {
-	using argparse;
 	parser: Parser;
 	init(&parser);
 	defer terminate(&parser);
@@ -365,7 +352,6 @@ required_arg :: fn () #test {
 }
 
 positional_arg_forward :: fn () #test {
-	using argparse;
 	parser: Parser;
 	init(&parser);
 	defer terminate(&parser);
@@ -385,7 +371,6 @@ positional_arg_forward :: fn () #test {
 }
 
 positional_arg_forward_multiple :: fn () #test {
-	using argparse;
 	parser: Parser;
 	init(&parser);
 	defer terminate(&parser);
@@ -411,7 +396,6 @@ positional_arg_forward_multiple :: fn () #test {
 }
 
 positional_arg_required :: fn () #test {
-	using argparse;
 	parser: Parser;
 	init(&parser);
 	defer terminate(&parser);
@@ -453,7 +437,6 @@ MyArgs :: struct {
 }
 
 combination :: fn () #test {
-	using argparse;
 	parser: Parser;
 	init(&parser, "This is cool testing application with command line arguments, enjoy!");
 	defer terminate(&parser);

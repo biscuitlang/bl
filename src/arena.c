@@ -27,6 +27,7 @@
 // =================================================================================================
 
 #include "arena.h"
+#include "stb_ds.h"
 #include "threading.h"
 
 #define total_elem_size(A) ((A)->elem_size_bytes + (A)->elem_alignment)
@@ -117,4 +118,16 @@ void *arena_alloc(struct arena *arena) {
 	bl_zeromem(elem, arena->elem_size_bytes);
 
 	return_zone(elem);
+}
+
+void arena_get_flatten(struct arena *arena, array(void *) * buf) {
+	struct arena_chunk *chunk = arena->first_chunk;
+	while (chunk) {
+		arrsetcap(*buf, arrlen(*buf) + chunk->count);
+		for (s32 i = 0; i < chunk->count; ++i) {
+			void *ptr = get_from_chunk(arena, chunk, i);
+			arrput(*buf, ptr);
+		}
+		chunk = chunk->next;
+	}
 }

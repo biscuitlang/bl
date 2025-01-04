@@ -1,7 +1,5 @@
 // generated from /Users/travis/Develop/tedit/src/freetype/c/freetype.h
 
-#scope FreeType
-
 Bool :: C.uchar;
 FWord :: C.short;
 UFWord :: C.ushort;
@@ -68,7 +66,7 @@ HINTING_FREETYPE :: 0;
 HINTING_ADOBE :: 1;
 
 LOAD_TARGET_NORMAL :: (RENDER_MODE_NORMAL & 15) << 16;
-LOAD_TARGET_LIGHT  :: (RENDER_MODE_LIGHT  & 15) << 16; 
+LOAD_TARGET_LIGHT  :: (RENDER_MODE_LIGHT  & 15) << 16;
 LOAD_TARGET_MONO   :: (RENDER_MODE_MONO   & 15) << 16;
 LOAD_TARGET_LCD    :: (RENDER_MODE_LCD    & 15) << 16;
 LOAD_TARGET_LCD_V  :: (RENDER_MODE_LCD_V  & 15) << 16;
@@ -113,7 +111,7 @@ Size_Request_Type_ :: enum {
 	SIZE_REQUEST_TYPE_MAX = 5;
 };
 
-Render_Mode :: s32; 
+Render_Mode :: s32;
 RENDER_MODE_NORMAL :: 0;
 RENDER_MODE_LIGHT :: 1;
 RENDER_MODE_MONO :: 2;
@@ -141,7 +139,7 @@ Color :: struct {
 	green: Byte;
 	red: Byte;
 	alpha: Byte;
-} 
+}
 
 Face :: struct {
 	num_faces: Long;
@@ -172,10 +170,10 @@ Face :: struct {
 	memory: Memory;
 	stream: Stream;
 	sizes_list: ListRec;
-	autohint: Generic;   
-	extensions: *u8; 
+	autohint: Generic;
+	extensions: *u8;
 	internal: Face_Internal;
-} 
+}
 
 GlyphSlot :: struct {
 	library: Library;
@@ -226,7 +224,7 @@ ListNode :: struct {
 	prev: *ListNode;
 	next: *ListNode;
 	data: *u8;
-} 
+}
 
 ListRec :: struct {
 	head: *ListNode;
@@ -279,10 +277,10 @@ Vector :: struct {
 }
 
 BBox :: struct {
-	xMin: Pos; 
-	yMin: Pos; 
-	xMax: Pos; 
-	yMax: Pos; 
+	xMin: Pos;
+	yMin: Pos;
+	xMax: Pos;
+	yMax: Pos;
 }
 
 Matrix :: struct {
@@ -333,9 +331,12 @@ Select_Charmap :: fn (face: *Face, encoding: UInt) Error #extern "FT_Select_Char
 ENCODING_UNICODE :: ENC_TAG('u', 'n', 'i', 'c');
 
 ENC_TAG :: fn (a: u8, b: u8, c: u8, d: u8) UInt #comptime {
-	return 
+	return
 		(cast(UInt)(a) << 24) |
 		(cast(UInt)(b) << 16) |
 		(cast(UInt)(c) <<  8) |
 		(cast(UInt)(d));
 }
+
+#scope_private
+C :: #import "libc";

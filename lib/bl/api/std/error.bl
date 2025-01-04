@@ -1,7 +1,7 @@
 // =================================================================================================
 // bl
 //
-// File:   error.bl 
+// File:   error.bl
 // Author: Martin Dorazil
 // Date:   19/11/20
 //
@@ -27,16 +27,16 @@
 // =================================================================================================
 
 //! # Error Handling
-//! 
-//! `#load "std/error.bl"`
-//! 
-//! There is no support for *exceptions* of any kind in BL, however, there are a few features in the 
-//! language helping with error handling such as [defer](/book/control_flow/#defer) and 
-//! [multiple return values](/book/functions/#return-value). In general, every possibly failing 
-//! function should return an error state in case of failure containing an error code and some 
-//! message describing the problem. This style is widely adopted by the *standard library* and may 
+//!
+//! Available by default.
+//!
+//! There is no support for *exceptions* of any kind in BL, however, there are a few features in the
+//! language helping with error handling such as [defer](/book/control_flow/#defer) and
+//! [multiple return values](/book/functions/#return-value). In general, every possibly failing
+//! function should return an error state in case of failure containing an error code and some
+//! message describing the problem. This style is widely adopted by the *standard library* and may
 //! be used in the *user* code as well.
-//! 
+//!
 //! The error state is represented by the following data structure:
 //!
 //! ```bl
@@ -44,16 +44,16 @@
 //!     msg: string_view;
 //!     code: s32;
 //! }
-//! 
+//!
 //! Error :: *_Error;
 //! ```
-//! 
+//!
 //! ### Example
 //!
 //! ```bl
 //! @@@examples/error_handling.bl
 //! ```
-//! 
+//!
 //! As already mentioned, the [defer](/book/control_flow/#defer) statement may be helpful in situations
 //! where we need to free some memory or do any kind of resource cleanup before the failing function
 //! returns the error state.
@@ -78,25 +78,28 @@ is_error :: fn (err: Error, code: s32) bool #inline {
 /// instance, `error` function sets desired values and return pointer to this global. That means
 /// the `Error` must be handled immediately after it's returned from failing function since every
 /// `Error` state points to the same memory.
-/// 
+///
 /// Error creating does not require any HEAP memory alocations.
-/// 
+///
 /// **Overloads:**
 /// ```bl
 /// fn (code: s32) Error #inline
 /// fn (format: string, args: ...) Error #inline
 /// fn (code: s32, format: string, args: ...) Error #inline
 /// ```
-/// 
+///
 /// Sets error state with `code` and formatted message.
 error :: fn {  impl_error1; impl_error2; impl_error3; }
 
-#private
+#scope_private
+#import "std/print"
+#import "std/string"
+
 _last_error_msg_buffer: [1024]u8 #thread_local;
 _last_error: _Error #thread_local;
 
 impl_error1 :: fn (code: s32) Error #inline {
-	return impl_error3(code, std.str_empty);
+	return impl_error3(code, str_empty);
 }
 
 impl_error2 :: fn (format: string_view, args: ...) Error #inline {

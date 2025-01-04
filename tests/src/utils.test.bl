@@ -1,6 +1,7 @@
-#load "std/utils.bl"
-
 #scope_private
+#import "std/string"
+#import "std/array"
+
 test_random_number_range_1 :: fn () #test {
 	random_seed_time();
 	loop i := 0; i < 1000; i += 1 {
@@ -27,22 +28,22 @@ flags_1 :: fn () #test {
 	test_false(is_flag(f, F1));
 	test_false(is_flag(f, F2));
 	test_false(is_flag(f, F3));
-	
+
 	set_flag(&f, F1);
 	test_true(is_flag(f, F1));
 	test_false(is_flag(f, F2));
 	test_false(is_flag(f, F3));
-	
+
 	set_flag(&f, F2);
 	test_true(is_flag(f, F1));
 	test_true(is_flag(f, F2));
 	test_false(is_flag(f, F3));
-	
+
 	set_flag(&f, F3);
 	test_true(is_flag(f, F1));
 	test_true(is_flag(f, F2));
 	test_true(is_flag(f, F3));
-	
+
 	clr_flag(&f, F3);
 	test_true(is_flag(f, F1));
 	test_true(is_flag(f, F2));
@@ -79,27 +80,27 @@ flags_enum :: fn () #test {
 		F2;
 		F3;
 	};
-	
+
 	f: F;
 	test_false(is_flag(f, F.F1));
 	test_false(is_flag(f, F.F2));
 	test_false(is_flag(f, F.F3));
-	
+
 	set_flag(&f, F.F1);
 	test_true(is_flag(f, F.F1));
 	test_false(is_flag(f, F.F2));
 	test_false(is_flag(f, F.F3));
-	
+
 	set_flag(&f, F.F2);
 	test_true(is_flag(f, F.F1));
 	test_true(is_flag(f, F.F2));
 	test_false(is_flag(f, F.F3));
-	
+
 	set_flag(&f, F.F3);
 	test_true(is_flag(f, F.F1));
 	test_true(is_flag(f, F.F2));
 	test_true(is_flag(f, F.F3));
-	
+
 	clr_flag(&f, F.F3);
 	test_true(is_flag(f, F.F1));
 	test_true(is_flag(f, F.F2));
@@ -156,8 +157,8 @@ utf8_to_utf32_test_1 :: fn () #test {
 }
 
 utf32_to_utf8_single_char_1 :: fn () #test {
-	buf := std.str_new();
-	defer std.str_delete(&buf);
+	buf := str_new();
+	defer str_delete(&buf);
 
 	err :: utf32_to_utf8_single_char(0x00000061, &buf);
 	test_ok(err);
@@ -165,8 +166,8 @@ utf32_to_utf8_single_char_1 :: fn () #test {
 }
 
 utf32_to_utf8_single_char_2 :: fn () #test {
-	buf := std.str_new();
-	defer std.str_delete(&buf);
+	buf := str_new();
+	defer str_delete(&buf);
 
 	err :: utf32_to_utf8_single_char(0x000000f3, &buf);
 	test_ok(err);
@@ -174,8 +175,8 @@ utf32_to_utf8_single_char_2 :: fn () #test {
 }
 
 utf32_to_utf8_single_char_3 :: fn () #test {
-	buf := std.str_new();
-	defer std.str_delete(&buf);
+	buf := str_new();
+	defer str_delete(&buf);
 
 	err :: utf32_to_utf8_single_char(0x0000306f, &buf);
 	test_ok(err);
@@ -191,8 +192,8 @@ utf32_to_utf8_test_1 :: fn () #test {
 		0x00000062, 0x00000065, 0x0000006c, 0x00000073, 0x0000006b, 0x000000e9, 0x00000020,
 		0x000000f3, 0x00000064, 0x00000079, 0x0000002e };
 
-	buf := std.str_new();
-	defer std.str_delete(&buf);
+	buf := str_new();
+	defer str_delete(&buf);
 
 	err :: utf32_to_utf8(UTF32_CHARS, &buf);
 	test_ok(err);

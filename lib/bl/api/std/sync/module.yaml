@@ -1,4 +1,6 @@
 version: 20220923
+src: "sync.bl"
+
 x86_64-pc-windows-msvc:
   src: "_sync.win32.bl"
 

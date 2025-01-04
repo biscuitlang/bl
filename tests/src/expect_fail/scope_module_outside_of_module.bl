@@ -1,0 +1,5 @@
+// @ERR_UNEXPECTED_DIRECTIVE@
+main :: fn () s32 {
+	return 0;
+}
+#scope_module

@@ -1,0 +1,14 @@
+foo :: fn () {
+	bar();
+}
+
+#scope_private
+
+bar :: fn () {}
+
+#scope_public
+
+baz :: fn () {
+	foo();
+	bar();
+}

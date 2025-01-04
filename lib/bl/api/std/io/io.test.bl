@@ -1,20 +1,22 @@
+#scope_private
 #import "std/io"
-#private
+#import "std/string"
 
-MyStream :: struct #base std.Stream {
+math :: #import "std/math";
+
+MyStream :: struct #base Stream {
 	buffer: [64]u8;
 	index: s64;
 }
 
-MY_STREAM_VTABLE :: std.StreamVTable.{
+MY_STREAM_VTABLE :: StreamVTable.{
 	read  = auto &my_read,
 	write = auto &my_write,
 	seek  = auto &my_seek,
 };
 
 my_read :: fn (stream: *MyStream, dest: *u8, bytes_to_read: s64) (s64, Error) {
-	using std;
-	size := min(stream.index, bytes_to_read);
+	size := math.min(stream.index, bytes_to_read);
 	stream.index -= size;
 	assert(stream.index >= 0);
 	if size > 0 { memcpy(dest, &stream.buffer[stream.index], auto size); }
@@ -22,15 +24,15 @@ my_read :: fn (stream: *MyStream, dest: *u8, bytes_to_read: s64) (s64, Error) {
 }
 
 my_write :: fn (stream: *MyStream, src: *u8, bytes_to_write: s64) (s64, Error) {
-	size :: std.min(stream.buffer.len - stream.index, bytes_to_write);
+	size :: math.min(stream.buffer.len - stream.index, bytes_to_write);
 	if size > 0 { memcpy(&stream.buffer[stream.index], src, auto size); }
 	stream.index += size;
 	assert(stream.index <= stream.buffer.len);
 	return size, OK;
 }
 
-my_seek :: fn (stream: *MyStream, locator: std.StreamLocator, offset: s64) (s64, Error) {
-	using std.StreamLocator;
+my_seek :: fn (stream: *MyStream, locator: StreamLocator, offset: s64) (s64, Error) {
+	using StreamLocator;
 	switch locator {
 		CURRENT { stream.index += offset; }
 		BEGIN   { stream.index = offset;  }
@@ -44,29 +46,27 @@ init_stream :: fn (stream: *MyStream) {
 }
 
 write_read_empty :: fn () #test {
-	using std;
 	stream: MyStream;
 	init_stream(&stream);
 
-	written, write_err :: write(&stream, null, 0);
+	written_bytes, write_err :: write(&stream, null, 0);
 	test_ok(write_err);
-	test_eq(written, 0);
+	test_eq(written_bytes, 0);
 
-	read, read_err :: std.read(&stream, null, 0);
+	read_bytes, read_err :: read(&stream, null, 0);
 	test_ok(read_err);
-	test_eq(read, 0);
+	test_eq(read_bytes, 0);
 }
 
 write_read_string :: fn () #test {
-	using std;
 	stream: MyStream;
 	init_stream(&stream);
 
 	data :: "Hello!";
 	loop i := 0; i < 3; i += 1 {
-		written, write_err :: write_string(&stream, data);
+		written_bytes, write_err :: write_string(&stream, data);
 		test_ok(write_err);
-		test_eq(written, 6);
+		test_eq(written_bytes, 6);
 	}
 	p1, e1 :: seek(&stream);
 	test_ok(e1);
@@ -74,7 +74,7 @@ write_read_string :: fn () #test {
 
 	dest := str_new();
 	defer str_delete(&dest);
-	read_err :: std.read_string(&stream, &dest);
+	read_err :: read_string(&stream, &dest);
 	test_ok(read_err);
 	p2, e2 :: seek(&stream);
 	test_ok(e2);
@@ -82,7 +82,6 @@ write_read_string :: fn () #test {
 }
 
 positions :: fn () #test {
-	using std;
 	stream: MyStream;
 	init_stream(&stream);
 

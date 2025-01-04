@@ -71,18 +71,13 @@ BL_EXPORT const char *__get_output_dir(struct target *target) {
 	return target->out_dir.len > 0 ? str_buf_to_c(target->out_dir) : NULL;
 }
 
-BL_EXPORT void __set_module_dir(struct target *target, const char *dir, const s32 policy) {
-	target_set_module_dir(target, dir, policy);
+BL_EXPORT void __set_module_dir(struct target *target, const char *dir) {
+	target_set_module_dir(target, dir);
 }
 
 BL_EXPORT const char *__get_module_dir(struct target *target) {
 	bmagic_assert(target);
 	return target->module_dir.len > 0 ? str_buf_to_c(target->module_dir) : NULL;
-}
-
-BL_EXPORT s32 __get_module_import_policy(struct target *target) {
-	bmagic_assert(target);
-	return target->module_policy;
 }
 
 BL_EXPORT void __get_default_triple(struct target_triple *triple) {
@@ -100,3 +95,5 @@ BL_EXPORT void __builder_get_options(struct builder_options *opt) {
 BL_EXPORT void __builder_set_options(struct builder_options *opt) {
 	memcpy(builder.options, opt, sizeof(struct builder_options));
 }
+
+// @Incomplete 2024-12-16: We miss API to import modules!!!!

@@ -1,7 +1,7 @@
 // =================================================================================================
 // bl
 //
-// File:   test.bl 
+// File:   test.bl
 // Author: Martin Dorazil
 // Date:   2/11/19
 //
@@ -26,19 +26,12 @@
 // SOFTWARE.
 // =================================================================================================
 
-#import "std/thread"
-#import "std/string"
-#import "std/array"
-#import "std/pool"
-
-#load "std/debug.bl"
-
 // @CLEANUP These functions can be rewritten as polymorphs.
 
 //! # Test
-//! 
-//! `#load "std/test.bl"`
-//! 
+//!
+//! `#import "std/test.bl"`
+//!
 //! Integrated unit testing API.
 
 /// ### Overloads
@@ -48,50 +41,50 @@
 /// fn (got: string, expected: string_view, loc := #call_location)
 /// fn (got: string_view, expected: string, loc := #call_location)
 /// fn (got: string, expected: string, loc := #call_location)
-/// fn (got: f32, expected: f32, epsilon: f32 = std.F32_EPSILON, loc := #call_location)
-/// fn (got: f64, expected: f64, epsilon: f64 = std.F64_EPSILON, loc := #call_location)
+/// fn (got: f32, expected: f32, epsilon: f32 = F32_EPSILON, loc := #call_location)
+/// fn (got: f64, expected: f64, epsilon: f64 = F64_EPSILON, loc := #call_location)
 /// fn (got: ?T, expected: T, loc := #call_location)
 /// ```
-/// 
+///
 /// Test whether `got` value is equal to `expected` value.
 test_eq :: fn {
 	// @Cleanup: there is probably better way how to compare strings.
 	fn (got: string_view, expected: string_view, loc := #call_location) {
-		if std.str_match(expected, got) { return; }
+		if str_match(expected, got) { return; }
 		print_err("\nExpected: '%'\nGot:      '%'.", expected, got);
 		stop(loc);
 	};
 
 	fn (got: string, expected: string_view, loc := #call_location) {
-		if std.str_match(expected, got) { return; }
+		if str_match(expected, got) { return; }
 		print_err("\nExpected: '%'\nGot:      '%'.", expected, got);
 		stop(loc);
 	};
 
 	fn (got: string_view, expected: string, loc := #call_location) {
-		if std.str_match(expected, got) { return; }
+		if str_match(expected, got) { return; }
 		print_err("\nExpected: '%'\nGot:      '%'.", expected, got);
 		stop(loc);
 	};
 
 	fn (got: string, expected: string, loc := #call_location) {
-		if std.str_match(expected, got) { return; }
+		if str_match(expected, got) { return; }
 		print_err("\nExpected: '%'\nGot:      '%'.", expected, got);
 		stop(loc);
 	};
-	
-	fn (got: f32, expected: f32, epsilon: f32 = std.F32_EPSILON, loc := #call_location) {
-		if std.compare(got, expected, epsilon) { return; }
+
+	fn (got: f32, expected: f32, epsilon: f32 = math.F32_EPSILON, loc := #call_location) {
+		if math.compare(got, expected, epsilon) { return; }
 		print_err("\nExpected: '%'\nGot:      '%'.", expected, got);
 		stop(loc);
 	};
-	
-	fn (got: f64, expected: f64, epsilon: f64 = std.F64_EPSILON, loc := #call_location) {
-		if std.compare(got, expected, epsilon) { return; }
+
+	fn (got: f64, expected: f64, epsilon: f64 = math.F64_EPSILON, loc := #call_location) {
+		if math.compare(got, expected, epsilon) { return; }
 		print_err("\nExpected: '%'\nGot:      '%'.", expected, got);
 		stop(loc);
 	};
-	
+
 	fn (got: ?T, expected: T, loc := #call_location) {
 		if expected == got { return; }
 		print_err("\nExpected: '%'\nGot:      '%'.", expected, got);
@@ -100,51 +93,51 @@ test_eq :: fn {
 }
 
 /// ### Overloads
-/// 
+///
 /// ```bl
 /// fn (got: string, not_expected: string, loc := #call_location)
 /// fn (got: string, expected: string_view, loc := #call_location)
 /// fn (got: string_view, expected: string, loc := #call_location)
 /// fn (got: string, expected: string, loc := #call_location)
-/// fn (got: f32, not_expected: f32, epsilon: f32 = std.F32_EPSILON, loc := #call_location)
-/// fn (got: f64, not_expected: f64, epsilon: f64 = std.F64_EPSILON, loc := #call_location)
+/// fn (got: f32, not_expected: f32, epsilon: f32 = F32_EPSILON, loc := #call_location)
+/// fn (got: f64, not_expected: f64, epsilon: f64 = F64_EPSILON, loc := #call_location)
 /// fn (got: ?T, not_expected: T, loc := #call_location)
 /// ```
-/// 
+///
 /// Test whether `got` value is not equal to `not_expected` value.
 test_neq :: fn {
 	// @Cleanup: there is probably better way how to compare strings.
 	fn (got: string_view, expected: string_view, loc := #call_location) {
-		if !std.str_match(expected, got) { return; }
+		if !str_match(expected, got) { return; }
 		print_err("\nExpected: '%'\nGot:      '%'.", expected, got);
 		stop(loc);
 	};
 
 	fn (got: string, expected: string_view, loc := #call_location) {
-		if !std.str_match(expected, got) { return; }
+		if !str_match(expected, got) { return; }
 		print_err("\nExpected: '%'\nGot:      '%'.", expected, got);
 		stop(loc);
 	};
 
 	fn (got: string_view, expected: string, loc := #call_location) {
-		if !std.str_match(expected, got) { return; }
+		if !str_match(expected, got) { return; }
 		print_err("\nExpected: '%'\nGot:      '%'.", expected, got);
 		stop(loc);
 	};
 
 	fn (got: string, expected: string, loc := #call_location) {
-		if !std.str_match(expected, got) { return; }
+		if !str_match(expected, got) { return; }
 		print_err("\nExpected: '%'\nGot:      '%'.", expected, got);
 		stop(loc);
 	};
 
-	fn (got: f32, not_expected: f32, epsilon: f32 = std.F32_EPSILON, loc := #call_location) {
-		if !std.compare(got, not_expected, epsilon) { return; }
+	fn (got: f32, not_expected: f32, epsilon: f32 = math.F32_EPSILON, loc := #call_location) {
+		if !math.compare(got, not_expected, epsilon) { return; }
 		print_err("Expected not to be '%'.", not_expected);
 		stop(loc);
 	};
-	fn (got: f64, not_expected: f64, epsilon: f64 = std.F64_EPSILON, loc := #call_location) {
-		if !std.compare(got, not_expected, epsilon) { return; }
+	fn (got: f64, not_expected: f64, epsilon: f64 = math.F64_EPSILON, loc := #call_location) {
+		if !math.compare(got, not_expected, epsilon) { return; }
 		print_err("Expected not to be '%'.", not_expected);
 		stop(loc);
 	};
@@ -226,39 +219,39 @@ test_is_error :: fn (got_err: Error, expected_code: s32, loc := #call_location) 
 			"Unexpected error:    null\n"
 			"Expected error code: '%'\n"
 			"Got:                 null.", expected_code);
-	} 
+	}
 	stop(loc);
 }
 
 /// Execute all registered test cases in current assembly. The `test_run` function uses compiler
 /// builtin `TEST_CASES` constant containing slice of all registered test cases in the current
 /// assembly (all functions with hash directive `#test`).
-/// 
-/// Test case execution can be used in runtime and compile time, in both cases function remap 
-/// default behaviour of `panic()` function call and try to report all failing tests without 
+///
+/// Test case execution can be used in runtime and compile time, in both cases function remap
+/// default behaviour of `panic()` function call and try to report all failing tests without
 /// termination.
-/// 
-/// Formatted output containing information about every test run status and summary report is 
-/// produced during execution of this function. In case of test failure all needed information 
+///
+/// Formatted output containing information about every test run status and summary report is
+/// produced during execution of this function. In case of test failure all needed information
 /// about fail source location is reported into standard output.
-/// 
+///
 /// Returns number of failed tests.
-/// 
+///
 /// ### Example
-///     
+///
 /// ```bl
-/// #load "std/test.bl"
-/// 
+/// #import "std/test.bl"
+/// #import "std/print"
+///
 /// my_test :: fn () #test {
-///     print("Hello from test case!!!\n");     
+///     print("Hello from test case!!!\n");
 /// }
-/// 
+///
 /// main :: fn () s32 {
-///     return test_run(); 
-/// } 
+///     return test_run();
+/// }
 /// ```
 test_run :: fn (print_results := true) s32 {
-	using std;
 	sighup :: fn (_: C.int) {};
 	C.signal(C.SIGHUP, &sighup);
 
@@ -321,7 +314,16 @@ test_run :: fn (print_results := true) s32 {
 	return auto failed_count;
 }
 
-#private
+#scope_private
+#import "std/thread"
+#import "std/string"
+#import "std/array"
+#import "std/pool"
+#import "std/print"
+
+math :: #import "std/math";
+C    :: #import "libc";
+
 TestRun :: struct {
 	func: *fn();
 	name: string_view;
@@ -339,14 +341,14 @@ abort_handler :: fn () {
 	_current.runtime_ms = os_ftick_ms() - _start_time;
 	_current.passed = false;
 	print("[      | FAIL ] % (% ms)\n", _current.name, _current.runtime_ms);
-	std.thread_exit(1);
+	thread_exit(1);
 	__os_abort_default();
 }
 
 worker :: fn (_: *u8) s32 {
 	loop _ci < _queue.len {
 		_current = &_queue[_ci];
-		_ci += 1; 
+		_ci += 1;
 		_start_time = os_ftick_ms();
 		_current.func();
 		_current.runtime_ms = os_ftick_ms() - _start_time;

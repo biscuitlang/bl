@@ -1,18 +1,18 @@
+#scope_module
 #import "os/posix/pthread"
-#load "thread.bl"
 
-#scope _thread_impl
+C :: #import "libc";
 
 Handle :: pthread_t;
 
-create :: fn (entry: std.ThreadEntryFn, ctx: *u8) (Handle, Error) {
+create :: fn (entry: ThreadEntryFn, ctx: *u8) (Handle, Error) {
 	if !entry { return null, error(ERR_INVALID_HANDLE, "Cannot create thread. Handle is invalid."); }
 	thread: pthread_t #noinit;
 	err :: pthread_create(&thread, null, auto entry, ctx);
 	if err != 0 {
 		estr :: cast(*u8) C.strerror(err);
 		return null, error(err, "Cannot create thread: %.", estr);
-	}    
+	}
 
 	return thread, OK;
 }
@@ -20,11 +20,11 @@ create :: fn (entry: std.ThreadEntryFn, ctx: *u8) (Handle, Error) {
 join :: fn (thread: Handle) (exit_code: s32, err: Error) {
 	if !thread { error(ERR_INVALID_HANDLE, "Cannot join. Handle is invalid."); }
 	exit_code: u64 #noinit;
-	err :: pthread_join(thread, auto &exit_code); 
+	err :: pthread_join(thread, auto &exit_code);
 	if err != 0 {
 		estr :: cast(*u8) C.strerror(err);
 		return -1, error(err, "Cannot join thread: %.", estr);
-	}    
+	}
 	return auto exit_code, OK;
 }
 

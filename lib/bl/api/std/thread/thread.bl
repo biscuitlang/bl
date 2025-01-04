@@ -7,31 +7,29 @@
 //!
 //! **warning**: This module is experimental and not fully supported across all platforms.
 
-#scope std
-
 /// Thread entry function type.
 ThreadEntryFn :: *fn (ctx: *u8) s32;
 
 /// Thread handle.
-Thread :: _thread_impl.Handle;
+Thread :: Handle;
 
 /// Create and start new thread with specified `entry` function. Pointer to custom `ctx` can be
 /// optionally passed to the entry function here.
 thread_create :: fn (entry: ThreadEntryFn, ctx: *u8 = null) (Thread, Error) #inline {
 	assert(!IS_COMPTIME_RUN, "Multithreading is not supported in VM execution mode.");
-	return _thread_impl.create(entry, ctx);
+	return create(entry, ctx);
 }
 
 /// Blocks until `thread` exits. Return value from worker function is returned as `exit_code`. When
 /// execution is successful all thread resources are released.
 thread_join :: fn (thread: Thread) (exit_code: s32, err: Error) #inline {
-	return _thread_impl.join(thread);
+	return join(thread);
 }
 
 /// Blocks until all `threads` exits.
 thread_join_all :: fn (threads: []Thread) Error #inline {
 	loop i := 0; i < threads.len; i += 1 {
-		_, err :: _thread_impl.join(threads[i]);
+		_, err :: join(threads[i]);
 		if err { return err; }
 	}
 	return OK;
@@ -39,15 +37,15 @@ thread_join_all :: fn (threads: []Thread) Error #inline {
 
 /// Exit current thread with optional `exit_code` return value.
 thread_exit :: fn (exit_code: s32 = 0) Error #inline {
-	return _thread_impl.exit(exit_code);
+	return exit(exit_code);
 }
 
 /// Gets current thread.
 thread_current :: fn () Thread #inline {
-	return _thread_impl.current();
+	return current();
 }
 
 /// Gets current thread ID.
 get_thread_id :: fn () u64 #inline {
-	return _thread_impl.current_id();
+	return current_id();
 }

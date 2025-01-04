@@ -237,7 +237,7 @@ _array_ensure_space :: fn (arr: *_Array, elem_size: usize, needed_elems: usize, 
 	// Allocated larger block for later use.
 	extended_needed_elems := needed_elems;
 	if arr.allocated_elems == 0 {
-		extended_needed_elems = std.max(ARRAY_ALLOC_BLOCK_SIZE, extended_needed_elems);
+		extended_needed_elems = max(ARRAY_ALLOC_BLOCK_SIZE, extended_needed_elems);
 	} else {
 		extended_needed_elems = auto (ARRAY_GROW_FACTOR * auto extended_needed_elems);
 	}
@@ -252,3 +252,5 @@ _array_ensure_space :: fn (arr: *_Array, elem_size: usize, needed_elems: usize, 
 	arr.allocated_elems = extended_needed_elems;
 }
 
+#scope_private
+#import "std/math"

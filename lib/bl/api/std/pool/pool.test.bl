@@ -1,24 +1,21 @@
+#scope_private
 #import "std/pool"
-
-#private
+#import "std/string"
+#import "std/array"
 
 initialization_2 :: fn () #test {
-	using std;
 	pool :: pool_make(application_context.allocator, 32);
 	test_true(pool.block_size == 32);
 	release_allocator(&pool);
 }
 
 initialization_default :: fn () #test {
-	using std;
 	pool :: pool_default;
 	test_true(pool.block_size == POOL_DEFAULT_SIZE);
 	release_allocator(&pool);
 }
 
 allocation_default_copy :: fn () #test {
-	using std;
-
 	pool :: pool_default;
 
 	TEST_COUNT :: 100;
@@ -41,7 +38,6 @@ allocation_default_copy :: fn () #test {
 }
 
 allocation_1 :: fn () #test {
-	using std;
 	test_allocator_reset();
 
 	pool :: pool_make(&test_allocator, POOL_DEFAULT_SIZE);
@@ -70,7 +66,6 @@ allocation_1 :: fn () #test {
 }
 
 allocation_2 :: fn () #test {
-	using std;
 	test_allocator_reset();
 
 	pool :: pool_make(&test_allocator, POOL_DEFAULT_SIZE);
@@ -115,7 +110,6 @@ allocation_2 :: fn () #test {
 }
 
 reallocation :: fn () #test {
-	using std;
 	test_allocator_reset();
 
 	pool :: pool_make(&test_allocator, POOL_DEFAULT_SIZE);
@@ -143,8 +137,6 @@ reallocation :: fn () #test {
 }
 
 allocation_with_custom_alignment :: fn () #test {
-	using std;
-
 	pool :: pool_make(&test_allocator, POOL_DEFAULT_SIZE);
 	defer release_allocator(&pool);
 	{
@@ -201,14 +193,12 @@ some_data :: [50]string_view.{
 };
 
 allocation_real_data :: fn () #test {
-	using std;
-
 	pool :: pool_make(application_context.allocator);
 
 	TEST_COUNT :: 1000;
 	tmp: [TEST_COUNT]string #noinit;
 	loop i := 0; i < TEST_COUNT; i += 1 {
-		tmp[i] = std.str_new(some_data[i % some_data.len], &pool);
+		tmp[i] = str_new(some_data[i % some_data.len], &pool);
 	}
 
 	loop i := 0; i < TEST_COUNT; i += 1 {
@@ -219,14 +209,12 @@ allocation_real_data :: fn () #test {
 }
 
 allocation_real_data_small_blocks :: fn () #test {
-	using std;
-
 	pool :: pool_make(application_context.allocator, 32);
 
 	TEST_COUNT :: 1000;
 	tmp: [TEST_COUNT]string #noinit;
 	loop i := 0; i < TEST_COUNT; i += 1 {
-		tmp[i] = std.str_new(some_data[i % some_data.len], &pool);
+		tmp[i] = str_new(some_data[i % some_data.len], &pool);
 	}
 
 	loop i := 0; i < TEST_COUNT; i += 1 {
@@ -237,8 +225,6 @@ allocation_real_data_small_blocks :: fn () #test {
 }
 
 allocation_speed_pool :: fn () #test {
-	using std;
-
 	pool :: pool_make(application_context.allocator);
 
 	SPEED_TEST_COUNT : usize : 100000;
@@ -255,8 +241,6 @@ Data :: struct {
 }
 
 used_as_allocator :: fn () #test {
-	using std;
-
 	pool :: pool_make(application_context.allocator);
 	defer release_allocator(&pool);
 

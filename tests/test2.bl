@@ -1,19 +1,13 @@
 foo :: fn () {
 }
 
-#scope_private
+// #scope_private
 
-bar :: fn () {
-}
+// #load "test3.bl"
 
-#scope_public
-
-foobar :: fn () {
-}
-
-#scope_private
-
-bar2 :: fn () {
-}
+// bar2 :: fn () {
+// 	foo();
+// 	imprivate();
+// }
 
 

@@ -1,5 +1,3 @@
-#scope std
-
 //! # Pool Allocator
 //!
 //! `#import "std/pool"`
@@ -8,7 +6,7 @@
 //! of `POOL_DEFAULT_SIZE` bytes by default.
 //!
 //! ### Supported Operations
-//! 
+//!
 //!     - [x] Allocate
 //!     - [-] Reallocate (Always allocates and copy data into a new block.)
 //!     - [-] Free (Keeps memory for later use.)
@@ -76,15 +74,17 @@ pool_reset :: fn (pool: *PoolAllocator) #inline #obsolete "Use reset_allocator i
 	reset(pool);
 }
 
-#private
+#scope_private
+#import "std/math"
+#import "std/array"
 
 handler :: fn (
-	pool: *PoolAllocator, 
-	operation: AllocOp, 
-	ptr: *u8, 
-	size: usize, 
-	alignment: usize, 
-	_: string_view, 
+	pool: *PoolAllocator,
+	operation: AllocOp,
+	ptr: *u8,
+	size: usize,
+	alignment: usize,
+	_: string_view,
 	_: s32
 ) (mem: *u8, err: Error) {
 	using AllocOp;
@@ -96,9 +96,9 @@ handler :: fn (
 			mem, err :: allocate(pool, size, alignment);
 			if err { return mem, err; }
 			if !ptr { return mem, OK; }
-			// Copy old data if we have the old pointer. 
+			// Copy old data if we have the old pointer.
 			previously_allocated_size :: get_usable_allocation_size(ptr);
-			memcpy(mem, ptr, std.min(previously_allocated_size, size));
+			memcpy(mem, ptr, min(previously_allocated_size, size));
 			return mem, OK;
 		}
 		RESET {
@@ -117,7 +117,7 @@ handler :: fn (
 allocate :: fn (pool: *PoolAllocator, size: usize, alignment: usize) (mem: *u8, err: Error) {
 	assert(size > 0);
 
-	adjusted_alignment :: std.max(alignof(usize), alignment);
+	adjusted_alignment :: max(alignof(usize), alignment);
 	mask :: ~(adjusted_alignment - 1);
 	allocation_size := sizeof(usize) + size + adjusted_alignment - 1;
 
@@ -126,7 +126,7 @@ allocate :: fn (pool: *PoolAllocator, size: usize, alignment: usize) (mem: *u8, 
 		if err { return null, err; }
 	}
 	mem := pool.top;
-	mem = auto ((cast(usize) mem) + sizeof(usize) + adjusted_alignment - 1 & mask); 
+	mem = auto ((cast(usize) mem) + sizeof(usize) + adjusted_alignment - 1 & mask);
 
 	// We should have enough space to store meta data.
 	assert(ptr_diff(mem, pool.top) >= auto sizeof(usize));
@@ -137,8 +137,8 @@ allocate :: fn (pool: *PoolAllocator, size: usize, alignment: usize) (mem: *u8, 
 
 	// We should have enough space to store user data.
 	assert(ptr_diff(pool.top, mem) >= auto size);
-   
-	// Store usable data size before the actual allocation. 
+
+	// Store usable data size before the actual allocation.
 	set_usable_allocation_size(mem, size);
 	return mem, OK;
 }

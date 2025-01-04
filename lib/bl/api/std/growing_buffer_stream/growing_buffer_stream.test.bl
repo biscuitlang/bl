@@ -1,10 +1,9 @@
+#scope_private
 #import "std/growing_buffer_stream"
 
-#private
+io :: #import "std/io";
 
 init_1 :: fn () #test {
-	using std;
-
 	s: GrowingBufferStream;
 	growing_buffer_stream_init(&s);
 
@@ -14,8 +13,6 @@ init_1 :: fn () #test {
 }
 
 init_2 :: fn () #test {
-	using std;
-
 	s: GrowingBufferStream;
 	growing_buffer_stream_init(&s, 256);
 	defer growing_buffer_stream_terminate(&s);
@@ -26,26 +23,24 @@ init_2 :: fn () #test {
 }
 
 simple_write_1 :: fn () #test {
-	using std;
-
 	s: GrowingBufferStream;
 	growing_buffer_stream_init(&s);
 	defer growing_buffer_stream_terminate(&s);
 
 	n :: 10;
-	write_value(&s, &n);
+	io.write_value(&s, &n);
 
 	test_eq(s.data.len, 32);
 	test_eq(s.position, 4);
 	test_eq(s.end, 4);
 
-	write_value(&s, &n);
+	io.write_value(&s, &n);
 
 	test_eq(s.data.len, 32);
 	test_eq(s.position, 8);
 	test_eq(s.end, 8);
 
-	write_value(&s, &n);
+	io.write_value(&s, &n);
 
 	test_eq(s.data.len, 32);
 	test_eq(s.position, 12);
@@ -53,8 +48,6 @@ simple_write_1 :: fn () #test {
 }
 
 simple_write_2 :: fn () #test {
-	using std;
-
 	s: GrowingBufferStream;
 	growing_buffer_stream_init(&s);
 	defer growing_buffer_stream_terminate(&s);
@@ -63,14 +56,14 @@ simple_write_2 :: fn () #test {
 		a: [64]u8;
 	};
 
-	write_value(&s, &data);
+	io.write_value(&s, &data);
 
 	test_eq(s.data.len, 64);
 	test_eq(s.position, auto sizeof(data));
 	test_eq(s.end, auto sizeof(data));
 
 	n := 10;
-	write_value(&s, &n);
+	io.write_value(&s, &n);
 
 	test_eq(s.data.len, 96);
 	test_eq(s.position, auto sizeof(data) + sizeof(s32));
@@ -79,62 +72,56 @@ simple_write_2 :: fn () #test {
 }
 
 read_empty :: fn () #test {
-	using std;
-
 	s: GrowingBufferStream;
 	growing_buffer_stream_init(&s);
 
 	tmp: [8]u8;
-	r, err :: read(&s, tmp.ptr, tmp.len);
+	r, err :: io.read(&s, tmp.ptr, tmp.len);
 	test_ok(err);
 	test_eq(r, 0);
 }
 
 read_over :: fn () #test {
-	using std;
-
 	s: GrowingBufferStream;
 	growing_buffer_stream_init(&s);
 	defer growing_buffer_stream_terminate(&s);
 
 	n := 10;
-	write_value(&s, &n);
+	io.write_value(&s, &n);
 
-	seek(&s, StreamLocator.BEGIN, 0);
+	io.seek(&s, io.StreamLocator.BEGIN, 0);
 
 	tmp: [8]u8;
-	r, err :: read(&s, tmp.ptr, tmp.len);
+	r, err :: io.read(&s, tmp.ptr, tmp.len);
 	test_ok(err);
 	test_eq(r, 4);
 }
 
 simple_read_write_sequence :: fn () #test {
-	using std;
-
 	s: GrowingBufferStream;
 	growing_buffer_stream_init(&s);
 	defer growing_buffer_stream_terminate(&s);
 
 	n := 10;
-	write_value(&s, &n);
+	io.write_value(&s, &n);
 	n = 20;
-	write_value(&s, &n);
+	io.write_value(&s, &n);
 	n = 30;
-	write_value(&s, &n);
+	io.write_value(&s, &n);
 
-	seek(&s, StreamLocator.BEGIN, 0);
+	io.seek(&s, io.StreamLocator.BEGIN, 0);
 
 	test_eq(s.data.len, 32);
 	test_eq(s.position, 0);
 	test_eq(s.end, 12);
 
-	read_value(&s, &n);
+	io.read_value(&s, &n);
 	test_eq(n, 10);
 
-	read_value(&s, &n);
+	io.read_value(&s, &n);
 	test_eq(n, 20);
 
-	read_value(&s, &n);
+	io.read_value(&s, &n);
 	test_eq(n, 30);
 
 	test_eq(s.data.len, 32);
@@ -143,8 +130,6 @@ simple_read_write_sequence :: fn () #test {
 }
 
 seek_over :: fn () #test {
-	using std;
-
 	s: GrowingBufferStream;
 	growing_buffer_stream_init(&s);
 
@@ -152,18 +137,18 @@ seek_over :: fn () #test {
 	test_eq(s.position, 0);
 	test_eq(s.end, 0);
 
-	seek(&s, StreamLocator.BEGIN, 0);
+	io.seek(&s, io.StreamLocator.BEGIN, 0);
 	test_eq(s.position, 0);
 
-	seek(&s, StreamLocator.BEGIN, 10);
+	io.seek(&s, io.StreamLocator.BEGIN, 10);
 	test_eq(s.position, 0);
 
-	seek(&s, StreamLocator.END, 0);
+	io.seek(&s, io.StreamLocator.END, 0);
 	test_eq(s.position, 0);
 
-	seek(&s, StreamLocator.END, 10);
+	io.seek(&s, io.StreamLocator.END, 10);
 	test_eq(s.position, 0);
 
-	seek(&s);
+	io.seek(&s);
 	test_eq(s.position, 0);
 }

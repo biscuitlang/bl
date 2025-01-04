@@ -1,8 +1,7 @@
+#scope_private
 #import "std/static_array"
 
-#private
 test_basic_inserting_s32 :: fn () #test {
-	using std;
 	arr: StaticArray(s32, 10);
 	loop i := 0; i < 10; i += 1 {
 		sarray_push(&arr, i);
@@ -13,7 +12,6 @@ test_basic_inserting_s32 :: fn () #test {
 }
 
 test_clear :: fn () #test {
-	using std;
 	arr: StaticArray(s32, 10);
 	loop i := 0; i < 10; i += 1 {
 		sarray_push(&arr, i);
@@ -24,7 +22,6 @@ test_clear :: fn () #test {
 }
 
 test_erase :: fn () #test {
-	using std;
 	arr: StaticArray(s32, 10);
 	loop i := 0; i < 10; i += 1 {
 		sarray_push(&arr, i);
@@ -37,7 +34,6 @@ test_erase :: fn () #test {
 }
 
 test_pop :: fn () #test {
-	using std;
 	arr: StaticArray(s32, 10);
 	loop i := 0; i < 10; i += 1 {
 		sarray_push(&arr, i);
@@ -54,7 +50,6 @@ test_pop :: fn () #test {
 }
 
 test_pop2 :: fn () #test {
-	using std;
 	arr: StaticArray(s32, 10);
 	test_false(sarray_pop(&arr));
 	loop i := 0; i < 10; i += 1 {

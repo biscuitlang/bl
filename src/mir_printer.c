@@ -256,6 +256,14 @@ _print_const_value(struct context *ctx, struct mir_type *type, vm_stack_ptr_t va
 		break;
 	}
 
+	case MIR_TYPE_NAMED_SCOPE: {
+		struct scope *scope = vm_read_as(struct scope *, value);
+		bmagic_assert(scope);
+		const str_t name = scope->name;
+		fprintf(ctx->stream, "[scope] " STR_FMT, STR_ARG(name));
+		break;
+	}
+
 	default:
 		fprintf(ctx->stream, "<CANNOT READ VALUE>");
 	}

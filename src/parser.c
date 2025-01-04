@@ -31,14 +31,9 @@
 #include "tokens_inline_utils.h"
 #include <setjmp.h>
 
-#define report_error(code, tok, pos, format, ...) \
-	builder_msg(MSG_ERR, ERR_##code, &(tok)->location, (pos), (format), ##__VA_ARGS__)
-
-#define report_warning(tok, pos, format, ...) \
-	builder_msg(MSG_WARN, 0, &(tok)->location, (pos), (format), ##__VA_ARGS__)
-
-#define report_note(tok, pos, format, ...) \
-	builder_msg(MSG_ERR_NOTE, 0, &(tok)->location, (pos), (format), ##__VA_ARGS__)
+#define report_error(code, tok, pos, format, ...) builder_msg(MSG_ERR, ERR_##code, &(tok)->location, (pos), (format), ##__VA_ARGS__)
+#define report_warning(tok, pos, format, ...) builder_msg(MSG_WARN, 0, &(tok)->location, (pos), (format), ##__VA_ARGS__)
+#define report_note(tok, pos, format, ...) builder_msg(MSG_ERR_NOTE, 0, &(tok)->location, (pos), (format), ##__VA_ARGS__)
 
 #define scope_push(ctx, scope) arrput((ctx)->scope_stack, (scope))
 #define scope_pop(ctx) arrpop((ctx)->scope_stack)
@@ -87,10 +82,9 @@ struct context {
 	array(struct ast *) decl_stack;
 	array(struct ast *) fn_type_stack;
 	array(struct ast *) block_stack;
-	bool          is_inside_loop;
-	bool          is_inside_expression;
-	struct scope *current_named_scope;
-	struct ast   *current_docs;
+	bool        is_inside_loop;
+	bool        is_inside_expression;
+	struct ast *current_docs;
 };
 
 // helpers
@@ -100,40 +94,39 @@ static enum unop_kind  sym_to_unop_kind(enum sym sm);
 static bool            parse_docs(struct context *ctx);
 static bool            parse_unit_docs(struct context *ctx);
 static void            parse_ublock_content(struct context *ctx, struct ast *ublock);
-static struct ast                    *
-parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive_flags *satisfied);
-static struct ast *parse_unrecheable(struct context *ctx);
-static struct ast *parse_debugbreak(struct context *ctx);
-static struct ast *parse_ident_group(struct context *ctx);
-static struct ast *parse_single_block_stmt_or_expr(struct context *ctx, bool *out_require_semicolon);
-static struct ast *parse_block(struct context *ctx, enum scope_kind scope_kind);
-static struct ast *parse_decl(struct context *ctx);
-static struct ast *parse_decl_member(struct context *ctx, s32 index);
-static struct ast *parse_decl_arg(struct context *ctx, bool named);
-static struct ast *parse_decl_variant(struct context *ctx, struct ast *prev);
-static struct ast *parse_type(struct context *ctx);
-static struct ast *parse_ref(struct context *ctx);
-static struct ast *parse_ref_nested(struct context *ctx, struct ast *prev);
-static struct ast *parse_type_polymorph(struct context *ctx);
-static struct ast *parse_type_arr(struct context *ctx);
-static struct ast *parse_type_slice(struct context *ctx);
-static struct ast *parse_type_dynarr(struct context *ctx);
-static struct ast *parse_type_fn(struct context *ctx, bool named_args, bool create_scope);
-static struct ast *parse_type_fn_group(struct context *ctx);
-static struct ast *parse_type_fn_return(struct context *ctx);
-static struct ast *parse_type_struct(struct context *ctx);
-static struct ast *parse_type_enum(struct context *ctx);
-static struct ast *parse_type_ptr(struct context *ctx);
-static struct ast *parse_type_vargs(struct context *ctx);
-static struct ast *parse_stmt_return(struct context *ctx);
-static struct ast *parse_stmt_using(struct context *ctx);
-static struct ast *parse_stmt_if(struct context *ctx, bool is_static);
-static struct ast *parse_stmt_loop(struct context *ctx);
-static struct ast *parse_stmt_break(struct context *ctx);
-static struct ast *parse_stmt_continue(struct context *ctx);
-static struct ast *parse_stmt_defer(struct context *ctx);
-static struct ast *parse_stmt_switch(struct context *ctx);
-static struct ast *parse_stmt_case(struct context *ctx);
+static struct ast     *parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive_flags *satisfied, const bool is_in_expression);
+static struct ast     *parse_unrecheable(struct context *ctx);
+static struct ast     *parse_debugbreak(struct context *ctx);
+static struct ast     *parse_ident_group(struct context *ctx);
+static struct ast     *parse_single_block_stmt_or_expr(struct context *ctx, bool *out_require_semicolon);
+static struct ast     *parse_block(struct context *ctx, enum scope_kind scope_kind);
+static struct ast     *parse_decl(struct context *ctx);
+static struct ast     *parse_decl_member(struct context *ctx, s32 index);
+static struct ast     *parse_decl_arg(struct context *ctx, bool named);
+static struct ast     *parse_decl_variant(struct context *ctx, struct ast *prev);
+static struct ast     *parse_type(struct context *ctx);
+static struct ast     *parse_ref(struct context *ctx);
+static struct ast     *parse_ref_nested(struct context *ctx, struct ast *prev);
+static struct ast     *parse_type_polymorph(struct context *ctx);
+static struct ast     *parse_type_arr(struct context *ctx);
+static struct ast     *parse_type_slice(struct context *ctx);
+static struct ast     *parse_type_dynarr(struct context *ctx);
+static struct ast     *parse_type_fn(struct context *ctx, bool named_args, bool create_scope);
+static struct ast     *parse_type_fn_group(struct context *ctx);
+static struct ast     *parse_type_fn_return(struct context *ctx);
+static struct ast     *parse_type_struct(struct context *ctx);
+static struct ast     *parse_type_enum(struct context *ctx);
+static struct ast     *parse_type_ptr(struct context *ctx);
+static struct ast     *parse_type_vargs(struct context *ctx);
+static struct ast     *parse_stmt_return(struct context *ctx);
+static struct ast     *parse_stmt_using(struct context *ctx);
+static struct ast     *parse_stmt_if(struct context *ctx, bool is_static);
+static struct ast     *parse_stmt_loop(struct context *ctx);
+static struct ast     *parse_stmt_break(struct context *ctx);
+static struct ast     *parse_stmt_continue(struct context *ctx);
+static struct ast     *parse_stmt_defer(struct context *ctx);
+static struct ast     *parse_stmt_switch(struct context *ctx);
+static struct ast     *parse_stmt_case(struct context *ctx);
 
 // EXPRESSIONS
 static struct ast *parse_expr(struct context *ctx);
@@ -141,8 +134,7 @@ static struct ast *_parse_expr(struct context *ctx, s32 p);
 static struct ast *parse_expr_atom(struct context *ctx);
 static struct ast *parse_expr_primary(struct context *ctx);
 static struct ast *parse_expr_unary(struct context *ctx);
-static struct ast                    *
-parse_expr_binary(struct context *ctx, struct ast *lhs, struct ast *rhs, struct token *op);
+static struct ast *parse_expr_binary(struct context *ctx, struct ast *lhs, struct ast *rhs, struct token *op);
 static struct ast *parse_expr_addrof(struct context *ctx);
 static struct ast *parse_expr_deref(struct context *ctx);
 static struct ast *parse_expr_type(struct context *ctx);
@@ -339,8 +331,7 @@ bool parse_unit_docs(struct context *ctx) {
 
 // Try to parse hash directive. List of enabled directives can be set by 'expected_mask',
 // 'satisfied' is optional output set to parsed directive id if there is one.
-struct ast *
-parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive_flags *satisfied) {
+struct ast *parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive_flags *satisfied, const bool is_in_expression) {
 	zone();
 #define set_satisfied(_hd)               \
 	{                                    \
@@ -414,15 +405,20 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_directive, scope_get(ctx)));
 		}
 
-		struct ast *load         = ast_create_node(ctx->ast_arena, AST_LOAD, tok_directive, scope_get(ctx));
+		struct scope *current_scope = scope_get(ctx);
+		bassert(current_scope);
+		struct ast *load         = ast_create_node(ctx->ast_arena, AST_LOAD, tok_directive, current_scope);
 		load->data.load.filepath = get_token_value(ctx, tok_path).str;
 		if (ctx->assembly->target->kind != ASSEMBLY_DOCS) {
-			assembly_add_unit(ctx->assembly, load->data.load.filepath, tok_path);
+			assembly_add_unit(ctx->assembly, load->data.load.filepath, tok_path, current_scope, ctx->unit->module);
 		}
 		return_zone(load);
 	}
 
 	case HD_IMPORT: {
+		struct scope *current_scope = scope_get(ctx);
+		bassert(current_scope);
+
 		struct token *tok_path = tokens_consume_if(ctx->tokens, SYM_STRING);
 		if (!tok_path) {
 			struct token *tok_err = tokens_peek(ctx->tokens);
@@ -430,13 +426,27 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 			             tok_err,
 			             CARET_WORD,
 			             "Expected path \"some/path\" after 'import' directive.");
-			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_directive, scope_get(ctx)));
+			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_directive, current_scope));
 		}
-		struct ast *import =
-		    ast_create_node(ctx->ast_arena, AST_IMPORT, tok_directive, scope_get(ctx));
-		import->data.import.filepath = get_token_value(ctx, tok_path).str.ptr;
+
+		struct ast *import = ast_create_node(ctx->ast_arena, AST_IMPORT, tok_directive, current_scope);
 		if (ctx->assembly->target->kind != ASSEMBLY_DOCS) {
-			assembly_import_module(ctx->assembly, get_token_value(ctx, tok_path).str.ptr, tok_path);
+			struct module *module = assembly_import_module(ctx->assembly, get_token_value(ctx, tok_path).str, tok_path, current_scope);
+			if (module) {
+				import->data.import.module = module;
+				if (!is_in_expression) {
+					if (scope_is_subtree_of(current_scope, module->scope)) {
+						report_error(INVALID_DIRECTIVE,
+						             tok_directive,
+						             CARET_WORD,
+						             "Module cannot import itself.");
+					} else {
+						scope_inject(current_scope, module->scope);
+					}
+				} else {
+					import->data.import.is_expression = true;
+				}
+			}
 		}
 		return_zone(import);
 	}
@@ -519,80 +529,56 @@ parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive
 	case HD_SCOPE_PRIVATE: {
 		struct scope *current_scope = scope_get(ctx);
 		bassert(current_scope);
-		if (current_scope->kind == SCOPE_PRIVATE) {
-			report_warning(tok_directive, CARET_WORD, "The private scope marker directive is redundant in current context and will be ignored. The current scope is already private.");
-			return_zone(ast_create_node(ctx->ast_arena, AST_PRIVATE, tok_directive, current_scope));
-		}
-
-		bassert(scope_get(ctx)->kind == SCOPE_GLOBAL || scope_get(ctx)->kind == SCOPE_NAMED);
 		struct scope *scope = ctx->unit->private_scope;
 		if (!scope) {
-			scope = scope_create(ctx->scope_arenas, SCOPE_PRIVATE, current_scope, &tok_directive->location);
+			struct module *module       = ctx->unit->module;
+			struct scope  *parent_scope = module ? module->private_scope : ctx->unit->parent_scope;
+			bassert(parent_scope);
+			scope = scope_create(ctx->scope_arenas, SCOPE_PRIVATE, parent_scope, &tok_directive->location);
 			scope_reserve(scope, 256);
 			ctx->unit->private_scope = scope;
 		}
 
-		scope_push(ctx, scope);
+		scope_set(ctx, scope);
 		return_zone(ast_create_node(ctx->ast_arena, AST_PRIVATE, tok_directive, current_scope));
 	}
 
 	case HD_SCOPE_PUBLIC: {
 		struct scope *current_scope = scope_get(ctx);
 		bassert(current_scope);
-		if (current_scope->kind != SCOPE_PRIVATE) {
-			report_warning(tok_directive, CARET_WORD, "The public scope marker directive is redundant in current context and will be ignored. The current scope is already public.");
-			return_zone(ast_create_node(ctx->ast_arena, AST_PUBLIC, tok_directive, current_scope));
-		}
-
-		scope_pop(ctx);
-		bassert(scope_get(ctx)->kind == SCOPE_GLOBAL || scope_get(ctx)->kind == SCOPE_NAMED);
-
+		scope_set(ctx, ctx->unit->parent_scope);
 		return_zone(ast_create_node(ctx->ast_arena, AST_PUBLIC, tok_directive, current_scope));
 	}
 
-	case HD_SCOPE: {
-		struct ast *ident = parse_ident(ctx);
-		if (!ident) {
-			report_error(INVALID_DIRECTIVE,
-			             tok_directive,
-			             CARET_AFTER,
-			             "Expected scope name after #scope directive.");
-			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_directive, scope_get(ctx)));
-		}
-		struct ast *scope       = ast_create_node(ctx->ast_arena, AST_SCOPE, tok_directive, scope_get(ctx));
-		scope->data.scope.ident = ident;
-		struct id *id           = &ident->data.ident.id;
+	case HD_SCOPE_MODULE: {
+		struct scope *current_scope = scope_get(ctx);
+		bassert(current_scope);
+		if (ctx->assembly->target->kind != ASSEMBLY_DOCS) {
+			struct module *module = ctx->unit->module;
+			if (!module) {
+				report_error(UNEXPECTED_DIRECTIVE, tok_directive, CARET_WORD, "Module private scope cannot be created outside of module.");
+				return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_directive, current_scope));
+			}
 
-		// Perform lookup of named scope here, in case named scope already exist in global scope
-		// we can reuse it!.
-		if (scope_get(ctx)->kind == SCOPE_GLOBAL) scope_lock(scope_get(ctx));
-		struct scope_entry *scope_entry = scope_lookup(scope_get(ctx), &(scope_lookup_args_t){.id = id});
-		if (scope_entry) {
-			bassert(scope_entry->kind == SCOPE_ENTRY_NAMED_SCOPE && "Found scope entry is expected to be named scope!");
-			bassert(scope_entry->data.scope && scope_entry->data.scope->kind == SCOPE_NAMED);
+			bassert(module->private_scope);
+			scope_set(ctx, module->private_scope);
 		} else {
-			scope_entry = scope_create_entry(ctx->scope_arenas, SCOPE_ENTRY_NAMED_SCOPE, id, scope, false);
-			scope_insert(scope_get(ctx), SCOPE_DEFAULT_LAYER, scope_entry);
+			// Create fake private scope even for module private one, we need it just to skip generation of documentation
+			// for private module stuff.
+			struct scope *scope = ctx->unit->private_scope;
+			if (!scope) {
+				struct scope *parent_scope = ctx->unit->parent_scope;
+				scope                      = scope_create(ctx->scope_arenas, SCOPE_PRIVATE, parent_scope, &tok_directive->location);
+				scope_reserve(scope, 256);
+				ctx->unit->private_scope = scope;
+			}
 
-			struct scope *named_scope = scope_create(ctx->scope_arenas, SCOPE_NAMED, scope_get(ctx), &tok_directive->location);
-			scope_reserve(named_scope, 2048);
+			scope_set(ctx, scope);
+		}
 
-			named_scope->name       = id->str;
-			scope_entry->data.scope = named_scope;
-		}
-		if (scope_get(ctx)->kind == SCOPE_GLOBAL) scope_unlock(scope_get(ctx));
-		if (ctx->current_named_scope) {
-			report_error(UNEXPECTED_DIRECTIVE,
-			             tok_directive,
-			             CARET_WORD,
-			             "Unexpected directive. File already contains named scope block.");
-			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_directive, scope_get(ctx)));
-		}
-		bassert(scope_entry->data.scope);
-		ctx->current_named_scope = scope_entry->data.scope;
-		scope_set(ctx, ctx->current_named_scope);
-		return_zone(scope);
+		return_zone(ast_create_node(ctx->ast_arena, AST_MODULE_PRIVATE, tok_directive, current_scope));
 	}
+
 	case HD_ENABLE_IF: {
 		struct ast *expr = parse_expr(ctx);
 		if (!expr) {
@@ -613,14 +599,13 @@ struct ast *parse_expr_compound(struct context *ctx, struct ast *prev) {
 	zone();
 	if (!tokens_is_seq(ctx->tokens, 2, SYM_DOT, SYM_LBLOCK)) return_zone(NULL);
 	// eat .
-	struct token *tok_very_first = tokens_consume(ctx->tokens);
+	tokens_consume(ctx->tokens);
 	// eat {
 	struct token *tok_begin = tokens_consume(ctx->tokens);
 
 	struct ast *type = prev;
 
-	struct ast *compound =
-	    ast_create_node(ctx->ast_arena, AST_EXPR_COMPOUND, tok_begin, scope_get(ctx));
+	struct ast *compound              = ast_create_node(ctx->ast_arena, AST_EXPR_COMPOUND, tok_begin, scope_get(ctx));
 	compound->data.expr_compound.type = type;
 
 	// parse values
@@ -643,8 +628,7 @@ NEXT:
 	} else if (rq) {
 		struct token *tok_err = tokens_peek(ctx->tokens);
 		if (tokens_peek_2nd(ctx->tokens)->sym == SYM_RBLOCK) {
-			report_error(
-			    EXPECTED_NAME, tok_err, CARET_WORD, "Expected expression after comma ','.");
+			report_error(EXPECTED_NAME, tok_err, CARET_WORD, "Expected expression after comma ','.");
 			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_begin, scope_get(ctx)));
 		}
 	}
@@ -769,7 +753,7 @@ struct ast *parse_decl_member(struct context *ctx, s32 UNUSED(index)) {
 	}
 
 	enum hash_directive_flags found_hd = HD_NONE;
-	struct ast               *tag      = parse_hash_directive(ctx, HD_TAG, &found_hd);
+	struct ast               *tag      = parse_hash_directive(ctx, HD_TAG, &found_hd, false);
 	struct ast               *mem      = ast_create_node(ctx->ast_arena, AST_DECL_MEMBER, tok_begin, scope_get(ctx));
 
 	mem->docs           = pop_docs(ctx);
@@ -813,7 +797,7 @@ struct ast *parse_decl_arg(struct context *ctx, bool named) {
 		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
 	}
 	if (tokens_consume_if(ctx->tokens, SYM_ASSIGN)) {
-		value = parse_hash_directive(ctx, HD_CALL_LOC, NULL);
+		value = parse_hash_directive(ctx, HD_CALL_LOC, NULL, false);
 		if (!value) value = parse_expr(ctx);
 		if (!value) {
 			struct token *tok_err = tokens_peek(ctx->tokens);
@@ -832,7 +816,7 @@ struct ast *parse_decl_arg(struct context *ctx, bool named) {
 	u32 accepted = HD_COMPTIME | HD_MAYBE_UNUSED;
 	while (true) {
 		enum hash_directive_flags found = HD_NONE;
-		parse_hash_directive(ctx, accepted, &found);
+		parse_hash_directive(ctx, accepted, &found, false);
 		if (!hash_directive_to_flags(found, &flags)) break;
 		accepted &= ~found;
 	}
@@ -1369,7 +1353,7 @@ struct ast *parse_expr_primary(struct context *ctx) {
 		expr = parse_expr_null(ctx);
 		break;
 	case SYM_HASH:
-		expr = parse_hash_directive(ctx, HD_FILE | HD_LINE, NULL);
+		expr = parse_hash_directive(ctx, HD_FILE | HD_LINE | HD_IMPORT, NULL, true);
 		break;
 	case SYM_FN:
 		if ((expr = parse_expr_lit_fn(ctx))) break;
@@ -1584,7 +1568,7 @@ struct ast *parse_expr_lit_fn(struct context *ctx) {
 		u32 flags = 0;
 		while (true) {
 			enum hash_directive_flags found        = HD_NONE;
-			struct ast               *hd_extension = parse_hash_directive(ctx, accepted, &found);
+			struct ast               *hd_extension = parse_hash_directive(ctx, accepted, &found, false);
 			if (found == HD_ENABLE_IF) {
 				bassert(hd_extension);
 				fn->data.expr_fn.enable_if = hd_extension;
@@ -1763,7 +1747,7 @@ struct ast *parse_type_enum(struct context *ctx) {
 		u32 flags    = 0;
 		while (true) {
 			enum hash_directive_flags found = HD_NONE;
-			parse_hash_directive(ctx, accepted, &found);
+			parse_hash_directive(ctx, accepted, &found, false);
 			if (!hash_directive_to_flags(found, &flags)) break;
 			accepted &= ~found;
 		}
@@ -2171,7 +2155,7 @@ struct ast *parse_type_struct(struct context *ctx) {
 	while (true) {
 		struct ast               *hd_extension;
 		enum hash_directive_flags found = HD_NONE;
-		hd_extension                    = parse_hash_directive(ctx, accepted, &found);
+		hd_extension                    = parse_hash_directive(ctx, accepted, &found, false);
 		if (found == HD_BASE) {
 			bassert(hd_extension);
 			base_type = hd_extension;
@@ -2297,7 +2281,7 @@ struct ast *parse_decl(struct context *ctx) {
 		u32 flags = 0;
 		while (true) {
 			enum hash_directive_flags found = HD_NONE;
-			parse_hash_directive(ctx, hd_accepted, &found);
+			parse_hash_directive(ctx, hd_accepted, &found, false);
 			if (!hash_directive_to_flags(found, &flags)) break;
 			hd_accepted &= ~found;
 		}
@@ -2425,7 +2409,7 @@ NEXT:
 
 	case SYM_HASH: {
 		enum hash_directive_flags satisfied;
-		tmp = parse_hash_directive(ctx, HD_STATIC_IF, &satisfied);
+		tmp = parse_hash_directive(ctx, HD_STATIC_IF, &satisfied, false);
 		break;
 	}
 	case SYM_RETURN:
@@ -2568,8 +2552,8 @@ NEXT:
 	}
 
 	// load, import, link, test, private - enabled in global scope
-	const int enabled_hd = HD_LOAD | HD_PRIVATE | HD_IMPORT | HD_SCOPE | HD_SCOPE_PRIVATE | HD_SCOPE_PUBLIC;
-	if ((tmp = parse_hash_directive(ctx, enabled_hd, NULL))) {
+	const int enabled_hd = HD_LOAD | HD_PRIVATE | HD_IMPORT | HD_SCOPE_PRIVATE | HD_SCOPE_PUBLIC | HD_SCOPE_MODULE;
+	if ((tmp = parse_hash_directive(ctx, enabled_hd, NULL, false))) {
 		arrput(ublock->data.ublock.nodes, tmp);
 		goto NEXT;
 	}
@@ -2631,7 +2615,8 @@ void parser_run(struct assembly *assembly, struct unit *unit) {
 	};
 
 	init_hash_directives(&ctx);
-	scope_push(&ctx, assembly->gscope);
+	bassert(unit->parent_scope);
+	scope_push(&ctx, unit->parent_scope);
 
 	struct ast *root       = ast_create_node(ctx.ast_arena, AST_UBLOCK, NULL, scope_get(&ctx));
 	root->data.ublock.unit = unit;

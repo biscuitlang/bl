@@ -1,0 +1,9 @@
+// @ERR_AMBIGUOUS@
+named :: #import "../../../tests/src/module1";
+main :: fn () s32 {
+	using named;
+	foo :: 10;
+	foo();
+}
+
+

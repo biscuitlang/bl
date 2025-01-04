@@ -1,8 +1,7 @@
 #import "std/static_array"
+#import "std/print"
 
 main :: fn () s32 {
-	using std;
-
 	arr: StaticArray(s32, 10);
 	loop i := 0; i < 10; i += 1 {
 		sarray_push(&arr, i);

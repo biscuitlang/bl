@@ -1,6 +1,14 @@
-#import "extra/glwindow"
-#import "extra/draw"
+glwindow :: #import "extra/glwindow";
+draw     :: #import "extra/draw";
+math     :: #import "std/math";
+
 #import "extra/mabl"
+#import "extra/glm"
+#import "extra/gl"
+
+#import "std/array"
+#import "std/print"
+#import "std/string"
 
 Mode :: enum {
 	UNKNOWN;
@@ -9,7 +17,7 @@ Mode :: enum {
 }
 
 Ship :: struct {
-	position: glm.v2;
+	position: v2;
 	move_left: bool;
 	move_right: bool;
 	move_up: bool;
@@ -20,23 +28,23 @@ Ship :: struct {
 }
 
 Star :: struct {
-	position: glm.v2;
+	position: v2;
 	size: f32;
 	speed: f32;
 }
 
 Bullet :: struct {
-	position: glm.v2;
+	position: v2;
 }
 
 Stone :: struct {
-	position: glm.v2;
+	position: v2;
 	rotation: f32;
 	speed: f32;
 }
 
 PowerUp :: struct {
-	position: glm.v2;
+	position: v2;
 	rotation: f32;
 }
 
@@ -67,7 +75,7 @@ bullet_texture: draw.Texture;
 stone_texture: draw.Texture;
 power_texture: draw.Texture;
 
-audio_engine: miniaudio.ma_engine;
+audio_engine: ma_engine;
 
 mode := Mode.UNKNOWN;
 next_mode := Mode.UNKNOWN;
@@ -144,11 +152,11 @@ main :: fn () s32 {
 	if err { panic(err); }
 	defer draw.font_terminate(&font);
 
-	result :: miniaudio.ma_engine_init(null, &audio_engine);
-	if result != miniaudio.ma_result.SUCCESS {
+	result :: ma_engine_init(null, &audio_engine);
+	if result != ma_result.SUCCESS {
 		panic("Failed to initialize audio engine with error: %", result);
 	}
-	defer miniaudio.ma_engine_uninit(&audio_engine);
+	defer ma_engine_uninit(&audio_engine);
 
 	set_game_mode(Mode.GAME);
 	change_game_mode();
@@ -268,13 +276,11 @@ change_game_mode :: fn () {
 
 // Play sound effect from file using miniaudio module.
 play_sound :: fn (directory: string_view, filename: string_view) #inline {
-	miniaudio.ma_engine_play_sound(&audio_engine, std.strtoc(tprint("%/%", directory, filename)), null);
+	ma_engine_play_sound(&audio_engine, strtoc(tprint("%/%", directory, filename)), null);
 }
 
 // Set game to initial state.
 start_game :: fn () {
-	using glm;
-
 	score = 0;
 	random_seed_time();
 	array_clear(&bullets);
@@ -293,7 +299,6 @@ start_game :: fn () {
 
 // Update game state based on user input.
 handle_game_input :: fn (dt: f32) {
-	using glm;
 	if ship.move_left  { ship.position.x -= dt * SHIP_MOVE_SPEED; }
 	if ship.move_right { ship.position.x += dt * SHIP_MOVE_SPEED; }
 	if ship.move_up    { ship.position.y -= dt * SHIP_MOVE_SPEED; }
@@ -311,8 +316,7 @@ handle_game_input :: fn (dt: f32) {
 }
 
 // Check collision point vs rectangle.
-is_point_in_rect :: fn (p: glm.v2, rect_center: glm.v2, w: f32, h: f32) bool #inline {
-	using glm;
+is_point_in_rect :: fn (p: v2, rect_center: v2, w: f32, h: f32) bool #inline {
 	rect_min :: v2.{ rect_center.x - w * 0.5f, rect_center.y - h * 0.5f };
 	if p.x < rect_min.x { return false; }
 	if p.y < rect_min.y { return false; }
@@ -323,8 +327,7 @@ is_point_in_rect :: fn (p: glm.v2, rect_center: glm.v2, w: f32, h: f32) bool #in
 }
 
 // Check collision rectangle vs rectangle.
-is_rect_in_rect :: fn (c1: glm.v2, w1: f32, h1: f32, c2: glm.v2, w2: f32, h2: f32) bool #inline {
-	using glm;
+is_rect_in_rect :: fn (c1: v2, w1: f32, h1: f32, c2: v2, w2: f32, h2: f32) bool #inline {
 	min1 :: v2.{ c1.x - w1 * 0.5f, c1.y - h1 * 0.5f };
 	min2 :: v2.{ c2.x - w2 * 0.5f, c2.y - h2 * 0.5f };
 	max1 :: v2.{ c1.x + w1 * 0.5f, c1.y + h1 * 0.5f };
@@ -406,7 +409,7 @@ simulate_game :: fn (dt: f32) {
 		if is_rect_in_rect(ship.position, auto ship_texture.width, auto ship_texture.height, power_up.position, auto power_texture.width, auto power_texture.height) {
 			is_power_up_dead = true;
 			ship.power += POWER_UP_ADD_POWER;
-			ship.power = std.min(ship.power, 1.f);
+			ship.power = math.min(ship.power, 1.f);
 			play_sound(".", "powerup.ogg");
 		}
 
@@ -421,7 +424,7 @@ simulate_game :: fn (dt: f32) {
 		stone := array_push(&stones);
 		stone.position.x = auto random_number(0, WINDOW_WIDTH);
 		stone.position.y = auto random_number(-100, -40);
-		stone.rotation   = cast(f32) random_number(0, 1) * cast(f32) std.TWO_PI;
+		stone.rotation   = cast(f32) random_number(0, 1) * cast(f32) math.TWO_PI;
 		stone.speed      = auto random_number(STONE_SPEED / 2, STONE_SPEED);
 	}
 
@@ -429,7 +432,7 @@ simulate_game :: fn (dt: f32) {
 		power_up := array_push(&powerups);
 		power_up.position.x = auto random_number(0, WINDOW_WIDTH);
 		power_up.position.y = auto random_number(-100, -40);
-		power_up.rotation   = cast(f32) random_number(0, 1) * cast(f32) std.TWO_PI;
+		power_up.rotation   = cast(f32) random_number(0, 1) * cast(f32) math.TWO_PI;
 		power_up_timeout = POWER_UP_TIMEOUT;
 	} else {
 		power_up_timeout -= dt;
@@ -440,7 +443,6 @@ simulate_game :: fn (dt: f32) {
 // Draw game in current state.
 draw_game :: fn () {
 	using draw;
-	using glm;
 
 	set_shader_texture(&bg_texture);
 	rect(0.f, 0.f, auto WINDOW_WIDTH, auto WINDOW_HEIGHT);

@@ -1,4 +1,7 @@
 // Main function as the program entry point.
+
+#import "std/print"
+
 main :: fn () s32 {
 	// Call the print function.
 	print("Hello world!\n");

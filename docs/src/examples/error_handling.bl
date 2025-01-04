@@ -1,3 +1,5 @@
+#import "std/print"
+
 div :: fn (a: s32, b: s32) (s32, Error) {
 	if b == 0 {
 		// Return error with message.

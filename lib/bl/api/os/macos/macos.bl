@@ -26,8 +26,6 @@
 // SOFTWARE.
 // =================================================================================================
 
-#scope macos
-
 CFAllocatorRef :: *u8;
 CFIndex :: s64;
 CFStringRef :: *u8;
@@ -186,4 +184,5 @@ CFURLCopyFileSystemPath :: fn (anURL: CFURLRef, pathStyle: CFURLPathStyle) CFStr
 
 CFStringGetCString :: fn (theString: CFStringRef, buffer: *C.char, bufferSize: CFIndex, encoding: CFStringEncoding) Boolean #extern "CFStringGetCString";
 
-
+#scope_private
+C :: #import "libc";

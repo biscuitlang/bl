@@ -4,8 +4,13 @@ This example is showing how the native platform window with OpenGL context can b
 
  */
 
-#import "extra/glwindow"
-#import "extra/draw"
+glwindow :: #import "extra/glwindow";
+draw     :: #import "extra/draw";
+math     :: #import "std/math";
+
+#import "extra/glm"
+#import "extra/gl"
+#import "std/print"
 
 font: draw.Font;
 
@@ -49,7 +54,7 @@ main :: fn () s32 {
 	if err { panic(err); }
 	defer draw.font_terminate(&font);
 
-	position: glm.v2;
+	position: v2;
 	time_current := os_tick_ms();
 
 	// The "game loop" is looping until the should_quit is false.
@@ -70,17 +75,17 @@ main :: fn () s32 {
 			switch event.kind {
 				QUIT { should_quit = true; }
 				MOUSE_MOVE {
-					position = glm.v2.{ auto event.data.mouse_move.x, auto event.data.mouse_move.y };
+					position = v2.{ auto event.data.mouse_move.x, auto event.data.mouse_move.y };
 				}
 				default;
 			}
 		}
 
 		// Draw one frame.
-		draw.clear_color(glm.v4.{ 0.01f, 0.02f, 0.01f, 1.f });
+		draw.clear_color(v4.{ 0.01f, 0.02f, 0.01f, 1.f });
 
 		draw.set_shader_color();
-		draw.rect_centered(position.x, position.y, 100.f, 100.f, glm.v4.{ 1.f, 0.f, 0.f, 1.f });
+		draw.rect_centered(position.x, position.y, 100.f, 100.f, v4.{ 1.f, 0.f, 0.f, 1.f });
 
 		draw.set_shader_font(&font);
 		draw.text(10.f, 10.f, tprint("Vendor:         %", gl_get_vendor()));
@@ -88,7 +93,7 @@ main :: fn () s32 {
 		draw.text(10.f, 40.f, tprint("Version:        %", gl_get_version()));
 		draw.text(10.f, 55.f, tprint("Time:           % ms", os_tick_ms()));
 		draw.text(10.f, 70.f, tprint("Frame:          % ms", dt));
-		draw.text(10.f, 85.f, tprint("FPS:            %", 1000.f / std.max(0.001f, dt)));
+		draw.text(10.f, 85.f, tprint("FPS:            %", 1000.f / math.max(0.001f, dt)));
 		draw.text(10.f, 100.f, tprint("Mouse Position: %", position));
 
 		draw.flush();

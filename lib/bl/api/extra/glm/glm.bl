@@ -1,7 +1,3 @@
-#load "std/math.bl"
-
-#scope glm
-
 //! # GLM
 //!
 //! `#import "extra/glm"`
@@ -130,7 +126,7 @@ mat4_zero :: fn (m: *mat4) #inline {
 // fov = fov y
 mat4_init_perspective :: fn (m: *mat4, fov_rad: f32, aspect: f32, near: f32, far: f32) #inline {
 	mat4_zero(m);
-	tanHalfFovy :: std.tan(fov_rad / 2.f);
+	tanHalfFovy :: math.tan(fov_rad / 2.f);
 	(@m)[0][0] = 1.f / (aspect * tanHalfFovy);
 	(@m)[1][1] = 1.f / tanHalfFovy;
 	(@m)[2][2] = - (far + near) / (far - near);
@@ -390,7 +386,7 @@ mat4_get_quat :: fn (m: *mat4) quat {
 
 	trace := (@m)[0][0] + (@m)[1][1] + (@m)[2][2];
 	if trace >= 0.0f {
-		r       = std.sqrt(1.0f + trace);
+		r       = math.sqrt(1.0f + trace);
 		rinv    = 0.5f / r;
 
 		out.x = rinv * ((@m)[1][2] - (@m)[2][1]);
@@ -398,7 +394,7 @@ mat4_get_quat :: fn (m: *mat4) quat {
 		out.z = rinv * ((@m)[0][1] - (@m)[1][0]);
 		out.w = r    * 0.5f;
 	} else if ((@m)[0][0] >= (@m)[1][1] && (@m)[0][0] >= (@m)[2][2]) {
-		r       = std.sqrt(1.0f - (@m)[1][1] - (@m)[2][2] + (@m)[0][0]);
+		r       = math.sqrt(1.0f - (@m)[1][1] - (@m)[2][2] + (@m)[0][0]);
 		rinv    = 0.5f / r;
 
 		out.x = r    * 0.5f;
@@ -406,7 +402,7 @@ mat4_get_quat :: fn (m: *mat4) quat {
 		out.z = rinv * ((@m)[0][2] + (@m)[2][0]);
 		out.w = rinv * ((@m)[1][2] - (@m)[2][1]);
 	} else if ((@m)[1][1] >= (@m)[2][2]) {
-		r       = std.sqrt(1.0f - (@m)[0][0] - (@m)[2][2] + (@m)[1][1]);
+		r       = math.sqrt(1.0f - (@m)[0][0] - (@m)[2][2] + (@m)[1][1]);
 		rinv    = 0.5f / r;
 
 		out.x = rinv * ((@m)[0][1] + (@m)[1][0]);
@@ -414,7 +410,7 @@ mat4_get_quat :: fn (m: *mat4) quat {
 		out.z = rinv * ((@m)[1][2] + (@m)[2][1]);
 		out.w = rinv * ((@m)[2][0] - (@m)[0][2]);
 	} else {
-		r       = std.sqrt(1.0f - (@m)[0][0] - (@m)[1][1] + (@m)[2][2]);
+		r       = math.sqrt(1.0f - (@m)[0][0] - (@m)[1][1] + (@m)[2][2]);
 		rinv    = 0.5f / r;
 
 		out.x = rinv * ((@m)[0][2] + (@m)[2][0]);
@@ -432,8 +428,8 @@ quat_normalize :: fn (q: quat) quat #inline {
 
 quat_axis_angle :: fn (axis: v3, angle_rad: f32) quat {
 	a :: angle_rad * 0.5f;
-	c :: std.cos(a);
-	s :: std.sin(a);
+	c :: math.cos(a);
+	s :: math.sin(a);
 
 	normalized_axis :: normalize(axis);
 
@@ -446,30 +442,28 @@ quat_axis_angle :: fn (axis: v3, angle_rad: f32) quat {
 }
 
 quat_to_euler :: fn (q1: quat) v3 {
-	using std;
-
 	test := q1.x*q1.y + q1.z*q1.w;
 	if test > 0.499f {
 		return v3.{
 			0.f,
-			2.f * atan2(q1.x,q1.w),
-			F32_HALF_PI,
+			2.f * math.atan2(q1.x,q1.w),
+			math.F32_HALF_PI,
 		};
 	}
 	if test < -0.499f {
 		return v3. {
 			0.f,
-			-2.f * atan2(q1.x,q1.w),
-			-F32_HALF_PI,
+			-2.f * math.atan2(q1.x,q1.w),
+			-math.F32_HALF_PI,
 		};
 	}
 	sqx := q1.x*q1.x;
 	sqy := q1.y*q1.y;
 	sqz := q1.z*q1.z;
 	return v3.{
-		atan2(2.f*q1.x*q1.w-2.f*q1.y*q1.z , 1.f - 2.f*sqx - 2.f*sqz),
-		atan2(2.f*q1.y*q1.w-2.f*q1.x*q1.z , 1.f - 2.f*sqy - 2.f*sqz),
-		asin(2.f*test),
+		math.atan2(2.f*q1.x*q1.w-2.f*q1.y*q1.z , 1.f - 2.f*sqx - 2.f*sqz),
+		math.atan2(2.f*q1.y*q1.w-2.f*q1.x*q1.z , 1.f - 2.f*sqy - 2.f*sqz),
+		math.asin(2.f*test),
 	};
 }
 
@@ -550,7 +544,7 @@ lerp :: fn (a: ?T, b: T, t: f32) T #inline {
 #if T == v2 || T == v3 || T == v4 {
 	return add(a, mul(sub(b, a), t));
 } else {
-	return std.lerp(a, b, t);
+	return math.lerp(a, b, t);
 }
 }
 
@@ -562,7 +556,9 @@ sqr_distance :: fn (a: ?T, b: T) f32 #inline {
 	return sqr_length(sub(b, a));
 }
 
-#private
+#scope_private
+math :: #import "std/math";
+
 // =================================================================================================
 // sub
 // =================================================================================================
@@ -650,15 +646,15 @@ v4_mul_s :: fn (v: v4, b: f32) v4 #inline {
 // length
 // =================================================================================================
 v2_length :: fn (v: v2) f32 #inline {
-	return std.sqrt(v.x * v.x + v.y * v.y);
+	return math.sqrt(v.x * v.x + v.y * v.y);
 }
 
 v3_length :: fn (v: v3) f32 #inline {
-	return std.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+	return math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 }
 
 v4_length :: fn (v: v4) f32 #inline {
-	return std.sqrt(v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w);
+	return math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w);
 }
 
 // =================================================================================================
@@ -697,7 +693,7 @@ v4_dot :: fn (a: v4, b: v4) f32 #inline {
 v2_normalize :: fn (a: v2) v2 #inline {
 	out: v2;
 	l :: v2_length(a);
-	if std.compare(l, 0.f, std.F32_EPSILON) { return out; }
+	if math.compare(l, 0.f, math.F32_EPSILON) { return out; }
 	out.x = a.x / l;
 	out.y = a.y / l;
 	return out;
@@ -705,7 +701,7 @@ v2_normalize :: fn (a: v2) v2 #inline {
 
 v3_normalize :: fn (a: v3) v3 #inline {
 	l :: v3_length(a);
-	if std.compare(l, 0.f, std.F32_EPSILON) { return v3_zero; }
+	if math.compare(l, 0.f, math.F32_EPSILON) { return v3_zero; }
 	out: v3 #noinit;
 	out.x = a.x / l;
 	out.y = a.y / l;
@@ -715,7 +711,7 @@ v3_normalize :: fn (a: v3) v3 #inline {
 
 v4_normalize :: fn (v: v4) v4 #inline {
 	l :: v4_length(v);
-	if std.compare(l, 0.f, std.F32_EPSILON) { return v4_zero; }
+	if math.compare(l, 0.f, math.F32_EPSILON) { return v4_zero; }
 	out: v4 #noinit;
 	out.x = v.x / l;
 	out.y = v.y / l;
@@ -728,21 +724,21 @@ v4_normalize :: fn (v: v4) v4 #inline {
 // compare
 // =================================================================================================
 // @Incomplete: epsilon with default value?
-v2_compare :: fn (a: v2, b: v2, epsilon := std.F32_EPSILON) bool #inline {
-	return std.compare(a.x, b.x, epsilon) && std.compare(a.y, b.y, epsilon);
+v2_compare :: fn (a: v2, b: v2, epsilon := math.F32_EPSILON) bool #inline {
+	return math.compare(a.x, b.x, epsilon) && math.compare(a.y, b.y, epsilon);
 }
 
-v3_compare :: fn (a: v3, b: v3, epsilon := std.F32_EPSILON) bool {
-	return std.compare(a.x, b.x, epsilon)
-		&& std.compare(a.y, b.y, epsilon)
-		&& std.compare(a.z, b.z, epsilon);
+v3_compare :: fn (a: v3, b: v3, epsilon := math.F32_EPSILON) bool {
+	return math.compare(a.x, b.x, epsilon)
+		&& math.compare(a.y, b.y, epsilon)
+		&& math.compare(a.z, b.z, epsilon);
 }
 
-v4_compare :: fn (a: v4, b: v4, epsilon := std.F32_EPSILON) bool {
-	return std.compare(a.x, b.x, epsilon)
-		&& std.compare(a.y, b.y, epsilon)
-		&& std.compare(a.z, b.z, epsilon)
-		&& std.compare(a.w, b.w, epsilon);
+v4_compare :: fn (a: v4, b: v4, epsilon := math.F32_EPSILON) bool {
+	return math.compare(a.x, b.x, epsilon)
+		&& math.compare(a.y, b.y, epsilon)
+		&& math.compare(a.z, b.z, epsilon)
+		&& math.compare(a.w, b.w, epsilon);
 }
 
 // =================================================================================================
@@ -811,39 +807,39 @@ v4_div_s :: fn (v: v4, s: f32) v4 #inline {
 }
 
 v2_round :: fn (v: v2) v2 #inline {
-	return v2.{ std.round(v.x), std.round(v.y) };
+	return v2.{ math.round(v.x), math.round(v.y) };
 }
 
 v3_round :: fn (v: v3) v3 #inline {
-	return v3.{ std.round(v.x), std.round(v.y), std.round(v.z) };
+	return v3.{ math.round(v.x), math.round(v.y), math.round(v.z) };
 }
 
 v4_round :: fn (v: v4) v4 #inline {
-	return v4.{ std.round(v.x), std.round(v.y), std.round(v.z), std.round(v.w) };
+	return v4.{ math.round(v.x), math.round(v.y), math.round(v.z), math.round(v.w) };
 }
 
 v2_floor :: fn (v: v2) v2 #inline {
-	return v2.{ std.floor(v.x), std.floor(v.y) };
+	return v2.{ math.floor(v.x), math.floor(v.y) };
 }
 
 v3_floor :: fn (v: v3) v3 #inline {
-	return v3.{ std.floor(v.x), std.floor(v.y), std.floor(v.z) };
+	return v3.{ math.floor(v.x), math.floor(v.y), math.floor(v.z) };
 }
 
 v4_floor :: fn (v: v4) v4 #inline {
-	return v4.{ std.floor(v.x), std.floor(v.y), std.floor(v.z), std.floor(v.w) };
+	return v4.{ math.floor(v.x), math.floor(v.y), math.floor(v.z), math.floor(v.w) };
 }
 
 v2_ceil :: fn (v: v2) v2 #inline {
-	return v2.{ std.ceil(v.x), std.ceil(v.y) };
+	return v2.{ math.ceil(v.x), math.ceil(v.y) };
 }
 
 v3_ceil :: fn (v: v3) v3 #inline {
-	return v3.{ std.ceil(v.x), std.ceil(v.y), std.ceil(v.z) };
+	return v3.{ math.ceil(v.x), math.ceil(v.y), math.ceil(v.z) };
 }
 
 v4_ceil :: fn (v: v4) v4 #inline {
-	return v4.{ std.ceil(v.x), std.ceil(v.y), std.ceil(v.z), std.ceil(v.w) };
+	return v4.{ math.ceil(v.x), math.ceil(v.y), math.ceil(v.z), math.ceil(v.w) };
 }
 
 
@@ -861,15 +857,15 @@ quat_look :: fn (eye: v3, ori: quat, out_mat: *mat4) {
 
 quat_look_for :: fn (dir: v3, fwd: v3, up: v3) quat {
 	d :: dot(dir, fwd);
-	if std.abs(d+ 1.0f)  < 0.000001f {
-		return quat.{ up.x, up.y, up.z, auto std.PI };
+	if math.abs(d+ 1.0f)  < 0.000001f {
+		return quat.{ up.x, up.y, up.z, auto math.PI };
 	}
 
-	if std.abs(d - 1.0f) < 0.000001f {
+	if math.abs(d - 1.0f) < 0.000001f {
 		return quat_identity;
 	}
 
-	angle :: std.acos(d);
+	angle :: math.acos(d);
 	axis := cross(fwd, dir);
 	axis = normalize(axis);
 	return quat_axis_angle(axis, angle);

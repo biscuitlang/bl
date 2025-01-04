@@ -1,0 +1,8 @@
+// @ERR_UNKNOWN_SYMBOL@
+named :: #import "../../../tests/src/module1";
+main :: fn () s32 {
+	named.this_should_be_visible_only_in_module();
+	return 0;
+}
+
+

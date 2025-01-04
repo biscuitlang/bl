@@ -26,15 +26,10 @@
 // SOFTWARE.
 // =================================================================================================
 
-#import "std/sync"
-#import "std/table"
-
-#scope std 
-
 //! # Debug Allocator
-//! 
+//!
 //! `#import "std/debug_allocator"`
-//! 
+//!
 //! Debug allocator can be used to analyze memory usage and eventually investigate possible memory leaks.
 //! Every allocation done via debug allocator is internally recorded with some meta-data included to each
 //! allocation. Debug allocator can later panic in situations like double-free, freeing of non-allocated
@@ -44,7 +39,7 @@
 //! used in production code since it's way much slower than regular allocators.
 //!
 //! ### Supported Operation
-//! 
+//!
 //!     - [x] Allocate
 //!     - [x] Reallocate
 //!     - [x] Free
@@ -67,7 +62,7 @@
 //! !!! note
 //!     Debug allocator can be used as global application allocator to catch all possible memory leaks
 //!     and other issues.
-//! 
+//!
 //! !!! note
 //!     Debug allocator is thread safe.
 //!
@@ -76,10 +71,10 @@
 //!     are probably trying to use already freed memory.
 
 DebugAllocator :: struct #base Allocator {
-	mutex: std.Mutex;
+	mutex: Mutex;
 	allocator: *Allocator;
 	total_allocated: s64;
-	alloc_table: std.Table(*u8, Meta);
+	alloc_table: Table(*u8, Meta);
 	serial: u64;
 	break_on: u64;
 }
@@ -89,8 +84,8 @@ debug_allocator_make :: fn (allocator: *Allocator) DebugAllocator {
 	dbgalloc: DebugAllocator;
 	dbgalloc.handler = auto &handler;
 	dbgalloc.allocator = allocator;
-	std.tbl_init(&dbgalloc.alloc_table, 2048, dbgalloc.allocator);
-	std.mutex_init(&dbgalloc.mutex);
+	tbl_init(&dbgalloc.alloc_table, 2048, dbgalloc.allocator);
+	mutex_init(&dbgalloc.mutex);
 	return dbgalloc;
 }
 
@@ -106,22 +101,22 @@ debug_allocator_break :: fn (dbgalloc: *DebugAllocator, serial: u64) #inline {
 
 /// Return currently allocated memory in bytes.
 debug_allocator_allocated :: fn (dbgalloc: *DebugAllocator) usize #inline {
-	std.mutex_lock(&dbgalloc.mutex);
-	defer std.mutex_unlock(&dbgalloc.mutex);
+	mutex_lock(&dbgalloc.mutex);
+	defer mutex_unlock(&dbgalloc.mutex);
 	return auto dbgalloc.total_allocated;
 }
 
 /// Return count of currently allocated memory entries.
 debug_allocator_allocated_count :: fn (dbgalloc: *DebugAllocator) s64 #inline {
-	std.mutex_lock(&dbgalloc.mutex);
-	defer std.mutex_unlock(&dbgalloc.mutex);
+	mutex_lock(&dbgalloc.mutex);
+	defer mutex_unlock(&dbgalloc.mutex);
 	return auto dbgalloc.alloc_table.keys.len;
 }
 
 /// Lookup size in bytes of previously allocated memory. Returns `true` and size in bytes if allocation
 /// was found, otherwise returns `false` and zero size.
 debug_allocator_get_allocation_size :: fn (dbgalloc: *DebugAllocator, ptr: *u8) (found: bool, size: usize) #inline {
-	value :: std.tbl_lookup_ptr(&dbgalloc.alloc_table, ptr);
+	value :: tbl_lookup_ptr(&dbgalloc.alloc_table, ptr);
 	if !value {
 		return false, 0;
 	}
@@ -130,11 +125,11 @@ debug_allocator_get_allocation_size :: fn (dbgalloc: *DebugAllocator, ptr: *u8) 
 
 /// Print memory report. First block contains currently allocated bytes and current count
 /// of allocations. Optional memory leak dump block (enabled by `dump_leaks` argument) contains:
-/// 
+///
 /// ```text
-/// [allocation serial ID] - <file>:<line> (allocation size in bytes) 
-/// ``` 
-/// 
+/// [allocation serial ID] - <file>:<line> (allocation size in bytes)
+/// ```
+///
 /// ```text
 /// $ ./out.exe
 /// ******************* MEMORY REPORT ******************
@@ -144,24 +139,24 @@ debug_allocator_get_allocation_size :: fn (dbgalloc: *DebugAllocator, ptr: *u8) 
 /// Dump memory leaks begin:
 ///     [1] - test.bl:10 (64 bytes)
 /// Dump memory leaks end.
-/// ``` 
-/// 
+/// ```
+///
 /// !!! note
 ///     Printed report contains all remaining (not freed) allocations in time when function was
 ///     called. Memory leaks can contain false-positives when function is called before execution end.
-/// 
+///
 /// !!! note
 ///     Allocation serail ID can be used by [debug_allocator_break](#debug_allocator_break) to interrupt
 ///     execution before memory is allocated and eventually localize allocation in debbuger.
 print_memory_report :: fn (dbgalloc: *DebugAllocator, dump_leaks := false) {
-	std.mutex_lock(&dbgalloc.mutex);
-	defer std.mutex_unlock(&dbgalloc.mutex);
+	mutex_lock(&dbgalloc.mutex);
+	defer mutex_unlock(&dbgalloc.mutex);
 	unit := "Bytes";
 	total := dbgalloc.total_allocated;
 	if total > 1024 { total /= 1024; unit = "kB"; }
 	if total > 1024 { total /= 1024; unit = "MB"; }
 	if total > 1024 { total /= 1024; unit = "GB"; }
-	
+
 	print("******************* MEMORY REPORT ******************\n");
 	print("* Allocated % %.\n", total, unit);
 	print("* Count of allocations %.\n", dbgalloc.alloc_table.len);
@@ -171,7 +166,7 @@ print_memory_report :: fn (dbgalloc: *DebugAllocator, dump_leaks := false) {
 }
 
 /// Print only leaking memory if any and returs count of leaking allocations. Please see the
-/// [print_memory_report](debug_allocator.md#stdprint_memory_report) for further details.
+/// [print_memory_report](debug_allocator.md#print_memory_report) for further details.
 dump_memory_leaks :: fn (dbgalloc: *DebugAllocator) s64 {
 	if dbgalloc.alloc_table.len == 0 { return 0; }
 	print("Dump memory leaks begin:\n");
@@ -183,7 +178,12 @@ dump_memory_leaks :: fn (dbgalloc: *DebugAllocator) s64 {
 	return dbgalloc.alloc_table.len;
 }
 
-#private
+#scope_private
+#import "std/sync"
+#import "std/table"
+#import "std/print"
+#import "std/array"
+
 Meta :: struct {
 	serial: u64;
 	allocated_size: usize;
@@ -222,8 +222,8 @@ handler :: fn (dbgalloc: *DebugAllocator, operation: AllocOp, ptr: *u8, size: us
 			}
 		}
 		RELEASE {
-			std.tbl_terminate(&dbgalloc.alloc_table);
-			std.mutex_terminate(&dbgalloc.mutex);
+			tbl_terminate(&dbgalloc.alloc_table);
+			mutex_terminate(&dbgalloc.mutex);
 		}
 		RESET {
 			panic("Unsupported operation: %.", operation);
@@ -240,7 +240,7 @@ add_allocation :: fn (dbgalloc: *DebugAllocator, ptr: *u8, size: usize, alignmen
 	dbgalloc.serial += 1;
 	if dbgalloc.break_on == dbgalloc.serial { debugbreak; }
 
-	meta := std.tbl_insert(&dbgalloc.alloc_table, ptr);
+	meta := tbl_insert(&dbgalloc.alloc_table, ptr);
 	meta.allocated_size = size;
 	meta.alignment = alignment;
 	meta.file = file;
@@ -253,14 +253,14 @@ add_allocation :: fn (dbgalloc: *DebugAllocator, ptr: *u8, size: usize, alignmen
 remove_allocation :: fn (dbgalloc: *DebugAllocator, ptr: *u8) (size: usize, alignment: usize) {
 	mutex_lock(&dbgalloc.mutex);
 	defer mutex_unlock(&dbgalloc.mutex);
-	value :: std.tbl_lookup_ptr(&dbgalloc.alloc_table, ptr);
+	value :: tbl_lookup_ptr(&dbgalloc.alloc_table, ptr);
 	if !value {
 		panic("Attempt to free already freed or unallocated memory on address %!", ptr);
 	}
 	allocated_size :: value.allocated_size;
 	alignment :: value.alignment;
 	dbgalloc.total_allocated -= auto allocated_size;
-	std.tbl_erase(&dbgalloc.alloc_table, ptr);
+	tbl_erase(&dbgalloc.alloc_table, ptr);
 	return allocated_size, alignment;
 }
 

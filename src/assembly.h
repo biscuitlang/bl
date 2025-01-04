@@ -46,6 +46,11 @@
 struct builder;
 struct builder_options;
 
+enum scope_dump_mode {
+	SCOPE_DUMP_MODE_PARENTING,
+	SCOPE_DUMP_MODE_INJECTION,
+};
+
 enum assembly_kind {
 	ASSEMBLY_EXECUTABLE     = 0,
 	ASSEMBLY_SHARED_LIB     = 1,
@@ -63,13 +68,6 @@ enum assembly_opt {
 enum assembly_di_kind {
 	ASSEMBLY_DI_DWARF    = 0, // Emit DWARF debug information in LLVM IR.
 	ASSEMBLY_DI_CODEVIEW = 1, // Emit MS CodeView debug info (PDB file).
-};
-
-// keep in sync with build.bl
-enum module_import_policy {
-	IMPORT_POLICY_SYSTEM        = 0,
-	IMPORT_POLICY_BUNDLE        = 1,
-	IMPORT_POLICY_BUNDLE_LATEST = 2,
 };
 
 enum assert_mode {
@@ -139,6 +137,13 @@ struct native_lib {
 	bool runtime_only;
 };
 
+struct module {
+	struct scope *scope;
+	struct scope *private_scope; // Introduced by #scope_module block
+	str_t         modulepath;
+	hash_t        hash;
+};
+
 // ABI sync!!! Keep this updated with target representation in build.bl.
 #define TARGET_COPYABLE_CONTENT                        \
 	enum assembly_kind    kind;                        \
@@ -153,6 +158,8 @@ struct native_lib {
 	bool                  run;                         \
 	bool                  print_tokens;                \
 	bool                  print_ast;                   \
+	bool                  print_scopes;                \
+	enum scope_dump_mode  print_scopes_mode;           \
 	bool                  emit_llvm;                   \
 	bool                  emit_mir;                    \
 	bool                  emit_asm;                    \
@@ -179,8 +186,6 @@ struct target {
 	str_buf_t default_custom_linker_opt;
 	str_buf_t out_dir;
 	str_buf_t module_dir;
-
-	enum module_import_policy module_policy;
 
 	struct {
 		s32    argc;
@@ -266,7 +271,11 @@ struct assembly {
 	array(struct unit *) units; // array of all units in assembly
 	mtx_t units_lock;
 
+	array(struct module *) modules;
+	mtx_t modules_lock;
+
 	struct scope *gscope; // global scope of the assembly
+	struct scope *module_scope;
 
 	/* Builtins */
 	struct builtin_types {
@@ -295,26 +304,29 @@ void           target_add_lib(struct target *target, const char *lib);
 void           target_append_linker_options(struct target *target, const char *option);
 void           target_set_vm_args(struct target *target, s32 argc, char **argv);
 void           target_set_output_dir(struct target *target, const char *dirpath);
-void           target_set_module_dir(struct target            *target,
-                                     const char               *dir,
-                                     enum module_import_policy policy);
+void           target_set_module_dir(struct target *target,
+                                     const char    *dir);
 bool           target_is_triple_valid(struct target_triple *triple);
 bool           target_init_default_triple(struct target_triple *triple);
 s32            target_triple_to_string(const struct target_triple *triple, char *buf, s32 buf_len);
 
 struct assembly *assembly_new(const struct target *target);
 void             assembly_delete(struct assembly *assembly);
-struct unit     *assembly_add_unit(struct assembly *assembly, const str_t filepath, struct token *load_from);
+void             assembly_add_unit(struct assembly *assembly, const str_t filepath, struct token *load_from, struct scope *parent_scope, struct module *module);
 void             assembly_add_lib_path(struct assembly *assembly, const char *path);
 void             assembly_append_linker_options(struct assembly *assembly, const char *opt);
 void             assembly_add_native_lib(struct assembly *assembly,
                                          const char      *lib_name,
                                          struct token    *link_token,
                                          bool             runtime_only);
-bool             assembly_import_module(struct assembly *assembly,
-                                        const char      *modulepath,
-                                        struct token    *import_from);
+struct module   *assembly_import_module(struct assembly *assembly,
+                                        str_t            modulepath,
+                                        struct token    *import_from,
+                                        struct scope    *scope);
 DCpointer        assembly_find_extern(struct assembly *assembly, const str_t symbol);
+
+// Print the top-level scope structure as dot graph.
+void assembly_dump_scope_structure(struct assembly *assembly, FILE *stream, enum scope_dump_mode mode);
 
 // Convert opt level to string.
 static inline const char *opt_to_str(enum assembly_opt opt) {

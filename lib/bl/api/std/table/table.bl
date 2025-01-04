@@ -33,8 +33,6 @@
 
 // The implementation is partially based on Jonathan Blow's hash table https://www.youtube.com/watch?v=k9MBMvR2IvI.
 
-#scope std
-
 /// Create a new **Table** type. The `TKey` must be a number, string or pointer type.
 ///
 /// ```bl
@@ -192,7 +190,10 @@ tbl_clear :: fn (tbl: *?T) #inline {
 	tbl.len = 0;
 }
 
-#private
+#scope_private
+#import "std/string"
+#import "std/array"
+
 DEFAULT_ENTRIES_COUNT :: 64;
 LOAD_FACTOR :: 70 #maybe_unused;
 EMPTY_INDEX : s32 : 0 #maybe_unused;
@@ -207,7 +208,7 @@ calculate_hash :: fn (key: ?T) u32 #inline {
 	is_string :: T == string || T == string_view;
 	hash: u32;
 	#if is_string {
-		hash = auto std.str_hash(key);
+		hash = auto str_hash(key);
 	} else {
 		// copy-paste from stack overflow, is it good or not???
 		// https://stackoverflow.com/questions/664014/what-integer-hash-function-are-good-that-accepts-an-integer-hash-key
@@ -232,7 +233,7 @@ compare_keys :: fn (a: ?T, b: T) bool #inline {
 	is_string :: T == string || T == string_view;
 	match: bool;
 	#if is_string {
-		match = std.str_match(a, b);
+		match = str_match(a, b);
 	} else {
 		match = a == b;
 	}

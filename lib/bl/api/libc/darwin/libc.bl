@@ -1,7 +1,3 @@
-#import "os/posix/syscall"
-
-#scope C
-
 SEEK_SET : fd_t : 0;
 SEEK_CUR : fd_t : 1;
 SEEK_END : fd_t : 2;

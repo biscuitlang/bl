@@ -39,6 +39,7 @@ struct scope;
 struct token;
 struct location;
 struct ast;
+struct module;
 
 enum ast_kind {
 #define GEN_AST_KINDS
@@ -115,7 +116,8 @@ struct ast_load {
 };
 
 struct ast_import {
-	const char *filepath;
+	struct module *module;
+	bool           is_expression; // used in namespace wrapper
 };
 
 struct ast_private {
@@ -126,8 +128,8 @@ struct ast_public {
 	void *_;
 };
 
-struct ast_scope {
-	struct ast *ident;
+struct ast_module_private {
+	void *_;
 };
 
 struct ast_link {
@@ -317,15 +319,15 @@ struct ast_expr_lit_fn_group {
 };
 
 struct ast_expr_lit_int {
-	u64  val;
+	u64 val;
 };
 
 struct ast_expr_lit_float {
-	f32  val;
+	f32 val;
 };
 
 struct ast_expr_lit_double {
-	f64  val;
+	f64 val;
 };
 
 struct ast_expr_lit_char {

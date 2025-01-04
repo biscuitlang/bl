@@ -59,6 +59,10 @@ void mir_writer_run(struct assembly *assembly);
 void asm_writer_run(struct assembly *assembly);
 void x86_64run(struct assembly *assembly);
 
+static void print_scopes_run(struct assembly *assembly) {
+	assembly_dump_scope_structure(assembly, stdout, assembly->target->print_scopes_mode);
+}
+
 // Virtual Machine
 void vm_entry_run(struct assembly *assembly);
 void vm_build_entry_run(struct assembly *assembly);
@@ -197,6 +201,7 @@ static void setup_assembly_pipeline(struct assembly *assembly) {
 	arrput(*stages, &linker_run);
 	if (t->no_analyze) return;
 	arrput(*stages, &mir_analyze_run);
+	if (t->print_scopes) arrput(*stages, &print_scopes_run);
 	if (t->vmdbg_enabled) arrput(*stages, &attach_dbg);
 	if (t->run) arrput(*stages, &entry_run);
 	if (t->kind == ASSEMBLY_BUILD_PIPELINE) arrput(*stages, build_entry_run);

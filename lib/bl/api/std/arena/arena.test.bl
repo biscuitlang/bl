@@ -1,9 +1,7 @@
+#scope_private
 #import "std/arena"
 
-#private
-
 init_1 :: fn () #test {
-	using std;
 	a :: arena_make(128);
 	defer release_allocator(&a);
 	test_not_null(a.mem);
@@ -13,7 +11,6 @@ init_1 :: fn () #test {
 }
 
 simple_allocation_1 :: fn () #test {
-	using std;
 	a :: arena_make(128);
 	defer release_allocator(&a);
 
@@ -23,14 +20,13 @@ simple_allocation_1 :: fn () #test {
 		test_ok(err);
 		data[i] = auto mem;
 		@data[i] = i;
-	}	
+	}
 	loop i := 0; i < data.len; i += 1 {
 		test_eq(@data[i], i);
 	}
 }
 
 simple_allocation_and_reset :: fn () #test {
-	using std;
 	a :: arena_make(128);
 	defer release_allocator(&a);
 
@@ -42,7 +38,7 @@ simple_allocation_and_reset :: fn () #test {
 			test_ok(err);
 			data[i] = auto mem;
 			@data[i] = i;
-		}	
+		}
 		loop i := 0; i < data.len; i += 1 {
 			test_eq(@data[i], i);
 		}
@@ -53,8 +49,6 @@ simple_allocation_and_reset :: fn () #test {
 }
 
 simple_allocation_exact_size :: fn () #test {
-	using std;
-
 	count :: 100;
 	size :: arena_required_additional_space(count) + sizeof(s32) * auto count;
 
@@ -80,8 +74,6 @@ Bar :: struct {
 }
 
 complex_allocation_exact_size :: fn () #test {
-	using std;
-
 	count :: 30;
 	size :: arena_required_additional_space(count) + sizeof(s32) * 10 + sizeof(Foo) * 10 + sizeof(Bar) * 10;
 

@@ -1,4 +1,6 @@
 #scope_private
+#import "std/math"
+
 test_sin :: fn () #test {
 	// compare results with libc
 	c_sinf :: fn (v: f32) f32 #extern "sinf";
@@ -6,12 +8,12 @@ test_sin :: fn () #test {
 
 	loop i := 0; i < 3141; i += 1 {
 		v :: (cast(f32) i) * 0.001f;
-		test_eq(std.sin(v), c_sinf(v));
+		test_eq(sin(v), c_sinf(v));
 	}
 
 	loop i := 0; i < 3141; i += 1 {
 		v :: (cast(f64) i) * 0.001;
-		test_eq(std.sin(v), c_sin(v));
+		test_eq(sin(v), c_sin(v));
 	}
 }
 
@@ -22,71 +24,71 @@ test_cos :: fn () #test {
 
 	loop i := 0; i < 3141; i += 1 {
 		v :: (cast(f32) i) * 0.001f;
-		test_eq(std.cos(v), c_cosf(v));
+		test_eq(cos(v), c_cosf(v));
 	}
 
 	loop i := 0; i < 3141; i += 1 {
 		v :: (cast(f64) i) * 0.001;
-		test_eq(std.cos(v), c_cos(v));
+		test_eq(cos(v), c_cos(v));
 	}
 }
 
 test_floor :: fn () #test {
-	test_eq(std.floor(10.12f), 10.f);
-	test_eq(std.floor(0.2f), 0.f);
-	test_eq(std.floor(999.92f), 999.f);
+	test_eq(floor(10.12f), 10.f);
+	test_eq(floor(0.2f), 0.f);
+	test_eq(floor(999.92f), 999.f);
 
-	test_eq(std.floor(10.12), 10.);
-	test_eq(std.floor(0.2), 0.);
-	test_eq(std.floor(999.92), 999.);
+	test_eq(floor(10.12), 10.);
+	test_eq(floor(0.2), 0.);
+	test_eq(floor(999.92), 999.);
 }
 
 test_round :: fn () #test {
-	test_eq(std.round(10.12f), 10.f);
-	test_eq(std.round(0.2f), 0.f);
-	test_eq(std.round(999.92f), 1000.f);
+	test_eq(round(10.12f), 10.f);
+	test_eq(round(0.2f), 0.f);
+	test_eq(round(999.92f), 1000.f);
 
-	test_eq(std.round(10.12), 10.);
-	test_eq(std.round(0.2), 0.);
-	test_eq(std.round(999.92), 1000.);
+	test_eq(round(10.12), 10.);
+	test_eq(round(0.2), 0.);
+	test_eq(round(999.92), 1000.);
 }
 
 test_pow :: fn () #test {
-	test_eq(std.pow(20.f, 2.f), 20.f * 20.f);
-	test_eq(std.pow(20., 2.), 20.* 20.);
+	test_eq(pow(20.f, 2.f), 20.f * 20.f);
+	test_eq(pow(20., 2.), 20.* 20.);
 }
 
 test_log :: fn () #test {
 	c_logf :: fn (v: f32) f32 #extern "logf";
 	c_log  :: fn (v: f64) f64 #extern "log";
-	test_eq(std.log(666.f), c_logf(666.f));
-	test_eq(std.log(666.), c_log(666.));
+	test_eq(log(666.f), c_logf(666.f));
+	test_eq(log(666.), c_log(666.));
 }
 
 test_log10 :: fn () #test {
 	c_log10f :: fn (v: f32) f32 #extern "log10f";
 	c_log10  :: fn (v: f64) f64 #extern "log10";
-	test_eq(std.log10(666.f), c_log10f(666.f));
-	test_eq(std.log10(666.), c_log10(666.));
+	test_eq(log10(666.f), c_log10f(666.f));
+	test_eq(log10(666.), c_log10(666.));
 }
 
 test_sqrt :: fn () #test {
 	c_sqrtf :: fn (v: f32) f32 #extern "sqrtf";
 	c_sqrt  :: fn (v: f64) f64 #extern "sqrt";
-	test_eq(std.sqrt(666.f), c_sqrtf(666.f));
-	test_eq(std.sqrt(666.), c_sqrt(666.));
+	test_eq(sqrt(666.f), c_sqrtf(666.f));
+	test_eq(sqrt(666.), c_sqrt(666.));
 }
 
 test_ceil :: fn () #test {
 	c_ceilf :: fn (v: f32) f32 #extern "ceilf";
 	c_ceil  :: fn (v: f64) f64 #extern "ceil";
-	test_eq(std.ceil(666.f), c_ceilf(666.f));
-	test_eq(std.ceil(666.), c_ceil(666.));
+	test_eq(ceil(666.f), c_ceilf(666.f));
+	test_eq(ceil(666.), c_ceil(666.));
 }
 
 benchmark_sin_llvm :: fn () #test {
 	loop i := 0; i < 1000000; i += 1 {
-		std.sin(cast(f32) i);
+		sin(cast(f32) i);
 	}
 }
 

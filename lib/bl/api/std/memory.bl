@@ -1,8 +1,6 @@
 //! # Memory
 //!
-//! ```bl
-//! #load "std/memory.bl"
-//! ```
+//! Available by default.
 //!
 //! Toolset for manipulation with the system memory.
 //!
@@ -19,8 +17,6 @@
 //! Functions like [alloc](#alloc) and [free](#free) internally use allocator set in global executable
 //! context `application_context` variable. Global context allocator is by default set to `default_allocator`
 //! and can be changed as needed.
-
-#import "std/pool"
 
 /// Default memory allocation alignment.
 DEFAULT_ALIGNMENT : usize : alignof(f64);
@@ -438,7 +434,11 @@ ptr_diff :: fn (a: *?T1, b: *?T2) s64 #inline {
 	return (cast(s64) a) - (cast(s64) b);
 }
 
-#private
+#scope_private
+#import "std/pool"
+
+C  :: #import "libc";
+
 default_allocator_handler :: fn (
 	allocator: *Allocator #maybe_unused,
 	operation: AllocOp,
@@ -490,7 +490,7 @@ default_allocator_handler :: fn (
 	return null, OK;
 }
 
-temporary_pool := std.pool_default #thread_local;
+temporary_pool := pool_default #thread_local;
 
 temporary_allocator_handler :: fn (
 	_: *Allocator,

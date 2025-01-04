@@ -1,9 +1,7 @@
 // @ERR_INVALID_TYPE@
+foo :: #import "std/print";
 main :: fn () s32 {
-	typeof(MyScope);
+	typeof(foo);
 	return 0;
 }
-
-#scope MyScope
-
 

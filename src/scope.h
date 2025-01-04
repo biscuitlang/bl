@@ -95,22 +95,23 @@ enum scope_kind {
 	SCOPE_LEXICAL,
 	SCOPE_TYPE_STRUCT,
 	SCOPE_TYPE_ENUM,
-	SCOPE_NAMED,
+	SCOPE_MODULE,
+	SCOPE_MODULE_PRIVATE,
 };
 
 #define SCOPE_DEFAULT_LAYER 0
 
 struct scope {
 	enum scope_kind  kind;
-	str_t            name; // optional
+	str_t            name;     // optional
+	str_t            filename; // optional
 	struct scope    *parent;
 	struct location *location;
-	array(struct scope *) usings;
+	array(struct scope *) injected;
 	LLVMMetadataRef llvm_meta;
 	hash_table(struct scope_tbl_entry) entries;
 
 	mtx_t lock;
-
 	bmagic_member
 };
 
@@ -132,20 +133,17 @@ void scope_reserve(struct scope *scope, s32 num);
 void scope_insert(struct scope *scope, hash_t layer, struct scope_entry *entry);
 void scope_lock(struct scope *scope);
 void scope_unlock(struct scope *scope);
-
-// Return true if other scope was added (is unique in this context).
-bool scope_using_add(struct scope *scope, struct scope *other);
+void scope_inject(struct scope *dest, struct scope *src);
 
 typedef struct {
 	hash_t     layer;
 	struct id *id;
 	bool       in_tree;
-	bool       ignore_global;
+	bool       local_only;
+	bool      *out_of_function;
 
-	bool *out_of_local;
-
-	// When set lookup in usings is enabled automatically.
-	struct scope_entry **out_ambiguous;
+	bool lookup_ambiguous;
+	array(struct scope_entry *) ambiguous;
 } scope_lookup_args_t;
 
 struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args);
@@ -158,8 +156,7 @@ const char *scope_kind_name(const struct scope *scope);
 void scope_get_full_name(str_buf_t *buf, struct scope *scope);
 
 static inline bool scope_is_local(const struct scope *scope) {
-	return scope->kind != SCOPE_GLOBAL && scope->kind != SCOPE_PRIVATE &&
-	       scope->kind != SCOPE_NAMED;
+	return scope->kind != SCOPE_GLOBAL && scope->kind != SCOPE_PRIVATE && scope->kind != SCOPE_MODULE && scope->kind != SCOPE_MODULE_PRIVATE;
 }
 
 static inline struct scope_entry *scope_entry_ref(struct scope_entry *entry) {

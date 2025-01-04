@@ -26,11 +26,9 @@
 // SOFTWARE.
 // =================================================================================================
 
-#import "std/array"
-
 //! # Debug
 //!
-//! `#load "std/debug.bl"`
+//! Available by default.
 //!
 //! Set of common debugging tools.
 
@@ -145,7 +143,7 @@ __print_log_default :: fn (kind: PrintLogKind, file: string_view, line: s32, for
 	}
 	w += bprint(slice_range(buf, w), format, args);
 	w += bprint(slice_range(buf, w), "\n");
-	std.write(output_stream, buf.ptr, auto w);
+	io.write(output_stream, buf.ptr, auto w);
 };
 
 /// Start measure elapsed milliseconds in the current scope. This function call will push the current
@@ -191,7 +189,12 @@ measure_elapsed_ms_end :: fn (_name : string_view = "", loc := #call_location) f
 	return elapsed_ms;
 }
 
-#private
+#scope_private
+#import "std/print"
+#import "std/array"
+
+io :: #import "std/io";
+
 _elapsed_ms_stack: [..]f64 #thread_local;
 
 panic_empty :: fn () {

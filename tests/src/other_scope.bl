@@ -1,5 +1,0 @@
-#scope Other
-
-number :: 10;
-
-function :: fn () {}

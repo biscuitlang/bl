@@ -35,8 +35,6 @@
 //! ```
 //!
 
-#scope argparse
-
 // Argument parser instance holding all data required.
 Parser :: struct {
 	usage: [..]string_view;
@@ -112,7 +110,6 @@ set_executable_name :: fn (parser: *Parser, name: string_view) {
 /// Returns count of successfully parsed arguments or an error. Client side should handle error cases gracefully (i.e. by printing help
 /// message or terminating the application).
 parse :: fn (parser: *Parser, args: []string_view, first_arg_index := 1) (parsed_arguments_count: s32, result: Error) {
-	using std;
 	// cleanup
 	loop i := 0; i < parser.argument_list.len; i += 1 {
 		arg := &parser.argument_list[i];
@@ -213,7 +210,6 @@ parse :: fn (parser: *Parser, args: []string_view, first_arg_index := 1) (parsed
 /// Print formated help message. The `parser` should be already initialized with all argumenst.
 print_help :: fn (parser: *Parser) {
 	PADDING :: 32;
-	using std;
 	sorted_args: [..]*Argument;
 	defer array_terminate(&sorted_args);
 	loop i := 0; i < parser.argument_list.len; i += 1 {
@@ -223,10 +219,9 @@ print_help :: fn (parser: *Parser) {
 		priority := 0;
 		if (@a).short.len > 0 && (@b).short.len == 0 { priority = 1000; }
 		else if (@a).short.len == 0 && (@b).short.len > 0 { priority = -1000; }
-		return std.str_compare((@a).long, (@b).long) + priority < 0;
+		return str_compare((@a).long, (@b).long) + priority < 0;
 	});
 	append_value_options :: fn (line: *string, info: *TypeInfo) {
-		using std;
 		using TypeKind;
 		switch info.kind {
 			INT, REAL { str_append(line, "=<N>"); }
@@ -292,7 +287,12 @@ print_help :: fn (parser: *Parser) {
 	}
 }
 
-#private
+#scope_private
+
+#import "std/array"
+#import "std/string"
+#import "std/print"
+
 Argument :: struct {
 	long: string_view;
 	short: string_view;
@@ -329,7 +329,6 @@ add_impl :: fn (parser: *Parser, target_info: *TypeInfo, target_ptr: *u8, long: 
 }
 
 lookup_argument :: fn (parser: *Parser, name: string_view) *Argument #inline {
-	using std;
 	loop i := 0; i < parser.argument_list.len; i += 1 {
 		arg :: &parser.argument_list[i];
 		if str_match(arg.short, name) { return arg; }
@@ -359,7 +358,6 @@ string_from_value :: fn (name: string_view, value: string_view) (string_view, Er
 
 enum_variant_from_value :: fn (parser: *Parser, info: *TypeInfoEnum, name: string_view, value: string_view) (u64, Error) {
 	assert(info && info.kind == TypeKind.ENUM);
-	using std;
 	if value.len == 0 { return 0, error("Expected value for argument '%'.", name); }
 	tmp_value := str_new(value, parser.allocator);
 	defer str_delete(&tmp_value);

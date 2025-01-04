@@ -1,14 +1,15 @@
+#scope_private
 #import "std/fs"
 #import "std/io"
+#import "std/string"
+#import "std/array"
+#import "std/math"
 
-#private
 make_test_files :: fn (root_name: string_view) string {
 	make_file :: fn (filepath: string_view) {
-		using std;
 		create_file(filepath);
 	};
 
-	using std;
 	root :: get_cwd();
 	str_concat(&root, "/", root_name);
 
@@ -43,82 +44,81 @@ make_test_files :: fn (root_name: string_view) string {
 }
 
 get_dummy_filepath :: fn (i := 0) string {
-	tmp :: std.get_cwd();
-	std.str_concat(&tmp, "/deleteme_", i);
+	tmp :: get_cwd();
+	str_concat(&tmp, "/deleteme_", i);
 	return tmp;
 }
 
 fs_exist_test :: fn () #test {
-	test_true(std.file_exist(#file));
-	test_false(std.file_exist("foobar"));
+	test_true(file_exist(#file));
+	test_false(file_exist("foobar"));
 }
 
 fs_get_home_test :: fn () #test {
-	tmp :: std.get_home();
-	defer std.str_delete(&tmp);
-	test_neq(tmp, std.str_empty);
-	test_true(std.file_exist(tmp));
+	tmp :: get_home();
+	defer str_delete(&tmp);
+	test_neq(tmp, str_empty);
+	test_true(file_exist(tmp));
 	test_true(tmp[tmp.len-1] != '/');
 
-	state, err :: std.is_directory(tmp);
+	state, err :: is_directory(tmp);
 	test_ok(err);
 	test_true(state);
 }
 
 fs_get_tmp_test :: fn () #test {
-	tmp :: std.get_tmp();
-	defer std.str_delete(&tmp);
-	test_neq(tmp, std.str_empty);
-	test_true(std.file_exist(tmp));
+	tmp :: get_tmp();
+	defer str_delete(&tmp);
+	test_neq(tmp, str_empty);
+	test_true(file_exist(tmp));
 	test_true(tmp[tmp.len-1] != '/');
 
-	state, err :: std.is_directory(tmp);
+	state, err :: is_directory(tmp);
 	test_ok(err);
 	test_true(state);
 }
 
 fs_get_cwd_test :: fn () #test {
-	tmp :: std.get_cwd();
-	defer std.str_delete(&tmp);
-	test_neq(tmp, std.str_empty);
-	test_true(std.file_exist(tmp));
+	tmp :: get_cwd();
+	defer str_delete(&tmp);
+	test_neq(tmp, str_empty);
+	test_true(file_exist(tmp));
 	test_true(tmp[tmp.len-1] != '/');
 
-	state, err :: std.is_directory(tmp);
+	state, err :: is_directory(tmp);
 	test_ok(err);
 	test_true(state);
 }
 
 fs_file_create_test1 :: fn () #test {
-	err :: std.create_file("");
+	err :: create_file("");
 	test_is_error(err, ERR_INVALID_HANDLE);
 }
 
 fs_open_stream_test1 :: fn () #test {
-	stream, err :: std.open_file("");
-	defer std.close_file(&stream);
+	stream, err :: open_file("");
+	defer close_file(&stream);
 	test_is_error(err, ERR_INVALID_HANDLE);
 }
 
 fs_open_stream_test2 :: fn () #test {
-	stream, err :: std.open_file("foobar");
-	defer std.close_file(&stream);
+	stream, err :: open_file("foobar");
+	defer close_file(&stream);
 	test_is_error(err, ERR_NOT_FOUND);
 }
 
 fs_open_stream_test3 :: fn () #test {
-	stream, err :: std.open_file(#file);
-	defer std.close_file(&stream);
+	stream, err :: open_file(#file);
+	defer close_file(&stream);
 	test_ok(err);
 
 	// Cannot write to file when Write or Append is not specified.
-	written, err2 :: std.write_string(&stream, "Hello!");
+	written, err2 :: write_string(&stream, "Hello!");
 	test_not_ok(err2);
 	test_eq(written, 0);
 }
 
 fs_read_string_test :: fn () #test {
-	using std;
 	stream, err1 :: open_file(#file, OpenFileMode.READ);
 	defer close_file(&stream);
 	test_ok(err1);
@@ -130,7 +130,6 @@ fs_read_string_test :: fn () #test {
 }
 
 fs_read_bytes_test :: fn () #test {
-	using std;
 	stream, err1 :: open_file(#file, OpenFileMode.READ);
 	defer close_file(&stream);
 	test_ok(err1);
@@ -142,7 +141,6 @@ fs_read_bytes_test :: fn () #test {
 }
 
 fs_read_bytes_test_custom_buffer_size :: fn () #test {
-	using std;
 	stream, err1 :: open_file(#file, OpenFileMode.READ);
 	defer close_file(&stream);
 	test_ok(err1);
@@ -154,14 +152,12 @@ fs_read_bytes_test_custom_buffer_size :: fn () #test {
 }
 
 fs_file_stream_create_invalid :: fn () #test {
-	using std;
 	stream, err :: open_file("", OpenFileMode.CREATE);
 	defer close_file(&stream);
 	test_is_error(err, ERR_INVALID_HANDLE);
 }
 
 fs_file_stream_create_invalid_write :: fn () #test {
-	using std;
 	filepath :: get_dummy_filepath();
 	defer str_delete(&filepath);
 	remove_file(filepath);
@@ -175,7 +171,6 @@ fs_file_stream_create_invalid_write :: fn () #test {
 }
 
 fs_file_stream_create_and_write :: fn () #test {
-	using std;
 	filepath :: get_dummy_filepath();
 	defer str_delete(&filepath);
 	remove_file(filepath);
@@ -188,7 +183,6 @@ fs_file_stream_create_and_write :: fn () #test {
 }
 
 fs_file_stream_create_and_reuse :: fn () #test {
-	using std;
 	filepath :: get_dummy_filepath();
 	defer str_delete(&filepath);
 	remove_file(filepath);
@@ -222,7 +216,6 @@ fs_file_stream_create_and_reuse :: fn () #test {
 }
 
 fs_file_read_empty :: fn () #test {
-	using std;
 	filepath :: get_dummy_filepath();
 	defer str_delete(&filepath);
 	remove_file(filepath);
@@ -239,7 +232,6 @@ fs_file_read_empty :: fn () #test {
 }
 
 fs_file_stream_create_twice_and_override :: fn () #test {
-	using std;
 	filepath :: get_dummy_filepath();
 	defer str_delete(&filepath);
 	remove_file(filepath);
@@ -273,7 +265,6 @@ fs_file_stream_create_twice_and_override :: fn () #test {
 }
 
 fs_read_exact_size :: fn () #test {
-	using std;
 	stream, err_open :: open_file(#file);
 	defer close_file(&stream);
 	test_ok(err_open);
@@ -284,14 +275,13 @@ fs_read_exact_size :: fn () #test {
 }
 
 fs_write_raw :: fn () #test {
-	using std;
 	filepath :: get_dummy_filepath();
 	defer str_delete(&filepath);
 	remove_file(filepath);
 	content :: "Hello I'm cool file content!";
 
 	{ // write
-		stream :: open_file(filepath, std.OpenFileMode.CREATE | std.OpenFileMode.WRITE);
+		stream :: open_file(filepath, OpenFileMode.CREATE | OpenFileMode.WRITE);
 		defer close_file(&stream);
 		written, err :: write(&stream, content.ptr, content.len);
 		test_ok(err);
@@ -309,14 +299,13 @@ fs_write_raw :: fn () #test {
 }
 
 fs_write_string :: fn () #test {
-	using std;
 	filepath :: get_dummy_filepath();
 	defer str_delete(&filepath);
 	remove_file(filepath);
 	content :: "Hello I'm cool file content!";
 
 	{ // write
-		stream :: open_file(filepath, std.OpenFileMode.CREATE | std.OpenFileMode.WRITE);
+		stream :: open_file(filepath, OpenFileMode.CREATE | OpenFileMode.WRITE);
 		defer close_file(&stream);
 		written, err :: write_string(&stream, content);
 		test_ok(err);
@@ -334,7 +323,6 @@ fs_write_string :: fn () #test {
 }
 
 fs_seek_begin_end :: fn () #test {
-	using std;
 	stream :: open_file(#file);
 	defer close_file(&stream);
 
@@ -374,7 +362,6 @@ fs_seek_begin_end :: fn () #test {
 }
 
 fs_get_uid_test_from_filename :: fn () #test {
-	using std;
 	filepath :: get_dummy_filepath();
 	defer str_delete(&filepath);
 	remove_file(filepath);
@@ -385,11 +372,10 @@ fs_get_uid_test_from_filename :: fn () #test {
 }
 
 fs_get_uid_test_from_file :: fn () #test {
-	using std;
 	filepath :: get_dummy_filepath();
 	defer str_delete(&filepath);
 	remove_file(filepath);
-	stream, err :: open_file(filepath, std.OpenFileMode.CREATE);
+	stream, err :: open_file(filepath, OpenFileMode.CREATE);
 	defer close_file(&stream);
 	test_ok(err);
 	uid, err2 :: file_uid(&stream);
@@ -399,26 +385,25 @@ fs_get_uid_test_from_file :: fn () #test {
 
 fs_validate_filename_test :: fn () #test {
 	if PLATFORM == Platform.WINDOWS {
-		test_false(std.validate_filename("<"));
-		test_false(std.validate_filename(">"));
-		test_false(std.validate_filename(":"));
-		test_false(std.validate_filename("\""));
-		test_false(std.validate_filename("/"));
-		test_false(std.validate_filename("\\"));
-		test_false(std.validate_filename("|"));
-		test_false(std.validate_filename("?"));
-		test_false(std.validate_filename("*"));
-		test_false(std.validate_filename("\t"));
-		test_false(std.validate_filename("foo<"));
-		test_true(std.validate_filename("foo_bar-File.txt"));
+		test_false(validate_filename("<"));
+		test_false(validate_filename(">"));
+		test_false(validate_filename(":"));
+		test_false(validate_filename("\""));
+		test_false(validate_filename("/"));
+		test_false(validate_filename("\\"));
+		test_false(validate_filename("|"));
+		test_false(validate_filename("?"));
+		test_false(validate_filename("*"));
+		test_false(validate_filename("\t"));
+		test_false(validate_filename("foo<"));
+		test_true(validate_filename("foo_bar-File.txt"));
 	} else {
-		test_false(std.validate_filename("foo/"));
-		test_true(std.validate_filename("foo_bar-File.txt"));
+		test_false(validate_filename("foo/"));
+		test_true(validate_filename("foo_bar-File.txt"));
 	}
 }
 
 fs_normalize_1 :: fn () #test {
-	using std;
 	cwd :: get_cwd();
 	defer str_delete(&cwd);
 	parent: string_view;
@@ -431,7 +416,6 @@ fs_normalize_1 :: fn () #test {
 }
 
 fs_normalize_2 :: fn () #test {
-	using std;
 	cwd :: get_cwd();
 	defer str_delete(&cwd);
 	filepath :: str_new(".");
@@ -442,13 +426,12 @@ fs_normalize_2 :: fn () #test {
 }
 
 fs_normalize_3 :: fn () #test {
-	using std;
 	create_file("foo");
 	defer remove_file("foo");
 	cwd :: get_cwd();
 	defer str_delete(&cwd);
 	filepath :: str_new("foo");
-	std.str_concat(&cwd, "/", filepath);
+	str_concat(&cwd, "/", filepath);
 	defer str_delete(&filepath);
 	status :: path_normalize(&filepath);
 	test_ok(status);
@@ -456,7 +439,6 @@ fs_normalize_3 :: fn () #test {
 }
 
 fs_remove_test :: fn () #test {
-	using std;
 	filepath :: get_dummy_filepath();
 	defer str_delete(&filepath);
 	remove_file(filepath);
@@ -470,7 +452,6 @@ fs_remove_test :: fn () #test {
 }
 
 fs_copy_test :: fn () #test {
-	using std;
 	filepath1 :: get_dummy_filepath(1);
 	filepath2 :: get_dummy_filepath(2);
 	defer str_delete(&filepath1);
@@ -501,8 +482,7 @@ VisitData :: struct {
 	include_ext: string_view;
 }
 
-visitor :: fn (info: *std.FileVisitInfo, data: *VisitData) Error {
-	using std;
+visitor :: fn (info: *FileVisitInfo, data: *VisitData) Error {
 	test_neq(info.filename, ".");
 	test_neq(info.filename, "..");
 	if info.is_directory {
@@ -520,7 +500,6 @@ visitor :: fn (info: *std.FileVisitInfo, data: *VisitData) Error {
 }
 
 fs_dir_visit1 :: fn () #test {
-	using std;
 	root :: make_test_files("root");
 	defer str_delete(&root);
 
@@ -533,7 +512,6 @@ fs_dir_visit1 :: fn () #test {
 }
 
 fs_dir_visit2 :: fn () #test {
-	using std;
 	root :: make_test_files("root");
 	defer str_delete(&root);
 
@@ -546,7 +524,6 @@ fs_dir_visit2 :: fn () #test {
 }
 
 fs_dir_visit_only_txt :: fn () #test {
-	using std;
 	root :: make_test_files("root");
 	defer str_delete(&root);
 
@@ -559,134 +536,133 @@ fs_dir_visit_only_txt :: fn () #test {
 }
 
 fs_is_directory_test1 :: fn () #test {
-	tmp :: std.get_tmp();
-	defer std.str_delete(&tmp);
-	state, err :: std.is_directory(tmp);
+	tmp :: get_tmp();
+	defer str_delete(&tmp);
+	state, err :: is_directory(tmp);
 	test_ok(err);
 	test_true(state);
 }
 
 fs_is_directory_test2 :: fn () #test {
-	state, err :: std.is_directory(#file);
+	state, err :: is_directory(#file);
 	test_ok(err);
 	test_false(state);
 }
 
 fs_create_remove_dir_test1 :: fn () #test {
-	dir :: std.get_tmp();
-	defer std.str_delete(&dir);
-	std.str_append(&dir, "/__DELETE_ME__");
+	dir :: get_tmp();
+	defer str_delete(&dir);
+	str_append(&dir, "/__DELETE_ME__");
 
-	std.remove_all_dir(dir);
-	state1 :: std.create_dir(dir);
+	remove_all_dir(dir);
+	state1 :: create_dir(dir);
 	test_ok(state1);
 
-	state2 :: std.create_dir(dir);
+	state2 :: create_dir(dir);
 	test_not_ok(state2);
 
-	state3 :: std.remove_dir(dir);
+	state3 :: remove_dir(dir);
 	test_ok(state3);
 }
 
 fs_remove_all_dir_test1 :: fn () #test {
-	dir :: std.get_tmp();
-	defer std.str_delete(&dir);
-	std.str_append(&dir, "/__DELETE_ME__");
+	dir :: get_tmp();
+	defer str_delete(&dir);
+	str_append(&dir, "/__DELETE_ME__");
 
 	print_log("PATH = %", dir);
-	std.remove_all_dir(dir);
+	remove_all_dir(dir);
 	{
-		s :: std.create_dir(dir);
+		s :: create_dir(dir);
 		test_ok(s);
 	}
 
 	{
-		file :: std.str_new(dir);
-		defer std.str_delete(&file);
-		std.str_append(&file, "/file.txt");
-		err :: std.create_file(file);
+		file :: str_new(dir);
+		defer str_delete(&file);
+		str_append(&file, "/file.txt");
+		err :: create_file(file);
 		test_ok(err);
 	}
 
-	state :: std.remove_all_dir(dir);
+	state :: remove_all_dir(dir);
 	test_ok(state);
-	test_false(std.file_exist(dir));
+	test_false(file_exist(dir));
 }
 
 fs_create_all_dir_test1 :: fn () #test {
-	dir :: std.get_tmp();
-	defer std.str_delete(&dir);
-	std.str_append(&dir, "/foo");
-	std.remove_all_dir(dir);
-	std.str_append(&dir, "/bar/bazz");
-	err :: std.create_all_dir(dir);
+	dir :: get_tmp();
+	defer str_delete(&dir);
+	str_append(&dir, "/foo");
+	remove_all_dir(dir);
+	str_append(&dir, "/bar/bazz");
+	err :: create_all_dir(dir);
 	test_ok(err);
 }
 
 fs_remove_all_dir :: fn () #test {
-	using std;
 	root :: make_test_files("root");
 	defer str_delete(&root);
 }
 
 fs_path_split :: fn () #test {
 	{
-		d, f :: std.path_split("C:/Ahoj/Jak/Se/Vede/foo.txt.bak");
+		d, f :: path_split("C:/Ahoj/Jak/Se/Vede/foo.txt.bak");
 		test_eq(d, "C:/Ahoj/Jak/Se/Vede/");
 		test_eq(f, "foo.txt.bak");
 	}
 	{
-		d, f :: std.path_split("foo.txt.bak");
+		d, f :: path_split("foo.txt.bak");
 		test_eq(d, "");
 		test_eq(f, "foo.txt.bak");
 	}
 	{
-		d, f :: std.path_split(".txt.bak");
+		d, f :: path_split(".txt.bak");
 		test_eq(d, "");
 		test_eq(f, ".txt.bak");
 	}
 	{
-		d, f :: std.path_split("");
+		d, f :: path_split("");
 		test_eq(d, "");
 		test_eq(f, "");
 	}
 	{
-		d, f :: std.path_split(".");
+		d, f :: path_split(".");
 		test_eq(d, "");
 		test_eq(f, ".");
 	}
 	{
-		d, f :: std.path_split(".txt");
+		d, f :: path_split(".txt");
 		test_eq(d, "");
 		test_eq(f, ".txt");
 	}
 	{
-		d, f :: std.path_split("..txt");
+		d, f :: path_split("..txt");
 		test_eq(d, "");
 		test_eq(f, "..txt");
 	}
 	{
-		d, f :: std.path_split("/home/usr/.hidden.file");
+		d, f :: path_split("/home/usr/.hidden.file");
 		test_eq(d, "/home/usr/");
 		test_eq(f, ".hidden.file");
 	}
 	{
-		d, f :: std.path_split("/");
+		d, f :: path_split("/");
 		test_eq(d, "/");
 		test_eq(f, "");
 	}
 	{
-		d, f :: std.path_split("D:/");
+		d, f :: path_split("D:/");
 		test_eq(d, "D:/");
 		test_eq(f, "");
 	}
 	{
-		d, f :: std.path_split("C:/foo/bar");
+		d, f :: path_split("C:/foo/bar");
 		test_eq(d, "C:/foo/");
 		test_eq(f, "bar");
 	}
 	{
-		d, f :: std.path_split("C:/foo/bar/");
+		d, f :: path_split("C:/foo/bar/");
 		test_eq(d, "C:/foo/bar/");
 		test_eq(f, "");
 	}
@@ -694,34 +670,33 @@ fs_path_split :: fn () #test {
 
 fs_path_splitext :: fn () #test {
 	{
-		d, f :: std.path_splitext("C:/Ahoj/Jak/Se/Vede/foo.txt.bak");
+		d, f :: path_splitext("C:/Ahoj/Jak/Se/Vede/foo.txt.bak");
 		test_eq(d, "C:/Ahoj/Jak/Se/Vede/foo.txt");
 		test_eq(f, ".bak");
 	}
 	{
-		d, f :: std.path_splitext("");
+		d, f :: path_splitext("");
 		test_eq(d, "");
 		test_eq(f, "");
 	}
 	{
-		d, f :: std.path_splitext("foo.txt");
+		d, f :: path_splitext("foo.txt");
 		test_eq(d, "foo");
 		test_eq(f, ".txt");
 	}
 	{
-		d, f :: std.path_splitext("foo");
+		d, f :: path_splitext("foo");
 		test_eq(d, "foo");
 		test_eq(f, "");
 	}
 	{
-		d, f :: std.path_splitext(".");
+		d, f :: path_splitext(".");
 		test_eq(d, "");
 		test_eq(f, ".");
 	}
 }
 
 fs_read_write_entire_file :: fn () #test {
-	using std;
 	filepath :: get_dummy_filepath();
 	defer str_delete(&filepath);
 	remove_file(filepath);
