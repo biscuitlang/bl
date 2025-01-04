@@ -1,6 +1,7 @@
 # Release Steps
 
 - Create new branch `release/major.minor.patch`
+- Update CHANGELOG.
 - Run github `release` workflow on newly created branch.
 - Download binaries from the workflow.
 - Generate release documentation.
