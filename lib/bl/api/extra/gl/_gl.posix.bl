@@ -1,13 +1,13 @@
-#load "gl.bl"
-#import "std/dlib"
-
 __gl_get_proc :: fn (proc_name: string) *u8 {
-	module, err1 :: std.library_open();
+	module, err1 :: library_open();
 	if err1 {
 		panic("GL Error: %", err1);
 		return null;
 	}
 
-	sym :: std.library_get_symbol(module, proc_name);
+	sym :: library_get_symbol(module, proc_name);
 	return sym;
 }
+
+#scope_private
+#import "std/dlib"

@@ -74,7 +74,7 @@ arena_required_additional_space :: fn (count_of_allocations: s32) usize #inline 
 	return (ARENA_ALIGNMENT-1) * auto count_of_allocations;
 }
 
-#private
+#scope_private
 
 handler :: fn (
 	a: *ArenaAllocator,

@@ -394,12 +394,12 @@ errno :: fn () s32 #inline {
 }
 pipe :: fn (p: *int /* pointer to 2 element array */) int #extern "pipe";
 fork :: fn () pid_t #extern "fork";
-dup :: fn (oldfd: C.int) int #extern "dup";
-dup2 :: fn (oldfd: C.int, newfd: C.int) int #extern "dup2";
+dup :: fn (oldfd: int) int #extern "dup";
+dup2 :: fn (oldfd: int, newfd: int) int #extern "dup2";
 execv :: fn (file: *char, args: **char) int #extern "execv";
 execvp :: fn (file: *char, args: **char) int #extern "execvp";
 poll :: fn (fds: *pollfd, nfds: nfds_t, timeout: int) int #extern "poll";
-access :: fn (path: *C.char, mode: int) int #extern "access";
+access :: fn (path: *char, mode: int) int #extern "access";
 
 kill :: fn (pid: pid_t, sig: s32) s32 #inline {
 	return auto syscall(SYS_kill, auto pid, auto sig);

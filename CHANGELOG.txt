@@ -1,20 +1,23 @@
-0.12.0
+master
 ---------------------------------------------------------------------------------------
 Add #scope_module to limit symbol visibility to module only.
 Add explicit module namespacing.
 Add math module.
-Add new #scope_private and #scope_public to freely enter and exit private scope block.
-Add symlink resolve for the current executable on macos.
 Compiler will report all possible ambiguous symbol in case there is more of them.
-Fix interp function callbacks without arguments.
 Load directive now loads source units multiple times in case the #load directive appears in different scope context.
-Make #private directive deprecated.
 Module congifuration use comma separators on all platforms.
-Paralelize MIR generation.
-Performance improvements.
 Redesign module system.
 Remove ModuleImportPolicy.
 Remove named scopes (introduced by #scope directive).
+
+0.12.0
+---------------------------------------------------------------------------------------
+Add symlink resolve for the current executable on macos.
+Add new #scope_private and #scope_public to freely enter and exit private scope block.
+Make #private directive deprecated.
+Fix interp function callbacks without arguments.
+Paralelize MIR generation.
+Performance improvements.
 
 0.11.2
 ---------------------------------------------------------------------------------------

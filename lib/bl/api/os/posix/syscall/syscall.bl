@@ -22,7 +22,7 @@ syscall :: fn {
 	};
 };
 
-#private
+#scope_private
 
 __syscall :: fn (number: s64) s64 #extern "syscall";
 
