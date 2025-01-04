@@ -1,5 +1,3 @@
-#import "os/posix/syscall"
-
 STDIN  : fd_t : 0;
 STDOUT : fd_t : 1;
 STDERR : fd_t : 2;
@@ -124,8 +122,8 @@ backtrace :: fn (array: *void_ptr, size: int) int #extern "backtrace";
 backtrace_symbols :: fn (array: *void_ptr, size: int) **char #extern "backtrace_symbols";
 fork :: fn () pid_t #extern "fork";
 pipe :: fn (p: *int /* pointer to 2 element array */) int #extern "pipe";
-dup :: fn (oldfd: C.int) int #extern "dup";
-dup2 :: fn (oldfd: C.int, newfd: C.int) int #extern "dup2";
+dup :: fn (oldfd: int) int #extern "dup";
+dup2 :: fn (oldfd: int, newfd: int) int #extern "dup2";
 execv :: fn (file: *char, args: **char) int #extern "execv";
 
 ioctl :: fn (fd: fd_t, request: s32, arg: s64) s32 #inline {
@@ -372,6 +370,8 @@ EDQUOT :: 122;
 
 FIONREAD :: 0x541B;
 
-#private
+#scope_private
+#import "os/posix/syscall"
+
 stat_v :: fn (ver: int, path: *char, buf: *stat_t) int #extern "__xstat64";
 fstat_v :: fn (ver: int, fd: int, stat: *stat_t) int #extern "__fxstat64";

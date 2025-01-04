@@ -26,13 +26,7 @@
 // SOFTWARE.
 // =================================================================================================
 
-#import "libc"
-#import "std/string"
-#import "std/io"
-
-#load "std/error.bl"
-
-OsStdIoStream :: struct #base std.Stream {
+OsStdIoStream :: struct #base io.Stream {
 	handle: C.int;
 }
 
@@ -76,20 +70,20 @@ os_ftick_ms :: fn () f64 #inline {
 }
 
 os_execute :: fn (command: string_view) s32 {
-	return WEXITSTATUS(C.system(std.strtoc(command)));
+	return WEXITSTATUS(C.system(strtoc(command)));
 }
 
 os_get_last_error :: fn () (s32, string_view) #inline {
 	ec :: C.errno();
-	str := std.str_view_empty;
-	if ec != 0 { str = std.ctostr(C.strerror(ec)); }
+	str := str_view_empty;
+	if ec != 0 { str = ctostr(C.strerror(ec)); }
 	return ec, str;
 }
 
 os_get_last_error2 :: fn () Error #inline {
 	ec :: C.errno();
-	str := std.str_view_empty;
-	if ec != 0 { str = std.ctostr(C.strerror(ec)); }
+	str := str_view_empty;
+	if ec != 0 { str = ctostr(C.strerror(ec)); }
 	return error(ec, str);
 }
 
@@ -98,9 +92,9 @@ os_get_exec_path :: fn () string {
 	buf_len := cast(C.size_t) buf.len;
 	link :: "/proc/self/exe";
 	if C.readlink(auto link.ptr, auto buf.ptr, buf_len) == -1 {
-		return std.str_new(); 
+		return str_new(); 
 	}
-	return std.str_new(buf.ptr);
+	return str_new(buf.ptr);
 }
 
 os_get_backtrace :: fn (skip_frames := 0 #maybe_unused, max_frame_count := 64 #maybe_unused) []CodeLocation {
@@ -154,7 +148,7 @@ __os_start :: fn (argc: s64, argv: **u8, _: **u8) s32 #entry {
 	loop i := 0; i < args.len; i += 1 {
 		command_line_arguments[i] = string_view.{auto C.strlen(auto args[i]), args[i]};
 	}
-	out :: cast(s32) main();
+	out :: cast(s32) __assembly_module.main();
 	if is_allocated {
 		C.free(auto command_line_arguments.ptr);
 	}
@@ -162,19 +156,23 @@ __os_start :: fn (argc: s64, argv: **u8, _: **u8) s32 #entry {
 	return out;
 }
 
-#private
+#scope_private
+#import "std/string"
 
-STD_IN_STREAM_VTABLE :: std.StreamVTable.{
+C  :: #import "libc";
+io :: #import "std/io";
+
+STD_IN_STREAM_VTABLE :: io.StreamVTable.{
 	read = auto &std_io_read
 };
 
-STD_OUT_STREAM_VTABLE :: std.StreamVTable.{
+STD_OUT_STREAM_VTABLE :: io.StreamVTable.{
 	write = auto &std_io_write,
 };
 
-_std_in  :: OsStdIoStream.{ std.Stream.{ vtable = &STD_IN_STREAM_VTABLE },  C.STDIN  };
-_std_out :: OsStdIoStream.{ std.Stream.{ vtable = &STD_OUT_STREAM_VTABLE }, C.STDOUT };
-_std_err :: OsStdIoStream.{ std.Stream.{ vtable = &STD_OUT_STREAM_VTABLE }, C.STDERR };
+_std_in  :: OsStdIoStream.{ io.Stream.{ vtable = &STD_IN_STREAM_VTABLE },  C.STDIN  };
+_std_out :: OsStdIoStream.{ io.Stream.{ vtable = &STD_OUT_STREAM_VTABLE }, C.STDOUT };
+_std_err :: OsStdIoStream.{ io.Stream.{ vtable = &STD_OUT_STREAM_VTABLE }, C.STDERR };
 
 // @Duplicate: The same as fs.write, but we want to keep implicitly loaded OS interface small. We
 //             can eventually put file stream operations into separate file.
