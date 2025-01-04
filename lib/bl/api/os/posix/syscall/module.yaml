@@ -10,3 +10,6 @@ x86_64-unknown-linux-gnu:
 
 arm64-apple-darwin:
   src: "arm64-apple-darwin/syscall.bl"
+  
+x86_64-apple-darwin:
+  src: "x86_64-apple-darwin/syscall.bl"
