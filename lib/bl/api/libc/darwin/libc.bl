@@ -416,3 +416,6 @@ fcntl :: fn (fd: fd_t, request: int, flags: int = 0) int #inline {
 time :: fn (tloc: *time_t) time_t #extern "time";
 localtime :: fn (timep: *time_t) *tm #extern "localtime";
 strftime :: fn (buf: *char, buf_size: size_t, fmt: *char, t: *tm) size_t #extern "strftime";
+
+#scope_private
+#import "os/posix/syscall"
