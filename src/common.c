@@ -285,6 +285,7 @@ s32 bvsnprint(char *buf, s32 buf_len, const char *fmt, va_list args) {
 			i += f.len;
 			goto PASSED;
 		}
+
 		if (str_match(f, cstr("s32"))) {
 			const s32 s       = va_arg(args, s32);
 			const s32 tmp_len = snprintf(tmp, static_arrlenu(tmp), "%i", s);
@@ -299,6 +300,7 @@ s32 bvsnprint(char *buf, s32 buf_len, const char *fmt, va_list args) {
 			i += f.len;
 			goto PASSED;
 		}
+
 		if (str_match(f, cstr("u64"))) {
 			const u64 s = va_arg(args, u64);
 			if (buf) {
@@ -314,6 +316,7 @@ s32 bvsnprint(char *buf, s32 buf_len, const char *fmt, va_list args) {
 			i += f.len;
 			goto PASSED;
 		}
+
 		if (str_match(f, cstr("s64"))) {
 			const s64 s = va_arg(args, s64);
 			if (buf) {
@@ -329,6 +332,7 @@ s32 bvsnprint(char *buf, s32 buf_len, const char *fmt, va_list args) {
 			i += f.len;
 			goto PASSED;
 		}
+
 		if (str_match(f, cstr("u32"))) {
 			const u32 s = va_arg(args, u32);
 			if (buf) {
@@ -404,7 +408,6 @@ bool str_match(str_t a, str_t b) {
 	__m128i *ita = (__m128i *)a.ptr;
 	__m128i *itb = (__m128i *)b.ptr;
 
-	// for (s64 i = 0; i < a.len; i += 16, ++ita, ++itb) {
 	const __m128i a16 = _mm_loadu_si128(ita);
 	const __m128i b16 = _mm_loadu_si128(itb);
 
@@ -416,7 +419,6 @@ bool str_match(str_t a, str_t b) {
 	                     _SIDD_LEAST_SIGNIFICANT) != 0) {
 		return false;
 	}
-	//}
 
 	return true;
 #else
@@ -454,26 +456,24 @@ s32 levenshtein(const str_t s1, const str_t s2) {
 	return column[s1len];
 }
 
-bool search_source_file(const str_t filepath, const u32 flags, const str_t wdir, str_buf_t *out_filepath) {
+bool search_source_file(const str_t filepath, const str_t preferred_directory, str_buf_t *out_filepath) {
 	str_buf_t tmp    = get_tmp_str();
 	str_buf_t result = get_tmp_str(); // out_filepath can be null
 	if (!filepath.len) goto NOT_FOUND;
 
-	if (brealpath(filepath, &result)) {
-		goto FOUND;
-	}
+	if (file_exists(filepath) && brealpath(filepath, &result)) goto FOUND;
 
-	// Lookup in working directory.
-	if (wdir.len && isflag(flags, SEARCH_FLAG_WDIR)) {
-		str_buf_append_fmt(&tmp, "{str}" PATH_SEPARATOR "{str}", wdir, filepath);
+	// Lookup in prefered directory if set.
+	if (preferred_directory.len) {
+		str_buf_append_fmt(&tmp, "{str}" PATH_SEPARATOR "{str}", preferred_directory, filepath);
 		if (brealpath(tmp, &result)) {
 			goto FOUND;
 		}
 	}
 
-	// file has not been found in current working directory -> search in LIB_DIR
+	// Search LIB_DIR.
 	const str_t lib_dir = builder_get_lib_dir();
-	if (lib_dir.len && isflag(flags, SEARCH_FLAG_LIB_DIR)) {
+	if (lib_dir.len) {
 		str_buf_clr(&tmp);
 		str_buf_append_fmt(&tmp, "{str}" PATH_SEPARATOR "{str}", lib_dir, filepath);
 		if (brealpath(tmp, &result)) {
@@ -481,8 +481,8 @@ bool search_source_file(const str_t filepath, const u32 flags, const str_t wdir,
 		}
 	}
 
-	// file has not been found in current working directory -> search in PATH
-	if (isflag(flags, SEARCH_FLAG_SYSTEM_PATH)) {
+	// Search system PATH.
+	{
 		bool  found = false;
 		char *env   = strdup(getenv(ENV_PATH));
 		char *s     = env;

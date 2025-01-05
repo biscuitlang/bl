@@ -609,7 +609,7 @@ void assembly_add_unit(struct assembly *assembly, const str_t filepath, struct t
 
 	str_buf_t    tmp_fullpath = get_tmp_str();
 	struct unit *parent_unit  = load_from ? load_from->location.unit : NULL;
-	if (!search_source_file(filepath, SEARCH_FLAG_ALL, parent_unit ? parent_unit->dirpath : str_empty, &tmp_fullpath)) {
+	if (!search_source_file(filepath, parent_unit ? parent_unit->dirpath : str_empty, &tmp_fullpath)) {
 		put_tmp_str(tmp_fullpath);
 		builder_msg(MSG_ERR, ERR_FILE_NOT_FOUND, TOKEN_OPTIONAL_LOCATION(load_from), CARET_WORD, "File not found '" STR_FMT "'.", STR_ARG(filepath));
 		return_zone();
@@ -816,27 +816,15 @@ struct module *assembly_import_module(struct assembly *assembly,
 		return module;
 	}
 
-	const str_t lib_dir = builder_get_lib_dir();
-
 	str_buf_t module_config_path = get_tmp_str();
 	bool      found              = false;
 
-	// I. Lookup module config file in custom module directory if set.
 	const struct target *target = assembly->target;
-	if (target->module_dir.len) {
-		str_buf_t path = get_tmp_str();
-		str_buf_append_fmt(&path, "{str}/{str}/{s}", target->module_dir, modulepath, MODULE_CONFIG_FILE);
-		found = search_source_file(str_buf_view(path), SEARCH_FLAG_ABS, str_empty, &module_config_path);
-		put_tmp_str(path);
-	}
 
-	// II. In case module config was not found, try to locate it in default lib directory.
-	if (!found) {
-		str_buf_t path = get_tmp_str();
-		str_buf_append_fmt(&path, "{str}/{str}/{s}", lib_dir, modulepath, MODULE_CONFIG_FILE);
-		found = search_source_file(str_buf_view(path), SEARCH_FLAG_ABS, str_empty, &module_config_path);
-		put_tmp_str(path);
-	}
+	str_buf_t path = get_tmp_str();
+	str_buf_append_fmt(&path, "{str}/{s}", modulepath, MODULE_CONFIG_FILE);
+	found = search_source_file(str_buf_view(path), str_buf_view(target->module_dir), &module_config_path);
+	put_tmp_str(path);
 
 	if (!found) {
 		builder_msg(MSG_ERR,

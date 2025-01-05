@@ -4,6 +4,7 @@ Add #scope_module to limit symbol visibility to module only.
 Add explicit module namespacing.
 Add math module.
 Compiler will report all possible ambiguous symbol in case there is more of them.
+Fix module import and load to not use current working directory implicitly.
 Load directive now loads source units multiple times in case the #load directive appears in different scope context.
 Module congifuration use comma separators on all platforms.
 Redesign module system.

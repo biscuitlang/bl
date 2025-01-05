@@ -1097,8 +1097,8 @@ get_ctx :: fn (tbl: *?T, hash: u64) (ctx: tbl_typeof_value(T), is_new: bool) {
 set_window_hover :: fn (window: *Window) #inline {
 	if ignore_inputs { return; }
 	if window.z_order >= hover_frame.z_order {
-		hover_frame.window = window.hash;
-		hover_frame.z_order  = window.z_order;
+		hover_frame.window  = window.hash;
+		hover_frame.z_order = window.z_order;
 	}
 }
 

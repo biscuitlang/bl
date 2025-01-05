@@ -250,7 +250,7 @@ main :: fn () s32 {
 	return 0;
 }
 
-#private
+#scope_private
 
 // Get current time in seconds.
 get_ticks :: fn () f64 #inline {

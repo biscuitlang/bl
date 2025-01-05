@@ -158,7 +158,7 @@ typedef struct {
 } str_t;
 
 #define STR_FMT "%.*s"
-#define STR_ARG(S) (s32) ((S).len), ((S).ptr)
+#define STR_ARG(S) (s32)((S).len), ((S).ptr)
 
 static_assert(sizeof(str_t) == 16, "Invalid size of string view type.");
 
@@ -279,7 +279,8 @@ s32 bvsnprint(char *buf, s32 buf_len, const char *fmt, va_list args);
 
 typedef sarr_t(u8, 1) sarr_any_t;
 
-#define SARR_ZERO {.len = 0, .cap = 0}
+#define SARR_ZERO \
+	{ .len = 0, .cap = 0 }
 
 #define sarradd(A) sarraddn(A, 1)
 #define sarraddn(A, N)                                                                     \
@@ -378,29 +379,16 @@ static inline bool is_ignored_id(struct id *id) {
 typedef void (*unit_stage_fn_t)(struct assembly *, struct unit *);
 typedef void (*assembly_stage_fn_t)(struct assembly *);
 
-enum search_flags {
-	// Just try to resolve normalized absolute path of the passed file.
-	SEARCH_FLAG_ABS = 1 << 0,
-	// Search in specified working directory.
-	SEARCH_FLAG_WDIR = 1 << 1,
-	// Search in compiler lib directory.
-	SEARCH_FLAG_LIB_DIR = 1 << 2,
-	// Search in system path.
-	SEARCH_FLAG_SYSTEM_PATH = 1 << 3,
-
-	SEARCH_FLAG_ALL = SEARCH_FLAG_WDIR | SEARCH_FLAG_LIB_DIR | SEARCH_FLAG_SYSTEM_PATH,
-};
-
 // Search file specified by 'filepath' and sets output filepath (full file location).
 //
 // Search order:
-//     1) Current working directory.
-//     2) wdir directory if not NULL.
+//     1) Absolute path.
+//     2) The preferred_directory if set.
 //     3) LIB_DIR specified in global config file.
 //     4) System PATH.
 //
 // Function returns true and modify output filepath if file was found otherwise returns false.
-bool search_source_file(const str_t filepath, const u32 flags, const str_t wdir, str_buf_t *out_filepath);
+bool search_source_file(const str_t filepath, const str_t preferred_directory, str_buf_t *out_filepath);
 
 static inline bool is_aligned(const void *p, usize alignment) {
 	return (uintptr_t)p % alignment == 0;

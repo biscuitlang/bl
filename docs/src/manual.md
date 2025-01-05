@@ -2034,6 +2034,7 @@ Compiler will lookup source files according to the following rules.
 
 **Lookup order:**
 
+- Absolute path.
 - Load target file parent directory.
 - BL API directory set in `install-location/etc/bl.yaml`.
 - System *PATH* environment variable.
@@ -2085,6 +2086,12 @@ main :: fn () s32 {
 
 More information about how to create modules can be found in [modules](manual.html#Modules) section.
 
+**Lookup order:**
+
+- Absolute path.
+- Custom module directory if set in [set_module_dir](modules_build.html#set_module_dir).
+- BL API directory set in `install-location/etc/bl.yaml`.
+- System *PATH* environment variable.
 
 ## Private Scope
 

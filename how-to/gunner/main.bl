@@ -214,7 +214,7 @@ main :: fn () s32 {
 	return 0;
 }
 
-#private
+#scope_private
 // Following code is private to this file.
 
 print_glfw_error :: fn () {
