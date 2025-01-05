@@ -5176,7 +5176,7 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 		decl_ref->parent_unit               = parent_unit;
 		decl_ref->rid                       = rid;
 
-		decl_ref->is_explicit = true; // Do not lookup in parent scope tree!
+		decl_ref->ignore_scope_parents = true; // Do not lookup in parent scope tree!
 
 		unref_instr(target_ptr);
 		erase_instr_tree(target_ptr, false, false);
@@ -5207,7 +5207,7 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 		decl_ref->parent_unit               = parent_unit;
 		decl_ref->rid                       = rid;
 
-		decl_ref->is_explicit = true; // Do not lookup in parent scope tree!
+		decl_ref->ignore_scope_parents = true; // Do not lookup in parent scope tree!
 
 		unref_instr(target_ptr);
 		erase_instr_tree(target_ptr, false, false);
@@ -5709,46 +5709,59 @@ static struct result lookup_ref(struct context *ctx, const struct mir_instr_decl
 	bassert(out_found);
 	bcheck_main_thread();
 
-	struct scope_entry *found         = NULL;
-	struct scope       *private_scope = ref->parent_unit->private_scope;
-	if (!private_scope) private_scope = ref->parent_unit->module ? ref->parent_unit->module->private_scope : NULL;
+	// Currently we report max 8 ambiguous results, note that this might be later used for implicit function
+	// overloading if we decide to support it.
+	struct scope_entry *found[8];
+	s32                 found_num = 0;
 
 	scope_lookup_args_t lookup_args = {
-	    .layer            = ref->scope_layer,
-	    .id               = ref->rid,
-	    .in_tree          = !ref->is_explicit,
-	    .out_of_function  = out_of_function,
-	    .lookup_ambiguous = true,
+	    .layer           = ref->scope_layer,
+	    .id              = ref->rid,
+	    .out_of_function = out_of_function,
 	};
 
 	// In case the private scope is present, we have to search it too. Because the private scope can exist only
 	// in non-local scopes, we can reach global scope even if searching from the private one.
 	// Note that local symbols might shadow global ones.
 
-	if (!private_scope || ref->is_explicit) {
-		found = scope_lookup(ref->scope, &lookup_args);
+	if (ref->ignore_scope_parents) {
+		// We're searching just ref->scope so there should not be any ambiguous symbols, these should be already reported
+		// as symbol collisiton on symbol registration.
+		lookup_args.in_tree = false;
+		found_num           = scope_lookup2(ref->scope, &lookup_args, found, 1);
 	} else {
+		lookup_args.in_tree = true;
+
+		// Private scope is parented on module private scope in case the is one.
+		struct scope *private_scope = ref->parent_unit->private_scope;
+		if (!private_scope) private_scope = ref->parent_unit->module ? ref->parent_unit->module->private_scope : NULL;
+
+		// Search local scopes (function bodies) first; catch only one hit since symbols in local scopes might shadow
+		// themselves.
 		lookup_args.local_only = true;
-		found                  = scope_lookup(ref->scope, &lookup_args);
-		if (!found) {
+		found_num              = scope_lookup2(ref->scope, &lookup_args, found, 1);
+
+		if (!found_num && private_scope) {
 			lookup_args.local_only = false;
-			found                  = scope_lookup(private_scope, &lookup_args);
+			found_num              = scope_lookup2(private_scope, &lookup_args, found, static_arrlenu(found));
 		}
 	}
 
-	if (lookup_args.ambiguous) {
+	if (found_num > 1) {
 		report_error(AMBIGUOUS, ref->base.node, "Symbol is ambiguous. Multiple symbols with the same name found in current scope. "
 		                                        "This might be caused by using statement or incorrect module import namespacing.");
-		for (s32 i = 0; i < arrlen(lookup_args.ambiguous); ++i) {
-			report_note(lookup_args.ambiguous[i]->node, "Possible implementation found here.");
+		for (s32 i = 0; i < found_num; ++i) {
+			report_note(found[i]->node, "Possible implementation found here.");
 		}
 		arrfree(lookup_args.ambiguous);
 		lookup_args.ambiguous = NULL;
 
 		return_zone(FAIL);
 	}
-	if (!found) return_zone(WAIT(ref->rid->hash));
-	*out_found = found;
+
+	if (!found_num) return_zone(WAIT(ref->rid->hash));
+	bassert(found_num == 1);
+	*out_found = found[0];
 
 	return_zone(PASS);
 }

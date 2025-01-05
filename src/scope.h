@@ -148,6 +148,9 @@ typedef struct {
 
 struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args);
 
+// Returns number of entries written into out_buf.
+s32 scope_lookup2(struct scope *scope, scope_lookup_args_t *args, struct scope_entry **out_buf, const s32 oit_buf_size);
+
 // Checks whether passed scope is of kind or is nested in scope of kind.
 bool        scope_is_subtree_of_kind(const struct scope *scope, enum scope_kind kind);
 bool        scope_is_subtree_of(const struct scope *scope, const struct scope *other);

@@ -25,7 +25,7 @@ x remove import policy
 
 */
 
-#import "std/fs"
+#import "D:/VK/modules/vkrender"
 
 main :: fn () s32 {
 	return 0;

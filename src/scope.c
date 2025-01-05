@@ -112,14 +112,6 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 	struct scope_entry *found                     = NULL;
 	struct scope       *last_visited_module_scope = NULL;
 
-#define REPORTS 0
-
-#if REPORTS
-	static s32 hit   = 0;
-	static s32 total = 0;
-	total++;
-#endif
-
 	u64 hash = entry_hash(args->id->hash, args->layer);
 	while (scope) {
 		bassert(scope->kind != SCOPE_NONE);
@@ -176,11 +168,59 @@ struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args)
 		scope = scope->parent;
 	}
 
-#if REPORTS
-	if (found) hit++;
-	printf("(%3.0f%%) [%d/%d]\n", ((f32)hit / (f32)total) * 100.f, hit, total);
-#endif
 	return_zone(found);
+}
+
+s32 scope_lookup2(struct scope *scope, scope_lookup_args_t *args, struct scope_entry **out_buf, const s32 out_buf_size) {
+	zone();
+	bassert(scope && args->id);
+
+	s32 found_num = 0;
+
+	struct scope *last_visited_module_scope = NULL;
+
+	u64 hash = entry_hash(args->id->hash, args->layer);
+	while (scope && found_num < out_buf_size) {
+		bassert(scope->kind != SCOPE_NONE);
+		// Check if there is space enouigh in the output buffer.
+		if (!scope_is_local(scope)) {
+			// Global scopes should not have layers!!!
+			hash = entry_hash(args->id->hash, SCOPE_DEFAULT_LAYER);
+			if (args->local_only) break;
+		}
+
+		const bool is_locked = scope->kind == SCOPE_GLOBAL || scope->kind == SCOPE_MODULE;
+		if (is_locked) scope_lock(scope);
+
+		const s64 index = tbl_lookup_index_with_key(scope->entries, hash, args->id->str);
+		if (index != -1) out_buf[found_num++] = scope->entries[index].value;
+
+		{
+			// Ignore layers for injected scopes.
+			const s64 hash = entry_hash(args->id->hash, SCOPE_DEFAULT_LAYER);
+			for (usize injected_index = 0; injected_index < arrlenu(scope->injected) && found_num < out_buf_size; ++injected_index) {
+				struct scope *injected_scope = scope->injected[injected_index];
+				bassert(injected_scope != scope);
+				if (last_visited_module_scope == injected_scope) continue;
+
+				const s64 index = tbl_lookup_index_with_key(injected_scope->entries, hash, args->id->str);
+				if (index != -1) out_buf[found_num++] = injected_scope->entries[index].value;
+			}
+		}
+
+		if (is_locked) scope_unlock(scope);
+		if (found_num) break;
+
+		// Lookup in parent?
+		if (!args->in_tree) break;
+		if (args->out_of_function) *(args->out_of_function) = scope->kind == SCOPE_FN;
+
+		last_visited_module_scope = scope->kind == SCOPE_MODULE ? scope : NULL;
+
+		scope = scope->parent;
+	}
+
+	return_zone(found_num);
 }
 
 void scope_lock(struct scope *scope) {

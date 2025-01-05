@@ -337,9 +337,11 @@ nationality := "CZ" #maybe_unused;
 
 ## Shadowing
 
-It's possible to declare a new variable with the same name in nested scopes, the previous variable is *shadowed* by the new one. In general, it's not a good idea; however, there are currently no restrictions or limitations. This may change in the future.
+It's possible to declare a new variable with the same name in nested local scopes, the previous variable is *shadowed* by the new one. In general, it's not a good idea; however, there are currently no restrictions or limitations. This may change in the future.
 
 ```bl
+#import "std/print"
+
 name := "Martin";
 
 main :: fn () s32 {
