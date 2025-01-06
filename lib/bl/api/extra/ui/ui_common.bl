@@ -408,7 +408,7 @@ rgba_to_hsv :: fn (rgb: v4) v3 {
 
 	if C != 0.f {
 		if M == rgb.x {
-			H = math.fmod(((rgb.y - rgb.z) / C), 6.f);
+			H = fmod(((rgb.y - rgb.z) / C), 6.f);
 		} else if M == rgb.y {
 			H = ((rgb.z - rgb.x) / C) + 2.f;
 		} else if M == rgb.z {

@@ -110,9 +110,9 @@ struct context {
 	struct builtin_types   *builtin_types; // Shortcut for assembly->builtin_types
 	struct string_cache   **string_cache;
 
-	struct mir_arenas   *mir_arenas;
-	struct scope_arenas *scope_arenas;
-	struct arena        *small_array_arena;
+	struct mir_arenas         *mir_arenas;
+	struct scope_thread_local *scope_thread_local;
+	struct arena              *small_array_arena;
 
 	// Ast -> MIR generation
 	struct {
@@ -217,7 +217,7 @@ static struct id *lookup_builtins_code_loc(struct context *ctx);
 
 // Lookup member in composite structure type. Searching also in base types. When 'out_base_type' is
 // set to base member type if entry was found in parent.
-static struct scope_entry *lookup_composit_member(struct mir_type *type, struct id *rid, struct mir_type **out_base_type);
+static struct scope_entry *lookup_composit_member(struct context *ctx, struct mir_type *type, struct id *rid, struct mir_type **out_base_type);
 
 static struct mir_var *add_global_variable(struct context *ctx, struct id *id, bool is_mutable, struct mir_instr *initializer);
 static struct mir_var *add_global_bool(struct context *ctx, struct id *id, bool is_mutable, bool v);
@@ -1517,7 +1517,7 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 	};
 
 	struct scope_entry *collision = NULL;
-	scope_lookup(scope, &lookup_args, &collision, 1);
+	scope_lookup(ctx->assembly, scope, &lookup_args, &collision, 1);
 
 	if (collision && scope->kind == SCOPE_PRIVATE) {
 		const bool collision_in_same_unit = (node ? node->location->unit : NULL) == (collision->node ? collision->node->location->unit : NULL);
@@ -1536,7 +1536,7 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 	}
 
 	// no collision
-	struct scope_entry *entry = scope_create_entry(ctx->scope_arenas, SCOPE_ENTRY_INCOMPLETE, id, node, is_builtin);
+	struct scope_entry *entry = scope_create_entry(ctx->scope_thread_local, SCOPE_ENTRY_INCOMPLETE, id, node, is_builtin);
 	scope_insert(scope, layer_index, entry);
 
 	if (is_locked) scope_unlock(scope);
@@ -1550,11 +1550,10 @@ struct mir_type *lookup_builtin_type(struct context *ctx, enum builtin_id_kind k
 	struct scope *scope = ctx->assembly->gscope;
 
 	struct scope_entry *found = NULL;
-	scope_lookup(scope,
-	             &(scope_lookup_args_t){
-	                 .id      = id,
-	                 .in_tree = true,
-	             },
+	scope_lookup(ctx->assembly, scope, &(scope_lookup_args_t){
+	                                       .id      = id,
+	                                       .in_tree = true,
+	                                   },
 	             &found,
 	             1);
 
@@ -1586,11 +1585,10 @@ struct mir_fn *lookup_builtin_fn(struct context *ctx, enum builtin_id_kind kind)
 	struct scope *scope = ctx->assembly->gscope;
 
 	struct scope_entry *found = NULL;
-	scope_lookup(scope,
-	             &(scope_lookup_args_t){
-	                 .id      = id,
-	                 .in_tree = true,
-	             },
+	scope_lookup(ctx->assembly, scope, &(scope_lookup_args_t){
+	                                       .id      = id,
+	                                       .in_tree = true,
+	                                   },
 	             &found,
 	             1);
 
@@ -1686,7 +1684,7 @@ struct id *lookup_builtins_code_loc(struct context *ctx) {
 	return NULL;
 }
 
-struct scope_entry *lookup_composit_member(struct mir_type *type, struct id *rid, struct mir_type **out_base_type) {
+struct scope_entry *lookup_composit_member(struct context *ctx, struct mir_type *type, struct id *rid, struct mir_type **out_base_type) {
 	bcheck_main_thread();
 
 	bassert(type);
@@ -1697,11 +1695,10 @@ struct scope_entry *lookup_composit_member(struct mir_type *type, struct id *rid
 	struct scope_entry *found       = NULL;
 
 	while (true) {
-		scope_lookup(scope,
-		             &(scope_lookup_args_t){
-		                 .layer = scope_layer,
-		                 .id    = rid,
-		             },
+		scope_lookup(ctx->assembly, scope, &(scope_lookup_args_t){
+		                                       .layer = scope_layer,
+		                                       .id    = rid,
+		                                   },
 		             &found,
 		             1);
 		if (found) break;
@@ -2217,7 +2214,7 @@ struct mir_type *create_type_slice(struct context *ctx, enum mir_type_kind kind,
 
 	mir_members_t *members = arena_alloc(ctx->small_array_arena);
 	// Slice layout struct { s64, *T }
-	struct scope *body_scope = scope_create(ctx->scope_arenas, SCOPE_TYPE_STRUCT, ctx->assembly->gscope, NULL);
+	struct scope *body_scope = scope_create(ctx->scope_thread_local, SCOPE_TYPE_STRUCT, ctx->assembly->gscope, NULL);
 
 	struct mir_member *tmp;
 	tmp = create_member(ctx, NULL, &builtin_ids[BUILTIN_ID_ARR_LEN], 0, len_type);
@@ -2282,7 +2279,7 @@ struct mir_type *create_type_struct_dynarr(struct context *ctx, struct id *user_
 
 	mir_members_t *members = arena_alloc(ctx->small_array_arena);
 	// Dynamic array layout struct { s64, *T, usize, allocator }
-	struct scope *body_scope = scope_create(ctx->scope_arenas, SCOPE_TYPE_STRUCT, ctx->assembly->gscope, NULL);
+	struct scope *body_scope = scope_create(ctx->scope_thread_local, SCOPE_TYPE_STRUCT, ctx->assembly->gscope, NULL);
 
 	struct mir_member *tmp;
 	{ // .len
@@ -4792,10 +4789,9 @@ static struct result analyze_instr_compound_regular(struct context *ctx, struct 
 				struct id *id = &designator->ident->data.ident.id;
 				// We should have to support also inherited members from the base structures.
 				struct scope_entry *found = NULL;
-				scope_lookup(scope,
-				             &(scope_lookup_args_t){
-				                 .id = id,
-				             },
+				scope_lookup(ctx->assembly, scope, &(scope_lookup_args_t){
+				                                       .id = id,
+				                                   },
 				             &found,
 				             1);
 				if (!found) {
@@ -5290,11 +5286,10 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 			struct scope       *scope       = sub_type->data.enm.scope;
 			const hash_t        scope_layer = SCOPE_DEFAULT_LAYER; // @Incomplete
 			struct scope_entry *found       = NULL;
-			scope_lookup(scope,
-			             &(scope_lookup_args_t){
-			                 .layer = scope_layer,
-			                 .id    = rid,
-			             },
+			scope_lookup(ctx->assembly, scope, &(scope_lookup_args_t){
+			                                       .layer = scope_layer,
+			                                       .id    = rid,
+			                                   },
 			             &found,
 			             1);
 			if (!found) {
@@ -5358,11 +5353,10 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 			struct scope       *scope       = sub_type->data.strct.scope;
 			const hash_t        scope_layer = sub_type->data.strct.scope_layer;
 			struct scope_entry *found       = NULL;
-			scope_lookup(scope,
-			             &(scope_lookup_args_t){
-			                 .layer = scope_layer,
-			                 .id    = rid,
-			             },
+			scope_lookup(ctx->assembly, scope, &(scope_lookup_args_t){
+			                                       .layer = scope_layer,
+			                                       .id    = rid,
+			                                   },
 			             &found,
 			             1);
 			if (!found) {
@@ -5435,7 +5429,7 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 
 		struct id          *rid   = &ast_member_ident->data.ident.id;
 		struct mir_type    *type  = target_type;
-		struct scope_entry *found = lookup_composit_member(target_type, rid, &type);
+		struct scope_entry *found = lookup_composit_member(ctx, target_type, rid, &type);
 
 		// Check if member was found in base type's scope.
 		if (found && found->parent_scope != target_type->data.strct.scope) {
@@ -5746,13 +5740,13 @@ static struct result lookup_ref(struct context *ctx, const struct mir_instr_decl
 		// We're searching just ref->scope so there should not be any ambiguous symbols, these should be already reported
 		// as symbol collisiton on symbol registration.
 		lookup_args.in_tree = false;
-		found_num           = scope_lookup(ref->scope, &lookup_args, found, 1);
+		found_num           = scope_lookup(ctx->assembly, ref->scope, &lookup_args, found, 1);
 	} else {
 		lookup_args.in_tree = true;
 
 		// Search local scopes (function bodies) first.
 		lookup_args.local_only = true;
-		found_num              = scope_lookup(ref->scope, &lookup_args, found, static_arrlenu(found));
+		found_num              = scope_lookup(ctx->assembly, ref->scope, &lookup_args, found, static_arrlenu(found));
 		lookup_args.local_only = false;
 
 		if (!found_num) {
@@ -5762,7 +5756,7 @@ static struct result lookup_ref(struct context *ctx, const struct mir_instr_decl
 			if (!scope) scope = scope_find_closest_global(ref->scope);
 			bassert(scope);
 
-			found_num = scope_lookup(scope, &lookup_args, found, static_arrlenu(found));
+			found_num = scope_lookup(ctx->assembly, scope, &lookup_args, found, static_arrlenu(found));
 		}
 	}
 
@@ -6500,7 +6494,7 @@ struct result analyze_instr_load(struct context *ctx, struct mir_instr_load *loa
 
 	return_zone(PASS);
 
-INVALID_SRC : {
+INVALID_SRC: {
 	bassert(err_type);
 	str_buf_t type_name = mir_type2str(err_type, /* prefer_name */ true);
 	report_error(INVALID_TYPE, src->node, "Expected value of pointer type, got '" STR_FMT "'.", STR_ARG(type_name));
@@ -11863,7 +11857,7 @@ str_buf_t mir_type2str(const struct mir_type *type, bool prefer_name) {
 
 static void provide_builtin_arch(struct context *ctx) {
 	struct builtin_types *bt       = ctx->builtin_types;
-	struct scope         *scope    = scope_create(ctx->scope_arenas, SCOPE_TYPE_ENUM, ctx->assembly->gscope, NULL);
+	struct scope         *scope    = scope_create(ctx->scope_thread_local, SCOPE_TYPE_ENUM, ctx->assembly->gscope, NULL);
 	mir_variants_t       *variants = arena_alloc(ctx->small_array_arena);
 	static struct id      ids[static_arrlenu(arch_names)];
 	for (usize i = 0; i < static_arrlenu(arch_names); ++i) {
@@ -11890,7 +11884,7 @@ static void provide_builtin_arch(struct context *ctx) {
 
 static void provide_builtin_os(struct context *ctx) {
 	struct builtin_types *bt       = ctx->builtin_types;
-	struct scope         *scope    = scope_create(ctx->scope_arenas, SCOPE_TYPE_ENUM, ctx->assembly->gscope, NULL);
+	struct scope         *scope    = scope_create(ctx->scope_thread_local, SCOPE_TYPE_ENUM, ctx->assembly->gscope, NULL);
 	mir_variants_t       *variants = arena_alloc(ctx->small_array_arena);
 	static struct id      ids[static_arrlenu(os_names)];
 	for (usize i = 0; i < static_arrlenu(os_names); ++i) {
@@ -11917,7 +11911,7 @@ static void provide_builtin_os(struct context *ctx) {
 
 static void provide_builtin_env(struct context *ctx) {
 	struct builtin_types *bt       = ctx->builtin_types;
-	struct scope         *scope    = scope_create(ctx->scope_arenas, SCOPE_TYPE_ENUM, ctx->assembly->gscope, NULL);
+	struct scope         *scope    = scope_create(ctx->scope_thread_local, SCOPE_TYPE_ENUM, ctx->assembly->gscope, NULL);
 	mir_variants_t       *variants = arena_alloc(ctx->small_array_arena);
 	static struct id      ids[static_arrlenu(env_names)];
 	for (usize i = 0; i < static_arrlenu(env_names); ++i) {
@@ -12023,10 +12017,10 @@ static void init_context(struct context *ctx, struct assembly *assembly) {
 
 	const u32 thread_index = get_worker_index();
 
-	ctx->mir_arenas        = &assembly->thread_local_contexts[thread_index].mir_arenas;
-	ctx->scope_arenas      = &assembly->thread_local_contexts[thread_index].scope_arenas;
-	ctx->small_array_arena = &assembly->thread_local_contexts[thread_index].small_array;
-	ctx->string_cache      = &assembly->thread_local_contexts[thread_index].string_cache;
+	ctx->mir_arenas         = &assembly->thread_local_contexts[thread_index].mir_arenas;
+	ctx->scope_thread_local = &assembly->thread_local_contexts[thread_index].scope_thread_local;
+	ctx->small_array_arena  = &assembly->thread_local_contexts[thread_index].small_array;
+	ctx->string_cache       = &assembly->thread_local_contexts[thread_index].string_cache;
 }
 
 static void terminate_context(struct context *ctx) {
@@ -12120,7 +12114,7 @@ void mir_init(struct assembly *assembly) {
 	mtx_init(&mir->analyze.stack_lock, mtx_plain);
 
 	const u32 thread_index     = get_worker_index();
-	mir->analyze.unnamed_entry = scope_create_entry(&assembly->thread_local_contexts[thread_index].scope_arenas, SCOPE_ENTRY_UNNAMED, NULL, NULL, true);
+	mir->analyze.unnamed_entry = scope_create_entry(&assembly->thread_local_contexts[thread_index].scope_thread_local, SCOPE_ENTRY_UNNAMED, NULL, NULL, true);
 
 	mtx_init(&mir->type_cache_lock, mtx_recursive);
 	spl_init(&mir->global_instrs_lock);

@@ -415,7 +415,7 @@ static void thread_local_init(struct assembly *assembly) {
 	arrsetlen(assembly->thread_local_contexts, thread_count);
 	bl_zeromem(assembly->thread_local_contexts, sizeof(struct assembly_thread_local_context) * thread_count);
 	for (u32 i = 0; i < thread_count; ++i) {
-		scope_arenas_init(&assembly->thread_local_contexts[i].scope_arenas, i);
+		scope_thread_local_init(&assembly->thread_local_contexts[i].scope_thread_local, i);
 		mir_arenas_init(&assembly->thread_local_contexts[i].mir_arenas, i);
 		ast_arena_init(&assembly->thread_local_contexts[i].ast_arena, i);
 		arena_init(&assembly->thread_local_contexts[i].small_array, SARR_TOTAL_SIZE, 16, 2048, i, (arena_elem_dtor_t)sarr_dtor);
@@ -426,7 +426,7 @@ static void thread_local_init(struct assembly *assembly) {
 static void thread_local_terminate(struct assembly *assembly) {
 	zone();
 	for (u32 i = 0; i < arrlenu(assembly->thread_local_contexts); ++i) {
-		scope_arenas_terminate(&assembly->thread_local_contexts[i].scope_arenas);
+		scope_thread_local_terminate(&assembly->thread_local_contexts[i].scope_thread_local);
 		mir_arenas_terminate(&assembly->thread_local_contexts[i].mir_arenas);
 		ast_arena_terminate(&assembly->thread_local_contexts[i].ast_arena);
 		arena_terminate(&assembly->thread_local_contexts[i].small_array);
@@ -456,23 +456,23 @@ struct assembly *assembly_new(const struct target *target) {
 
 	thread_local_init(assembly);
 
-	const u32            thread_index = get_worker_index();
-	struct scope_arenas *scope_arenas = &assembly->thread_local_contexts[thread_index].scope_arenas;
+	const u32                  thread_index       = get_worker_index();
+	struct scope_thread_local *scope_thread_local = &assembly->thread_local_contexts[thread_index].scope_thread_local;
 
 	// set defaults
-	assembly->gscope = scope_create(scope_arenas, SCOPE_GLOBAL, NULL, NULL);
+	assembly->gscope = scope_create(scope_thread_local, SCOPE_GLOBAL, NULL, NULL);
 	scope_reserve(assembly->gscope, 256);
 
 	dl_init(assembly);
 	mir_init(assembly);
 
 	if (assembly->target->kind != ASSEMBLY_DOCS) {
-		assembly->module_scope = scope_create(scope_arenas, SCOPE_MODULE, assembly->gscope, NULL);
+		assembly->module_scope = scope_create(scope_thread_local, SCOPE_MODULE, assembly->gscope, NULL);
 		scope_reserve(assembly->module_scope, 8192);
 
 		static struct id assembly_module_id;
 		id_init(&assembly_module_id, cstr("__assembly_module"));
-		struct scope_entry *scope_entry = scope_create_entry(scope_arenas, SCOPE_ENTRY_NAMED_SCOPE, &assembly_module_id, NULL, false);
+		struct scope_entry *scope_entry = scope_create_entry(scope_thread_local, SCOPE_ENTRY_NAMED_SCOPE, &assembly_module_id, NULL, false);
 		scope_entry->data.scope         = assembly->module_scope;
 
 		scope_insert(assembly->gscope, SCOPE_DEFAULT_LAYER, scope_entry);
@@ -487,7 +487,7 @@ struct assembly *assembly_new(const struct target *target) {
 		// Add units from target, for the documentation we create separate scope for each file to prevent
 		// symbol collisions.
 		for (usize i = 0; i < arrlenu(target->files); ++i) {
-			struct scope *unit_parent_scope = scope_create(scope_arenas, SCOPE_GLOBAL, assembly->gscope, NULL);
+			struct scope *unit_parent_scope = scope_create(scope_thread_local, SCOPE_GLOBAL, assembly->gscope, NULL);
 			scope_reserve(unit_parent_scope, 256);
 			assembly_add_unit(assembly, make_str_from_c(target->files[i]), NULL, unit_parent_scope, NULL);
 		}
@@ -727,16 +727,16 @@ static struct module *import_module(struct assembly *assembly, str_t module_path
 	struct module *module = bmalloc(sizeof(struct module)); // @Performance 2024-09-14 Use arena?
 	// bl_zeromem(module, sizeof(struct module)); // We set everything later...
 
-	const u32             thread_index = get_worker_index();
-	struct scope_arenas  *scope_arenas = &assembly->thread_local_contexts[thread_index].scope_arenas;
-	struct string_cache **string_cache = &assembly->thread_local_contexts[thread_index].string_cache;
+	const u32                  thread_index       = get_worker_index();
+	struct scope_thread_local *scope_thread_local = &assembly->thread_local_contexts[thread_index].scope_thread_local;
+	struct string_cache      **string_cache       = &assembly->thread_local_contexts[thread_index].string_cache;
 
-	module->scope      = scope_create(scope_arenas, SCOPE_MODULE, assembly->gscope, NULL);
+	module->scope      = scope_create(scope_thread_local, SCOPE_MODULE, assembly->gscope, NULL);
 	module->modulepath = scdup2(string_cache, module_path);
 	module->hash       = module_hash;
 
 	// 2025-01-01: We might want to create module private scope only in cases it's used, but that would require some additional locking.
-	module->private_scope = scope_create(scope_arenas, SCOPE_MODULE_PRIVATE, module->scope, NULL);
+	module->private_scope = scope_create(scope_thread_local, SCOPE_MODULE_PRIVATE, module->scope, NULL);
 
 	scope_reserve(module->scope, 1024);
 	module->scope->name = scdup2(string_cache, module_name);

@@ -196,11 +196,11 @@ struct target {
 };
 
 struct assembly_thread_local_context {
-	struct scope_arenas  scope_arenas;
-	struct mir_arenas    mir_arenas;
-	struct arena         small_array;
-	struct arena         ast_arena;
-	struct string_cache *string_cache;
+	struct scope_thread_local scope_thread_local;
+	struct mir_arenas         mir_arenas;
+	struct arena              small_array;
+	struct arena              ast_arena;
+	struct string_cache      *string_cache;
 };
 
 struct assembly {

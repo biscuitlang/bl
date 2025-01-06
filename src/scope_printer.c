@@ -135,7 +135,7 @@ void assembly_dump_scope_structure(struct assembly *assembly, FILE *stream, enum
 
 	const u32 thread_count = get_thread_count();
 	for (u32 i = 0; i < thread_count; ++i) {
-		arena_get_flatten(&assembly->thread_local_contexts[i].scope_arenas.scopes, (array(void *) *)&flatten_scopes);
+		arena_get_flatten(&assembly->thread_local_contexts[i].scope_thread_local.scopes, (array(void *) *)&flatten_scopes);
 	}
 
 	tbl_init(lookup, 1024);

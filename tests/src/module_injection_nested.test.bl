@@ -1,0 +1,7 @@
+#scope_private
+#import "../../../tests/src/module1"
+
+should_be_visible :: fn () #test {
+	module1_function();
+	module2_function();
+}

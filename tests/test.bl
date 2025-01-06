@@ -14,9 +14,9 @@ x module explicit namespacing
   x should be constant?
   x do not work with using!
 x use commas for global separators
-- scope lookup should scan injected scopes recursively?
+x scope lookup should scan injected scopes recursively?
 - do we need link_runtime
-- how to handle platform incompatible messages
+x how to handle platform incompatible messages
 - builder api
 x remove import policy
 - config separator inconsistency with compiler default settings
@@ -26,17 +26,10 @@ x remove import policy
 
 */
 
-// #import "W:/bl/tests/dummy_module";
-#import "std/print"
+#import "W:/bl/tests/dummy_module";
+// #import "std/print"
 
 main :: fn () s32 {
-	foo :: 10;
-	{
-		foo :: 2;
-		print("foo = %\n", foo);
-	}
-
-	print("foo = %\n", foo);
 	return 0;
 }
 

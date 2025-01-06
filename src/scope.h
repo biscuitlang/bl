@@ -39,11 +39,17 @@ struct mir_instr;
 struct mir_type;
 struct mir_fn;
 struct mir_var;
+struct assembly;
+
+struct scope_lookup_queue_entry {
+	struct scope *hash;
+};
 
 // Global context data used by all scopes in assembly.
-struct scope_arenas {
+struct scope_thread_local {
 	struct arena scopes;
 	struct arena entries;
+	hash_table(struct scope_lookup_queue_entry) lookup_queue;
 };
 
 enum scope_entry_kind {
@@ -115,19 +121,19 @@ struct scope {
 	bmagic_member
 };
 
-void scope_arenas_init(struct scope_arenas *arenas, u32 owner_thread_index);
-void scope_arenas_terminate(struct scope_arenas *arenas);
+void scope_thread_local_init(struct scope_thread_local *local, u32 owner_thread_index);
+void scope_thread_local_terminate(struct scope_thread_local *local);
 
-struct scope *scope_create(struct scope_arenas *arenas,
-                           enum scope_kind      kind,
-                           struct scope        *parent,
-                           struct location     *loc);
+struct scope *scope_create(struct scope_thread_local *local,
+                           enum scope_kind            kind,
+                           struct scope              *parent,
+                           struct location           *loc);
 
-struct scope_entry *scope_create_entry(struct scope_arenas  *arenas,
-                                       enum scope_entry_kind kind,
-                                       struct id            *id,
-                                       struct ast           *node,
-                                       bool                  is_builtin);
+struct scope_entry *scope_create_entry(struct scope_thread_local *local,
+                                       enum scope_entry_kind      kind,
+                                       struct id                 *id,
+                                       struct ast                *node,
+                                       bool                       is_builtin);
 
 void scope_reserve(struct scope *scope, s32 num);
 void scope_insert(struct scope *scope, hash_t layer, struct scope_entry *entry);
@@ -144,7 +150,7 @@ typedef struct {
 } scope_lookup_args_t;
 
 // Returns number of entries written into out_buf.
-s32 scope_lookup(struct scope *scope, scope_lookup_args_t *args, struct scope_entry **out_buf, const s32 oit_buf_size);
+s32 scope_lookup(struct assembly *assembly, struct scope *scope, scope_lookup_args_t *args, struct scope_entry **out_buf, const s32 out_buf_size);
 
 // Checks whether passed scope is of kind or is nested in scope of kind.
 bool          scope_is_subtree_of_kind(const struct scope *scope, enum scope_kind kind);

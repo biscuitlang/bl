@@ -1,0 +1,6 @@
+module2_function :: fn () {
+  module3_function();
+}
+
+#scope_module
+#import "../../../tests/src/module3"

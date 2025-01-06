@@ -1,2 +1,2 @@
 version: 20220923
-src: "module.bl,module2.bl"
+src: "module1_A.bl,module1_B.bl"

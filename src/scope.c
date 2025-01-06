@@ -27,6 +27,7 @@
 // =================================================================================================
 
 #include "scope.h"
+#include "assembly.h"
 #include "stb_ds.h"
 #include "table.h"
 #include "threading.h"
@@ -43,22 +44,24 @@ static void scope_dtor(struct scope *scope) {
 	mtx_destroy(&scope->lock);
 }
 
-void scope_arenas_init(struct scope_arenas *arenas, u32 owner_thread_index) {
-	arena_init(&arenas->scopes, sizeof(struct scope), alignment_of(struct scope), 256, owner_thread_index, (arena_elem_dtor_t)scope_dtor);
-	arena_init(&arenas->entries, sizeof(struct scope_entry), alignment_of(struct scope_entry), 8192, owner_thread_index, NULL);
+void scope_thread_local_init(struct scope_thread_local *local, u32 owner_thread_index) {
+	arena_init(&local->scopes, sizeof(struct scope), alignment_of(struct scope), 256, owner_thread_index, (arena_elem_dtor_t)scope_dtor);
+	arena_init(&local->entries, sizeof(struct scope_entry), alignment_of(struct scope_entry), 8192, owner_thread_index, NULL);
+	local->lookup_queue = NULL;
 }
 
-void scope_arenas_terminate(struct scope_arenas *arenas) {
-	arena_terminate(&arenas->scopes);
-	arena_terminate(&arenas->entries);
+void scope_thread_local_terminate(struct scope_thread_local *local) {
+	arena_terminate(&local->scopes);
+	arena_terminate(&local->entries);
+	tbl_free(local->lookup_queue);
 }
 
-struct scope *scope_create(struct scope_arenas *arenas,
-                           enum scope_kind      kind,
-                           struct scope        *parent,
-                           struct location     *loc) {
+struct scope *scope_create(struct scope_thread_local *local,
+                           enum scope_kind            kind,
+                           struct scope              *parent,
+                           struct location           *loc) {
 	bassert(kind != SCOPE_NONE && "Invalid scope kind.");
-	struct scope *scope = arena_alloc(&arenas->scopes);
+	struct scope *scope = arena_alloc(&local->scopes);
 	scope->parent       = parent;
 	scope->kind         = kind;
 	scope->location     = loc;
@@ -74,12 +77,12 @@ void scope_reserve(struct scope *scope, s32 num) {
 	tbl_init(scope->entries, num);
 }
 
-struct scope_entry *scope_create_entry(struct scope_arenas  *arenas,
-                                       enum scope_entry_kind kind,
-                                       struct id            *id,
-                                       struct ast           *node,
-                                       bool                  is_builtin) {
-	struct scope_entry *entry = arena_alloc(&arenas->entries);
+struct scope_entry *scope_create_entry(struct scope_thread_local *local,
+                                       enum scope_entry_kind      kind,
+                                       struct id                 *id,
+                                       struct ast                *node,
+                                       bool                       is_builtin) {
+	struct scope_entry *entry = arena_alloc(&local->entries);
 	entry->id                 = id;
 	entry->kind               = kind;
 	entry->node               = node;
@@ -105,58 +108,73 @@ void scope_insert(struct scope *scope, hash_t layer, struct scope_entry *entry) 
 	return_zone();
 }
 
-s32 scope_lookup(struct scope *scope, scope_lookup_args_t *args, struct scope_entry **out_buf, const s32 out_buf_size) {
-	zone();
-	bassert(scope && args->id);
+struct search_context {
+	hash_table(struct scope_lookup_queue_entry) * queue;
+	u32 queue_index;
 
-	s32 found_num = 0;
+	s32                  found_num;
+	s32                  found_buf_size;
+	struct scope_entry **found_buf;
+};
 
-	struct scope *last_visited_module_scope = NULL;
+static void search_scope(struct search_context *ctx, struct scope *root_scope, scope_lookup_args_t *args) {
+	if (tbl_lookup_index(*ctx->queue, root_scope) != -1) return; // Scope already processed...
 
-	u64 hash = entry_hash(args->id->hash, args->layer);
-	while (scope && found_num < out_buf_size) {
+	u32 layer = SCOPE_DEFAULT_LAYER;
+	if (scope_is_local(root_scope)) {
+		layer = args->layer;
+	} else if (args->local_only) {
+		return;
+	}
+
+	tbl_insert(*ctx->queue, (struct scope_lookup_queue_entry){.hash = root_scope});
+	for (; ctx->queue_index < tbl_len(*ctx->queue) && ctx->found_num < ctx->found_buf_size; ++ctx->queue_index) {
+		struct scope *scope = (*ctx->queue)[ctx->queue_index].hash;
 		bassert(scope->kind != SCOPE_NONE);
-		// Check if there is space enouigh in the output buffer.
-		if (!scope_is_local(scope)) {
-			// Global scopes should not have layers!!!
-			hash = entry_hash(args->id->hash, SCOPE_DEFAULT_LAYER);
-			if (args->local_only) break;
-		}
+		const u64 hash = entry_hash(args->id->hash, layer);
+		layer          = SCOPE_DEFAULT_LAYER;
 
-		const bool is_locked = scope->kind == SCOPE_GLOBAL || scope->kind == SCOPE_MODULE;
+		const bool is_locked = scope->kind == SCOPE_GLOBAL || scope->kind == SCOPE_MODULE || scope->kind == SCOPE_MODULE_PRIVATE;
 		if (is_locked) scope_lock(scope);
 
 		const s64 index = tbl_lookup_index_with_key(scope->entries, hash, args->id->str);
-		if (index != -1) out_buf[found_num++] = scope->entries[index].value;
+		if (index != -1) ctx->found_buf[ctx->found_num++] = scope->entries[index].value;
 
-		if (arrlenu(scope->injected)) {
-			// Ignore layers for injected scopes.
-			const s64 hash = entry_hash(args->id->hash, SCOPE_DEFAULT_LAYER);
-			for (usize injected_index = 0; injected_index < arrlenu(scope->injected) && found_num < out_buf_size; ++injected_index) {
-				struct scope *injected_scope = scope->injected[injected_index];
-				bassert(injected_scope != scope);
-				if (last_visited_module_scope == injected_scope) continue;
-
-				const s64 index = tbl_lookup_index_with_key(injected_scope->entries, hash, args->id->str);
-				if (index != -1) out_buf[found_num++] = injected_scope->entries[index].value;
-			}
+		for (usize injected_index = 0; injected_index < arrlenu(scope->injected); ++injected_index) {
+			struct scope *injected_scope = scope->injected[injected_index];
+			if (tbl_lookup_index(*ctx->queue, injected_scope) != -1) continue;
+			tbl_insert(*ctx->queue, (struct scope_lookup_queue_entry){.hash = injected_scope});
 		}
 
 		if (is_locked) scope_unlock(scope);
-		// In case the module private scope imports some modules, we might have symbol collision with something from
-		// parent module scope.
-		if (found_num && scope->kind != SCOPE_MODULE_PRIVATE) break;
+	}
+}
 
-		// Lookup in parent?
+s32 scope_lookup(struct assembly *assembly, struct scope *scope, scope_lookup_args_t *args, struct scope_entry **out_buf, const s32 out_buf_size) {
+	zone();
+	bassert(scope && args->id);
+	const u32 thread_index = get_worker_index();
+
+	struct search_context ctx = {
+	    .queue = &assembly->thread_local_contexts[thread_index].scope_thread_local.lookup_queue,
+
+	    .found_buf      = out_buf,
+	    .found_buf_size = out_buf_size,
+	};
+
+	tbl_clear(*ctx.queue);
+
+	while (scope && ctx.found_num < ctx.found_buf_size) {
+		search_scope(&ctx, scope, args);
+
+		if (ctx.found_num && scope->kind != SCOPE_MODULE_PRIVATE) break;
 		if (!args->in_tree) break;
 		if (args->out_of_function) *(args->out_of_function) = scope->kind == SCOPE_FN;
-
-		last_visited_module_scope = scope->kind == SCOPE_MODULE ? scope : NULL;
 
 		scope = scope->parent;
 	}
 
-	return_zone(found_num);
+	return_zone(ctx.found_num);
 }
 
 void scope_lock(struct scope *scope) {

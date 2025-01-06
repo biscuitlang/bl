@@ -1,0 +1,8 @@
+// @ERR_UNKNOWN_SYMBOL@
+#import "../../../tests/src/module1";
+main :: fn () s32 {
+	module_function3();
+	return 0;
+}
+
+

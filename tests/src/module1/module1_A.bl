@@ -1,8 +1,13 @@
-#load "module3.bl"
+#import "../../../tests/src/module2"
+#load "module1_C.bl"
 
 foo :: fn () {
 	this_should_be_visible_only_in_module();
 	this_should_be_visible_only_in_module2();
+}
+
+module1_function :: fn () {
+  module2_function();
 }
 
 #scope_module
