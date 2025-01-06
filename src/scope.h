@@ -141,20 +141,16 @@ typedef struct {
 	bool       in_tree;
 	bool       local_only;
 	bool      *out_of_function;
-
-	bool lookup_ambiguous;
-	array(struct scope_entry *) ambiguous;
 } scope_lookup_args_t;
 
-struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args);
-
 // Returns number of entries written into out_buf.
-s32 scope_lookup2(struct scope *scope, scope_lookup_args_t *args, struct scope_entry **out_buf, const s32 oit_buf_size);
+s32 scope_lookup(struct scope *scope, scope_lookup_args_t *args, struct scope_entry **out_buf, const s32 oit_buf_size);
 
 // Checks whether passed scope is of kind or is nested in scope of kind.
-bool        scope_is_subtree_of_kind(const struct scope *scope, enum scope_kind kind);
-bool        scope_is_subtree_of(const struct scope *scope, const struct scope *other);
-const char *scope_kind_name(const struct scope *scope);
+bool          scope_is_subtree_of_kind(const struct scope *scope, enum scope_kind kind);
+bool          scope_is_subtree_of(const struct scope *scope, const struct scope *other);
+struct scope *scope_find_closest_global(struct scope *scope);
+const char   *scope_kind_name(const struct scope *scope);
 // Resolve the full name of the scope (containing all namespaces separated by '.'.
 void scope_get_full_name(str_buf_t *buf, struct scope *scope);
 

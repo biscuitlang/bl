@@ -22,12 +22,21 @@ x remove import policy
 - config separator inconsistency with compiler default settings
 - #load and #import semicollon inconsistency
 - framework path on macos
+- Report module name in errors?
 
 */
 
-#import "D:/VK/modules/vkrender"
+// #import "W:/bl/tests/dummy_module";
+#import "std/print"
 
 main :: fn () s32 {
+	foo :: 10;
+	{
+		foo :: 2;
+		print("foo = %\n", foo);
+	}
+
+	print("foo = %\n", foo);
 	return 0;
 }
 

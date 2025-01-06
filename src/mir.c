@@ -1516,7 +1516,8 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 	    .id    = id,
 	};
 
-	struct scope_entry *collision = scope_lookup(scope, &lookup_args);
+	struct scope_entry *collision = NULL;
+	scope_lookup(scope, &lookup_args, &collision, 1);
 
 	if (collision && scope->kind == SCOPE_PRIVATE) {
 		const bool collision_in_same_unit = (node ? node->location->unit : NULL) == (collision->node ? collision->node->location->unit : NULL);
@@ -1548,11 +1549,14 @@ struct mir_type *lookup_builtin_type(struct context *ctx, enum builtin_id_kind k
 	struct id    *id    = &builtin_ids[kind];
 	struct scope *scope = ctx->assembly->gscope;
 
-	struct scope_entry *found = scope_lookup(scope,
-	                                         &(scope_lookup_args_t){
-	                                             .id      = id,
-	                                             .in_tree = true,
-	                                         });
+	struct scope_entry *found = NULL;
+	scope_lookup(scope,
+	             &(scope_lookup_args_t){
+	                 .id      = id,
+	                 .in_tree = true,
+	             },
+	             &found,
+	             1);
 
 	if (!found) babort("Missing compiler internal symbol '" STR_FMT "'", STR_ARG(id->str));
 	if (found->kind == SCOPE_ENTRY_INCOMPLETE) return NULL;
@@ -1581,11 +1585,14 @@ struct mir_fn *lookup_builtin_fn(struct context *ctx, enum builtin_id_kind kind)
 	struct id    *id    = &builtin_ids[kind];
 	struct scope *scope = ctx->assembly->gscope;
 
-	struct scope_entry *found = scope_lookup(scope,
-	                                         &(scope_lookup_args_t){
-	                                             .id      = id,
-	                                             .in_tree = true,
-	                                         });
+	struct scope_entry *found = NULL;
+	scope_lookup(scope,
+	             &(scope_lookup_args_t){
+	                 .id      = id,
+	                 .in_tree = true,
+	             },
+	             &found,
+	             1);
 
 	if (!found) babort("Missing compiler internal symbol '" STR_FMT "'", STR_ARG(id->str));
 	if (found->kind == SCOPE_ENTRY_INCOMPLETE) return NULL;
@@ -1690,11 +1697,13 @@ struct scope_entry *lookup_composit_member(struct mir_type *type, struct id *rid
 	struct scope_entry *found       = NULL;
 
 	while (true) {
-		found = scope_lookup(scope,
-		                     &(scope_lookup_args_t){
-		                         .layer = scope_layer,
-		                         .id    = rid,
-		                     });
+		scope_lookup(scope,
+		             &(scope_lookup_args_t){
+		                 .layer = scope_layer,
+		                 .id    = rid,
+		             },
+		             &found,
+		             1);
 		if (found) break;
 		scope = get_base_type_scope(type);
 		type  = get_base_type(type);
@@ -4782,10 +4791,13 @@ static struct result analyze_instr_compound_regular(struct context *ctx, struct 
 				bassert(designator->ident && designator->ident->kind == AST_IDENT);
 				struct id *id = &designator->ident->data.ident.id;
 				// We should have to support also inherited members from the base structures.
-				struct scope_entry *found = scope_lookup(scope,
-				                                         &(scope_lookup_args_t){
-				                                             .id = id,
-				                                         });
+				struct scope_entry *found = NULL;
+				scope_lookup(scope,
+				             &(scope_lookup_args_t){
+				                 .id = id,
+				             },
+				             &found,
+				             1);
 				if (!found) {
 					str_buf_t type_name = mir_type2str(type, /* prefer_name */ true);
 					report_error(INVALID_INITIALIZER,
@@ -5277,11 +5289,14 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 		if (sub_type->kind == MIR_TYPE_ENUM) {
 			struct scope       *scope       = sub_type->data.enm.scope;
 			const hash_t        scope_layer = SCOPE_DEFAULT_LAYER; // @Incomplete
-			struct scope_entry *found       = scope_lookup(scope,
-                                                     &(scope_lookup_args_t){
-			                                                   .layer = scope_layer,
-			                                                   .id    = rid,
-                                                     });
+			struct scope_entry *found       = NULL;
+			scope_lookup(scope,
+			             &(scope_lookup_args_t){
+			                 .layer = scope_layer,
+			                 .id    = rid,
+			             },
+			             &found,
+			             1);
 			if (!found) {
 				report_error(UNKNOWN_SYMBOL, member_ptr->member_ident, "Unknown enumerator variant.");
 				return_zone(FAIL);
@@ -5342,11 +5357,14 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 		} else if (mir_is_composite_type(sub_type)) {
 			struct scope       *scope       = sub_type->data.strct.scope;
 			const hash_t        scope_layer = sub_type->data.strct.scope_layer;
-			struct scope_entry *found       = scope_lookup(scope,
-                                                     &(scope_lookup_args_t){
-			                                                   .layer = scope_layer,
-			                                                   .id    = rid,
-                                                     });
+			struct scope_entry *found       = NULL;
+			scope_lookup(scope,
+			             &(scope_lookup_args_t){
+			                 .layer = scope_layer,
+			                 .id    = rid,
+			             },
+			             &found,
+			             1);
 			if (!found) {
 				report_error(UNKNOWN_SYMBOL, member_ptr->member_ident, "Unknown type member.");
 				return_zone(FAIL);
@@ -5728,34 +5746,31 @@ static struct result lookup_ref(struct context *ctx, const struct mir_instr_decl
 		// We're searching just ref->scope so there should not be any ambiguous symbols, these should be already reported
 		// as symbol collisiton on symbol registration.
 		lookup_args.in_tree = false;
-		found_num           = scope_lookup2(ref->scope, &lookup_args, found, 1);
+		found_num           = scope_lookup(ref->scope, &lookup_args, found, 1);
 	} else {
 		lookup_args.in_tree = true;
 
-		// Private scope is parented on module private scope in case the is one.
-		struct scope *private_scope = ref->parent_unit->private_scope;
-		if (!private_scope) private_scope = ref->parent_unit->module ? ref->parent_unit->module->private_scope : NULL;
-
-		// Search local scopes (function bodies) first; catch only one hit since symbols in local scopes might shadow
-		// themselves.
+		// Search local scopes (function bodies) first.
 		lookup_args.local_only = true;
-		found_num              = scope_lookup2(ref->scope, &lookup_args, found, 1);
+		found_num              = scope_lookup(ref->scope, &lookup_args, found, static_arrlenu(found));
+		lookup_args.local_only = false;
 
-		if (!found_num && private_scope) {
-			lookup_args.local_only = false;
-			found_num              = scope_lookup2(private_scope, &lookup_args, found, static_arrlenu(found));
+		if (!found_num) {
+			// Private scope is parented on module private scope in case the is one.
+			struct scope *scope = ref->parent_unit->private_scope;
+			if (!scope) scope = ref->parent_unit->module ? ref->parent_unit->module->private_scope : NULL;
+			if (!scope) scope = scope_find_closest_global(ref->scope);
+			bassert(scope);
+
+			found_num = scope_lookup(scope, &lookup_args, found, static_arrlenu(found));
 		}
 	}
 
 	if (found_num > 1) {
-		report_error(AMBIGUOUS, ref->base.node, "Symbol is ambiguous. Multiple symbols with the same name found in current scope. "
-		                                        "This might be caused by using statement or incorrect module import namespacing.");
+		report_error(AMBIGUOUS, ref->base.node, "Symbol is ambiguous. Multiple symbols with the same name found.");
 		for (s32 i = 0; i < found_num; ++i) {
 			report_note(found[i]->node, "Possible implementation found here.");
 		}
-		arrfree(lookup_args.ambiguous);
-		lookup_args.ambiguous = NULL;
-
 		return_zone(FAIL);
 	}
 
@@ -6485,7 +6500,7 @@ struct result analyze_instr_load(struct context *ctx, struct mir_instr_load *loa
 
 	return_zone(PASS);
 
-INVALID_SRC: {
+INVALID_SRC : {
 	bassert(err_type);
 	str_buf_t type_name = mir_type2str(err_type, /* prefer_name */ true);
 	report_error(INVALID_TYPE, src->node, "Expected value of pointer type, got '" STR_FMT "'.", STR_ARG(type_name));

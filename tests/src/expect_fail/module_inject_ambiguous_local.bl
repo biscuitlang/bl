@@ -4,6 +4,7 @@ main :: fn () s32 {
 	using named;
 	foo :: 10;
 	foo();
+	return 0;
 }
 
 

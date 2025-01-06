@@ -1,0 +1,5 @@
+foo :: fn () {
+	m: mat4;
+	mat4_init_ortho(&m, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f);
+}
+

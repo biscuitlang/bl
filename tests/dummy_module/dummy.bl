@@ -1,0 +1,6 @@
+#load "dummy2.bl"
+
+mat4_init_ortho :: fn (_: *mat4, _: f32, _: f32, _: f32, _: f32, _: f32, _: f32) {}
+
+#scope_module
+#import "extra/glm"

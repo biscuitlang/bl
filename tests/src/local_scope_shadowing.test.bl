@@ -1,0 +1,13 @@
+#scope_private
+local_scope_variable_shadowing :: fn () #test {
+	foo :: 10;
+	{
+		foo :: 20;
+		{
+			foo :: 30;
+			test_eq(foo, 30);
+		}
+		test_eq(foo, 20);
+	}
+	test_eq(foo, 10);
+};

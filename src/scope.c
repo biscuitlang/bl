@@ -105,73 +105,7 @@ void scope_insert(struct scope *scope, hash_t layer, struct scope_entry *entry) 
 	return_zone();
 }
 
-struct scope_entry *scope_lookup(struct scope *scope, scope_lookup_args_t *args) {
-	zone();
-	bassert(scope && args->id);
-
-	struct scope_entry *found                     = NULL;
-	struct scope       *last_visited_module_scope = NULL;
-
-	u64 hash = entry_hash(args->id->hash, args->layer);
-	while (scope) {
-		bassert(scope->kind != SCOPE_NONE);
-
-		if (!scope_is_local(scope)) {
-			// Global scopes should not have layers!!!
-			hash = entry_hash(args->id->hash, SCOPE_DEFAULT_LAYER);
-			if (args->local_only) break;
-		}
-
-		const bool is_locked = scope->kind == SCOPE_GLOBAL || scope->kind == SCOPE_MODULE;
-		if (is_locked) scope_lock(scope);
-
-		const s64 index = tbl_lookup_index_with_key(scope->entries, hash, args->id->str);
-		if (index != -1) {
-			found = scope->entries[index].value;
-			bassert(found);
-		}
-
-		if (!found || args->lookup_ambiguous) {
-			// Ignore layers for injected scopes.
-			const u64 hash = entry_hash(args->id->hash, SCOPE_DEFAULT_LAYER);
-			for (usize injected_index = 0; injected_index < arrlenu(scope->injected); ++injected_index) {
-				struct scope *injected_scope = scope->injected[injected_index];
-				bassert(injected_scope != scope);
-				if (last_visited_module_scope == injected_scope) {
-					blog("Skip injected scope!");
-					continue;
-				}
-
-				const s64 index = tbl_lookup_index_with_key(injected_scope->entries, hash, args->id->str);
-				if (index != -1) {
-					struct scope_entry *found_injected = injected_scope->entries[index].value;
-					bassert(found_injected);
-					if (found && args->lookup_ambiguous) {
-						if (!arrlen(args->ambiguous)) arrput(args->ambiguous, found);
-						arrput(args->ambiguous, found_injected);
-					}
-					found = found_injected;
-					if (!args->lookup_ambiguous) break;
-				}
-			}
-		}
-
-		if (is_locked) scope_unlock(scope);
-		if (found) break;
-
-		// Lookup in parent?
-		if (!args->in_tree) break;
-		if (args->out_of_function) *(args->out_of_function) = scope->kind == SCOPE_FN;
-
-		last_visited_module_scope = scope->kind == SCOPE_MODULE ? scope : NULL;
-
-		scope = scope->parent;
-	}
-
-	return_zone(found);
-}
-
-s32 scope_lookup2(struct scope *scope, scope_lookup_args_t *args, struct scope_entry **out_buf, const s32 out_buf_size) {
+s32 scope_lookup(struct scope *scope, scope_lookup_args_t *args, struct scope_entry **out_buf, const s32 out_buf_size) {
 	zone();
 	bassert(scope && args->id);
 
@@ -195,7 +129,7 @@ s32 scope_lookup2(struct scope *scope, scope_lookup_args_t *args, struct scope_e
 		const s64 index = tbl_lookup_index_with_key(scope->entries, hash, args->id->str);
 		if (index != -1) out_buf[found_num++] = scope->entries[index].value;
 
-		{
+		if (arrlenu(scope->injected)) {
 			// Ignore layers for injected scopes.
 			const s64 hash = entry_hash(args->id->hash, SCOPE_DEFAULT_LAYER);
 			for (usize injected_index = 0; injected_index < arrlenu(scope->injected) && found_num < out_buf_size; ++injected_index) {
@@ -209,7 +143,9 @@ s32 scope_lookup2(struct scope *scope, scope_lookup_args_t *args, struct scope_e
 		}
 
 		if (is_locked) scope_unlock(scope);
-		if (found_num) break;
+		// In case the module private scope imports some modules, we might have symbol collision with something from
+		// parent module scope.
+		if (found_num && scope->kind != SCOPE_MODULE_PRIVATE) break;
 
 		// Lookup in parent?
 		if (!args->in_tree) break;
@@ -264,6 +200,14 @@ bool scope_is_subtree_of(const struct scope *scope, const struct scope *other) {
 		scope = scope->parent;
 	}
 	return false;
+}
+
+struct scope *scope_find_closest_global(struct scope *scope) {
+	while (scope) {
+		if (!scope_is_local(scope)) break;
+		scope = scope->parent;
+	}
+	return scope;
 }
 
 const char *scope_kind_name(const struct scope *scope) {
