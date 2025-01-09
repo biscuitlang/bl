@@ -174,17 +174,19 @@ FmtInt :: struct {
 	///
 	print_prefix: bool;
 	fixed_digit_count: s32;
+	/// Print hex values in uppercase (does not apply to prefix).
+	uppercase: bool;
 	/// Printed value.
 	v: Any;
 }
 
 /// Create formatted printable object for number. Created [FmtInt](#fmtint) object is valid for
 /// direct printing.
-fmt_int :: fn (v: Any, base: FmtIntBase, print_prefix := true, fixed_digit_count := -1) FmtInt #inline {
+fmt_int :: fn (v: Any, base: FmtIntBase, print_prefix := true, fixed_digit_count := -1, hex_uppercase := false) FmtInt #inline {
 	if v.type_info.kind != TypeKind.INT {
 		panic("Invalid format input, got % but expected is Integer number!", v.type_info.kind);
 	}
-	return .{base, print_prefix, fixed_digit_count, v};
+	return .{base, print_prefix, fixed_digit_count, hex_uppercase, v};
 }
 
 /// Simple wrapper used for format `u8` value as character.
@@ -222,6 +224,7 @@ _print_impl :: fn {
 #import "std/string"
 
 io :: #import "std/io";
+C  :: #import "libc";
 
 DEFAULT_REAL_TRAILING :: 6;
 
@@ -337,7 +340,7 @@ print_any :: fn (buf: *?T, cur: *s32, any: *Any) {
 				print_string(buf, cur, "-");
 				int = -int;
 			}
-			print_u64(buf, cur, auto int, fmt.base, digits, fmt.print_prefix);
+			print_u64(buf, cur, auto int, fmt.base, digits, fmt.print_prefix, fmt.uppercase);
 			return;
 		} else if any.type_info == typeinfo(FmtChar) {
 			fmt :: cast(*FmtChar) any.data;
@@ -598,7 +601,7 @@ print_string :: fn {
 	};
 }
 
-print_u64 :: fn (buf: *?T, cur: *s32, v: u64, base: FmtIntBase, digits: s32, print_prefix := true) {
+print_u64 :: fn (buf: *?T, cur: *s32, v: u64, base: FmtIntBase, digits: s32, print_prefix := true, uppercase := false) {
 	tbl :: "0123456789abcdef";
 	n := v;
 	switch base {
@@ -617,7 +620,9 @@ print_u64 :: fn (buf: *?T, cur: *s32, v: u64, base: FmtIntBase, digits: s32, pri
 	prev_cur :: @cur;
 	loop n > 0 {
 		d :: n % b;
-		print_string(buf, cur, string_view.{1, &tbl[auto d]});
+		char := tbl[auto d];
+		if uppercase then char = auto C.toupper(auto char);
+		print_string(buf, cur, string_view.{1, &char});
 		n = n / b;
 	}
 	loop ((@cur) - prev_cur) < digits {
