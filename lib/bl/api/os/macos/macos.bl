@@ -38,6 +38,11 @@ CFRunLoopMode :: CFStringRef;
 CFURLRef :: *u8;
 CFURLPathStyle :: u32;
 
+CFRange :: struct {
+	location: CFIndex;
+	length: CFIndex;
+}
+
 Boolean :: u8;
 
 kCFAllocatorDefault : CFAllocatorRef : null;
@@ -123,6 +128,9 @@ CFStringCreateWithCString :: fn (
 	cStr: *u8,
 	encoding: CFStringEncoding
 ) CFStringRef #extern "CFStringCreateWithCString";
+
+CFStringCreateWithSubstring :: fn (alloc: CFAllocatorRef, str: CFStringRef, range: CFRange) CFStringRef #extern "CFStringCreateWithSubstring";
+CFStringCreateWithBytes :: fn (alloc: CFAllocatorRef, bytes: *u8, numBytes: CFIndex, encoding: CFStringEncoding, isExternalRepresentation: Boolean) CFStringRef #extern "CFStringCreateWithBytes";
 
 FSEventStreamContext :: struct {
   version: CFIndex;

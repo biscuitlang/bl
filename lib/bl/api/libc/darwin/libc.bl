@@ -21,6 +21,8 @@ F_SETOWN :: 6;
 F_GETLK  :: 7;
 F_SETLK  :: 8;
 
+O_NONBLOCK :: 0x00000004;
+
 F_OK :: 0;
 X_OK :: (1<<0);
 W_OK :: (1<<1);
@@ -167,139 +169,114 @@ O_APPEND :: 0x0008;
 DIR :: u8;
 FILE :: u8;
 
-EPERM :: 1;
-ENOENT :: 2;
-ESRCH :: 3;
-EINTR :: 4;
-EIO :: 5;
-ENXIO :: 6;
-E2BIG :: 7;
-ENOEXEC :: 8;
-EBADF ::  9;
-ECHILD :: 10;
-EAGAIN :: 11;
-ENOMEM :: 12;
-EACCES :: 13;
-EFAULT :: 14;
-ENOTBLK :: 15;
-EBUSY :: 16;
-EEXIST :: 17;
-EXDEV :: 18;
-ENODEV :: 19;
-ENOTDIR :: 20;
-EISDIR :: 21;
-EINVAL :: 22;
-ENFILE :: 23;
-EMFILE :: 24;
-ENOTTY :: 25;
-ETXTBSY :: 26;
-EFBIG :: 27;
-ENOSPC :: 28;
-ESPIPE :: 29;
-EROFS :: 30;
-EMLINK :: 31;
-EPIPE :: 32;
-EDOM :: 33;
-ERANGE :: 34;
-EDEADLK :: 35;
-ENAMETOOLONG :: 36;
-ENOLCK :: 37;
-ENOSYS :: 38;
-ENOTEMPTY :: 39;
-ELOOP :: 40;
-EWOULDBLOCK :: EAGAIN;
-ENOMSG :: 42;
-EIDRM :: 43;
-ECHRNG :: 44;
-EL2NSYNC :: 45;
-EL3HLT :: 46;
-EL3RST :: 47;
-ELNRNG :: 48;
-EUNATCH :: 49;
-ENOCSI :: 50;
-EL2HLT :: 51;
-EBADE :: 52;
-EBADR :: 53;
-EXFULL :: 54;
-ENOANO :: 55;
-EBADRQC :: 56;
-EBADSLT :: 57;
-EDEADLOCK :: EDEADLK;
-EBFONT :: 59;
-ENOSTR :: 60;
-ENODATA :: 61;
-ETIME :: 62;
-ENOSR :: 63;
-ENONET :: 64;
-ENOPKG :: 65;
-EREMOTE :: 66;
-ENOLINK :: 67;
-EADV :: 68;
-ESRMNT :: 69;
-ECOMM :: 70;
-EPROTO :: 71;
-EMULTIHOP :: 72;
-EDOTDOT :: 73;
-EBADMSG :: 74;
-EOVERFLOW :: 75;
-ENOTUNIQ :: 76;
-EBADFD :: 77;
-EREMCHG :: 78;
-ELIBACC :: 79;
-ELIBBAD :: 80;
-ELIBSCN :: 81;
-ELIBMAX :: 82;
-ELIBEXEC :: 83;
-EILSEQ :: 84;
-ERESTART :: 85;
-ESTRPIPE :: 86;
-EUSERS :: 87;
-ENOTSOCK :: 88;
-EDESTADDRREQ :: 89;
-EMSGSIZE :: 90;
-EPROTOTYPE :: 91;
-ENOPROTOOPT :: 92;
-EPROTONOSUPPORT :: 93;
-ESOCKTNOSUPPORT :: 94;
-EOPNOTSUPP :: 95;
-EPFNOSUPPORT :: 96;
-EAFNOSUPPORT :: 97;
-EADDRINUSE :: 98;
-EADDRNOTAVAIL :: 99;
-ENETDOWN :: 100;
-ENETUNREACH :: 101;
-ENETRESET :: 102;
-ECONNABORTED :: 103;
-ECONNRESET :: 104;
-ENOBUFS :: 105;
-EISCONN :: 106;
-ENOTCONN :: 107;
-ESHUTDOWN :: 108;
-ETOOMANYREFS :: 109;
-ETIMEDOUT :: 110;
-ECONNREFUSED :: 111;
-EHOSTDOWN :: 112;
-EHOSTUNREACH :: 113;
-EALREADY :: 114;
-EINPROGRESS :: 115;
-ESTALE :: 116;
-EUCLEAN :: 117;
-ENOTNAM :: 118;
-ENAVAIL :: 119;
-EISNAM :: 120;
-EREMOTEIO :: 121;
-EDQUOT :: 122;
-ENOMEDIUM :: 123;
-EMEDIUMTYPE :: 124;
-ECANCELED :: 125;
-ENOKEY :: 126;
-EKEYEXPIRED :: 127;
-EKEYREVOKED :: 128;
-EKEYREJECTED :: 129;
-EOWNERDEAD :: 130;
-ENOTRECOVERABLE :: 131;
-ERFKILL :: 132;
-EHWPOISON :: 133;
+EPERM           :: 1;      /* Operation not permitted */
+ENOENT          :: 2;      /* No such file or directory */
+ESRCH           :: 3;      /* No such process */
+EINTR           :: 4;      /* Interrupted system call */
+EIO             :: 5;      /* Input/output error */
+ENXIO           :: 6;      /* Device not configured */
+E2BIG           :: 7;      /* Argument list too long */
+ENOEXEC         :: 8;      /* Exec format error */
+EBADF           :: 9;      /* Bad file descriptor */
+ECHILD          :: 10;     /* No child processes */
+EDEADLK         :: 11;     /* Resource deadlock avoided */
+ENOMEM          :: 12;     /* Cannot allocate memory */
+EACCES          :: 13;     /* Permission denied */
+EFAULT          :: 14;     /* Bad address */
+ENOTBLK         :: 15;     /* Block device required */
+EBUSY           :: 16;     /* Device / Resource busy */
+EEXIST          :: 17;     /* File exists */
+EXDEV           :: 18;     /* Cross-device link */
+ENODEV          :: 19;     /* Operation not supported by device */
+ENOTDIR         :: 20;     /* Not a directory */
+EISDIR          :: 21;     /* Is a directory */
+EINVAL          :: 22;     /* Invalid argument */
+ENFILE          :: 23;     /* Too many open files in system */
+EMFILE          :: 24;     /* Too many open files */
+ENOTTY          :: 25;     /* Inappropriate ioctl for device */
+ETXTBSY         :: 26;     /* Text file busy */
+EFBIG           :: 27;     /* File too large */
+ENOSPC          :: 28;     /* No space left on device */
+ESPIPE          :: 29;     /* Illegal seek */
+EROFS           :: 30;     /* Read-only file system */
+EMLINK          :: 31;     /* Too many links */
+EPIPE           :: 32;     /* Broken pipe */
+EDOM            :: 33;     /* Numerical argument out of domain */
+ERANGE          :: 34;     /* Result too large */
+EAGAIN          :: 35;     /* Resource temporarily unavailable */
+EWOULDBLOCK     :: EAGAIN; /* Operation would block */
+EINPROGRESS     :: 36;     /* Operation now in progress */
+EALREADY        :: 37;     /* Operation already in progress */
+ENOTSOCK        :: 38;     /* Socket operation on non-socket */
+EDESTADDRREQ    :: 39;     /* Destination address required */
+EMSGSIZE        :: 40;     /* Message too long */
+EPROTOTYPE      :: 41;     /* Protocol wrong type for socket */
+ENOPROTOOPT     :: 42;     /* Protocol not available */
+EPROTONOSUPPORT :: 43;     /* Protocol not supported */
+ESOCKTNOSUPPORT :: 44;     /* Socket type not supported */
+ENOTSUP         :: 45;     /* Operation not supported */
+EOPNOTSUPP 	 :: ENOTSUP;
+EPFNOSUPPORT    :: 46;     /* Protocol family not supported */
+EAFNOSUPPORT    :: 47;     /* Address family not supported by protocol family */
+EADDRINUSE      :: 48;     /* Address already in use */
+EADDRNOTAVAIL   :: 49;     /* Can't assign requested address */
+ENETDOWN        :: 50;     /* Network is down */
+ENETUNREACH     :: 51;     /* Network is unreachable */
+ENETRESET       :: 52;     /* Network dropped connection on reset */
+ECONNABORTED    :: 53;     /* Software caused connection abort */
+ECONNRESET      :: 54;     /* Connection reset by peer */
+ENOBUFS         :: 55;     /* No buffer space available */
+EISCONN         :: 56;     /* Socket is already connected */
+ENOTCONN        :: 57;     /* Socket is not connected */
+ESHUTDOWN       :: 58;     /* Can't send after socket shutdown */
+ETOOMANYREFS    :: 59;     /* Too many references: can't splice */
+ETIMEDOUT       :: 60;     /* Operation timed out */
+ECONNREFUSED    :: 61;     /* Connection refused */
+ELOOP           :: 62;     /* Too many levels of symbolic links */
+ENAMETOOLONG    :: 63;     /* File name too long */
+EHOSTDOWN       :: 64;     /* Host is down */
+EHOSTUNREACH    :: 65;     /* No route to host */
+ENOTEMPTY       :: 66;     /* Directory not empty */
+EPROCLIM        :: 67;     /* Too many processes */
+EUSERS          :: 68;     /* Too many users */
+EDQUOT          :: 69;     /* Disc quota exceeded */
+ESTALE          :: 70;     /* Stale NFS file handle */
+EREMOTE         :: 71;     /* Too many levels of remote in path */
+EBADRPC         :: 72;     /* RPC struct is bad */
+ERPCMISMATCH    :: 73;     /* RPC version wrong */
+EPROGUNAVAIL    :: 74;     /* RPC prog. not avail */
+EPROGMISMATCH   :: 75;     /* Program version wrong */
+EPROCUNAVAIL    :: 76;     /* Bad procedure for program */
+ENOLCK          :: 77;     /* No locks available */
+ENOSYS          :: 78;     /* Function not implemented */
+EFTYPE          :: 79;     /* Inappropriate file type or format */
+EAUTH           :: 80;     /* Authentication error */
+ENEEDAUTH       :: 81;     /* Need authenticator */
+EPWROFF         :: 82;     /* Device power is off */
+EDEVERR         :: 83;     /* Device error, e.g. paper out */
+EOVERFLOW       :: 84;     /* Value too large to be stored in data type */
+EBADEXEC        :: 85;     /* Bad executable */
+EBADARCH        :: 86;     /* Bad CPU type in executable */
+ESHLIBVERS      :: 87;     /* Shared library version mismatch */
+EBADMACHO       :: 88;     /* Malformed Macho file */
+ECANCELED       :: 89;     /* Operation canceled */
+EIDRM           :: 90;     /* Identifier removed */
+ENOMSG          :: 91;     /* No message of desired type */
+EILSEQ          :: 92;     /* Illegal byte sequence */
+ENOATTR         :: 93;     /* Attribute not found */
+EBADMSG         :: 94;     /* Bad message */
+EMULTIHOP       :: 95;     /* Reserved */
+ENODATA         :: 96;     /* No message available on STREAM */
+ENOLINK         :: 97;     /* Reserved */
+ENOSR           :: 98;     /* No STREAM resources */
+ENOSTR          :: 99;     /* Not a STREAM */
+EPROTO          :: 100;    /* Protocol error */
+ETIME           :: 101;    /* STREAM ioctl timeout */
+ENOPOLICY       :: 103;    /* No such policy registered */
+ENOTRECOVERABLE :: 104;    /* State not recoverable */
+EOWNERDEAD      :: 105;    /* Previous owner died */
+EQFULL          :: 106;    /* Interface output queue is full */
+ELAST           :: 106;    /* Must be equal largest errno */
 
 S_IRWXU : mode_t : 0x1C0;
 S_IRUSR : mode_t : 0x100;
@@ -409,10 +386,7 @@ ioctl :: fn (fd: fd_t, request: s32, arg: s64) s32 #inline {
 	return auto syscall(SYS_ioctl, fd, request, arg);
 }
 
-fcntl :: fn (fd: fd_t, request: int, flags: int = 0) int #inline {
-	return auto syscall(SYS_fcntl, fd, request, flags);
-}
-
+fcntl :: fn (fd: fd_t, request: int, flags: int = 0) int #extern "__fcntl";
 time :: fn (tloc: *time_t) time_t #extern "time";
 localtime :: fn (timep: *time_t) *tm #extern "localtime";
 strftime :: fn (buf: *char, buf_size: size_t, fmt: *char, t: *tm) size_t #extern "strftime";
