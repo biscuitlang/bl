@@ -40,6 +40,20 @@ pollfd :: struct {
 	revents: short;
 }
 
+tm :: struct {
+	tm_sec: int;
+	tm_min: int;
+	tm_hour: int;
+	tm_mday: int;
+	tm_mon: int;
+	tm_year: int;
+	tm_wday: int;
+	tm_yday: int;
+	tm_isdst: int;
+	tm_gmtoff: long;
+	tm_zone: *char;
+}
+
 nfds_t :: ulonglong;
 
 SIGINT  :: 2;
@@ -125,6 +139,9 @@ pipe :: fn (p: *int /* pointer to 2 element array */) int #extern "pipe";
 dup :: fn (oldfd: int) int #extern "dup";
 dup2 :: fn (oldfd: int, newfd: int) int #extern "dup2";
 execv :: fn (file: *char, args: **char) int #extern "execv";
+time :: fn (tloc: *time_t) time_t #extern "time";
+localtime :: fn (timep: *time_t) *tm #extern "localtime";
+strftime :: fn (buf: *char, buf_size: size_t, fmt: *char, t: *tm) size_t #extern "strftime";
 
 ioctl :: fn (fd: fd_t, request: s32, arg: s64) s32 #inline {
 	return auto syscall(SYS_ioctl, fd, request, arg);
