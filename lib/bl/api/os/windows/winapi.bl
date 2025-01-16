@@ -1200,9 +1200,24 @@ PeekNamedPipe :: fn (
 WinExec :: fn (lpCmdLine: LPCSTR, uCmdShow: UINT) UINT #extern "WinExec";
 ShellExecuteA :: fn (hwnd: HWND, lpOperation: LPCSTR, lpFile: LPCSTR, lpParameters: LPCSTR, lpDirectory: LPCSTR, nShowCmd: INT) HINSTANCE #extern "ShellExecuteA";
 
+PROCESS_CREATE_PROCESS : u32 : 0x0080;
+PROCESS_CREATE_THREAD : u32 : 0x0002;
+PROCESS_DUP_HANDLE : u32 : 0x0040;
+PROCESS_QUERY_INFORMATION : u32 : 0x0400;
+PROCESS_QUERY_LIMITED_INFORMATION : u32 : 0x1000;
+PROCESS_SET_INFORMATION : u32 : 0x0200;
+PROCESS_SET_QUOTA : u32 : 0x0100;
+PROCESS_SUSPEND_RESUME : u32 : 0x0800;
 PROCESS_TERMINATE : u32 : 0x0001;
+PROCESS_VM_OPERATION : u32 : 0x0008;
+PROCESS_VM_READ : u32 : 0x0010;
+PROCESS_VM_WRITE : u32 : 0x0020;
+
+STATUS_PENDING : DWORD : 0x00000103;
+STILL_ACTIVE   :: STATUS_PENDING;
 
 OpenProcess :: fn (dwDesiredAccess: DWORD, bInheritHandle: BOOL, dwProcessId: DWORD) HANDLE #extern "OpenProcess";
+GetExitCodeProcess :: fn (handle: HANDLE, exit_code: *DWORD) BOOL #extern "GetExitCodeProcess";
 
 PathCreateFromUrlA :: fn (pszUrl: PCSTR, pszPath: PSTR, pcchPath: *DWORD, dwFlags: DWORD) HRESULT #extern "PathCreateFromUrlA";
 UrlCreateFromPathA :: fn (pszPath: PCSTR, pszUrl: PSTR, pcchUrl: *DWORD, dwFlags: DWORD) HRESULT #extern "UrlCreateFromPathA";
