@@ -477,6 +477,13 @@ int main(s32 argc, char *argv[]) {
 		    .property.b = &opt.builder.no_color,
 		    .help       = "Disable colored output.",
 		},
+#if BL_PLATFORM_WIN
+		{
+		    .name       = "--legacy-colors",
+		    .property.b = &opt.builder.legacy_colors,
+		    .help       = "Force old output message coloring for older Windows terminals without support of ANSI color codes.",
+		},
+#endif
 		{
 		    .name       = "--no-jobs",
 		    .property.b = &opt.builder.no_jobs,

@@ -31,6 +31,7 @@
 // =================================================================================================
 #include "bldebug.h"
 #include "blmemory.h"
+#include "builder.h"
 #include "conf.h"
 #define STB_DS_IMPLEMENTATION
 #define STBDS_REALLOC(context, ptr, size) brealloc(ptr, size)
@@ -885,42 +886,47 @@ void color_print(FILE *stream, s32 color, const char *format, ...) {
 	va_start(args, format);
 
 #if BL_PLATFORM_WIN
-	s32 c;
-	switch (color) {
-	case BL_YELLOW:
-		c = (0xE % 0x0F);
-		break;
-	case BL_RED:
-		c = (0xC % 0x0F);
-		break;
-	case BL_BLUE:
-		c = (0x9 % 0x0F);
-		break;
-	case BL_GREEN:
-		c = (0xA % 0x0F);
-		break;
-	case BL_CYAN:
-		c = (0xB % 0x0F);
-		break;
+	if (builder.options->legacy_colors) {
+		s32 c;
+		switch (color) {
+		case BL_YELLOW:
+			c = (0xE % 0x0F);
+			break;
+		case BL_RED:
+			c = (0xC % 0x0F);
+			break;
+		case BL_BLUE:
+			c = (0x9 % 0x0F);
+			break;
+		case BL_GREEN:
+			c = (0xA % 0x0F);
+			break;
+		case BL_CYAN:
+			c = (0xB % 0x0F);
+			break;
 
-	default:
-		c = 0;
+		default:
+			c = 0;
+		}
+
+		if (color != BL_NO_COLOR) {
+			HANDLE handle =
+			    stream == stderr ? GetStdHandle(STD_ERROR_HANDLE) : GetStdHandle(STD_OUTPUT_HANDLE);
+			CONSOLE_SCREEN_BUFFER_INFO console_info;
+			GetConsoleScreenBufferInfo(handle, &console_info);
+			WORD saved_attributes = console_info.wAttributes;
+
+			SetConsoleTextAttribute(handle, c);
+			vfprintf(stream, format, args);
+			SetConsoleTextAttribute(handle, saved_attributes);
+		} else {
+			vfprintf(stream, format, args);
+		}
+		va_end(args);
+		return;
 	}
+#endif
 
-	if (color != BL_NO_COLOR) {
-		HANDLE handle =
-		    stream == stderr ? GetStdHandle(STD_ERROR_HANDLE) : GetStdHandle(STD_OUTPUT_HANDLE);
-		CONSOLE_SCREEN_BUFFER_INFO console_info;
-		GetConsoleScreenBufferInfo(handle, &console_info);
-		WORD saved_attributes = console_info.wAttributes;
-
-		SetConsoleTextAttribute(handle, c);
-		vfprintf(stream, format, args);
-		SetConsoleTextAttribute(handle, saved_attributes);
-	} else {
-		vfprintf(stream, format, args);
-	}
-#else
 	char *c;
 	switch (color) {
 	case BL_RED:
@@ -945,7 +951,6 @@ void color_print(FILE *stream, s32 color, const char *format, ...) {
 	if (color != BL_NO_COLOR) fprintf(stream, "%s", c);
 	vfprintf(stream, format, args);
 	if (color != BL_NO_COLOR) fprintf(stream, "\x1b[0m");
-#endif
 	va_end(args);
 }
 

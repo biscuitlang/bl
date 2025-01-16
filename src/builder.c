@@ -501,8 +501,7 @@ void builder_print_location(FILE *stream, struct location *loc, s32 col, s32 len
 	// Line two
 	line_str = unit_get_src_ln(loc->unit, loc->line, &line_len);
 	if (line_str && line_len) {
-		color_print(
-		    stream, BL_YELLOW, "\n>%*d | %.*s", padding - 1, loc->line, (int)line_len, line_str);
+		color_print(stream, BL_YELLOW, "\n>%*d | %.*s", padding - 1, loc->line, (int)line_len, line_str);
 	}
 	// Line cursors
 	if (len > 0) {

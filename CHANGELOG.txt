@@ -12,6 +12,7 @@ Redesign module system.
 Remove ModuleImportPolicy.
 Remove named scopes (introduced by #scope directive).
 Modules injected into the module scope are accessible recursively on use-side. (We can create module merging bunch of other modules for example).
+Add windows flag --legacy-colors to enable old style of output coloring on Windows.
 
 0.12.0
 ---------------------------------------------------------------------------------------

@@ -326,7 +326,7 @@ code :: fn (position_x: f32, position_y: f32, code: string_view, character_color
 	ah :: cast(f32) context.font.atlas.height;
 
 	//directing_glyph_info :: get_glyph_utf32(context.font, cast(u32) 'X');
-	space_glyph_info     :: get_glyph_utf32(context.font, cast(u32) ' ');
+	space_glyph_info:: get_glyph_utf32(context.font, cast(u32) ' ');
 
 	// p := v2.{ y = directing_glyph_info.top };
 	// p := v2.{ y = context.font.height * 0.5f };
@@ -352,6 +352,9 @@ code :: fn (position_x: f32, position_y: f32, code: string_view, character_color
 			loop i := 0; i < context.font.tab_size; i += 1 {
 				p.x += space_glyph_info.advance_x;
 			}
+			continue;
+		} else if utf32char == 0xA0 {
+			p.x += space_glyph_info.advance_x;
 			continue;
 		}
 
@@ -1275,13 +1278,15 @@ font_init :: fn (font: *Font, face: *ft2.Face, size: s32, char_set: []u32) Error
 
 get_glyph_utf32 :: fn (font: *Font, c: u32) *GlyphInfo #inline {
 	switch c {
-		'\r' { return &EMPTY_GLYPH; }
+		'\r',
 		'\n' { return &EMPTY_GLYPH; }
 		default;
 	}
 
 	glyph_info :: tbl_lookup_ptr(&font.char_table, c);
-	if glyph_info == null { return tbl_lookup_ptr(&font.char_table, auto '?'); }
+	if glyph_info == null {
+		return tbl_lookup_ptr(&font.char_table, auto '?');
+	}
 	return glyph_info;
 }
 

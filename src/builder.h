@@ -49,6 +49,7 @@ struct builder_options {
 	bool enable_experimental_targets;
 	bool do_cleanup_when_done;
 	s32  error_limit;
+	bool legacy_colors;
 
 	char *doc_out_dir;
 };

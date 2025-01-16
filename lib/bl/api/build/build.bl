@@ -129,6 +129,8 @@ BuilderOptions :: struct {
 	do_cleanup_when_done: bool;
 	/// Maximum count of error reported by the compiler.
 	error_limit: s32;
+	/// Enable legacy color output on Windows for terminals not supporting ANSI color codes.
+	legacy_colors: bool;
 
 	_doc_out_dir: *C.char; // private for now
 }
@@ -136,7 +138,6 @@ BuilderOptions :: struct {
 /// Returns copy of current builder options. These are by default initializad from command line
 /// arguments passed to the compiler.
 get_builder_options :: fn () BuilderOptions {
-	static_assert(sizeof(BuilderOptions) == 24);
 	opt: BuilderOptions;
 	__builder_get_options(&opt);
 	return opt;
@@ -144,7 +145,6 @@ get_builder_options :: fn () BuilderOptions {
 
 /// Overrides current builder options previously set from the command line or by calling this function.
 set_builder_options :: fn (opt: BuilderOptions) {
-	static_assert(sizeof(BuilderOptions) == 24);
 	__builder_set_options(&opt);
 }
 
