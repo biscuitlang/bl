@@ -60,9 +60,10 @@ HANDLE       :: *C.uchar;
 HCURSOR      :: C.void_ptr;
 HINSTANCE    :: C.void_ptr;
 ULONG        :: C.ulong;
+ULONGLONG    :: u64;
 ULONG_PTR    :: *ULONG;
 ULONG64      :: *s64;
-SIZE_T       :: C.ulong;
+SIZE_T       :: C.size_t;
 PVOID        :: *C.uchar;
 CHAR         :: C.uchar;
 LONG_PTR     :: *C.long;
@@ -346,6 +347,153 @@ WS_EX_PALETTEWINDOW    : u32 : WS_EX_WINDOWEDGE | WS_EX_TOOLWINDOW | WS_EX_TOPMO
 WNDPROC :: *fn (HWND, UINT, WPARAM, LPARAM) LRESULT;
 HICON :: *C.int;
 HBRUSH :: *C.int;
+
+// tlhelp.h
+TH32CS_INHERIT      :: 0x80000000;
+TH32CS_SNAPHEAPLIST :: 0x00000001;
+TH32CS_SNAPPROCESS  :: 0x00000002;
+TH32CS_SNAPTHREAD   :: 0x00000004;
+TH32CS_SNAPMODULE   :: 0x00000008;
+TH32CS_SNAPMODULE32 :: 0x00000010;
+TH32CS_SNAPALL :: TH32CS_SNAPHEAPLIST | TH32CS_SNAPPROCESS | TH32CS_SNAPTHREAD | TH32CS_SNAPMODULE;
+
+PROCESSENTRY32 :: struct {
+	dwSize: DWORD;
+	cntUsage: DWORD;
+	th32ProcessID: DWORD;
+	th32DefaultHeapID: ULONG;
+	th32ModuleID: DWORD;
+	cntThreads: DWORD;
+	th32ParentProcessID: DWORD;
+	pcPriClassBase: LONG ;
+	dwFlags: DWORD;
+	szExeFile: [MAX_PATH]C.char;
+}
+
+LPPROCESSENTRY32 :: *PROCESSENTRY32;
+
+IO_COUNTERS :: struct {
+	ReadOperationCount: ULONGLONG;
+	WriteOperationCount: ULONGLONG;
+	OtherOperationCount: ULONGLONG;
+	ReadTransferCount: ULONGLONG;
+	WriteTransferCount: ULONGLONG;
+	OtherTransferCount: ULONGLONG;
+}
+
+
+//
+// Basic Limits
+//
+JOB_OBJECT_LIMIT_WORKINGSET : u32 :                 0x00000001;
+JOB_OBJECT_LIMIT_PROCESS_TIME : u32 :               0x00000002;
+JOB_OBJECT_LIMIT_JOB_TIME : u32 :                   0x00000004;
+JOB_OBJECT_LIMIT_ACTIVE_PROCESS : u32 :             0x00000008;
+JOB_OBJECT_LIMIT_AFFINITY : u32 :                   0x00000010;
+JOB_OBJECT_LIMIT_PRIORITY_CLASS : u32 :             0x00000020;
+JOB_OBJECT_LIMIT_PRESERVE_JOB_TIME : u32 :          0x00000040;
+JOB_OBJECT_LIMIT_SCHEDULING_CLASS : u32 :           0x00000080;
+
+//
+// Extended Limits
+//
+JOB_OBJECT_LIMIT_PROCESS_MEMORY : u32 :             0x00000100;
+JOB_OBJECT_LIMIT_JOB_MEMORY : u32 :                 0x00000200;
+JOB_OBJECT_LIMIT_JOB_MEMORY_HIGH : u32 :            JOB_OBJECT_LIMIT_JOB_MEMORY;
+JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION : u32 : 0x00000400;
+JOB_OBJECT_LIMIT_BREAKAWAY_OK : u32 :               0x00000800;
+JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK : u32 :        0x00001000;
+JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE : u32 :          0x00002000;
+JOB_OBJECT_LIMIT_SUBSET_AFFINITY : u32 :            0x00004000;
+JOB_OBJECT_LIMIT_JOB_MEMORY_LOW : u32 :             0x00008000;
+
+//
+// Notification Limits
+//
+
+JOB_OBJECT_LIMIT_JOB_READ_BYTES : u32 :             0x00010000;
+JOB_OBJECT_LIMIT_JOB_WRITE_BYTES : u32 :            0x00020000;
+JOB_OBJECT_LIMIT_RATE_CONTROL : u32 :               0x00040000;
+JOB_OBJECT_LIMIT_CPU_RATE_CONTROL : u32 :           JOB_OBJECT_LIMIT_RATE_CONTROL;
+JOB_OBJECT_LIMIT_IO_RATE_CONTROL : u32 :            0x00080000;
+JOB_OBJECT_LIMIT_NET_RATE_CONTROL : u32 :           0x00100000;
+
+JOBOBJECTINFOCLASS :: enum s32 {
+	JobObjectBasicAccountingInformation = 1;
+	JobObjectBasicLimitInformation;
+	JobObjectBasicProcessIdList;
+	JobObjectBasicUIRestrictions;
+	JobObjectSecurityLimitInformation;
+	JobObjectEndOfJobTimeInformation;
+	JobObjectAssociateCompletionPortInformation;
+	JobObjectBasicAndIoAccountingInformation;
+	JobObjectExtendedLimitInformation;
+	JobObjectJobSetInformation;
+	JobObjectGroupInformation;
+	JobObjectNotificationLimitInformation;
+	JobObjectLimitViolationInformation;
+	JobObjectGroupInformationEx;
+	JobObjectCpuRateControlInformation;
+	JobObjectCompletionFilter;
+	JobObjectCompletionCounter;
+	JobObjectReserved1Information = 18;
+	JobObjectReserved2Information;
+	JobObjectReserved3Information;
+	JobObjectReserved4Information;
+	JobObjectReserved5Information;
+	JobObjectReserved6Information;
+	JobObjectReserved7Information;
+	JobObjectReserved8Information;
+	JobObjectReserved9Information;
+	JobObjectReserved10Information;
+	JobObjectReserved11Information;
+	JobObjectReserved12Information;
+	JobObjectReserved13Information;
+	JobObjectReserved14Information = 31;
+	JobObjectNetRateControlInformation;
+	JobObjectNotificationLimitInformation2;
+	JobObjectLimitViolationInformation2;
+	JobObjectCreateSilo;
+	JobObjectSiloBasicInformation;
+	JobObjectReserved15Information = 37;
+	JobObjectReserved16Information = 38;
+	JobObjectReserved17Information = 39;
+	JobObjectReserved18Information = 40;
+	JobObjectReserved19Information = 41;
+	JobObjectReserved20Information = 42;
+	JobObjectReserved21Information = 43;
+	JobObjectReserved22Information = 44;
+	JobObjectReserved23Information = 45;
+	JobObjectReserved24Information = 46;
+	JobObjectReserved25Information = 47;
+	JobObjectReserved26Information = 48;
+	JobObjectReserved27Information = 49;
+}
+
+JOBOBJECT_BASIC_LIMIT_INFORMATION :: struct {
+	PerProcessUserTimeLimit: LARGE_INTEGER;
+	PerJobUserTimeLimit: LARGE_INTEGER;
+	LimitFlags: DWORD;
+	MinimumWorkingSetSize: SIZE_T;
+	MaximumWorkingSetSize: SIZE_T;
+	ActiveProcessLimit: DWORD;
+	Affinity: ULONG_PTR;
+	PriorityClass: DWORD;
+	SchedulingClass: DWORD;
+}
+
+PJOBOBJECT_BASIC_LIMIT_INFORMATION :: *JOBOBJECT_BASIC_LIMIT_INFORMATION;
+
+JOBOBJECT_EXTENDED_LIMIT_INFORMATION :: struct {
+	BasicLimitInformation: JOBOBJECT_BASIC_LIMIT_INFORMATION;
+	IoInfo: IO_COUNTERS;
+	ProcessMemoryLimit: SIZE_T;
+	JobMemoryLimit: SIZE_T;
+	PeakProcessMemoryUsed: SIZE_T;
+	PeakJobMemoryUsed: SIZE_T;
+}
+
+PJOBOBJECT_EXTENDED_LIMIT_INFORMATION :: *JOBOBJECT_EXTENDED_LIMIT_INFORMATION;
 
 WNDCLASSA :: struct {
 	style: UINT;
@@ -640,6 +788,7 @@ GetCurrentThread :: fn () HANDLE #extern "GetCurrentThread";
 GetCurrentThreadId :: fn () DWORD #extern "GetCurrentThreadId";
 GetCurrentProcess :: fn () HANDLE #extern "GetCurrentProcess";
 TerminateThread :: fn (handle: HANDLE, exit_code: DWORD) BOOL #extern "TerminateThread";
+ResumeThread :: fn (hThread: HANDLE) DWORD #extern "ResumeThread";
 GetExitCodeThread :: fn (hThread: HANDLE, lpExitCode: LPDWORD) BOOL #extern "GetExitCodeThread";
 
 TerminateProcess :: fn (hProcess: HANDLE, uExitCode: UINT) BOOL #extern "TerminateProcess";
@@ -1175,6 +1324,38 @@ LPPROCESS_INFORMATION :: *PROCESS_INFORMATION;
 STARTF_USESTDHANDLES : u32 : 0x00000100;
 STARTF_USESHOWWINDOW : u32 : 0x00000001;
 
+DEBUG_PROCESS : u32 :                     0x00000001;
+DEBUG_ONLY_THIS_PROCESS : u32 :           0x00000002;
+CREATE_SUSPENDED : u32 :                  0x00000004;
+DETACHED_PROCESS : u32 :                  0x00000008;
+CREATE_NEW_CONSOLE : u32 :                0x00000010;
+NORMAL_PRIORITY_CLASS : u32 :             0x00000020;
+IDLE_PRIORITY_CLASS : u32 :               0x00000040;
+HIGH_PRIORITY_CLASS : u32 :               0x00000080;
+REALTIME_PRIORITY_CLASS : u32 :           0x00000100;
+CREATE_NEW_PROCESS_GROUP : u32 :          0x00000200;
+CREATE_UNICODE_ENVIRONMENT : u32 :        0x00000400;
+CREATE_SEPARATE_WOW_VDM : u32 :           0x00000800;
+CREATE_SHARED_WOW_VDM : u32 :             0x00001000;
+CREATE_FORCEDOS : u32 :                   0x00002000;
+BELOW_NORMAL_PRIORITY_CLASS : u32 :       0x00004000;
+ABOVE_NORMAL_PRIORITY_CLASS : u32 :       0x00008000;
+INHERIT_PARENT_AFFINITY : u32 :           0x00010000;
+INHERIT_CALLER_PRIORITY : u32 :           0x00020000;
+CREATE_PROTECTED_PROCESS : u32 :          0x00040000;
+EXTENDED_STARTUPINFO_PRESENT : u32 :      0x00080000;
+PROCESS_MODE_BACKGROUND_BEGIN : u32 :     0x00100000;
+PROCESS_MODE_BACKGROUND_END : u32 :       0x00200000;
+CREATE_SECURE_PROCESS : u32 :             0x00400000;
+CREATE_BREAKAWAY_FROM_JOB : u32 :         0x01000000;
+CREATE_PRESERVE_CODE_AUTHZ_LEVEL : u32 :  0x02000000;
+CREATE_DEFAULT_ERROR_MODE : u32 :         0x04000000;
+CREATE_NO_WINDOW : u32 :                  0x08000000;
+PROFILE_USER : u32 :                      0x10000000;
+PROFILE_KERNEL : u32 :                    0x20000000;
+PROFILE_SERVER : u32 :                    0x40000000;
+CREATE_IGNORE_SYSTEM_DEFAULT : u32 :      0x80000000;
+
 CreateProcessA :: fn (
 	lpApplicationName: LPCSTR,
 	lpCommandLine: LPSTR,
@@ -1218,6 +1399,11 @@ STILL_ACTIVE   :: STATUS_PENDING;
 
 OpenProcess :: fn (dwDesiredAccess: DWORD, bInheritHandle: BOOL, dwProcessId: DWORD) HANDLE #extern "OpenProcess";
 GetExitCodeProcess :: fn (handle: HANDLE, exit_code: *DWORD) BOOL #extern "GetExitCodeProcess";
+CreateToolhelp32Snapshot :: fn (dwFlags: DWORD, th32ProcessID: DWORD) HANDLE #extern "CreateToolhelp32Snapshot";
+Process32First :: fn (hSnapshot: HANDLE, lppe: LPPROCESSENTRY32) BOOL #extern "Process32First";
+CreateJobObjectA :: fn (lpJobAttributes: LPSECURITY_ATTRIBUTES, lpName: LPCSTR) HANDLE #extern "CreateJobObjectA";
+AssignProcessToJobObject :: fn (hJob: HANDLE, hProcess: HANDLE) BOOL #extern "AssignProcessToJobObject";
+SetInformationJobObject :: fn (hJob: HANDLE, JobObjectInformationClass: JOBOBJECTINFOCLASS, lpJobObjectInformation: LPVOID, cbJobObjectInformationLengt: DWORD) BOOL #extern "SetInformationJobObject";
 
 PathCreateFromUrlA :: fn (pszUrl: PCSTR, pszPath: PSTR, pcchPath: *DWORD, dwFlags: DWORD) HRESULT #extern "PathCreateFromUrlA";
 UrlCreateFromPathA :: fn (pszPath: PCSTR, pszUrl: PSTR, pcchUrl: *DWORD, dwFlags: DWORD) HRESULT #extern "UrlCreateFromPathA";
