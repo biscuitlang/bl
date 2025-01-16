@@ -223,26 +223,27 @@ S_ISREG :: fn (mode: uint) bool #inline {
 	return (mode & __S_IFMT) == __S_IFREG;
 }
 
-
 stat_t :: struct {
-	st_dev: dev_t;
-	st_ino: ino_t;
-	st_nlink: nlink_t;
-	st_mode: mode_t;
-	st_uid: uid_t;
-	st_gid: gid_t;
-	_0: int;
-	st_rdev: dev_t;
-	st_size: off_t;
-	st_blksize: blksize_t;
-	st_blocks: blkcnt_t;
-	st_atime: time_t;
-	st_atime_nsec: syscall_ulong_t;
-	st_mtime: time_t;
-	st_mtime_nsec: syscall_ulong_t;
-	st_ctime: time_t;
-	st_ctime_nsec: syscall_ulong_t;
-	_1: [3]long;
+	st_dev:           dev_t;
+	st_ino:           ino_t;
+	st_nlink:         nlink_t;
+	st_mode:          mode_t;
+	st_uid:           uid_t;
+	st_gid:           gid_t;
+	_0:               uint;
+	st_rdev:          dev_t;
+	st_size:          off_t;
+	st_blksize:       blksize_t;
+	st_blocks:        blkcnt_t;
+	st_atim:          timespec;
+	st_mtim:          timespec;
+	st_ctim:          timespec;
+	_1:            [3]long;
+}
+
+timespec :: struct {
+	tv_sec:  time_t;
+	tv_nsec: long;
 }
 
 mkdir :: fn (path: *char, mode: int) int #extern "mkdir";
