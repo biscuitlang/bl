@@ -8,7 +8,7 @@ The Biscuit Language (BL) is a simple imperative programming language using LLVM
 - Contact email: [biscuitlang@gmail.com](mailto:biscuitlang@gmail.com)
 - Twitch: [here](https://www.twitch.tv/travis_md)
 
-Language design and some core principles are based on the hard work of [Jonathan Blow](https://en.wikipedia.org/wiki/Jonathan_Blow), who, over the past few years, has been working on the JAI programming language. You can watch his streams on [Twitch](https://www.twitch.tv/j_blow). I liked the idea of C++ replacement a lot from the beginning, and since Blow's project is not publicly available, I've started implementing my own language from scratch.
+Language design and a lot of core principles are based on the hard work of [Jonathan Blow](https://en.wikipedia.org/wiki/Jonathan_Blow), who, over the past few years, has been working on the JAI programming language. You can watch his streams on [Twitch](https://www.twitch.tv/j_blow). I liked the idea of C++ replacement a lot from the beginning, and since Blow's project is not publicly available, I've started implementing my language from scratch. The syntax is very similar to JAI, but it's not the same language (you cannot just compile JAI code using this compiler). In general, BL tends to be a C sequel rather than C++ replacement, the goal is to cover use cases where you're forced to pick C++ just because C lacks a particular feature, but otherwise would be fine.
 
 # Features
 * Strongly typed.
