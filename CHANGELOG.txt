@@ -1,7 +1,7 @@
 master
 ---------------------------------------------------------------------------------------
-Add #scope_module to limit symbol visibility to module only.
 Add explicit module namespacing.
+Add #scope_module to limit symbol visibility to module only.
 Add math module.
 Compiler will report all possible ambiguous symbol in case there is more of them.
 Fix module import and load to not use current working directory implicitly.
@@ -10,9 +10,22 @@ Load directive now loads source units multiple times in case the #load directive
 Module congifuration use comma separators on all platforms.
 Redesign module system.
 Remove ModuleImportPolicy.
+
 Remove named scopes (introduced by #scope directive).
-Modules injected into the module scope are accessible recursively on use-side. (We can create module merging bunch of other modules for example).
+
+	Named scopes were completely removed from the language with introduction of a new
+	module system. This reduced amount of 'using' required for 'std' for example. Imported
+	modules can be namespaced on "import" side like this: foo :: #import "std/string";
+
+Modules injected into the module scope are accessible recursively on use-side.
+
+	Modules imported into "public" module scope are accessible from outside when the module
+	gets imported. This allows creation of module merging bunch of other modules for example.
+
 Add windows flag --legacy-colors to enable old style of output coloring on Windows.
+
+	Compiler by default outputs ANSI color codes for error messages in terminal even on
+	Windows. To get back old style of coloring use --legacy-colors compiler flag.
 
 0.12.0
 ---------------------------------------------------------------------------------------
