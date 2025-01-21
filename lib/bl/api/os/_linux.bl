@@ -1,7 +1,7 @@
 // =================================================================================================
 // bl
 //
-// File:   linux.bl 
+// File:   linux.bl
 // Author: Martin Dorazil
 // Date:   2/11/19
 //
@@ -70,7 +70,7 @@ os_ftick_ms :: fn () f64 #inline {
 }
 
 os_execute :: fn (command: string_view) s32 {
-	return WEXITSTATUS(C.system(strtoc(command)));
+	return C.WEXITSTATUS(C.system(strtoc(command)));
 }
 
 os_get_last_error :: fn () (s32, string_view) #inline {
@@ -92,7 +92,7 @@ os_get_exec_path :: fn () string {
 	buf_len := cast(C.size_t) buf.len;
 	link :: "/proc/self/exe";
 	if C.readlink(auto link.ptr, auto buf.ptr, buf_len) == -1 {
-		return str_new(); 
+		return str_new();
 	}
 	return str_new(buf.ptr);
 }
@@ -200,10 +200,6 @@ std_io_read :: fn (stream: *OsStdIoStream, dest: *u8, size: s64) (s64, Error) {
 
 // @Cleanup: move to the libc???
 CLOCK_REALTIME :: 0;
-
-WEXITSTATUS :: fn (x: s32) s32 #inline {
-	return (x >> 8) & 0x000000ff;
-}
 
 _posix_clockid_t :: C.int;
 _posix_time_t    :: C.long;

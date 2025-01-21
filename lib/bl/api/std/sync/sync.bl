@@ -17,9 +17,14 @@ Semaphore :: struct {
 	value: u32;
 }
 
+MutexKind :: enum {
+	NORMAL;
+	RECURSIVE;
+}
+
 /// Initialize mutex. Call [mutex_terminate](#mutex_terminate) when mutex is no longer needed.
-mutex_init :: fn (mutex: *Mutex) Error #inline {
-	return _mutex_init(mutex);
+mutex_init :: fn (mutex: *Mutex, kind := MutexKind.NORMAL) Error #inline {
+	return _mutex_init(mutex, kind);
 }
 
 /// Terminate mutex.

@@ -139,6 +139,7 @@ pipe :: fn (p: *int /* pointer to 2 element array */) int #extern "pipe";
 dup :: fn (oldfd: int) int #extern "dup";
 dup2 :: fn (oldfd: int, newfd: int) int #extern "dup2";
 execv :: fn (file: *char, args: **char) int #extern "execv";
+execvp :: fn (file: *char, args: **char) int #extern "execvp";
 time :: fn (tloc: *time_t) time_t #extern "time";
 localtime :: fn (timep: *time_t) *tm #extern "localtime";
 strftime :: fn (buf: *char, buf_size: size_t, fmt: *char, t: *tm) size_t #extern "strftime";
@@ -154,6 +155,8 @@ poll :: fn (fds: *pollfd, nfds: nfds_t, timeout: int) int #inline {
 kill :: fn (pid: pid_t, sig: s32) s32 #inline {
 	return auto syscall(SYS_kill, auto pid, auto sig);
 }
+
+waitpid :: fn (pid: pid_t, status: *int, options: int) pid_t #extern "waitpid";
 
 DIR :: u8;
 dirent_t :: struct {
@@ -387,6 +390,26 @@ EREMOTEIO :: 121;
 EDQUOT :: 122;
 
 FIONREAD :: 0x541B;
+
+WEXITSTATUS :: fn (x: s32) s32 #inline {
+	return (x >> 8) & 0x000000ff;
+}
+
+F_DUPFD  :: 0;
+F_GETFD  :: 1;
+F_SETFD  :: 2;
+F_GETFL  :: 3;
+F_SETFL  :: 4;
+
+F_OK :: 0;
+X_OK :: (1<<0);
+W_OK :: (1<<1);
+R_OK :: (1<<2);
+
+O_NONBLOCK :: 0x800;
+
+fcntl :: fn (fd: fd_t, request: int, flags: int = 0) int #extern "fcntl";
+access :: fn (path: *char, mode: int) int #extern "access";
 
 #scope_private
 #import "os/posix/syscall"
