@@ -876,9 +876,9 @@ RELEASE:
 #undef EXIT
 }
 
-#include "assembly.c"
 #include "arena.c"
 #include "asm_writer.c"
+#include "assembly.c"
 #include "ast.c"
 #include "ast_printer.c"
 #include "bc_writer.c"

@@ -58,14 +58,14 @@ static bool arm64_apple_darwin(struct setup_context *ctx);
 static str_buf_t make_content(const struct setup_context *ctx);
 
 bool setup(const str_t filepath, const char *triple) {
-	struct setup_context ctx    = {0};
-	ctx.triple            = triple;
-	ctx.filepath          = filepath;
-	ctx.linker_executable = str_empty;
-	ctx.linker_opt_exec   = str_empty;
-	ctx.linker_opt_shared = str_empty;
-	ctx.linker_lib_path   = str_empty;
-	ctx.preload_file      = str_empty;
+	struct setup_context ctx = {0};
+	ctx.triple               = triple;
+	ctx.filepath             = filepath;
+	ctx.linker_executable    = str_empty;
+	ctx.linker_opt_exec      = str_empty;
+	ctx.linker_opt_shared    = str_empty;
+	ctx.linker_lib_path      = str_empty;
+	ctx.preload_file         = str_empty;
 
 	bool state = false;
 

@@ -3,7 +3,7 @@
 
 #if BL_PLATFORM_WIN
 
-#	include <windows.h>
+#include <windows.h>
 
 BL_EXPORT void *__dlib_open(const char *libname) {
 	if (!libname || strlen(libname) == 0) {

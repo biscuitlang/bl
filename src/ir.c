@@ -125,7 +125,7 @@ static LLVMValueRef build_call_memcpy(struct ir_context *ctx, LLVMValueRef src, 
 static LLVMValueRef rtti_emit(struct ir_context *ctx, struct mir_type *type);
 static void         rtti_satisfy_incomplete(struct ir_context *ctx, struct rtti_incomplete incomplete);
 static LLVMValueRef _rtti_emit(struct ir_context *ctx, struct mir_type *type);
-static LLVMValueRef rtti_emit_base(struct ir_context    *ctx,
+static LLVMValueRef rtti_emit_base(struct ir_context *ctx,
                                    struct mir_type   *type,
                                    enum mir_type_kind kind,
                                    usize              size,
@@ -163,47 +163,47 @@ static LLVMMetadataRef DI_unit_init(struct ir_context *ctx, struct unit *unit);
 // =================================================================================================
 // Instruction emit
 // =================================================================================================
-static enum ir_state   emit_instr(struct ir_context *ctx, struct mir_instr *instr);
-static LLVMValueRef emit_const_string(struct ir_context *ctx, const str_t s);
-static enum ir_state   emit_instr_binop(struct ir_context *ctx, struct mir_instr_binop *binop);
-static enum ir_state   emit_instr_phi(struct ir_context *ctx, struct mir_instr_phi *phi);
-static enum ir_state   emit_instr_set_initializer(struct ir_context *ctx, struct mir_instr_set_initializer *si);
-static enum ir_state   emit_instr_type_info(struct ir_context *ctx, struct mir_instr_type_info *type_info);
-static enum ir_state   emit_instr_test_cases(struct ir_context *ctx, struct mir_instr_test_case *tc);
-static enum ir_state   emit_instr_decl_ref(struct ir_context *ctx, struct mir_instr_decl_ref *ref);
-static enum ir_state   emit_instr_decl_direct_ref(struct ir_context *ctx, struct mir_instr_decl_direct_ref *ref);
-static enum ir_state   emit_instr_cast(struct ir_context *ctx, struct mir_instr_cast *cast);
-static enum ir_state   emit_instr_addrof(struct ir_context *ctx, struct mir_instr_addrof *addrof);
-static enum ir_state   emit_instr_unop(struct ir_context *ctx, struct mir_instr_unop *unop);
-static enum ir_state   emit_instr_unreachable(struct ir_context *ctx, struct mir_instr_unreachable *unr);
-static enum ir_state   emit_instr_debugbreak(struct ir_context *ctx, struct mir_instr_debugbreak *debug_break);
-static enum ir_state   emit_instr_store(struct ir_context *ctx, struct mir_instr_store *store);
-static enum ir_state   emit_instr_fn_proto(struct ir_context *ctx, struct mir_instr_fn_proto *fn_proto);
-static enum ir_state   emit_instr_block(struct ir_context *ctx, struct mir_instr_block *block);
-static enum ir_state   emit_instr_br(struct ir_context *ctx, struct mir_instr_br *br);
-static enum ir_state   emit_instr_switch(struct ir_context *ctx, struct mir_instr_switch *sw);
-static enum ir_state   emit_instr_const(struct ir_context *ctx, struct mir_instr_const *c);
-static enum ir_state   emit_instr_arg(struct ir_context *ctx, struct mir_var *dest, struct mir_instr_arg *arg);
-static enum ir_state   emit_instr_cond_br(struct ir_context *ctx, struct mir_instr_cond_br *br);
-static enum ir_state   emit_instr_ret(struct ir_context *ctx, struct mir_instr_ret *ret);
-static enum ir_state   emit_instr_decl_var(struct ir_context *ctx, struct mir_instr_decl_var *decl);
-static enum ir_state   emit_instr_load(struct ir_context *ctx, struct mir_instr_load *load);
-static enum ir_state   emit_instr_call(struct ir_context *ctx, struct mir_instr_call *call);
-static enum ir_state   emit_instr_elem_ptr(struct ir_context *ctx, struct mir_instr_elem_ptr *elem_ptr);
-static enum ir_state   emit_instr_member_ptr(struct ir_context *ctx, struct mir_instr_member_ptr *member_ptr);
-static enum ir_state   emit_instr_unroll(struct ir_context *ctx, struct mir_instr_unroll *unroll);
-static enum ir_state   emit_instr_vargs(struct ir_context *ctx, struct mir_instr_vargs *vargs);
-static enum ir_state   emit_instr_toany(struct ir_context *ctx, struct mir_instr_to_any *toany);
-static enum ir_state   emit_instr_call_loc(struct ir_context *ctx, struct mir_instr_call_loc *loc);
-static LLVMValueRef emit_global_var_proto(struct ir_context *ctx, struct mir_var *var);
-static LLVMValueRef emit_fn_proto(struct ir_context *ctx, struct mir_fn *fn, bool schedule_full_generation);
-static void         emit_allocas(struct ir_context *ctx, struct mir_fn *fn);
-static void         emit_incomplete(struct ir_context *ctx);
-static void         emit_instr_compound(struct ir_context *ctx, LLVMValueRef llvm_dest, struct mir_instr_compound *cmp);
-static LLVMValueRef _emit_instr_compound_zero_initialized(struct ir_context            *ctx,
-                                                          LLVMValueRef               llvm_dest, // optional
-                                                          struct mir_instr_compound *cmp);
-static LLVMValueRef _emit_instr_compound_comptime(struct ir_context *ctx, struct mir_instr_compound *cmp);
+static enum ir_state emit_instr(struct ir_context *ctx, struct mir_instr *instr);
+static LLVMValueRef  emit_const_string(struct ir_context *ctx, const str_t s);
+static enum ir_state emit_instr_binop(struct ir_context *ctx, struct mir_instr_binop *binop);
+static enum ir_state emit_instr_phi(struct ir_context *ctx, struct mir_instr_phi *phi);
+static enum ir_state emit_instr_set_initializer(struct ir_context *ctx, struct mir_instr_set_initializer *si);
+static enum ir_state emit_instr_type_info(struct ir_context *ctx, struct mir_instr_type_info *type_info);
+static enum ir_state emit_instr_test_cases(struct ir_context *ctx, struct mir_instr_test_case *tc);
+static enum ir_state emit_instr_decl_ref(struct ir_context *ctx, struct mir_instr_decl_ref *ref);
+static enum ir_state emit_instr_decl_direct_ref(struct ir_context *ctx, struct mir_instr_decl_direct_ref *ref);
+static enum ir_state emit_instr_cast(struct ir_context *ctx, struct mir_instr_cast *cast);
+static enum ir_state emit_instr_addrof(struct ir_context *ctx, struct mir_instr_addrof *addrof);
+static enum ir_state emit_instr_unop(struct ir_context *ctx, struct mir_instr_unop *unop);
+static enum ir_state emit_instr_unreachable(struct ir_context *ctx, struct mir_instr_unreachable *unr);
+static enum ir_state emit_instr_debugbreak(struct ir_context *ctx, struct mir_instr_debugbreak *debug_break);
+static enum ir_state emit_instr_store(struct ir_context *ctx, struct mir_instr_store *store);
+static enum ir_state emit_instr_fn_proto(struct ir_context *ctx, struct mir_instr_fn_proto *fn_proto);
+static enum ir_state emit_instr_block(struct ir_context *ctx, struct mir_instr_block *block);
+static enum ir_state emit_instr_br(struct ir_context *ctx, struct mir_instr_br *br);
+static enum ir_state emit_instr_switch(struct ir_context *ctx, struct mir_instr_switch *sw);
+static enum ir_state emit_instr_const(struct ir_context *ctx, struct mir_instr_const *c);
+static enum ir_state emit_instr_arg(struct ir_context *ctx, struct mir_var *dest, struct mir_instr_arg *arg);
+static enum ir_state emit_instr_cond_br(struct ir_context *ctx, struct mir_instr_cond_br *br);
+static enum ir_state emit_instr_ret(struct ir_context *ctx, struct mir_instr_ret *ret);
+static enum ir_state emit_instr_decl_var(struct ir_context *ctx, struct mir_instr_decl_var *decl);
+static enum ir_state emit_instr_load(struct ir_context *ctx, struct mir_instr_load *load);
+static enum ir_state emit_instr_call(struct ir_context *ctx, struct mir_instr_call *call);
+static enum ir_state emit_instr_elem_ptr(struct ir_context *ctx, struct mir_instr_elem_ptr *elem_ptr);
+static enum ir_state emit_instr_member_ptr(struct ir_context *ctx, struct mir_instr_member_ptr *member_ptr);
+static enum ir_state emit_instr_unroll(struct ir_context *ctx, struct mir_instr_unroll *unroll);
+static enum ir_state emit_instr_vargs(struct ir_context *ctx, struct mir_instr_vargs *vargs);
+static enum ir_state emit_instr_toany(struct ir_context *ctx, struct mir_instr_to_any *toany);
+static enum ir_state emit_instr_call_loc(struct ir_context *ctx, struct mir_instr_call_loc *loc);
+static LLVMValueRef  emit_global_var_proto(struct ir_context *ctx, struct mir_var *var);
+static LLVMValueRef  emit_fn_proto(struct ir_context *ctx, struct mir_fn *fn, bool schedule_full_generation);
+static void          emit_allocas(struct ir_context *ctx, struct mir_fn *fn);
+static void          emit_incomplete(struct ir_context *ctx);
+static void          emit_instr_compound(struct ir_context *ctx, LLVMValueRef llvm_dest, struct mir_instr_compound *cmp);
+static LLVMValueRef  _emit_instr_compound_zero_initialized(struct ir_context         *ctx,
+                                                           LLVMValueRef               llvm_dest, // optional
+                                                           struct mir_instr_compound *cmp);
+static LLVMValueRef  _emit_instr_compound_comptime(struct ir_context *ctx, struct mir_instr_compound *cmp);
 
 static inline LLVMValueRef emit_instr_compound_global(struct ir_context *ctx, struct mir_instr_compound *cmp) {
 	bassert(mir_is_global(&cmp->base) && "Expected global compound expression!");
@@ -976,7 +976,7 @@ enum ir_state emit_instr_unreachable(struct ir_context *ctx, struct mir_instr_un
 }
 
 // @Cleanup: we can eventually pass the whole type here instead of size and alignment.
-LLVMValueRef rtti_emit_base(struct ir_context    *ctx,
+LLVMValueRef rtti_emit_base(struct ir_context *ctx,
                             struct mir_type   *type,
                             enum mir_type_kind kind,
                             usize              size,
@@ -1971,7 +1971,7 @@ enum ir_state emit_instr_unop(struct ir_context *ctx, struct mir_instr_unop *uno
 // Generates zero initialized value from compound expression, `llvm_dest` is optional
 // specification of destination variable or GEP to be set to zero. Result LLVM value is either
 // compile time constant or `llvm_dest` if provided.
-LLVMValueRef _emit_instr_compound_zero_initialized(struct ir_context            *ctx,
+LLVMValueRef _emit_instr_compound_zero_initialized(struct ir_context         *ctx,
                                                    LLVMValueRef               llvm_dest, // optional
                                                    struct mir_instr_compound *cmp) {
 	struct mir_type *type = cmp->base.value.type;
@@ -2099,7 +2099,7 @@ LLVMValueRef _emit_instr_compound_comptime(struct ir_context *ctx, struct mir_in
 	return cmp->base.llvm_value;
 }
 
-void emit_instr_compound(struct ir_context            *ctx,
+void emit_instr_compound(struct ir_context         *ctx,
                          LLVMValueRef               llvm_dest,
                          struct mir_instr_compound *cmp) {
 	bassert(llvm_dest && "Missing temp storage for compound value!");

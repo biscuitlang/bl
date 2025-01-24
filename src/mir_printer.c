@@ -298,7 +298,7 @@ static void print_instr_type_ptr(struct mir_printer_context *ctx, struct mir_ins
 static void print_instr_type_poly(struct mir_printer_context *ctx, struct mir_instr_type_poly *type_poly);
 static void print_instr_type_array(struct mir_printer_context *ctx, struct mir_instr_type_array *type_array);
 static void print_instr_type_slice(struct mir_printer_context *ctx, struct mir_instr_type_slice *type_slice);
-static void print_instr_type_dynarr(struct mir_printer_context                *ctx,
+static void print_instr_type_dynarr(struct mir_printer_context    *ctx,
                                     struct mir_instr_type_dyn_arr *type_dynarr);
 static void print_instr_type_vargs(struct mir_printer_context *ctx, struct mir_instr_type_vargs *type_vargs);
 static void print_instr_block(struct mir_printer_context *ctx, struct mir_instr_block *block);

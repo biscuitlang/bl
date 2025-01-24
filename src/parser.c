@@ -171,7 +171,7 @@ static inline struct ast *_parse_ident(struct parser_context *ctx) {
 
 // Set function type flavor flag of current parent function type being parsed. Asserts in case there
 // is no current function type in the fn_type_stack.
-static inline void set_parent_function_type_flavor(struct parser_context               *ctx,
+static inline void set_parent_function_type_flavor(struct parser_context        *ctx,
                                                    const enum ast_type_fn_flavor flavor) {
 	bassert(
 	    arrlenu(ctx->fn_type_stack) &&

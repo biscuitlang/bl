@@ -70,9 +70,9 @@ typedef enum {
 
 typedef enum {
 #if LLVM_VERSION_MAJOR >= 10
-	#define HANDLE_DW_TAG(ID, NAME, VERSION, VENDOR, KIND) DW_TAG_##NAME = ID,
+#define HANDLE_DW_TAG(ID, NAME, VERSION, VENDOR, KIND) DW_TAG_##NAME = ID,
 #else
-	#define HANDLE_DW_TAG(ID, NAME, VERSION, VENDOR) DW_TAG_##NAME = ID,
+#define HANDLE_DW_TAG(ID, NAME, VERSION, VENDOR) DW_TAG_##NAME = ID,
 #endif
 #include "llvm/BinaryFormat/Dwarf.def"
 	DW_TAG_lo_user   = 0x4080,

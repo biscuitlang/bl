@@ -45,10 +45,10 @@ struct linker_context {
 };
 
 static bool search_library(struct linker_context *ctx,
-                           str_t           lib_name,
-                           str_t          *out_lib_name,
-                           str_t          *out_lib_dir,
-                           str_t          *out_lib_filepath) {
+                           str_t                  lib_name,
+                           str_t                 *out_lib_name,
+                           str_t                 *out_lib_dir,
+                           str_t                 *out_lib_filepath) {
 	bool found = false;
 
 	const u32             thread_index = get_worker_index();

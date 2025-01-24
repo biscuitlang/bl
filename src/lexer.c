@@ -259,7 +259,7 @@ bool scan_string(struct lex_context *ctx, struct token *tok) {
 		}
 		sarrput(&ctx->strtmp, c);
 	}
-DONE : {
+DONE: {
 	str_t str         = scdup2(ctx->string_cache, make_str(sarrdata(&ctx->strtmp), sarrlenu(&ctx->strtmp)));
 	tok->value_index  = add_token_value(ctx, (union token_value){.str = str});
 	tok->location.len = len;
@@ -399,7 +399,7 @@ bool scan_number(struct lex_context *ctx, struct token *tok) {
 
 	return true;
 
-SCAN_DOUBLE : {
+SCAN_DOUBLE: {
 	u64 e = 1;
 
 	while (true) {
