@@ -26,11 +26,17 @@
 // SOFTWARE.
 // =================================================================================================
 
+#define STB_DS_IMPLEMENTATION
+#define STBDS_REALLOC(context, ptr, size) brealloc(ptr, size)
+#define STBDS_FREE(context, ptr) bfree(ptr)
+#include "blmemory.h"
+#include "stb_ds.h"
+#undef STB_DS_IMPLEMENTATION
+
 #include "assembly.h"
 #include "builder.h"
 #include "common.h"
 #include "conf.h"
-#include "stb_ds.h"
 #include <locale.h>
 #include <stdio.h>
 #include <string.h>
@@ -869,3 +875,44 @@ RELEASE:
 
 #undef EXIT
 }
+
+#include "assembly.c"
+#include "arena.c"
+#include "asm_writer.c"
+#include "ast.c"
+#include "ast_printer.c"
+#include "bc_writer.c"
+#include "bldebug.c"
+#include "blmemory.c"
+#include "build_api.c"
+#include "builder.c"
+#include "common.c"
+#include "conf.c"
+#include "docs.c"
+#include "file_loader.c"
+#include "intrinsic.c"
+#include "ir.c"
+#include "ir_opt.c"
+#include "lexer.c"
+#include "linker.c"
+#include "lld_ld.c"
+#include "lld_link.c"
+#include "mir.c"
+#include "mir_printer.c"
+#include "mir_writer.c"
+#include "native_bin.c"
+#include "obj_writer.c"
+#include "parser.c"
+#include "scope.c"
+#include "scope_printer.c"
+#include "setup.c"
+#include "table.c"
+#include "threading.c"
+#include "tinycthread.c"
+#include "token_printer.c"
+#include "tokens.c"
+#include "unit.c"
+#include "vm.c"
+#include "vm_runner.c"
+#include "vmdbg.c"
+// #include "x86_64.c"

@@ -47,7 +47,7 @@
 	}                                                                                \
 	(void)0
 
-struct context {
+struct lex_context {
 	struct assembly      *assembly;
 	struct unit          *unit;
 	struct tokens        *tokens;
@@ -59,23 +59,23 @@ struct context {
 	s32     col;
 };
 
-static void       scan(struct context *ctx);
-static bool       scan_comment(struct context *ctx, struct token *tok, const char *term);
-static bool       scan_docs(struct context *ctx, struct token *tok);
-static bool       scan_ident(struct context *ctx, struct token *tok);
-static bool       scan_string(struct context *ctx, struct token *tok);
-static bool       scan_char(struct context *ctx, struct token *tok);
-static bool       scan_number(struct context *ctx, struct token *tok);
+static void       scan(struct lex_context *ctx);
+static bool       scan_comment(struct lex_context *ctx, struct token *tok, const char *term);
+static bool       scan_docs(struct lex_context *ctx, struct token *tok);
+static bool       scan_ident(struct lex_context *ctx, struct token *tok);
+static bool       scan_string(struct lex_context *ctx, struct token *tok);
+static bool       scan_char(struct lex_context *ctx, struct token *tok);
+static bool       scan_number(struct lex_context *ctx, struct token *tok);
 static inline int c_to_number(char c, s32 base);
 static char       scan_specch(char c);
 
-static inline u32 add_token_value(struct context *ctx, union token_value value) {
+static inline u32 add_token_value(struct lex_context *ctx, union token_value value) {
 	const u32 index = (u32)arrlenu(ctx->tokens->values);
 	arrput(ctx->tokens->values, value);
 	return index;
 }
 
-bool scan_comment(struct context *ctx, struct token *tok, const char *term) {
+bool scan_comment(struct lex_context *ctx, struct token *tok, const char *term) {
 	if (tok->sym == SYM_SHEBANG && ctx->line != 1) {
 		report_error(INVALID_TOKEN, STR_FMT " %d:%d Shebang is allowed only on the first line of the file.", STR_ARG(ctx->unit->name), ctx->line, ctx->col);
 	}
@@ -96,7 +96,7 @@ bool scan_comment(struct context *ctx, struct token *tok, const char *term) {
 	return true;
 }
 
-bool scan_docs(struct context *ctx, struct token *tok) {
+bool scan_docs(struct lex_context *ctx, struct token *tok) {
 	bassert(token_is(tok, SYM_DCOMMENT) || token_is(tok, SYM_DGCOMMENT));
 	tok->location.line = ctx->line;
 	tok->location.col  = ctx->col;
@@ -125,7 +125,7 @@ bool scan_docs(struct context *ctx, struct token *tok) {
 	return true;
 }
 
-bool scan_ident(struct context *ctx, struct token *tok) {
+bool scan_ident(struct lex_context *ctx, struct token *tok) {
 	zone();
 	tok->location.line = ctx->line;
 	tok->location.col  = ctx->col;
@@ -225,7 +225,7 @@ inline char scan_specch(char c) {
 	}
 }
 
-bool scan_string(struct context *ctx, struct token *tok) {
+bool scan_string(struct lex_context *ctx, struct token *tok) {
 	if (*ctx->c != '"') return false;
 	zone();
 	sarrclear(&ctx->strtmp);
@@ -269,7 +269,7 @@ DONE : {
 }
 }
 
-bool scan_char(struct context *ctx, struct token *tok) {
+bool scan_char(struct lex_context *ctx, struct token *tok) {
 	if (*ctx->c != '\'') return false;
 	tok->location.line = ctx->line;
 	tok->location.col  = ctx->col;
@@ -340,7 +340,7 @@ inline s32 c_to_number(char c, s32 base) {
 #endif
 }
 
-bool scan_number(struct context *ctx, struct token *tok) {
+bool scan_number(struct lex_context *ctx, struct token *tok) {
 	tok->location.line = ctx->line;
 	tok->location.col  = ctx->col;
 
@@ -442,7 +442,7 @@ SCAN_DOUBLE : {
 }
 }
 
-void scan(struct context *ctx) {
+void scan(struct lex_context *ctx) {
 	struct token tok = {0};
 SCAN:
 	tok.location.line = ctx->line;
@@ -545,7 +545,7 @@ void lexer_run(struct assembly *assembly, struct unit *unit) {
 
 	const u32 thread_index = get_worker_index();
 
-	struct context ctx = {
+	struct lex_context ctx = {
 	    .assembly     = assembly,
 	    .tokens       = &unit->tokens,
 	    .unit         = unit,
@@ -571,3 +571,5 @@ void lexer_run(struct assembly *assembly, struct unit *unit) {
 	batomic_fetch_add_s32(&assembly->stats.lexing_ms, runtime_measure_end(lex));
 	return_zone();
 }
+
+#undef report_error

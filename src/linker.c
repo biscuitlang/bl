@@ -40,11 +40,11 @@
 	}                                                                                       \
 	(void)0
 
-struct context {
+struct linker_context {
 	struct assembly *assembly;
 };
 
-static bool search_library(struct context *ctx,
+static bool search_library(struct linker_context *ctx,
                            str_t           lib_name,
                            str_t          *out_lib_name,
                            str_t          *out_lib_dir,
@@ -90,7 +90,7 @@ DONE:
 	return found;
 }
 
-void add_lib_path(struct context *ctx, const char *token) {
+void add_lib_path(struct linker_context *ctx, const char *token) {
 	if (file_exists(make_str_from_c(token))) {
 		char *path = strdup(token);
 #if BL_PLATFORM_WIN
@@ -102,13 +102,13 @@ void add_lib_path(struct context *ctx, const char *token) {
 	}
 }
 
-static void set_lib_paths(struct context *ctx) {
+static void set_lib_paths(struct linker_context *ctx) {
 	const char *lib_path = read_config(builder.config, ctx->assembly->target, "linker_lib_path", "");
 	if (!strlen(lib_path)) return;
 	process_tokens(ctx, lib_path, ENVPATH_SEPARATOR, (process_tokens_fn_t)&add_lib_path);
 }
 
-static bool link_lib(struct context *ctx, struct native_lib *lib) {
+static bool link_lib(struct linker_context *ctx, struct native_lib *lib) {
 	if (!lib) babort("invalid lib");
 	if (!lib->user_name.len) babort("invalid lib name");
 	if (!search_library(ctx, lib->user_name, &lib->filename, &lib->dir, &lib->filepath)) {
@@ -124,7 +124,7 @@ static bool link_lib(struct context *ctx, struct native_lib *lib) {
 	return lib->handle;
 }
 
-static bool link_working_environment(struct context *ctx, const char *lib_name) {
+static bool link_working_environment(struct linker_context *ctx, const char *lib_name) {
 	DLLib *handle = dlLoadLibrary(lib_name);
 	if (!handle) return false;
 
@@ -138,7 +138,7 @@ static bool link_working_environment(struct context *ctx, const char *lib_name) 
 
 void linker_run(struct assembly *assembly) {
 	zone();
-	struct context ctx;
+	struct linker_context ctx;
 	ctx.assembly = assembly;
 	builder_log("Running compile-time linker...");
 	set_lib_paths(&ctx);

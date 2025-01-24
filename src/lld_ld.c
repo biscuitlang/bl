@@ -33,13 +33,13 @@
 #include "stb_ds.h"
 
 #if BL_PLATFORM_MACOS
-#	define SHARED_EXT "dylib"
-#	define SHARED_PREFIX "lib"
-#	define LLD_FLAVOR "darwin"
+#define SHARED_EXT "dylib"
+#define SHARED_PREFIX "lib"
+#define LLD_FLAVOR "darwin"
 #else
-#	define SHARED_EXT "so"
-#	define SHARED_PREFIX "lib"
-#	define LLD_FLAVOR "gnu"
+#define SHARED_EXT "so"
+#define SHARED_PREFIX "lib"
+#define LLD_FLAVOR "gnu"
 #endif
 #define OBJECT_EXT "o"
 
@@ -48,7 +48,7 @@
 #define FLAG_OUT "-o"
 
 // Wrapper for ld linker on Unix platforms.
-static const char *get_out_extension(struct assembly *assembly) {
+static const char *ld_get_out_extension(struct assembly *assembly) {
 	switch (assembly->target->kind) {
 	case ASSEMBLY_EXECUTABLE:
 		return "";
@@ -59,7 +59,7 @@ static const char *get_out_extension(struct assembly *assembly) {
 	}
 }
 
-static const char *get_out_prefix(struct assembly *assembly) {
+static const char *ld_get_out_prefix(struct assembly *assembly) {
 	switch (assembly->target->kind) {
 	case ASSEMBLY_EXECUTABLE:
 		return "";
@@ -71,13 +71,13 @@ static const char *get_out_prefix(struct assembly *assembly) {
 	babort("Unknown output kind!");
 }
 
-static void append_lib_paths(struct assembly *assembly, str_buf_t *buf) {
+static void ld_append_lib_paths(struct assembly *assembly, str_buf_t *buf) {
 	for (usize i = 0; i < arrlenu(assembly->lib_paths); ++i) {
 		str_buf_append_fmt(buf, "{s}{s} ", FLAG_LIBPATH, assembly->lib_paths[i]);
 	}
 }
 
-static void append_libs(struct assembly *assembly, str_buf_t *buf) {
+static void ld_append_libs(struct assembly *assembly, str_buf_t *buf) {
 	for (usize i = 0; i < arrlenu(assembly->libs); ++i) {
 		struct native_lib *lib = &assembly->libs[i];
 		if (lib->is_internal) continue;
@@ -86,7 +86,7 @@ static void append_libs(struct assembly *assembly, str_buf_t *buf) {
 	}
 }
 
-static void append_default_opt(struct assembly *assembly, str_buf_t *buf) {
+static void ld_append_default_opt(struct assembly *assembly, str_buf_t *buf) {
 	const char *default_opt = "";
 	switch (assembly->target->kind) {
 	case ASSEMBLY_EXECUTABLE:
@@ -101,7 +101,7 @@ static void append_default_opt(struct assembly *assembly, str_buf_t *buf) {
 	str_buf_append_fmt(buf, "{s} ", default_opt);
 }
 
-static void append_custom_opt(struct assembly *assembly, str_buf_t *buf) {
+static void ld_append_custom_opt(struct assembly *assembly, str_buf_t *buf) {
 	const str_buf_t custom_opt = assembly->custom_linker_opt;
 	if (custom_opt.len) str_buf_append_fmt(buf, "{str} ", custom_opt);
 }
@@ -133,17 +133,17 @@ s32 lld_ld(struct assembly *assembly) {
 	// set input file
 	str_buf_append_fmt(&buf, "{str}/{s}.{s} ", out_dir, name, OBJECT_EXT);
 	// set output file
-	const char *ext    = get_out_extension(assembly);
-	const char *prefix = get_out_prefix(assembly);
+	const char *ext    = ld_get_out_extension(assembly);
+	const char *prefix = ld_get_out_prefix(assembly);
 	if (strlen(ext)) {
 		str_buf_append_fmt(&buf, "{s} {str}/{s}{s}.{s} ", FLAG_OUT, out_dir, prefix, name, ext);
 	} else {
 		str_buf_append_fmt(&buf, "{s} {str}/{s}{s} ", FLAG_OUT, out_dir, prefix, name);
 	}
-	append_lib_paths(assembly, &buf);
-	append_libs(assembly, &buf);
-	append_default_opt(assembly, &buf);
-	append_custom_opt(assembly, &buf);
+	ld_append_lib_paths(assembly, &buf);
+	ld_append_libs(assembly, &buf);
+	ld_append_default_opt(assembly, &buf);
+	ld_append_custom_opt(assembly, &buf);
 
 	builder_log(STR_FMT, STR_ARG(buf));
 	s32 state = system(str_buf_to_c(buf));
@@ -152,3 +152,11 @@ s32 lld_ld(struct assembly *assembly) {
 
 	return state;
 }
+
+#undef SHARED_EXT
+#undef SHARED_PREFIX
+#undef LLD_FLAVOR
+#undef OBJECT_EXT
+#undef FLAG_LIBPATH
+#undef FLAG_LIB
+#undef FLAG_OUT

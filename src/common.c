@@ -33,10 +33,6 @@
 #include "blmemory.h"
 #include "builder.h"
 #include "conf.h"
-#define STB_DS_IMPLEMENTATION
-#define STBDS_REALLOC(context, ptr, size) brealloc(ptr, size)
-#define STBDS_FREE(context, ptr) bfree(ptr)
-#include "stb_ds.h"
 
 #include "assembly.h"
 #include "builder.h"

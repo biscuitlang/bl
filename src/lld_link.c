@@ -44,7 +44,7 @@
 #define FLAG_ENTRY "/ENTRY"
 #define FLAG_DEBUG "/DEBUG"
 
-static const char *get_out_extension(struct assembly *assembly) {
+static const char *link_get_out_extension(struct assembly *assembly) {
 	switch (assembly->target->kind) {
 	case ASSEMBLY_EXECUTABLE:
 		return EXECUTABLE_EXT;
@@ -70,7 +70,7 @@ static void append_libs(struct assembly *assembly, str_buf_t *buf) {
 	}
 }
 
-static void append_default_opt(struct assembly *assembly, str_buf_t *buf) {
+static void link_append_default_opt(struct assembly *assembly, str_buf_t *buf) {
 	const bool is_debug = assembly->target->opt == ASSEMBLY_OPT_DEBUG ||
 	                      assembly->target->opt == ASSEMBLY_OPT_RELEASE_WITH_DEBUG_INFO;
 	if (is_debug) str_buf_append_fmt(buf, "{s} ", FLAG_DEBUG);
@@ -88,12 +88,12 @@ static void append_default_opt(struct assembly *assembly, str_buf_t *buf) {
 	str_buf_append_fmt(buf, "{s} ", default_opt);
 }
 
-static void append_custom_opt(struct assembly *assembly, str_buf_t *buf) {
+static void link_append_custom_opt(struct assembly *assembly, str_buf_t *buf) {
 	const str_buf_t custom_opt = assembly->custom_linker_opt;
 	if (custom_opt.len) str_buf_append_fmt(buf, "{str} ", custom_opt);
 }
 
-static void append_linker_exec(struct assembly *assembly, str_buf_t *buf) {
+static void link_append_linker_exec(struct assembly *assembly, str_buf_t *buf) {
 	const char *custom_linker = read_config(builder.config, assembly->target, "linker_executable", "");
 	if (strlen(custom_linker)) {
 		str_buf_append_fmt(buf, "\"{s}\" ", custom_linker);
@@ -113,15 +113,15 @@ s32 lld_link(struct assembly *assembly) {
 	str_buf_append(&buf, cstr("call "));
 
 	// set executable
-	append_linker_exec(assembly, &buf);
+	link_append_linker_exec(assembly, &buf);
 	// set input file
 	str_buf_append_fmt(&buf, "\"{str}/{s}.{s}\" ", out_dir, name, OBJECT_EXT);
 	// set output file
-	str_buf_append_fmt(&buf, "{s}:\"{str}/{s}.{s}\" ", FLAG_OUT, out_dir, name, get_out_extension(assembly));
+	str_buf_append_fmt(&buf, "{s}:\"{str}/{s}.{s}\" ", FLAG_OUT, out_dir, name, link_get_out_extension(assembly));
 	append_lib_paths(assembly, &buf);
 	append_libs(assembly, &buf);
-	append_default_opt(assembly, &buf);
-	append_custom_opt(assembly, &buf);
+	link_append_default_opt(assembly, &buf);
+	link_append_custom_opt(assembly, &buf);
 
 	builder_log(STR_FMT, STR_ARG(buf));
 	s32 state = system(str_buf_to_c(buf));
@@ -130,3 +130,13 @@ s32 lld_link(struct assembly *assembly) {
 	batomic_fetch_add_s32(&assembly->stats.linking_ms, runtime_measure_end(linking));
 	return state;
 }
+
+#undef LLD_FLAVOR
+#undef EXECUTABLE_EXT
+#undef DLL_EXT
+#undef LIB_EXT
+#undef OBJECT_EXT
+#undef FLAG_LIBPATH
+#undef FLAG_OUT
+#undef FLAG_ENTRY
+#undef FLAG_DEBUG

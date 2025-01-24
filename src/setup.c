@@ -34,7 +34,7 @@
 #include "wbs.h"
 #endif
 
-struct context {
+struct setup_context {
 	const char *triple;
 	str_t       filepath;
 
@@ -49,16 +49,16 @@ struct context {
 	struct string_cache *cache;
 };
 
-static bool default_config(struct context *ctx);
-static bool x86_64_pc_windows_msvc(struct context *ctx);
-static bool x86_64_pc_linux_gnu(struct context *ctx);
-static bool x86_64_apple_darwin(struct context *ctx);
-static bool arm64_apple_darwin(struct context *ctx);
+static bool default_config(struct setup_context *ctx);
+static bool x86_64_pc_windows_msvc(struct setup_context *ctx);
+static bool x86_64_pc_linux_gnu(struct setup_context *ctx);
+static bool x86_64_apple_darwin(struct setup_context *ctx);
+static bool arm64_apple_darwin(struct setup_context *ctx);
 
-static str_buf_t make_content(const struct context *ctx);
+static str_buf_t make_content(const struct setup_context *ctx);
 
 bool setup(const str_t filepath, const char *triple) {
-	struct context ctx    = {0};
+	struct setup_context ctx    = {0};
 	ctx.triple            = triple;
 	ctx.filepath          = filepath;
 	ctx.linker_executable = str_empty;
@@ -137,7 +137,7 @@ bool setup(const str_t filepath, const char *triple) {
 	return true;
 }
 
-str_buf_t make_content(const struct context *ctx) {
+str_buf_t make_content(const struct setup_context *ctx) {
 #define TEMPLATE                                                                                \
 	"# Automatically generated configuration file used by 'blc' compiler.\n"                    \
 	"# To generate new one use 'blc --configure' command.\n\n"                                  \
@@ -179,7 +179,7 @@ str_buf_t make_content(const struct context *ctx) {
 // =================================================================================================
 // Targets
 // =================================================================================================
-bool default_config(struct context UNUSED(*ctx)) {
+bool default_config(struct setup_context UNUSED(*ctx)) {
 	builder_warning("Automatic generation of configuration file is not supported for target triple "
 	                "'%s' empty file will be generated at '" STR_FMT "'.",
 	                ctx->triple,
@@ -188,7 +188,7 @@ bool default_config(struct context UNUSED(*ctx)) {
 }
 
 #ifdef BL_WBS
-bool x86_64_pc_windows_msvc(struct context *ctx) {
+bool x86_64_pc_windows_msvc(struct setup_context *ctx) {
 	ctx->preload_file      = cstr("os/_windows.bl");
 	ctx->linker_executable = str_empty;
 	ctx->linker_opt_exec   = cstr("/NOLOGO /ENTRY:__os_start /SUBSYSTEM:CONSOLE /INCREMENTAL:NO /MACHINE:x64");
@@ -210,7 +210,7 @@ FAILED:
 }
 #endif
 
-bool x86_64_pc_linux_gnu(struct context *ctx) {
+bool x86_64_pc_linux_gnu(struct setup_context *ctx) {
 	const str_t RUNTIME_PATH      = cstr("lib/bl/rt/blrt_x86_64_linux.o");
 	const str_t LINKER_OPT_EXEC   = cstr("-dynamic-linker /lib64/ld-linux-x86-64.so.2 -e _start");
 	const str_t LINKER_OPT_SHARED = cstr("--shared");
@@ -264,7 +264,7 @@ bool x86_64_pc_linux_gnu(struct context *ctx) {
 	return true;
 }
 
-static bool x86_64_apple_darwin(struct context *ctx) {
+static bool x86_64_apple_darwin(struct setup_context *ctx) {
 	const str_t COMMAND_LINE_TOOLS = cstr("/Library/Developer/CommandLineTools");
 	const str_t MACOS_SDK          = cstr("/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib");
 	const str_t LINKER_LIB_PATH    = cstr("/usr/lib:/usr/local/lib");
@@ -323,7 +323,7 @@ static bool x86_64_apple_darwin(struct context *ctx) {
 	return true;
 }
 
-static bool arm64_apple_darwin(struct context *ctx) {
+static bool arm64_apple_darwin(struct setup_context *ctx) {
 	const str_t COMMAND_LINE_TOOLS = cstr("/Library/Developer/CommandLineTools");
 	const str_t MACOS_SDK          = cstr("/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib");
 	const str_t LINKER_OPT_EXEC    = cstr("-e ___os_start -arch arm64");
