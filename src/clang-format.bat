@@ -1,0 +1,1 @@
+for /R %%f in (*.c *.h *.cpp) do clang-format.exe -i "%%f"
