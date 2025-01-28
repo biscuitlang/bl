@@ -26,6 +26,19 @@
 
 */
 
+// General options
+#ifdef _WIN32
+#define BL_RPMALLOC_ENABLE 1
+#define BL_SIMD_ENABLE 1
+#else
+#define BL_RPMALLOC_ENABLE 0
+#define BL_SIMD_ENABLE 0
+#endif
+
+#define BL_TRACY_ENABLE 0 // not used yet
+#define BL_EXPORT_COMPILE_COMMANDS 1
+
+// Implementation
 #define NOB_COLORS
 #define NOB_FORCE_UNIX_PATH
 #define NOB_IMPLEMENTATION
@@ -41,10 +54,6 @@
 #define ASSEMBLER "ml64"
 #define BUILD_DIR "./build"
 #define BIN_DIR "./bin"
-
-#define BL_RPMALLOC_ENABLE 1
-#define BL_TRACY_ENABLE 0 // not used yet
-#define BL_SIMD_ENABLE 1
 
 #define BL_VERSION_MAJOR 0
 #define BL_VERSION_MINOR 13
@@ -250,35 +259,37 @@ void build_blc(void) {
 
 	run_shell_cmd("DEL", "/Q", "/F", quote(BUILD_DIR "\\*.obj"));
 
-	nob_log(NOB_INFO, "Generate compilation database.");
-	String_Builder sb = {0};
-	sb_append_cstr(&sb, "[\n");
-	for (int i = 0; i < src_num; ++i) {
-		cmd_append(&cmd, COMPILER);
-		cmd_append(&cmd, src[i]);
-		cmd_append_bl_flags(&cmd);
-		if (ends_with(src[i], ".cpp")) {
-			cmd_append(&cmd, "-std:c++17");
-		} else {
-			cmd_append(&cmd, "-std:c11");
-		}
-		cmd_append_bl_includes(&cmd);
+	if (BL_EXPORT_COMPILE_COMMANDS) {
+		nob_log(NOB_INFO, "Generate compilation database.");
+		String_Builder sb = {0};
+		sb_append_cstr(&sb, "[\n");
+		for (int i = 0; i < src_num; ++i) {
+			cmd_append(&cmd, COMPILER);
+			cmd_append(&cmd, src[i]);
+			cmd_append_bl_flags(&cmd);
+			if (ends_with(src[i], ".cpp")) {
+				cmd_append(&cmd, "-std:c++17");
+			} else {
+				cmd_append(&cmd, "-std:c11");
+			}
+			cmd_append_bl_includes(&cmd);
 
-		sb_append_cstr(&sb, "{\n");
-		sb_append_cstr(&sb, temp_sprintf("\"directory\":\"%s\",\n", get_current_dir_temp()));
-		sb_append_cstr(&sb, "\"command\":\"");
-		cmd_render(cmd, &sb);
-		sb_append_cstr(&sb, "\",\n");
-		sb_append_cstr(&sb, temp_sprintf("\"file\":\"%s\"\n", src[i]));
-		if (i + 1 < src_num) {
-			sb_append_cstr(&sb, "},\n");
-		} else {
-			sb_append_cstr(&sb, "}\n");
+			sb_append_cstr(&sb, "{\n");
+			sb_append_cstr(&sb, temp_sprintf("\"directory\":\"%s\",\n", get_current_dir_temp()));
+			sb_append_cstr(&sb, "\"command\":\"");
+			cmd_render(cmd, &sb);
+			sb_append_cstr(&sb, "\",\n");
+			sb_append_cstr(&sb, temp_sprintf("\"file\":\"%s\"\n", src[i]));
+			if (i + 1 < src_num) {
+				sb_append_cstr(&sb, "},\n");
+			} else {
+				sb_append_cstr(&sb, "}\n");
+			}
+			cmd.count = 0;
 		}
-		cmd.count = 0;
+		sb_append_cstr(&sb, "]\n");
+		write_entire_file("compile_commands.json", sb.items, sb.count);
 	}
-	sb_append_cstr(&sb, "]\n");
-	write_entire_file("compile_commands.json", sb.items, sb.count);
 }
 
 void print_help(void) {
