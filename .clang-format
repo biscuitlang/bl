@@ -9,6 +9,7 @@ ColumnLimit: 0
 AlignTrailingComments: true
 AlignConsecutiveAssignments: true
 AlignConsecutiveDeclarations: true
+AlignConsecutiveMacros: true
 AlignAfterOpenBracket: Align
 
 AllowShortFunctionsOnASingleLine: false

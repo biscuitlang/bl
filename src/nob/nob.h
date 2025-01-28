@@ -329,6 +329,8 @@ typedef int Nob_Fd;
 
 Nob_Fd nob_fd_open_for_read(const char *path);
 Nob_Fd nob_fd_open_for_write(const char *path);
+bool nob_fd_create_pipe(Nob_Fd fds[2]);
+bool nob_fd_read(Nob_Fd fd, Nob_String_Builder *sb);
 void nob_fd_close(Nob_Fd fd);
 
 typedef struct {
@@ -413,6 +415,8 @@ bool nob_cmd_run_sync_and_reset(Nob_Cmd *cmd);
 bool nob_cmd_run_sync_redirect(Nob_Cmd cmd, Nob_Cmd_Redirect redirect);
 // Run redirected command synchronously and set cmd.count to 0 and close all the opened files
 bool nob_cmd_run_sync_redirect_and_reset(Nob_Cmd *cmd, Nob_Cmd_Redirect redirect);
+bool nob_cmd_run_sync_read(Nob_Cmd cmd, Nob_String_Builder *sb);
+bool nob_cmd_run_sync_read_and_reset(Nob_Cmd *cmd, Nob_String_Builder *sb);
 
 #ifndef NOB_TEMP_CAPACITY
 #define NOB_TEMP_CAPACITY (8*1024*1024)
@@ -758,10 +762,12 @@ Nob_Proc nob_cmd_run_async_redirect(Nob_Cmd cmd, Nob_Cmd_Redirect redirect)
     }
 
     Nob_String_Builder sb = {0};
+#ifndef NOB_NO_ECHO
     nob_cmd_render(cmd, &sb);
     nob_sb_append_null(&sb);
     nob_log(NOB_INFO, "CMD: %s", sb.items);
     nob_sb_free(sb);
+#endif
     memset(&sb, 0, sizeof(sb));
 
 #ifdef _WIN32
@@ -908,7 +914,7 @@ Nob_Fd nob_fd_open_for_write(const char *path)
                      O_WRONLY | O_CREAT | O_TRUNC,
                      S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     if (result < 0) {
-        nob_log(NOB_ERROR, "could not open file %s: %s", path, strerror(errno));
+        nob_log(NOB_ERROR, "Could not open file %s: %s", path, strerror(errno));
         return NOB_INVALID_FD;
     }
     return result;
@@ -934,6 +940,34 @@ Nob_Fd nob_fd_open_for_write(const char *path)
 
     return result;
 #endif // _WIN32
+}
+
+bool nob_fd_create_pipe(Nob_Fd fds[2]) {
+#ifndef _WIN32
+	if (pipe(fds) == -1) {
+		fds[0] = fds[1] = NOB_INVALID_FD;
+		nob_log(NOB_ERROR, "Could not create pipe: %s", strerror(errno));
+		return false;
+	}
+	return true;
+#else
+#endif
+}
+
+bool nob_fd_read(Nob_Fd fd, Nob_String_Builder *sb) {
+#ifndef _WIN32
+	char buffer[2048];
+	ssize_t bytes_read;
+	while ((bytes_read = read(fd, buffer, NOB_ARRAY_LEN(buffer))) > 0) {
+		nob_sb_append_buf(sb, buffer, bytes_read);
+	}
+	if (bytes_read == -1) {
+		nob_log(NOB_ERROR, "Could not read the pipe: %s", strerror(errno));
+		return false;
+	}
+	return true;
+#else
+#endif
 }
 
 void nob_fd_close(Nob_Fd fd)
@@ -1058,10 +1092,38 @@ bool nob_cmd_run_sync_redirect_and_reset(Nob_Cmd *cmd, Nob_Cmd_Redirect redirect
     return p;
 }
 
+bool nob_cmd_run_sync_read(Nob_Cmd cmd, Nob_String_Builder *sb) {
+	bool result = true;
+
+	Nob_Fd fds[2] = { NOB_INVALID_FD, NOB_INVALID_FD };
+	if (!nob_fd_create_pipe(fds)) nob_return_defer(false);
+	if (!nob_cmd_run_sync_redirect(cmd, (Nob_Cmd_Redirect){
+		.fdout = &fds[1],
+		.fderr = &fds[1], // Maybe we want to handle stderr separately, but this approach leads to simpler api.
+	})) {
+		nob_return_defer(false);
+	}
+	nob_fd_close(fds[1]);
+	fds[1] = NOB_INVALID_FD;
+	if (!nob_fd_read(fds[0], sb)) nob_return_defer(false);
+	// nob_sb_append_null(sb); // not sure about this
+
+defer:
+	nob_fd_close(fds[0]);
+	nob_fd_close(fds[1]);
+	return result;
+}
+
+bool nob_cmd_run_sync_read_and_reset(Nob_Cmd *cmd, Nob_String_Builder *sb) {
+	bool p = nob_cmd_run_sync_read(*cmd, sb);
+	cmd->count = 0;
+	return p;
+}
+
 #ifdef NOB_COLORS
-#define COLORIZE(c, x) c##x"\033[0m"
+#define COLORIZE(text, color_code) "\033[" #color_code "m" text "\033[0m"
 #else
-#define COLORIZE(c, x) x
+#define COLORIZE(text, color_code) text
 #endif
 
 void nob_log(Nob_Log_Level level, const char *fmt, ...)
@@ -1070,13 +1132,13 @@ void nob_log(Nob_Log_Level level, const char *fmt, ...)
 
     switch (level) {
     case NOB_INFO:
-        fprintf(stderr, "[" COLORIZE("\033[32m", "INFO") "] ");
+        fprintf(stderr, "[" COLORIZE("INFO", 32) "] ");
         break;
     case NOB_WARNING:
-        fprintf(stderr, "[" COLORIZE("\033[33m", "WARNING") "] ");
+        fprintf(stderr, "[" COLORIZE("WARNING", 33) "] ");
         break;
     case NOB_ERROR:
-        fprintf(stderr, "[" COLORIZE("\033[31m", "ERROR") "] ");
+        fprintf(stderr, "[" COLORIZE("ERROR", 31) "] ");
         break;
     case NOB_NO_LOGS: return;
     default:
@@ -1742,6 +1804,8 @@ int closedir(DIR *dirp)
         #define INVALID_FD NOB_INVALID_FD
         #define fd_open_for_read nob_fd_open_for_read
         #define fd_open_for_write nob_fd_open_for_write
+        #define fd_create_pipe nob_fd_create_pipe
+        #define fd_read nob_fd_read
         #define fd_close nob_fd_close
         #define Procs Nob_Procs
         #define procs_wait nob_procs_wait
@@ -1762,6 +1826,8 @@ int closedir(DIR *dirp)
         #define cmd_run_sync_and_reset nob_cmd_run_sync_and_reset
         #define cmd_run_sync_redirect nob_cmd_run_sync_redirect
         #define cmd_run_sync_redirect_and_reset nob_cmd_run_sync_redirect_and_reset
+        #define cmd_run_sync_read nob_cmd_run_sync_read
+        #define cmd_run_sync_read_and_reset nob_cmd_run_sync_read_and_reset
         #define temp_strdup nob_temp_strdup
         #define temp_alloc nob_temp_alloc
         #define temp_sprintf nob_temp_sprintf
