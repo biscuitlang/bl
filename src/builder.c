@@ -57,8 +57,7 @@ void bc_writer_run(struct assembly *assembly);
 void native_bin_run(struct assembly *assembly);
 void mir_writer_run(struct assembly *assembly);
 void asm_writer_run(struct assembly *assembly);
-void x86_64run(struct assembly *assembly) {
-}
+void x86_64run(struct assembly *assembly);
 
 static void print_scopes_run(struct assembly *assembly) {
 	assembly_dump_scope_structure(assembly, stdout, assembly->target->print_scopes_mode);

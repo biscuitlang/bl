@@ -29,8 +29,6 @@
 #ifndef BL_CONF_H
 #define BL_CONF_H
 
-#include "common.h"
-
 // Config file entries
 #define CONF_LIB_DIR_KEY "/lib_dir"
 #define CONF_VERSION "/version"

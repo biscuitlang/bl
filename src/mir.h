@@ -812,9 +812,9 @@ struct mir_instr_type_poly {
 	struct id       *T_id;
 };
 
-struct mir_context;
+struct context;
 
-typedef struct result (*mir_call_analyze_stage_fn_t)(struct mir_context    *ctx,
+typedef struct result (*mir_call_analyze_stage_fn_t)(struct context        *ctx,
                                                      struct mir_instr_call *call);
 
 // @Note: Call instruction with set base.value.is_comptime will be automatically executed during

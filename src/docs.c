@@ -57,7 +57,7 @@
 
 #define POP_IS_MULTI_RETURN(ctx) ctx->is_multi_return = _prev_is_mr
 
-struct docs_context {
+struct context {
 	struct unit *unit;
 	FILE        *stream;
 	bool         is_inline;
@@ -68,37 +68,37 @@ struct docs_context {
 	s32          indentation;
 };
 
-static void append_section(struct docs_context *ctx, const char *name, const str_t content);
+static void append_section(struct context *ctx, const char *name, const str_t content);
 
-static void doc(struct docs_context *ctx, struct ast *node);
-static void doc_unit(struct docs_context *ctx, struct unit *unit);
-static void doc_ublock(struct docs_context *ctx, struct ast *block);
-static void doc_decl_entity(struct docs_context *ctx, struct ast *decl);
-static void doc_decl_arg(struct docs_context *ctx, struct ast *decl);
-static void doc_decl_variant(struct docs_context *ctx, struct ast *decl);
-static void doc_decl_member(struct docs_context *ctx, struct ast *decl);
-static void doc_type_ptr(struct docs_context *ctx, struct ast *type);
-static void doc_type_fn(struct docs_context *ctx, struct ast *type);
-static void doc_type_enum(struct docs_context *ctx, struct ast *type);
-static void doc_type_struct(struct docs_context *ctx, struct ast *type);
-static void doc_type_slice(struct docs_context *ctx, struct ast *type);
-static void doc_type_dynarray(struct docs_context *ctx, struct ast *type);
-static void doc_type_vargs(struct docs_context *ctx, struct ast *type);
-static void doc_type_poly(struct docs_context *ctx, struct ast *type);
-static void doc_expr_lit_fn_group(struct docs_context *ctx, struct ast *lit);
+static void doc(struct context *ctx, struct ast *node);
+static void doc_unit(struct context *ctx, struct unit *unit);
+static void doc_ublock(struct context *ctx, struct ast *block);
+static void doc_decl_entity(struct context *ctx, struct ast *decl);
+static void doc_decl_arg(struct context *ctx, struct ast *decl);
+static void doc_decl_variant(struct context *ctx, struct ast *decl);
+static void doc_decl_member(struct context *ctx, struct ast *decl);
+static void doc_type_ptr(struct context *ctx, struct ast *type);
+static void doc_type_fn(struct context *ctx, struct ast *type);
+static void doc_type_enum(struct context *ctx, struct ast *type);
+static void doc_type_struct(struct context *ctx, struct ast *type);
+static void doc_type_slice(struct context *ctx, struct ast *type);
+static void doc_type_dynarray(struct context *ctx, struct ast *type);
+static void doc_type_vargs(struct context *ctx, struct ast *type);
+static void doc_type_poly(struct context *ctx, struct ast *type);
+static void doc_expr_lit_fn_group(struct context *ctx, struct ast *lit);
 
-void append_section(struct docs_context *ctx, const char *name, const str_t content) {
+void append_section(struct context *ctx, const char *name, const str_t content) {
 	H2(ctx->stream, name);
 	fprintf(ctx->stream, STR_FMT, STR_ARG(content));
 }
 
-void doc_ublock(struct docs_context *ctx, struct ast *block) {
+void doc_ublock(struct context *ctx, struct ast *block) {
 	for (usize i = 0; i < arrlenu(block->data.ublock.nodes); ++i) {
 		doc(ctx, block->data.ublock.nodes[i]);
 	}
 }
 
-void doc_decl_entity(struct docs_context *ctx, struct ast *decl) {
+void doc_decl_entity(struct context *ctx, struct ast *decl) {
 	struct ast *ident = decl->data.decl.name;
 	struct ast *type  = decl->data.decl.type;
 	struct ast *value = decl->data.decl_entity.value;
@@ -150,7 +150,7 @@ void doc_decl_entity(struct docs_context *ctx, struct ast *decl) {
 	fprintf(ctx->stream, "\n\n*File: " STR_FMT "*\n\n", STR_ARG(ctx->unit->filename));
 }
 
-void doc_decl_arg(struct docs_context *ctx, struct ast *decl) {
+void doc_decl_arg(struct context *ctx, struct ast *decl) {
 	struct ast *ident = decl->data.decl.name;
 	struct ast *type  = decl->data.decl.type;
 	struct ast *value = decl->data.decl_arg.value;
@@ -169,7 +169,7 @@ void doc_decl_arg(struct docs_context *ctx, struct ast *decl) {
 	}
 }
 
-void doc_decl_variant(struct docs_context *ctx, struct ast *decl) {
+void doc_decl_variant(struct context *ctx, struct ast *decl) {
 	struct ast *ident = decl->data.decl.name;
 	struct ast *value = decl->data.decl_variant.value;
 	if (ident) {
@@ -185,7 +185,7 @@ void doc_decl_variant(struct docs_context *ctx, struct ast *decl) {
 	}
 }
 
-void doc_decl_member(struct docs_context *ctx, struct ast *decl) {
+void doc_decl_member(struct context *ctx, struct ast *decl) {
 	struct ast *ident = decl->data.decl.name;
 	struct ast *type  = decl->data.decl.type;
 	if (ident) {
@@ -199,7 +199,7 @@ void doc_decl_member(struct docs_context *ctx, struct ast *decl) {
 	doc(ctx, type);
 }
 
-void doc_type_fn(struct docs_context *ctx, struct ast *type) {
+void doc_type_fn(struct context *ctx, struct ast *type) {
 	struct ast *ret_type = type->data.type_fn.ret_type;
 	fprintf(ctx->stream, "fn (");
 	PUSH_IS_INLINE(ctx);
@@ -217,7 +217,7 @@ void doc_type_fn(struct docs_context *ctx, struct ast *type) {
 	POP_IS_INLINE(ctx);
 }
 
-void doc_type_enum(struct docs_context *ctx, struct ast *type) {
+void doc_type_enum(struct context *ctx, struct ast *type) {
 	fprintf(ctx->stream, "enum ");
 	if (type->data.type_enm.type) {
 		doc(ctx, type->data.type_enm.type);
@@ -236,7 +236,7 @@ void doc_type_enum(struct docs_context *ctx, struct ast *type) {
 	fprintf(ctx->stream, "\n}");
 }
 
-void doc_type_struct(struct docs_context *ctx, struct ast *type) {
+void doc_type_struct(struct context *ctx, struct ast *type) {
 	if (!ctx->is_multi_return)
 		if (type->data.type_strct.is_union)
 			fprintf(ctx->stream, "union {");
@@ -267,19 +267,19 @@ void doc_type_struct(struct docs_context *ctx, struct ast *type) {
 	}
 }
 
-void doc_type_slice(struct docs_context *ctx, struct ast *type) {
+void doc_type_slice(struct context *ctx, struct ast *type) {
 	struct ast *elem_type = type->data.type_slice.elem_type;
 	fprintf(ctx->stream, "[]");
 	doc(ctx, elem_type);
 }
 
-void doc_type_dynarray(struct docs_context *ctx, struct ast *type) {
+void doc_type_dynarray(struct context *ctx, struct ast *type) {
 	struct ast *elem_type = type->data.type_dynarr.elem_type;
 	fprintf(ctx->stream, "[..]");
 	doc(ctx, elem_type);
 }
 
-void doc_ref(struct docs_context *ctx, struct ast *ref) {
+void doc_ref(struct context *ctx, struct ast *ref) {
 	struct ast *ident           = ref->data.ref.ident;
 	struct ast *ident_namespace = ref->data.ref.next;
 	if (ident_namespace) {
@@ -291,25 +291,25 @@ void doc_ref(struct docs_context *ctx, struct ast *ref) {
 	fprintf(ctx->stream, STR_FMT, STR_ARG(name));
 }
 
-void doc_type_ptr(struct docs_context *ctx, struct ast *type) {
+void doc_type_ptr(struct context *ctx, struct ast *type) {
 	struct ast *next_type = type->data.type_ptr.type;
 	fprintf(ctx->stream, "*");
 	doc(ctx, next_type);
 }
 
-void doc_type_vargs(struct docs_context *ctx, struct ast *type) {
+void doc_type_vargs(struct context *ctx, struct ast *type) {
 	struct ast *next_type = type->data.type_vargs.type;
 	fprintf(ctx->stream, "...");
 	doc(ctx, next_type);
 }
 
-void doc_type_poly(struct docs_context *ctx, struct ast *type) {
+void doc_type_poly(struct context *ctx, struct ast *type) {
 	struct ast *ident = type->data.type_poly.ident;
 	const str_t name  = ident->data.ident.id.str;
 	fprintf(ctx->stream, "?" STR_FMT, STR_ARG(name));
 }
 
-void doc_expr_lit_fn_group(struct docs_context *ctx, struct ast *lit) {
+void doc_expr_lit_fn_group(struct context *ctx, struct ast *lit) {
 	ast_nodes_t *variants = lit->data.expr_fn_group.variants;
 	fprintf(ctx->stream, "fn { ");
 	ctx->indentation += 1;
@@ -323,7 +323,7 @@ void doc_expr_lit_fn_group(struct docs_context *ctx, struct ast *lit) {
 	fprintf(ctx->stream, "\n}");
 }
 
-void doc(struct docs_context *ctx, struct ast *node) {
+void doc(struct context *ctx, struct ast *node) {
 	if (!node) return;
 	switch (node->kind) {
 	case AST_UBLOCK:
@@ -422,7 +422,7 @@ void doc(struct docs_context *ctx, struct ast *node) {
 	}
 }
 
-void doc_unit(struct docs_context *ctx, struct unit *unit) {
+void doc_unit(struct context *ctx, struct unit *unit) {
 	if (!unit->filename.len) return;
 	str_buf_t unit_name = get_tmp_str();
 	str_t     name      = unit->filename;
@@ -459,8 +459,8 @@ DONE:
 
 void docs_run(struct assembly *assembly) {
 	zone();
-	struct docs_context ctx;
-	memset(&ctx, 0, sizeof(struct docs_context));
+	struct context ctx;
+	memset(&ctx, 0, sizeof(struct context));
 	str_buf_setcap(&ctx.section_variants, 128);
 	str_buf_setcap(&ctx.section_members, 128);
 	ctx.output_directory = make_str_from_c(builder.options->doc_out_dir);

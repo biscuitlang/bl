@@ -59,7 +59,7 @@ static inline void _print_head(struct ast *node, s32 pad, FILE *stream) {
 	print_address(node, stream);
 }
 
-static inline void print_ast_flags(u32 flags, FILE *stream) {
+static inline void print_flags(u32 flags, FILE *stream) {
 	if (!flags) return;
 	if (isflag(flags, FLAG_EXTERN)) fprintf(stream, " #extern");
 	if (isflag(flags, FLAG_TEST_FN)) fprintf(stream, " #test");
@@ -322,7 +322,7 @@ void print_decl_entity(struct ast *entity, s32 pad, FILE *stream) {
 	        STR_ARG(name),
 	        entity->data.decl_entity.mut ? "mutable" : "immutable");
 
-	print_ast_flags(entity->data.decl.flags, stream);
+	print_flags(entity->data.decl.flags, stream);
 	print_node((struct ast *)entity->data.decl.type, pad + 1, stream);
 	print_node((struct ast *)entity->data.decl_entity.value, pad + 1, stream);
 }

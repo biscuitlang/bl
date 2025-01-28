@@ -27,11 +27,11 @@ freely, subject to the following restrictions:
 
 /* Platform specific includes */
 #if defined(_TTHREAD_POSIX_)
-#include <errno.h>
-#include <sched.h>
 #include <signal.h>
-#include <sys/time.h>
+#include <sched.h>
 #include <unistd.h>
+#include <sys/time.h>
+#include <errno.h>
 #elif defined(_TTHREAD_WIN32_)
 #include <process.h>
 #include <sys/timeb.h>

@@ -32,7 +32,7 @@
 #include "stb_ds.h"
 #include "table.h"
 
-enum vmdb_state {
+enum state {
 	CONTINUE,
 	STEPPING,
 };
@@ -42,13 +42,13 @@ struct stack_context {
 	array(uintptr_t) stackops;
 };
 
-static enum vmdb_state         state                  = CONTINUE;
+static enum state              state                  = CONTINUE;
 static bool                    mir_mode               = false;
 static bool                    verbose_stack          = false;
 static struct virtual_machine *current_vm             = NULL;
 static hash_table(struct stack_context) stack_context = NULL;
 
-static void vmdbg_print_instr(struct mir_instr *instr) {
+static void print(struct mir_instr *instr) {
 	if (!mir_mode && instr->node && instr->node->location) {
 		builder_print_location(stdout, instr->node->location, 0, 0);
 	} else {
@@ -65,7 +65,7 @@ static void vmdbg_print_instr(struct mir_instr *instr) {
 	}
 }
 
-static void vmdbg_print_data(struct mir_type *type, vm_stack_ptr_t ptr) {
+static void print_data(struct mir_type *type, vm_stack_ptr_t ptr) {
 	printf("(%p) ", ptr);
 	if (!type) return;
 
@@ -143,7 +143,7 @@ static void print_variable(struct mir_var *var) {
 	}
 
 	vm_stack_ptr_t data = vm_read_var(current_vm, var);
-	vmdbg_print_data(var->value.type, data);
+	print_data(var->value.type, data);
 	printf("\n");
 }
 
@@ -187,7 +187,7 @@ NEXT:
 	} else if (CMD("c", "continue")) {
 		state = CONTINUE;
 	} else if (CMD("p", "print")) {
-		vmdbg_print_instr(current_vm->stack->pc);
+		print(current_vm->stack->pc);
 		goto NEXT;
 	} else if (CMD("pl", "print-locals")) {
 		print_local_variables(current_vm->stack->pc);
@@ -253,7 +253,7 @@ void vmdbg_notify_instr(struct mir_instr *instr) {
 	if (!current_vm) return;
 	if (state != STEPPING) return;
 	if (mir_mode) {
-		vmdbg_print_instr(instr);
+		print(instr);
 	} else if (instr->node && instr->node->location) {
 		struct location *loc = instr->node->location;
 		if (last_unit == loc->unit && last_line == loc->line) {
@@ -261,7 +261,7 @@ void vmdbg_notify_instr(struct mir_instr *instr) {
 		}
 		last_unit = loc->unit;
 		last_line = loc->line;
-		vmdbg_print_instr(instr);
+		print(instr);
 	} else {
 		return;
 	}
@@ -380,7 +380,7 @@ void vmdbg_notify_stack_op(enum vmdbg_stack_op op, struct mir_type *type, void *
 	case VMDBG_POP:
 		if (!pop_is_valid(ptr)) {
 			builder_error("Invalid POP operation on address %p", ptr);
-			vmdbg_print_instr(vm->stack->pc);
+			print(vm->stack->pc);
 			vm_print_backtrace(vm);
 			babort("Stack memory corrupted!");
 		}
@@ -388,7 +388,7 @@ void vmdbg_notify_stack_op(enum vmdbg_stack_op op, struct mir_type *type, void *
 	case VMDBG_POP_RA:
 		if (!rollback_is_valid(ptr)) {
 			builder_error("Invalid POP RA rollback operation on address %p", ptr);
-			vmdbg_print_instr(vm->stack->pc);
+			print(vm->stack->pc);
 			vm_print_backtrace(vm);
 			babort("Stack memory corrupted!");
 		}

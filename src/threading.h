@@ -35,7 +35,7 @@
 
 extern thrd_t MAIN_THREAD;
 
-struct x64_context;
+struct context;
 struct mir_instr;
 
 struct job_context {
@@ -46,8 +46,8 @@ struct job_context {
 		} unit;
 
 		struct x64 {
-			struct x64_context *ctx;
-			struct mir_instr   *top_instr;
+			struct context   *ctx;
+			struct mir_instr *top_instr;
 		} x64;
 	};
 };

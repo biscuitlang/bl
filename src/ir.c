@@ -58,7 +58,7 @@ struct rtti_incomplete {
 	struct mir_type *type;
 };
 
-enum ir_state {
+enum state {
 	STATE_PASSED,
 	STATE_POSTPONE,
 };
@@ -72,7 +72,7 @@ struct cache_entry {
 	LLVMValueRef value;
 };
 
-struct ir_context {
+struct context {
 	struct assembly *assembly;
 
 	// Used for the 1st pass.
@@ -111,108 +111,108 @@ struct ir_context {
 // =================================================================================================
 // Tests
 // =================================================================================================
-static struct mir_var *testing_fetch_meta(struct ir_context *ctx);
-static LLVMValueRef    testing_emit_meta_case(struct ir_context *ctx, struct mir_fn *fn);
+static struct mir_var *testing_fetch_meta(struct context *ctx);
+static LLVMValueRef    testing_emit_meta_case(struct context *ctx, struct mir_fn *fn);
 
 // =================================================================================================
 // Intrinsic helpers
 // =================================================================================================
-static LLVMValueRef build_call_memcpy(struct ir_context *ctx, LLVMValueRef src, LLVMValueRef dest, const usize size_bytes);
+static LLVMValueRef build_call_memcpy(struct context *ctx, LLVMValueRef src, LLVMValueRef dest, const usize size_bytes);
 
 // =================================================================================================
 // RTTI
 // =================================================================================================
-static LLVMValueRef rtti_emit(struct ir_context *ctx, struct mir_type *type);
-static void         rtti_satisfy_incomplete(struct ir_context *ctx, struct rtti_incomplete incomplete);
-static LLVMValueRef _rtti_emit(struct ir_context *ctx, struct mir_type *type);
-static LLVMValueRef rtti_emit_base(struct ir_context *ctx,
+static LLVMValueRef rtti_emit(struct context *ctx, struct mir_type *type);
+static void         rtti_satisfy_incomplete(struct context *ctx, struct rtti_incomplete incomplete);
+static LLVMValueRef _rtti_emit(struct context *ctx, struct mir_type *type);
+static LLVMValueRef rtti_emit_base(struct context    *ctx,
                                    struct mir_type   *type,
                                    enum mir_type_kind kind,
                                    usize              size,
                                    s8                 alignment);
-static LLVMValueRef rtti_emit_integer(struct ir_context *ctx, struct mir_type *type);
-static LLVMValueRef rtti_emit_real(struct ir_context *ctx, struct mir_type *type);
-static LLVMValueRef rtti_emit_array(struct ir_context *ctx, struct mir_type *type);
-static LLVMValueRef rtti_emit_empty(struct ir_context *ctx, struct mir_type *type, struct mir_type *rtti_type);
-static LLVMValueRef rtti_emit_enum(struct ir_context *ctx, struct mir_type *type);
-static LLVMValueRef rtti_emit_enum_variant(struct ir_context *ctx, struct mir_variant *variant);
-static LLVMValueRef rtti_emit_enum_variants_array(struct ir_context *ctx, mir_variants_t *variants);
-static LLVMValueRef rtti_emit_enum_variants_slice(struct ir_context *ctx, mir_variants_t *variants);
-static LLVMValueRef rtti_emit_struct(struct ir_context *ctx, struct mir_type *type);
-static LLVMValueRef rtti_emit_struct_member(struct ir_context *ctx, struct mir_member *member);
-static LLVMValueRef rtti_emit_struct_members_array(struct ir_context *ctx, mir_members_t *members);
-static LLVMValueRef rtti_emit_struct_members_slice(struct ir_context *ctx, mir_members_t *members);
-static LLVMValueRef rtti_emit_fn(struct ir_context *ctx, struct mir_type *type);
-static LLVMValueRef rtti_emit_fn_arg(struct ir_context *ctx, struct mir_arg *arg);
-static LLVMValueRef rtti_emit_fn_args_array(struct ir_context *ctx, mir_args_t *args);
-static LLVMValueRef rtti_emit_fn_args_slice(struct ir_context *ctx, mir_args_t *args);
-static LLVMValueRef rtti_emit_fn_group(struct ir_context *ctx, struct mir_type *type);
-static LLVMValueRef rtti_emit_fn_slice(struct ir_context *ctx, mir_types_t *fns);
-static LLVMValueRef rtti_emit_fn_array(struct ir_context *ctx, mir_types_t *fns);
+static LLVMValueRef rtti_emit_integer(struct context *ctx, struct mir_type *type);
+static LLVMValueRef rtti_emit_real(struct context *ctx, struct mir_type *type);
+static LLVMValueRef rtti_emit_array(struct context *ctx, struct mir_type *type);
+static LLVMValueRef rtti_emit_empty(struct context *ctx, struct mir_type *type, struct mir_type *rtti_type);
+static LLVMValueRef rtti_emit_enum(struct context *ctx, struct mir_type *type);
+static LLVMValueRef rtti_emit_enum_variant(struct context *ctx, struct mir_variant *variant);
+static LLVMValueRef rtti_emit_enum_variants_array(struct context *ctx, mir_variants_t *variants);
+static LLVMValueRef rtti_emit_enum_variants_slice(struct context *ctx, mir_variants_t *variants);
+static LLVMValueRef rtti_emit_struct(struct context *ctx, struct mir_type *type);
+static LLVMValueRef rtti_emit_struct_member(struct context *ctx, struct mir_member *member);
+static LLVMValueRef rtti_emit_struct_members_array(struct context *ctx, mir_members_t *members);
+static LLVMValueRef rtti_emit_struct_members_slice(struct context *ctx, mir_members_t *members);
+static LLVMValueRef rtti_emit_fn(struct context *ctx, struct mir_type *type);
+static LLVMValueRef rtti_emit_fn_arg(struct context *ctx, struct mir_arg *arg);
+static LLVMValueRef rtti_emit_fn_args_array(struct context *ctx, mir_args_t *args);
+static LLVMValueRef rtti_emit_fn_args_slice(struct context *ctx, mir_args_t *args);
+static LLVMValueRef rtti_emit_fn_group(struct context *ctx, struct mir_type *type);
+static LLVMValueRef rtti_emit_fn_slice(struct context *ctx, mir_types_t *fns);
+static LLVMValueRef rtti_emit_fn_array(struct context *ctx, mir_types_t *fns);
 
 // =================================================================================================
 // Debug info
 // =================================================================================================
-static void            emit_DI_fn(struct ir_context *ctx, struct mir_fn *fn);    // @CLEANUP rename
-static void            emit_DI_var(struct ir_context *ctx, struct mir_var *var); // @CLEANUP rename
-static LLVMMetadataRef DI_type_init(struct ir_context *ctx, struct mir_type *type);
-static LLVMMetadataRef DI_complete_type(struct ir_context *ctx, struct mir_type *type);
-static LLVMMetadataRef DI_scope_init(struct ir_context *ctx, struct scope *scope);
-static LLVMMetadataRef DI_unit_init(struct ir_context *ctx, struct unit *unit);
+static void            emit_DI_fn(struct context *ctx, struct mir_fn *fn);    // @CLEANUP rename
+static void            emit_DI_var(struct context *ctx, struct mir_var *var); // @CLEANUP rename
+static LLVMMetadataRef DI_type_init(struct context *ctx, struct mir_type *type);
+static LLVMMetadataRef DI_complete_type(struct context *ctx, struct mir_type *type);
+static LLVMMetadataRef DI_scope_init(struct context *ctx, struct scope *scope);
+static LLVMMetadataRef DI_unit_init(struct context *ctx, struct unit *unit);
 
 // =================================================================================================
 // Instruction emit
 // =================================================================================================
-static enum ir_state emit_instr(struct ir_context *ctx, struct mir_instr *instr);
-static LLVMValueRef  emit_const_string(struct ir_context *ctx, const str_t s);
-static enum ir_state emit_instr_binop(struct ir_context *ctx, struct mir_instr_binop *binop);
-static enum ir_state emit_instr_phi(struct ir_context *ctx, struct mir_instr_phi *phi);
-static enum ir_state emit_instr_set_initializer(struct ir_context *ctx, struct mir_instr_set_initializer *si);
-static enum ir_state emit_instr_type_info(struct ir_context *ctx, struct mir_instr_type_info *type_info);
-static enum ir_state emit_instr_test_cases(struct ir_context *ctx, struct mir_instr_test_case *tc);
-static enum ir_state emit_instr_decl_ref(struct ir_context *ctx, struct mir_instr_decl_ref *ref);
-static enum ir_state emit_instr_decl_direct_ref(struct ir_context *ctx, struct mir_instr_decl_direct_ref *ref);
-static enum ir_state emit_instr_cast(struct ir_context *ctx, struct mir_instr_cast *cast);
-static enum ir_state emit_instr_addrof(struct ir_context *ctx, struct mir_instr_addrof *addrof);
-static enum ir_state emit_instr_unop(struct ir_context *ctx, struct mir_instr_unop *unop);
-static enum ir_state emit_instr_unreachable(struct ir_context *ctx, struct mir_instr_unreachable *unr);
-static enum ir_state emit_instr_debugbreak(struct ir_context *ctx, struct mir_instr_debugbreak *debug_break);
-static enum ir_state emit_instr_store(struct ir_context *ctx, struct mir_instr_store *store);
-static enum ir_state emit_instr_fn_proto(struct ir_context *ctx, struct mir_instr_fn_proto *fn_proto);
-static enum ir_state emit_instr_block(struct ir_context *ctx, struct mir_instr_block *block);
-static enum ir_state emit_instr_br(struct ir_context *ctx, struct mir_instr_br *br);
-static enum ir_state emit_instr_switch(struct ir_context *ctx, struct mir_instr_switch *sw);
-static enum ir_state emit_instr_const(struct ir_context *ctx, struct mir_instr_const *c);
-static enum ir_state emit_instr_arg(struct ir_context *ctx, struct mir_var *dest, struct mir_instr_arg *arg);
-static enum ir_state emit_instr_cond_br(struct ir_context *ctx, struct mir_instr_cond_br *br);
-static enum ir_state emit_instr_ret(struct ir_context *ctx, struct mir_instr_ret *ret);
-static enum ir_state emit_instr_decl_var(struct ir_context *ctx, struct mir_instr_decl_var *decl);
-static enum ir_state emit_instr_load(struct ir_context *ctx, struct mir_instr_load *load);
-static enum ir_state emit_instr_call(struct ir_context *ctx, struct mir_instr_call *call);
-static enum ir_state emit_instr_elem_ptr(struct ir_context *ctx, struct mir_instr_elem_ptr *elem_ptr);
-static enum ir_state emit_instr_member_ptr(struct ir_context *ctx, struct mir_instr_member_ptr *member_ptr);
-static enum ir_state emit_instr_unroll(struct ir_context *ctx, struct mir_instr_unroll *unroll);
-static enum ir_state emit_instr_vargs(struct ir_context *ctx, struct mir_instr_vargs *vargs);
-static enum ir_state emit_instr_toany(struct ir_context *ctx, struct mir_instr_to_any *toany);
-static enum ir_state emit_instr_call_loc(struct ir_context *ctx, struct mir_instr_call_loc *loc);
-static LLVMValueRef  emit_global_var_proto(struct ir_context *ctx, struct mir_var *var);
-static LLVMValueRef  emit_fn_proto(struct ir_context *ctx, struct mir_fn *fn, bool schedule_full_generation);
-static void          emit_allocas(struct ir_context *ctx, struct mir_fn *fn);
-static void          emit_incomplete(struct ir_context *ctx);
-static void          emit_instr_compound(struct ir_context *ctx, LLVMValueRef llvm_dest, struct mir_instr_compound *cmp);
-static LLVMValueRef  _emit_instr_compound_zero_initialized(struct ir_context         *ctx,
-                                                           LLVMValueRef               llvm_dest, // optional
-                                                           struct mir_instr_compound *cmp);
-static LLVMValueRef  _emit_instr_compound_comptime(struct ir_context *ctx, struct mir_instr_compound *cmp);
+static enum state   emit_instr(struct context *ctx, struct mir_instr *instr);
+static LLVMValueRef emit_const_string(struct context *ctx, const str_t s);
+static enum state   emit_instr_binop(struct context *ctx, struct mir_instr_binop *binop);
+static enum state   emit_instr_phi(struct context *ctx, struct mir_instr_phi *phi);
+static enum state   emit_instr_set_initializer(struct context *ctx, struct mir_instr_set_initializer *si);
+static enum state   emit_instr_type_info(struct context *ctx, struct mir_instr_type_info *type_info);
+static enum state   emit_instr_test_cases(struct context *ctx, struct mir_instr_test_case *tc);
+static enum state   emit_instr_decl_ref(struct context *ctx, struct mir_instr_decl_ref *ref);
+static enum state   emit_instr_decl_direct_ref(struct context *ctx, struct mir_instr_decl_direct_ref *ref);
+static enum state   emit_instr_cast(struct context *ctx, struct mir_instr_cast *cast);
+static enum state   emit_instr_addrof(struct context *ctx, struct mir_instr_addrof *addrof);
+static enum state   emit_instr_unop(struct context *ctx, struct mir_instr_unop *unop);
+static enum state   emit_instr_unreachable(struct context *ctx, struct mir_instr_unreachable *unr);
+static enum state   emit_instr_debugbreak(struct context *ctx, struct mir_instr_debugbreak *debug_break);
+static enum state   emit_instr_store(struct context *ctx, struct mir_instr_store *store);
+static enum state   emit_instr_fn_proto(struct context *ctx, struct mir_instr_fn_proto *fn_proto);
+static enum state   emit_instr_block(struct context *ctx, struct mir_instr_block *block);
+static enum state   emit_instr_br(struct context *ctx, struct mir_instr_br *br);
+static enum state   emit_instr_switch(struct context *ctx, struct mir_instr_switch *sw);
+static enum state   emit_instr_const(struct context *ctx, struct mir_instr_const *c);
+static enum state   emit_instr_arg(struct context *ctx, struct mir_var *dest, struct mir_instr_arg *arg);
+static enum state   emit_instr_cond_br(struct context *ctx, struct mir_instr_cond_br *br);
+static enum state   emit_instr_ret(struct context *ctx, struct mir_instr_ret *ret);
+static enum state   emit_instr_decl_var(struct context *ctx, struct mir_instr_decl_var *decl);
+static enum state   emit_instr_load(struct context *ctx, struct mir_instr_load *load);
+static enum state   emit_instr_call(struct context *ctx, struct mir_instr_call *call);
+static enum state   emit_instr_elem_ptr(struct context *ctx, struct mir_instr_elem_ptr *elem_ptr);
+static enum state   emit_instr_member_ptr(struct context *ctx, struct mir_instr_member_ptr *member_ptr);
+static enum state   emit_instr_unroll(struct context *ctx, struct mir_instr_unroll *unroll);
+static enum state   emit_instr_vargs(struct context *ctx, struct mir_instr_vargs *vargs);
+static enum state   emit_instr_toany(struct context *ctx, struct mir_instr_to_any *toany);
+static enum state   emit_instr_call_loc(struct context *ctx, struct mir_instr_call_loc *loc);
+static LLVMValueRef emit_global_var_proto(struct context *ctx, struct mir_var *var);
+static LLVMValueRef emit_fn_proto(struct context *ctx, struct mir_fn *fn, bool schedule_full_generation);
+static void         emit_allocas(struct context *ctx, struct mir_fn *fn);
+static void         emit_incomplete(struct context *ctx);
+static void         emit_instr_compound(struct context *ctx, LLVMValueRef llvm_dest, struct mir_instr_compound *cmp);
+static LLVMValueRef _emit_instr_compound_zero_initialized(struct context            *ctx,
+                                                          LLVMValueRef               llvm_dest, // optional
+                                                          struct mir_instr_compound *cmp);
+static LLVMValueRef _emit_instr_compound_comptime(struct context *ctx, struct mir_instr_compound *cmp);
 
-static inline LLVMValueRef emit_instr_compound_global(struct ir_context *ctx, struct mir_instr_compound *cmp) {
+static inline LLVMValueRef emit_instr_compound_global(struct context *ctx, struct mir_instr_compound *cmp) {
 	bassert(mir_is_global(&cmp->base) && "Expected global compound expression!");
 	bassert(mir_is_comptime(&cmp->base) && "Expected compile time known compound expression!");
 	bassert(!cmp->is_naked && "Global compound expression cannot be naked!");
 	return _emit_instr_compound_comptime(ctx, cmp);
 }
 
-static inline LLVMTypeRef get_type(struct ir_context *ctx, struct mir_type *t) {
+static inline LLVMTypeRef get_type(struct context *ctx, struct mir_type *t) {
 	bassert(t);
 	bassert(t->llvm_type && "Invalid type reference for LLVM!");
 	bassert(t->kind != MIR_TYPE_INVALID);
@@ -226,7 +226,7 @@ static inline LLVMTypeRef get_type(struct ir_context *ctx, struct mir_type *t) {
 	return t->llvm_type;
 }
 
-static enum ir_state emit_instr_compound_naked(struct ir_context *ctx, struct mir_instr_compound *cmp) {
+static enum state emit_instr_compound_naked(struct context *ctx, struct mir_instr_compound *cmp) {
 	bassert(cmp->is_naked && "Expected naked compound initializer!");
 	bassert(cmp->tmp_var && "Missing tmp variable for naked compound instruction!");
 	bassert(!mir_is_global(&cmp->base) && "Global compound cannot be naked!");
@@ -239,7 +239,7 @@ static enum ir_state emit_instr_compound_naked(struct ir_context *ctx, struct mi
 	return STATE_PASSED;
 }
 
-static inline void emit_DI_instr_loc(struct ir_context *ctx, struct mir_instr *instr) {
+static inline void emit_DI_instr_loc(struct context *ctx, struct mir_instr *instr) {
 	bassert(instr && "Invalid instruction!");
 	bassert(instr->node && "Invalid instruction ast node!");
 	struct scope    *scope = instr->node->owner_scope;
@@ -253,7 +253,7 @@ static inline void emit_DI_instr_loc(struct ir_context *ctx, struct mir_instr *i
 	LLVMSetCurrentDebugLocation2(ctx->llvm_builder, llvm_loc);
 }
 
-static inline LLVMValueRef llvm_lookup_fn(struct ir_context *ctx, const str_t name) {
+static inline LLVMValueRef llvm_lookup_fn(struct context *ctx, const str_t name) {
 	zone();
 	const hash_t hash  = strhash(name);
 	const s64    index = tbl_lookup_index_with_key(ctx->llvm_fn_cache, hash, name);
@@ -261,7 +261,7 @@ static inline LLVMValueRef llvm_lookup_fn(struct ir_context *ctx, const str_t na
 	return_zone(ctx->llvm_fn_cache[index].value);
 }
 
-static inline LLVMValueRef llvm_cache_fn(struct ir_context *ctx, str_t name, LLVMValueRef llvm_fn) {
+static inline LLVMValueRef llvm_cache_fn(struct context *ctx, str_t name, LLVMValueRef llvm_fn) {
 	zone();
 	const hash_t       hash  = strhash(name);
 	struct cache_entry entry = {
@@ -277,7 +277,7 @@ static inline bool is_initialized(LLVMValueRef constant) {
 	return constant && LLVMGetInitializer(constant);
 }
 
-static inline LLVMBasicBlockRef emit_basic_block(struct ir_context *ctx, struct mir_instr_block *block) {
+static inline LLVMBasicBlockRef emit_basic_block(struct context *ctx, struct mir_instr_block *block) {
 	if (!block) return NULL;
 	LLVMBasicBlockRef llvm_block = NULL;
 	if (!block->base.llvm_value) {
@@ -289,7 +289,7 @@ static inline LLVMBasicBlockRef emit_basic_block(struct ir_context *ctx, struct 
 	return llvm_block;
 }
 
-static void process_queue(struct ir_context *ctx) {
+static void process_queue(struct context *ctx) {
 	struct mir_instr *instr;
 	while (qmaybeswap(&ctx->queue)) {
 		instr = qpop_front(&ctx->queue);
@@ -298,7 +298,7 @@ static void process_queue(struct ir_context *ctx) {
 	}
 }
 
-str_t ir_get_intrinsic(const str_t name) {
+str_t get_intrinsic(const str_t name) {
 	if (!name.len) return str_empty;
 	if (str_match(name, cstr("sin.f32"))) return cstr("llvm.sin.f32");
 	if (str_match(name, cstr("sin.f64"))) return cstr("llvm.sin.f64");
@@ -330,7 +330,7 @@ str_t ir_get_intrinsic(const str_t name) {
 }
 
 // impl
-LLVMMetadataRef DI_type_init(struct ir_context *ctx, struct mir_type *type) {
+LLVMMetadataRef DI_type_init(struct context *ctx, struct mir_type *type) {
 	if (type->llvm_meta) return type->llvm_meta;
 	const str_t name = type->user_id ? type->user_id->str : type->id.str;
 
@@ -497,7 +497,7 @@ LLVMMetadataRef DI_type_init(struct ir_context *ctx, struct mir_type *type) {
 	return type->llvm_meta;
 }
 
-LLVMMetadataRef DI_complete_type(struct ir_context *ctx, struct mir_type *type) {
+LLVMMetadataRef DI_complete_type(struct context *ctx, struct mir_type *type) {
 	bassert(type->llvm_meta && "Incomplete DI type must have forward declaration.");
 
 	switch (type->kind) {
@@ -605,7 +605,7 @@ LLVMMetadataRef DI_complete_type(struct ir_context *ctx, struct mir_type *type) 
 	return type->llvm_meta;
 }
 
-LLVMMetadataRef DI_scope_init(struct ir_context *ctx, struct scope *scope) {
+LLVMMetadataRef DI_scope_init(struct context *ctx, struct scope *scope) {
 	bassert(scope && "Invalid scope!");
 	if (scope->llvm_meta) return scope->llvm_meta;
 	switch (scope->kind) {
@@ -630,13 +630,13 @@ LLVMMetadataRef DI_scope_init(struct ir_context *ctx, struct scope *scope) {
 	return scope->llvm_meta;
 }
 
-LLVMMetadataRef DI_unit_init(struct ir_context *ctx, struct unit *unit) {
+LLVMMetadataRef DI_unit_init(struct context *ctx, struct unit *unit) {
 	if (unit->llvm_file_meta) return unit->llvm_file_meta;
 	unit->llvm_file_meta = LLVMDIBuilderCreateFile(ctx->llvm_di_builder, unit->filename.ptr, unit->filename.len, unit->dirpath.ptr, unit->dirpath.len);
 	return unit->llvm_file_meta;
 }
 
-void emit_DI_fn(struct ir_context *ctx, struct mir_fn *fn) {
+void emit_DI_fn(struct context *ctx, struct mir_fn *fn) {
 	if (!fn->decl_node) return;
 	bassert(fn->body_scope);
 	if (fn->body_scope->llvm_meta) return;
@@ -666,7 +666,7 @@ void emit_DI_fn(struct ir_context *ctx, struct mir_fn *fn) {
 	LLVMSetSubprogram(fn->llvm_value, fn->body_scope->llvm_meta);
 }
 
-void emit_DI_var(struct ir_context *ctx, struct mir_var *var) {
+void emit_DI_var(struct context *ctx, struct mir_var *var) {
 	bassert(var->decl_node && "Variable has no declaration node!");
 	bassert(var->id && "Variable has no id!");
 	bassert(isnotflag(var->iflags, MIR_VAR_IMPLICIT) &&
@@ -728,7 +728,7 @@ void emit_DI_var(struct ir_context *ctx, struct mir_var *var) {
 	}
 }
 
-LLVMValueRef emit_global_var_proto(struct ir_context *ctx, struct mir_var *var) {
+LLVMValueRef emit_global_var_proto(struct context *ctx, struct mir_var *var) {
 	bassert(var);
 	if (var->llvm_value) return var->llvm_value;
 	// Push initializer.
@@ -750,11 +750,11 @@ LLVMValueRef emit_global_var_proto(struct ir_context *ctx, struct mir_var *var) 
 	return var->llvm_value;
 }
 
-LLVMValueRef emit_fn_proto(struct ir_context *ctx, struct mir_fn *fn, bool schedule_full_generation) {
+LLVMValueRef emit_fn_proto(struct context *ctx, struct mir_fn *fn, bool schedule_full_generation) {
 	bassert(fn);
 	str_t linkage_name = str_empty;
 	if (isflag(fn->flags, FLAG_INTRINSIC)) {
-		linkage_name = ir_get_intrinsic(fn->linkage_name);
+		linkage_name = get_intrinsic(fn->linkage_name);
 		bassert(linkage_name.len && "Unknown LLVM intrinsic!");
 	} else {
 		linkage_name = fn->linkage_name;
@@ -835,7 +835,7 @@ LLVMValueRef emit_fn_proto(struct ir_context *ctx, struct mir_fn *fn, bool sched
 	return fn->llvm_value;
 }
 
-LLVMValueRef emit_const_string(struct ir_context *ctx, const str_t s) {
+LLVMValueRef emit_const_string(struct context *ctx, const str_t s) {
 	zone();
 	struct mir_type *type     = ctx->builtin_types->t_string_literal;
 	LLVMValueRef     llvm_str = NULL;
@@ -882,7 +882,7 @@ LLVMValueRef emit_const_string(struct ir_context *ctx, const str_t s) {
 	return_zone(LLVMConstNamedStruct(get_type(ctx, type), values, static_arrlenu(values)));
 }
 
-enum ir_state emit_instr_decl_ref(struct ir_context *ctx, struct mir_instr_decl_ref *ref) {
+enum state emit_instr_decl_ref(struct context *ctx, struct mir_instr_decl_ref *ref) {
 	struct scope_entry *entry = ref->scope_entry;
 	bassert(entry);
 	switch (entry->kind) {
@@ -906,7 +906,7 @@ enum ir_state emit_instr_decl_ref(struct ir_context *ctx, struct mir_instr_decl_
 	return STATE_PASSED;
 }
 
-enum ir_state emit_instr_decl_direct_ref(struct ir_context *ctx, struct mir_instr_decl_direct_ref *ref) {
+enum state emit_instr_decl_direct_ref(struct context *ctx, struct mir_instr_decl_direct_ref *ref) {
 	bassert(ref->ref && ref->ref->kind == MIR_INSTR_DECL_VAR);
 	struct mir_var *var = ((struct mir_instr_decl_var *)ref->ref)->var;
 	bassert(var);
@@ -919,7 +919,7 @@ enum ir_state emit_instr_decl_direct_ref(struct ir_context *ctx, struct mir_inst
 	return STATE_PASSED;
 }
 
-enum ir_state emit_instr_phi(struct ir_context *ctx, struct mir_instr_phi *phi) {
+enum state emit_instr_phi(struct context *ctx, struct mir_instr_phi *phi) {
 	const s32 count = phi->num;
 	bassert(count > 0);
 	if (count == 1) {
@@ -953,7 +953,7 @@ enum ir_state emit_instr_phi(struct ir_context *ctx, struct mir_instr_phi *phi) 
 	return STATE_PASSED;
 }
 
-enum ir_state emit_instr_debugbreak(struct ir_context *ctx, struct mir_instr_debugbreak *debug_break) {
+enum state emit_instr_debugbreak(struct context *ctx, struct mir_instr_debugbreak *debug_break) {
 	struct mir_fn *break_fn = debug_break->break_fn;
 	bassert(break_fn);
 	if (!break_fn->llvm_value) emit_fn_proto(ctx, break_fn, true);
@@ -964,7 +964,7 @@ enum ir_state emit_instr_debugbreak(struct ir_context *ctx, struct mir_instr_deb
 	return STATE_PASSED;
 }
 
-enum ir_state emit_instr_unreachable(struct ir_context *ctx, struct mir_instr_unreachable *unreachable) {
+enum state emit_instr_unreachable(struct context *ctx, struct mir_instr_unreachable *unreachable) {
 	struct mir_fn *abort_fn = unreachable->abort_fn;
 	bassert(abort_fn);
 	if (!abort_fn->llvm_value) emit_fn_proto(ctx, abort_fn, true);
@@ -976,7 +976,7 @@ enum ir_state emit_instr_unreachable(struct ir_context *ctx, struct mir_instr_un
 }
 
 // @Cleanup: we can eventually pass the whole type here instead of size and alignment.
-LLVMValueRef rtti_emit_base(struct ir_context *ctx,
+LLVMValueRef rtti_emit_base(struct context    *ctx,
                             struct mir_type   *type,
                             enum mir_type_kind kind,
                             usize              size,
@@ -991,14 +991,14 @@ LLVMValueRef rtti_emit_base(struct ir_context *ctx,
 	return LLVMConstNamedStruct(get_type(ctx, type), llvm_vals, static_arrlenu(llvm_vals));
 }
 
-LLVMValueRef rtti_emit_empty(struct ir_context *ctx, struct mir_type *type, struct mir_type *rtti_type) {
+LLVMValueRef rtti_emit_empty(struct context *ctx, struct mir_type *type, struct mir_type *rtti_type) {
 	struct mir_type *base_type = mir_get_struct_elem_type(rtti_type, 0);
 	LLVMValueRef     llvm_val =
 	    rtti_emit_base(ctx, base_type, type->kind, type->store_size_bytes, type->alignment);
 	return LLVMConstNamedStruct(get_type(ctx, rtti_type), &llvm_val, 1);
 }
 
-LLVMValueRef rtti_emit_enum(struct ir_context *ctx, struct mir_type *type) {
+LLVMValueRef rtti_emit_enum(struct context *ctx, struct mir_type *type) {
 	struct mir_type *rtti_type = ctx->builtin_types->t_TypeInfoEnum;
 	LLVMValueRef     llvm_vals[5];
 
@@ -1026,7 +1026,7 @@ LLVMValueRef rtti_emit_enum(struct ir_context *ctx, struct mir_type *type) {
 	return LLVMConstNamedStruct(get_type(ctx, rtti_type), llvm_vals, static_arrlenu(llvm_vals));
 }
 
-LLVMValueRef rtti_emit_enum_variant(struct ir_context *ctx, struct mir_variant *variant) {
+LLVMValueRef rtti_emit_enum_variant(struct context *ctx, struct mir_variant *variant) {
 	struct mir_type *rtti_type = ctx->builtin_types->t_TypeInfoEnumVariant;
 	LLVMValueRef     llvm_vals[2];
 	// name
@@ -1051,7 +1051,7 @@ LLVMValueRef rtti_emit_enum_variant(struct ir_context *ctx, struct mir_variant *
 	return LLVMConstNamedStruct(get_type(ctx, rtti_type), llvm_vals, static_arrlenu(llvm_vals));
 }
 
-LLVMValueRef rtti_emit_enum_variants_array(struct ir_context *ctx, mir_variants_t *variants) {
+LLVMValueRef rtti_emit_enum_variants_array(struct context *ctx, mir_variants_t *variants) {
 	struct mir_type *elem_type = ctx->builtin_types->t_TypeInfoEnumVariant;
 	llvm_values_t    llvm_vals = SARR_ZERO;
 	for (usize i = 0; i < sarrlenu(variants); ++i) {
@@ -1071,7 +1071,7 @@ LLVMValueRef rtti_emit_enum_variants_array(struct ir_context *ctx, mir_variants_
 	return llvm_rtti_var;
 }
 
-LLVMValueRef rtti_emit_enum_variants_slice(struct ir_context *ctx, mir_variants_t *variants) {
+LLVMValueRef rtti_emit_enum_variants_slice(struct context *ctx, mir_variants_t *variants) {
 	struct mir_type *type = ctx->builtin_types->t_TypeInfoEnumVariants_slice;
 	LLVMValueRef     llvm_vals[2];
 	struct mir_type *len_type = mir_get_struct_elem_type(type, 0);
@@ -1081,7 +1081,7 @@ LLVMValueRef rtti_emit_enum_variants_slice(struct ir_context *ctx, mir_variants_
 	return LLVMConstNamedStruct(get_type(ctx, type), llvm_vals, static_arrlenu(llvm_vals));
 }
 
-LLVMValueRef rtti_emit_struct(struct ir_context *ctx, struct mir_type *type) {
+LLVMValueRef rtti_emit_struct(struct context *ctx, struct mir_type *type) {
 	struct mir_type *rtti_type = ctx->builtin_types->t_TypeInfoStruct;
 	LLVMValueRef     llvm_vals[6];
 
@@ -1118,7 +1118,7 @@ LLVMValueRef rtti_emit_struct(struct ir_context *ctx, struct mir_type *type) {
 	return LLVMConstNamedStruct(get_type(ctx, rtti_type), llvm_vals, static_arrlenu(llvm_vals));
 }
 
-LLVMValueRef rtti_emit_struct_member(struct ir_context *ctx, struct mir_member *member) {
+LLVMValueRef rtti_emit_struct_member(struct context *ctx, struct mir_member *member) {
 	struct mir_type *rtti_type = ctx->builtin_types->t_TypeInfoStructMember;
 	LLVMValueRef     llvm_vals[6];
 
@@ -1150,7 +1150,7 @@ LLVMValueRef rtti_emit_struct_member(struct ir_context *ctx, struct mir_member *
 	return LLVMConstNamedStruct(get_type(ctx, rtti_type), llvm_vals, static_arrlenu(llvm_vals));
 }
 
-LLVMValueRef rtti_emit_struct_members_array(struct ir_context *ctx, mir_members_t *members) {
+LLVMValueRef rtti_emit_struct_members_array(struct context *ctx, mir_members_t *members) {
 	struct mir_type *elem_type = ctx->builtin_types->t_TypeInfoStructMember;
 	llvm_values_t    llvm_vals = SARR_ZERO;
 
@@ -1172,7 +1172,7 @@ LLVMValueRef rtti_emit_struct_members_array(struct ir_context *ctx, mir_members_
 	return llvm_rtti_var;
 }
 
-LLVMValueRef rtti_emit_struct_members_slice(struct ir_context *ctx, mir_members_t *members) {
+LLVMValueRef rtti_emit_struct_members_slice(struct context *ctx, mir_members_t *members) {
 	struct mir_type *type = ctx->builtin_types->t_TypeInfoStructMembers_slice;
 	LLVMValueRef     llvm_vals[2];
 	struct mir_type *len_type = mir_get_struct_elem_type(type, 0);
@@ -1183,7 +1183,7 @@ LLVMValueRef rtti_emit_struct_members_slice(struct ir_context *ctx, mir_members_
 	return LLVMConstNamedStruct(get_type(ctx, type), llvm_vals, static_arrlenu(llvm_vals));
 }
 
-LLVMValueRef rtti_emit_fn(struct ir_context *ctx, struct mir_type *type) {
+LLVMValueRef rtti_emit_fn(struct context *ctx, struct mir_type *type) {
 	struct mir_type *rtti_type = ctx->builtin_types->t_TypeInfoFn;
 	LLVMValueRef     llvm_vals[4];
 
@@ -1206,7 +1206,7 @@ LLVMValueRef rtti_emit_fn(struct ir_context *ctx, struct mir_type *type) {
 	return LLVMConstNamedStruct(get_type(ctx, rtti_type), llvm_vals, static_arrlenu(llvm_vals));
 }
 
-LLVMValueRef rtti_emit_fn_group(struct ir_context *ctx, struct mir_type *type) {
+LLVMValueRef rtti_emit_fn_group(struct context *ctx, struct mir_type *type) {
 	struct mir_type *rtti_type = ctx->builtin_types->t_TypeInfoFnGroup;
 	LLVMValueRef     llvm_vals[2];
 	// base
@@ -1219,7 +1219,7 @@ LLVMValueRef rtti_emit_fn_group(struct ir_context *ctx, struct mir_type *type) {
 	return LLVMConstNamedStruct(get_type(ctx, rtti_type), llvm_vals, static_arrlenu(llvm_vals));
 }
 
-LLVMValueRef rtti_emit_fn_slice(struct ir_context *ctx, mir_types_t *fns) {
+LLVMValueRef rtti_emit_fn_slice(struct context *ctx, mir_types_t *fns) {
 	struct mir_type *type = ctx->builtin_types->t_TypeInfoFn_ptr_slice;
 	LLVMValueRef     llvm_vals[2];
 	const usize      argc     = sarrlenu(fns);
@@ -1234,7 +1234,7 @@ LLVMValueRef rtti_emit_fn_slice(struct ir_context *ctx, mir_types_t *fns) {
 	return LLVMConstNamedStruct(get_type(ctx, type), llvm_vals, static_arrlenu(llvm_vals));
 }
 
-LLVMValueRef rtti_emit_fn_array(struct ir_context *ctx, mir_types_t *fns) {
+LLVMValueRef rtti_emit_fn_array(struct context *ctx, mir_types_t *fns) {
 	struct mir_type *elem_type = ctx->builtin_types->t_TypeInfoFn_ptr;
 	llvm_values_t    llvm_vals = SARR_ZERO;
 
@@ -1255,7 +1255,7 @@ LLVMValueRef rtti_emit_fn_array(struct ir_context *ctx, mir_types_t *fns) {
 	return llvm_rtti_var;
 }
 
-LLVMValueRef rtti_emit_fn_arg(struct ir_context *ctx, struct mir_arg *arg) {
+LLVMValueRef rtti_emit_fn_arg(struct context *ctx, struct mir_arg *arg) {
 	struct mir_type *rtti_type = ctx->builtin_types->t_TypeInfoFnArg;
 	LLVMValueRef     llvm_vals[2];
 	// name
@@ -1266,7 +1266,7 @@ LLVMValueRef rtti_emit_fn_arg(struct ir_context *ctx, struct mir_arg *arg) {
 	return LLVMConstNamedStruct(get_type(ctx, rtti_type), llvm_vals, static_arrlenu(llvm_vals));
 }
 
-LLVMValueRef rtti_emit_fn_args_array(struct ir_context *ctx, mir_args_t *args) {
+LLVMValueRef rtti_emit_fn_args_array(struct context *ctx, mir_args_t *args) {
 	struct mir_type *elem_type = ctx->builtin_types->t_TypeInfoFnArg;
 	llvm_values_t    llvm_vals = SARR_ZERO;
 
@@ -1288,7 +1288,7 @@ LLVMValueRef rtti_emit_fn_args_array(struct ir_context *ctx, mir_args_t *args) {
 	return llvm_rtti_var;
 }
 
-LLVMValueRef rtti_emit_fn_args_slice(struct ir_context *ctx, mir_args_t *args) {
+LLVMValueRef rtti_emit_fn_args_slice(struct context *ctx, mir_args_t *args) {
 	struct mir_type *type = ctx->builtin_types->t_TypeInfoFnArgs_slice;
 	LLVMValueRef     llvm_vals[2];
 	const usize      argc = sarrlenu(args);
@@ -1306,7 +1306,7 @@ LLVMValueRef rtti_emit_fn_args_slice(struct ir_context *ctx, mir_args_t *args) {
 	return LLVMConstNamedStruct(get_type(ctx, type), llvm_vals, static_arrlenu(llvm_vals));
 }
 
-LLVMValueRef rtti_emit_integer(struct ir_context *ctx, struct mir_type *type) {
+LLVMValueRef rtti_emit_integer(struct context *ctx, struct mir_type *type) {
 	struct mir_type *rtti_type = ctx->builtin_types->t_TypeInfoInt;
 	LLVMValueRef     llvm_vals[3];
 
@@ -1324,7 +1324,7 @@ LLVMValueRef rtti_emit_integer(struct ir_context *ctx, struct mir_type *type) {
 	return LLVMConstNamedStruct(get_type(ctx, rtti_type), llvm_vals, static_arrlenu(llvm_vals));
 }
 
-LLVMValueRef rtti_emit_real(struct ir_context *ctx, struct mir_type *type) {
+LLVMValueRef rtti_emit_real(struct context *ctx, struct mir_type *type) {
 	struct mir_type *rtti_type = ctx->builtin_types->t_TypeInfoReal;
 	LLVMValueRef     llvm_vals[2];
 
@@ -1338,7 +1338,7 @@ LLVMValueRef rtti_emit_real(struct ir_context *ctx, struct mir_type *type) {
 	return LLVMConstNamedStruct(get_type(ctx, rtti_type), llvm_vals, static_arrlenu(llvm_vals));
 }
 
-LLVMValueRef rtti_emit_ptr(struct ir_context *ctx, struct mir_type *type) {
+LLVMValueRef rtti_emit_ptr(struct context *ctx, struct mir_type *type) {
 	struct mir_type *rtti_type = ctx->builtin_types->t_TypeInfoPtr;
 	LLVMValueRef     llvm_vals[2];
 
@@ -1352,7 +1352,7 @@ LLVMValueRef rtti_emit_ptr(struct ir_context *ctx, struct mir_type *type) {
 	return LLVMConstNamedStruct(get_type(ctx, rtti_type), llvm_vals, static_arrlenu(llvm_vals));
 }
 
-LLVMValueRef rtti_emit_array(struct ir_context *ctx, struct mir_type *type) {
+LLVMValueRef rtti_emit_array(struct context *ctx, struct mir_type *type) {
 	struct mir_type *rtti_type = ctx->builtin_types->t_TypeInfoArray;
 	LLVMValueRef     llvm_vals[4];
 
@@ -1375,7 +1375,7 @@ LLVMValueRef rtti_emit_array(struct ir_context *ctx, struct mir_type *type) {
 	return LLVMConstNamedStruct(get_type(ctx, rtti_type), llvm_vals, static_arrlenu(llvm_vals));
 }
 
-LLVMValueRef rtti_emit(struct ir_context *ctx, struct mir_type *type) {
+LLVMValueRef rtti_emit(struct context *ctx, struct mir_type *type) {
 	LLVMValueRef llvm_value = _rtti_emit(ctx, type);
 
 	while (arrlen(ctx->incomplete_rtti)) {
@@ -1385,7 +1385,7 @@ LLVMValueRef rtti_emit(struct ir_context *ctx, struct mir_type *type) {
 	return llvm_value;
 }
 
-void rtti_satisfy_incomplete(struct ir_context *ctx, struct rtti_incomplete incomplete) {
+void rtti_satisfy_incomplete(struct context *ctx, struct rtti_incomplete incomplete) {
 	struct mir_type *type          = incomplete.type;
 	LLVMValueRef     llvm_rtti_var = incomplete.llvm_var;
 
@@ -1396,7 +1396,7 @@ void rtti_satisfy_incomplete(struct ir_context *ctx, struct rtti_incomplete inco
 	LLVMSetInitializer(llvm_rtti_var, llvm_value);
 }
 
-LLVMValueRef _rtti_emit(struct ir_context *ctx, struct mir_type *type) {
+LLVMValueRef _rtti_emit(struct context *ctx, struct mir_type *type) {
 	bassert(type);
 
 	struct mir_var *rtti_var = mir_get_rtti(ctx->assembly, type->id.hash);
@@ -1485,13 +1485,13 @@ SKIP:
 	return llvm_rtti_var;
 }
 
-enum ir_state emit_instr_type_info(struct ir_context *ctx, struct mir_instr_type_info *type_info) {
+enum state emit_instr_type_info(struct context *ctx, struct mir_instr_type_info *type_info) {
 	bassert(type_info->rtti_type);
 	type_info->base.llvm_value = rtti_emit(ctx, type_info->rtti_type);
 	return STATE_PASSED;
 }
 
-LLVMValueRef testing_emit_meta_case(struct ir_context *ctx, struct mir_fn *fn) {
+LLVMValueRef testing_emit_meta_case(struct context *ctx, struct mir_fn *fn) {
 	struct mir_type *type = ctx->builtin_types->t_TestCase;
 	LLVMValueRef     llvm_vals[4];
 
@@ -1505,7 +1505,7 @@ LLVMValueRef testing_emit_meta_case(struct ir_context *ctx, struct mir_fn *fn) {
 	return LLVMConstNamedStruct(get_type(ctx, type), llvm_vals, static_arrlenu(llvm_vals));
 }
 
-struct mir_var *testing_fetch_meta(struct ir_context *ctx) {
+struct mir_var *testing_fetch_meta(struct context *ctx) {
 	struct mir_var *var = ctx->assembly->testing.meta_var;
 	if (!var) return NULL;
 
@@ -1540,7 +1540,7 @@ struct mir_var *testing_fetch_meta(struct ir_context *ctx) {
 	return var;
 }
 
-enum ir_state emit_instr_test_cases(struct ir_context *ctx, struct mir_instr_test_case *tc) {
+enum state emit_instr_test_cases(struct context *ctx, struct mir_instr_test_case *tc) {
 	// Test case metadata variable is optional an can be null in case there are no test cases.
 	// In such case we generate empty slice with zero length.
 	struct mir_var  *var  = testing_fetch_meta(ctx);
@@ -1567,7 +1567,7 @@ enum ir_state emit_instr_test_cases(struct ir_context *ctx, struct mir_instr_tes
 	return STATE_PASSED;
 }
 
-enum ir_state emit_instr_cast(struct ir_context *ctx, struct mir_instr_cast *cast) {
+enum state emit_instr_cast(struct context *ctx, struct mir_instr_cast *cast) {
 	LLVMValueRef llvm_src       = cast->expr->llvm_value;
 	LLVMTypeRef  llvm_dest_type = get_type(ctx, cast->base.value.type);
 	LLVMOpcode   llvm_op;
@@ -1645,7 +1645,7 @@ enum ir_state emit_instr_cast(struct ir_context *ctx, struct mir_instr_cast *cas
 	return STATE_PASSED;
 }
 
-enum ir_state emit_instr_addrof(struct ir_context *ctx, struct mir_instr_addrof *addrof) {
+enum state emit_instr_addrof(struct context *ctx, struct mir_instr_addrof *addrof) {
 	if (addrof->src->kind == MIR_INSTR_FN_PROTO) {
 		struct mir_instr_fn_proto *fn_proto = (struct mir_instr_fn_proto *)addrof->src;
 		struct mir_fn             *fn       = MIR_CEV_READ_AS(struct mir_fn *, &fn_proto->base.value);
@@ -1658,7 +1658,7 @@ enum ir_state emit_instr_addrof(struct ir_context *ctx, struct mir_instr_addrof 
 	return STATE_PASSED;
 }
 
-enum ir_state emit_instr_arg(struct ir_context *ctx, struct mir_var *dest, struct mir_instr_arg *arg_instr) {
+enum state emit_instr_arg(struct context *ctx, struct mir_var *dest, struct mir_instr_arg *arg_instr) {
 	bassert(dest);
 	struct mir_fn *fn = arg_instr->base.owner_block->owner_fn;
 	bassert(fn);
@@ -1723,7 +1723,7 @@ enum ir_state emit_instr_arg(struct ir_context *ctx, struct mir_var *dest, struc
 	return STATE_PASSED;
 }
 
-enum ir_state emit_instr_elem_ptr(struct ir_context *ctx, struct mir_instr_elem_ptr *elem_ptr) {
+enum state emit_instr_elem_ptr(struct context *ctx, struct mir_instr_elem_ptr *elem_ptr) {
 	struct mir_type *arr_type = mir_deref_type(elem_ptr->arr_ptr->value.type);
 	bassert(arr_type);
 
@@ -1795,7 +1795,7 @@ enum ir_state emit_instr_elem_ptr(struct ir_context *ctx, struct mir_instr_elem_
 	return STATE_PASSED;
 }
 
-enum ir_state emit_instr_member_ptr(struct ir_context *ctx, struct mir_instr_member_ptr *member_ptr) {
+enum state emit_instr_member_ptr(struct context *ctx, struct mir_instr_member_ptr *member_ptr) {
 	LLVMValueRef llvm_target_ptr = member_ptr->target_ptr->llvm_value;
 	bassert(llvm_target_ptr);
 
@@ -1840,7 +1840,7 @@ enum ir_state emit_instr_member_ptr(struct ir_context *ctx, struct mir_instr_mem
 	return STATE_PASSED;
 }
 
-enum ir_state emit_instr_unroll(struct ir_context *ctx, struct mir_instr_unroll *unroll) {
+enum state emit_instr_unroll(struct context *ctx, struct mir_instr_unroll *unroll) {
 	LLVMValueRef llvm_src_ptr = unroll->src->llvm_value;
 	bassert(llvm_src_ptr);
 
@@ -1854,7 +1854,7 @@ enum ir_state emit_instr_unroll(struct ir_context *ctx, struct mir_instr_unroll 
 	return STATE_PASSED;
 }
 
-enum ir_state emit_instr_load(struct ir_context *ctx, struct mir_instr_load *load) {
+enum state emit_instr_load(struct context *ctx, struct mir_instr_load *load) {
 	bassert(load->base.value.type && "invalid type of load instruction");
 	LLVMValueRef llvm_src = load->src->llvm_value;
 	bassert(llvm_src);
@@ -1885,7 +1885,7 @@ enum ir_state emit_instr_load(struct ir_context *ctx, struct mir_instr_load *loa
 }
 
 static LLVMValueRef
-build_call_memcpy(struct ir_context *ctx, LLVMValueRef src, LLVMValueRef dest, const usize size_bytes) {
+build_call_memcpy(struct context *ctx, LLVMValueRef src, LLVMValueRef dest, const usize size_bytes) {
 	LLVMValueRef llvm_args[4];
 
 	llvm_args[0] = dest;
@@ -1904,7 +1904,7 @@ build_call_memcpy(struct ir_context *ctx, LLVMValueRef src, LLVMValueRef dest, c
 }
 
 static LLVMValueRef
-build_optimized_store(struct ir_context *ctx, struct mir_instr *src, struct mir_instr *dest) {
+build_optimized_store(struct context *ctx, struct mir_instr *src, struct mir_instr *dest) {
 	bassert(mir_is_pointer_type(dest->value.type));
 	LLVMValueRef llvm_src   = src->llvm_value;
 	LLVMValueRef llvm_dest  = dest->llvm_value;
@@ -1921,7 +1921,7 @@ build_optimized_store(struct ir_context *ctx, struct mir_instr *src, struct mir_
 	return llvm_store;
 }
 
-enum ir_state emit_instr_store(struct ir_context *ctx, struct mir_instr_store *store) {
+enum state emit_instr_store(struct context *ctx, struct mir_instr_store *store) {
 	LLVMValueRef dest = store->dest->llvm_value;
 	bassert(dest && "Missing LLVM store destination value!");
 	if (store->src->kind == MIR_INSTR_COMPOUND) {
@@ -1934,7 +1934,7 @@ enum ir_state emit_instr_store(struct ir_context *ctx, struct mir_instr_store *s
 	return STATE_PASSED;
 }
 
-enum ir_state emit_instr_unop(struct ir_context *ctx, struct mir_instr_unop *unop) {
+enum state emit_instr_unop(struct context *ctx, struct mir_instr_unop *unop) {
 	LLVMValueRef llvm_val = unop->expr->llvm_value;
 	bassert(llvm_val);
 
@@ -1971,7 +1971,7 @@ enum ir_state emit_instr_unop(struct ir_context *ctx, struct mir_instr_unop *uno
 // Generates zero initialized value from compound expression, `llvm_dest` is optional
 // specification of destination variable or GEP to be set to zero. Result LLVM value is either
 // compile time constant or `llvm_dest` if provided.
-LLVMValueRef _emit_instr_compound_zero_initialized(struct ir_context         *ctx,
+LLVMValueRef _emit_instr_compound_zero_initialized(struct context            *ctx,
                                                    LLVMValueRef               llvm_dest, // optional
                                                    struct mir_instr_compound *cmp) {
 	struct mir_type *type = cmp->base.value.type;
@@ -2016,7 +2016,7 @@ LLVMValueRef _emit_instr_compound_zero_initialized(struct ir_context         *ct
 	(void)0
 
 // Generates comptime compound expression value, every nested member must be compile time known.
-LLVMValueRef _emit_instr_compound_comptime(struct ir_context *ctx, struct mir_instr_compound *cmp) {
+LLVMValueRef _emit_instr_compound_comptime(struct context *ctx, struct mir_instr_compound *cmp) {
 	bassert(mir_is_comptime(&cmp->base) && "Expected comptime known compound expression!");
 	if (mir_is_zero_initialized(cmp)) {
 		cmp->base.llvm_value = _emit_instr_compound_zero_initialized(ctx, NULL, cmp);
@@ -2099,7 +2099,7 @@ LLVMValueRef _emit_instr_compound_comptime(struct ir_context *ctx, struct mir_in
 	return cmp->base.llvm_value;
 }
 
-void emit_instr_compound(struct ir_context         *ctx,
+void emit_instr_compound(struct context            *ctx,
                          LLVMValueRef               llvm_dest,
                          struct mir_instr_compound *cmp) {
 	bassert(llvm_dest && "Missing temp storage for compound value!");
@@ -2181,7 +2181,7 @@ void emit_instr_compound(struct ir_context         *ctx,
 	}
 }
 
-enum ir_state emit_instr_binop(struct ir_context *ctx, struct mir_instr_binop *binop) {
+enum state emit_instr_binop(struct context *ctx, struct mir_instr_binop *binop) {
 	LLVMValueRef lhs = binop->lhs->llvm_value;
 	LLVMValueRef rhs = binop->rhs->llvm_value;
 	bassert(lhs && rhs);
@@ -2307,7 +2307,7 @@ enum ir_state emit_instr_binop(struct ir_context *ctx, struct mir_instr_binop *b
 
 // Create temporary variable for EASGM register split.
 static inline LLVMValueRef
-insert_easgm_tmp(struct ir_context *ctx, struct mir_instr_call *call, struct mir_type *type) {
+insert_easgm_tmp(struct context *ctx, struct mir_instr_call *call, struct mir_type *type) {
 	LLVMBasicBlockRef llvm_prev_block = LLVMGetInsertBlock(ctx->llvm_builder);
 	LLVMBasicBlockRef llvm_entry_block =
 	    LLVMValueAsBasicBlock(call->base.owner_block->owner_fn->first_block->base.llvm_value);
@@ -2322,7 +2322,7 @@ insert_easgm_tmp(struct ir_context *ctx, struct mir_instr_call *call, struct mir
 	return llvm_tmp;
 }
 
-enum ir_state emit_instr_call(struct ir_context *ctx, struct mir_instr_call *call) {
+enum state emit_instr_call(struct context *ctx, struct mir_instr_call *call) {
 	bassert(!mir_is_comptime(&call->base) && "Compile time calls should not be generated into the final binary!");
 	struct mir_instr *callee = call->callee;
 	bassert(callee);
@@ -2512,7 +2512,7 @@ enum ir_state emit_instr_call(struct ir_context *ctx, struct mir_instr_call *cal
 	return STATE_PASSED;
 }
 
-enum ir_state emit_instr_set_initializer(struct ir_context *ctx, struct mir_instr_set_initializer *si) {
+enum state emit_instr_set_initializer(struct context *ctx, struct mir_instr_set_initializer *si) {
 	struct mir_instr *dest = si->dest;
 	struct mir_var   *var  = ((struct mir_instr_decl_var *)dest)->var;
 	if (var->ref_count > 0) {
@@ -2528,7 +2528,7 @@ enum ir_state emit_instr_set_initializer(struct ir_context *ctx, struct mir_inst
 	return STATE_PASSED;
 }
 
-enum ir_state emit_instr_decl_var(struct ir_context *ctx, struct mir_instr_decl_var *decl) {
+enum state emit_instr_decl_var(struct context *ctx, struct mir_instr_decl_var *decl) {
 	struct mir_var *var = decl->var;
 	bassert(var);
 	if (var->ref_count == 0) return STATE_PASSED;
@@ -2574,7 +2574,7 @@ enum ir_state emit_instr_decl_var(struct ir_context *ctx, struct mir_instr_decl_
 	return STATE_PASSED;
 }
 
-enum ir_state emit_instr_ret(struct ir_context *ctx, struct mir_instr_ret *ret) {
+enum state emit_instr_ret(struct context *ctx, struct mir_instr_ret *ret) {
 	struct mir_fn *fn = ret->base.owner_block->owner_fn;
 	bassert(fn);
 
@@ -2604,7 +2604,7 @@ FINALIZE:
 	return STATE_PASSED;
 }
 
-enum ir_state emit_instr_br(struct ir_context *ctx, struct mir_instr_br *br) {
+enum state emit_instr_br(struct context *ctx, struct mir_instr_br *br) {
 	struct mir_instr_block *then_block = br->then_block;
 	bassert(then_block);
 	LLVMBasicBlockRef llvm_then_block = emit_basic_block(ctx, then_block);
@@ -2616,7 +2616,7 @@ enum ir_state emit_instr_br(struct ir_context *ctx, struct mir_instr_br *br) {
 	return STATE_PASSED;
 }
 
-enum ir_state emit_instr_switch(struct ir_context *ctx, struct mir_instr_switch *sw) {
+enum state emit_instr_switch(struct context *ctx, struct mir_instr_switch *sw) {
 	struct mir_instr       *value              = sw->value;
 	struct mir_instr_block *default_block      = sw->default_block;
 	mir_switch_cases_t     *cases              = sw->cases;
@@ -2634,7 +2634,7 @@ enum ir_state emit_instr_switch(struct ir_context *ctx, struct mir_instr_switch 
 	return STATE_PASSED;
 }
 
-enum ir_state emit_instr_const(struct ir_context *ctx, struct mir_instr_const *c) {
+enum state emit_instr_const(struct context *ctx, struct mir_instr_const *c) {
 	struct mir_type *type = c->base.value.type;
 	if (type->kind == MIR_TYPE_NAMED_SCOPE) {
 		// Named scope is just mir related temporary type, it has no LLVM representation!
@@ -2765,7 +2765,7 @@ enum ir_state emit_instr_const(struct ir_context *ctx, struct mir_instr_const *c
 	return STATE_PASSED;
 }
 
-enum ir_state emit_instr_cond_br(struct ir_context *ctx, struct mir_instr_cond_br *br) {
+enum state emit_instr_cond_br(struct context *ctx, struct mir_instr_cond_br *br) {
 	struct mir_instr       *cond       = br->cond;
 	struct mir_instr_block *then_block = br->then_block;
 	struct mir_instr_block *else_block = br->else_block;
@@ -2780,7 +2780,7 @@ enum ir_state emit_instr_cond_br(struct ir_context *ctx, struct mir_instr_cond_b
 	return STATE_PASSED;
 }
 
-enum ir_state emit_instr_vargs(struct ir_context *ctx, struct mir_instr_vargs *vargs) {
+enum state emit_instr_vargs(struct context *ctx, struct mir_instr_vargs *vargs) {
 	struct mir_type *vargs_type = vargs->base.value.type;
 	mir_instrs_t    *values     = vargs->values;
 	bassert(values);
@@ -2839,7 +2839,7 @@ enum ir_state emit_instr_vargs(struct ir_context *ctx, struct mir_instr_vargs *v
 	return STATE_PASSED;
 }
 
-enum ir_state emit_instr_toany(struct ir_context *ctx, struct mir_instr_to_any *toany) {
+enum state emit_instr_toany(struct context *ctx, struct mir_instr_to_any *toany) {
 	LLVMValueRef llvm_dest      = toany->tmp->llvm_value;
 	LLVMValueRef llvm_type_info = rtti_emit(ctx, toany->rtti_type);
 
@@ -2873,7 +2873,7 @@ enum ir_state emit_instr_toany(struct ir_context *ctx, struct mir_instr_to_any *
 	return STATE_PASSED;
 }
 
-enum ir_state emit_instr_call_loc(struct ir_context *ctx, struct mir_instr_call_loc *loc) {
+enum state emit_instr_call_loc(struct context *ctx, struct mir_instr_call_loc *loc) {
 	struct mir_var *meta_var = loc->meta_var;
 	bassert(meta_var);
 	struct mir_type *type = meta_var->value.type;
@@ -2899,7 +2899,7 @@ enum ir_state emit_instr_call_loc(struct ir_context *ctx, struct mir_instr_call_
 	return STATE_PASSED;
 }
 
-enum ir_state emit_instr_block(struct ir_context *ctx, struct mir_instr_block *block) {
+enum state emit_instr_block(struct context *ctx, struct mir_instr_block *block) {
 	// We don't want to generate type resolvers for typedefs!!!
 	struct mir_fn    *fn              = block->owner_fn;
 	const bool        is_global       = fn == NULL;
@@ -2927,7 +2927,7 @@ enum ir_state emit_instr_block(struct ir_context *ctx, struct mir_instr_block *b
 	// Generate all instructions in the block.
 	struct mir_instr *instr = block->entry_instr;
 	while (instr) {
-		const enum ir_state s = emit_instr(ctx, instr);
+		const enum state s = emit_instr(ctx, instr);
 		if (s == STATE_POSTPONE) {
 			qpush_back(&ctx->incomplete_queue, instr);
 			goto SKIP;
@@ -2940,7 +2940,7 @@ SKIP:
 	return STATE_PASSED;
 }
 
-void emit_incomplete(struct ir_context *ctx) {
+void emit_incomplete(struct context *ctx) {
 	LLVMBasicBlockRef prev_bb = LLVMGetInsertBlock(ctx->llvm_builder);
 	while (qmaybeswap(&ctx->incomplete_queue)) {
 		struct mir_instr *instr = qpop_front(&ctx->incomplete_queue);
@@ -2960,7 +2960,7 @@ void emit_incomplete(struct ir_context *ctx) {
 	LLVMPositionBuilderAtEnd(ctx->llvm_builder, prev_bb);
 }
 
-void emit_allocas(struct ir_context *ctx, struct mir_fn *fn) {
+void emit_allocas(struct context *ctx, struct mir_fn *fn) {
 	bassert(fn);
 	str_t       var_name;
 	LLVMTypeRef var_type;
@@ -2984,7 +2984,7 @@ void emit_allocas(struct ir_context *ctx, struct mir_fn *fn) {
 	}
 }
 
-enum ir_state emit_instr_fn_proto(struct ir_context *ctx, struct mir_instr_fn_proto *fn_proto) {
+enum state emit_instr_fn_proto(struct context *ctx, struct mir_instr_fn_proto *fn_proto) {
 	struct mir_fn *fn = MIR_CEV_READ_AS(struct mir_fn *, &fn_proto->base.value);
 	bmagic_assert(fn);
 	emit_fn_proto(ctx, fn, false);
@@ -2997,7 +2997,7 @@ enum ir_state emit_instr_fn_proto(struct ir_context *ctx, struct mir_instr_fn_pr
 		while (block) {
 			bassert(block->base.kind == MIR_INSTR_BLOCK);
 			if (!block->is_unreachable && (block->base.ref_count == MIR_NO_REF_COUNTING || block->base.ref_count > 0)) {
-				const enum ir_state s = emit_instr(ctx, &block->base);
+				const enum state s = emit_instr(ctx, &block->base);
 				if (s != STATE_PASSED) babort("Postpone for whole block is not supported!");
 			}
 			block = (struct mir_instr_block *)block->base.next;
@@ -3007,8 +3007,8 @@ enum ir_state emit_instr_fn_proto(struct ir_context *ctx, struct mir_instr_fn_pr
 	return STATE_PASSED;
 }
 
-enum ir_state emit_instr(struct ir_context *ctx, struct mir_instr *instr) {
-	enum ir_state state = STATE_PASSED;
+enum state emit_instr(struct context *ctx, struct mir_instr *instr) {
+	enum state state = STATE_PASSED;
 	bassert(instr->state == MIR_IS_COMPLETE && "Attempt to emit instruction in incomplete state!");
 	if (!mir_type_has_llvm_representation((instr->value.type))) return state;
 	switch (instr->kind) {
@@ -3131,7 +3131,7 @@ enum ir_state emit_instr(struct ir_context *ctx, struct mir_instr *instr) {
 	return state;
 }
 
-static void init_llvm_module(struct ir_context *ctx) {
+static void init_llvm_module(struct context *ctx) {
 	struct assembly *assembly    = ctx->assembly;
 	LLVMModuleRef    llvm_module = llvm_module_create_with_name_in_context(ctx->llvm_cnt, assembly->target->name);
 	LLVMSetTarget(llvm_module, assembly->llvm.triple);
@@ -3139,7 +3139,7 @@ static void init_llvm_module(struct ir_context *ctx) {
 	ctx->llvm_module = assembly->llvm.module = llvm_module;
 }
 
-static void intrinsics_init(struct ir_context *ctx) {
+static void intrinsics_init(struct context *ctx) {
 	// lookup intrinsics
 	{ // memset
 		LLVMTypeRef pt[2];
@@ -3173,7 +3173,7 @@ static void intrinsics_init(struct ir_context *ctx) {
 	}
 }
 
-static void DI_init(struct ir_context *ctx) {
+static void DI_init(struct context *ctx) {
 	arrsetcap(ctx->di_incomplete_types, 1024);
 	const char   *producer    = "blc version " BL_VERSION;
 	struct scope *gscope      = ctx->assembly->gscope;
@@ -3226,12 +3226,12 @@ static void DI_init(struct ir_context *ctx) {
 	// llvm_di_create_compile_unit(ctx->llvm_di_builder, gscope->llvm_meta, producer);
 }
 
-static void DI_terminate(struct ir_context *ctx) {
+static void DI_terminate(struct context *ctx) {
 	arrfree(ctx->di_incomplete_types);
 	LLVMDisposeDIBuilder(ctx->llvm_di_builder);
 }
 
-static void DI_complete_types(struct ir_context *ctx)
+static void DI_complete_types(struct context *ctx)
 
 {
 	for (usize i = 0; i < arrlenu(ctx->di_incomplete_types); ++i) {
@@ -3243,8 +3243,8 @@ static void DI_complete_types(struct ir_context *ctx)
 void ir_run(struct assembly *assembly) {
 	zone();
 	runtime_measure_begin(llvm);
-	struct ir_context ctx;
-	memset(&ctx, 0, sizeof(struct ir_context));
+	struct context ctx;
+	memset(&ctx, 0, sizeof(struct context));
 	ctx.assembly            = assembly;
 	ctx.builtin_types       = &assembly->builtin_types;
 	ctx.generate_debug_info = assembly->target->opt == ASSEMBLY_OPT_DEBUG ||

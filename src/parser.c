@@ -66,7 +66,7 @@ struct hash_directive_entry {
 	enum hash_directive_flags value;
 };
 
-struct parser_context {
+struct context {
 	hash_table(struct hash_directive_entry) hash_directive_table;
 
 	struct assembly           *assembly;
@@ -91,76 +91,76 @@ struct parser_context {
 // fw decls
 static enum binop_kind sym_to_binop_kind(enum sym sm);
 static enum unop_kind  sym_to_unop_kind(enum sym sm);
-static bool            parse_docs(struct parser_context *ctx);
-static bool            parse_unit_docs(struct parser_context *ctx);
-static void            parse_ublock_content(struct parser_context *ctx, struct ast *ublock);
-static struct ast     *parse_hash_directive(struct parser_context *ctx, s32 expected_mask, enum hash_directive_flags *satisfied, const bool is_in_expression);
-static struct ast     *parse_unrecheable(struct parser_context *ctx);
-static struct ast     *parse_debugbreak(struct parser_context *ctx);
-static struct ast     *parse_ident_group(struct parser_context *ctx);
-static struct ast     *parse_single_block_stmt_or_expr(struct parser_context *ctx, bool *out_require_semicolon);
-static struct ast     *parse_block(struct parser_context *ctx, enum scope_kind scope_kind);
-static struct ast     *parse_decl(struct parser_context *ctx);
-static struct ast     *parse_decl_member(struct parser_context *ctx, s32 index);
-static struct ast     *parse_decl_arg(struct parser_context *ctx, bool named);
-static struct ast     *parse_decl_variant(struct parser_context *ctx, struct ast *prev);
-static struct ast     *parse_type(struct parser_context *ctx);
-static struct ast     *parse_ref(struct parser_context *ctx);
-static struct ast     *parse_ref_nested(struct parser_context *ctx, struct ast *prev);
-static struct ast     *parse_type_polymorph(struct parser_context *ctx);
-static struct ast     *parse_type_arr(struct parser_context *ctx);
-static struct ast     *parse_type_slice(struct parser_context *ctx);
-static struct ast     *parse_type_dynarr(struct parser_context *ctx);
-static struct ast     *parse_type_fn(struct parser_context *ctx, bool named_args, bool create_scope);
-static struct ast     *parse_type_fn_group(struct parser_context *ctx);
-static struct ast     *parse_type_fn_return(struct parser_context *ctx);
-static struct ast     *parse_type_struct(struct parser_context *ctx);
-static struct ast     *parse_type_enum(struct parser_context *ctx);
-static struct ast     *parse_type_ptr(struct parser_context *ctx);
-static struct ast     *parse_type_vargs(struct parser_context *ctx);
-static struct ast     *parse_stmt_return(struct parser_context *ctx);
-static struct ast     *parse_stmt_using(struct parser_context *ctx);
-static struct ast     *parse_stmt_if(struct parser_context *ctx, bool is_static);
-static struct ast     *parse_stmt_loop(struct parser_context *ctx);
-static struct ast     *parse_stmt_break(struct parser_context *ctx);
-static struct ast     *parse_stmt_continue(struct parser_context *ctx);
-static struct ast     *parse_stmt_defer(struct parser_context *ctx);
-static struct ast     *parse_stmt_switch(struct parser_context *ctx);
-static struct ast     *parse_stmt_case(struct parser_context *ctx);
+static bool            parse_docs(struct context *ctx);
+static bool            parse_unit_docs(struct context *ctx);
+static void            parse_ublock_content(struct context *ctx, struct ast *ublock);
+static struct ast     *parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive_flags *satisfied, const bool is_in_expression);
+static struct ast     *parse_unrecheable(struct context *ctx);
+static struct ast     *parse_debugbreak(struct context *ctx);
+static struct ast     *parse_ident_group(struct context *ctx);
+static struct ast     *parse_single_block_stmt_or_expr(struct context *ctx, bool *out_require_semicolon);
+static struct ast     *parse_block(struct context *ctx, enum scope_kind scope_kind);
+static struct ast     *parse_decl(struct context *ctx);
+static struct ast     *parse_decl_member(struct context *ctx, s32 index);
+static struct ast     *parse_decl_arg(struct context *ctx, bool named);
+static struct ast     *parse_decl_variant(struct context *ctx, struct ast *prev);
+static struct ast     *parse_type(struct context *ctx);
+static struct ast     *parse_ref(struct context *ctx);
+static struct ast     *parse_ref_nested(struct context *ctx, struct ast *prev);
+static struct ast     *parse_type_polymorph(struct context *ctx);
+static struct ast     *parse_type_arr(struct context *ctx);
+static struct ast     *parse_type_slice(struct context *ctx);
+static struct ast     *parse_type_dynarr(struct context *ctx);
+static struct ast     *parse_type_fn(struct context *ctx, bool named_args, bool create_scope);
+static struct ast     *parse_type_fn_group(struct context *ctx);
+static struct ast     *parse_type_fn_return(struct context *ctx);
+static struct ast     *parse_type_struct(struct context *ctx);
+static struct ast     *parse_type_enum(struct context *ctx);
+static struct ast     *parse_type_ptr(struct context *ctx);
+static struct ast     *parse_type_vargs(struct context *ctx);
+static struct ast     *parse_stmt_return(struct context *ctx);
+static struct ast     *parse_stmt_using(struct context *ctx);
+static struct ast     *parse_stmt_if(struct context *ctx, bool is_static);
+static struct ast     *parse_stmt_loop(struct context *ctx);
+static struct ast     *parse_stmt_break(struct context *ctx);
+static struct ast     *parse_stmt_continue(struct context *ctx);
+static struct ast     *parse_stmt_defer(struct context *ctx);
+static struct ast     *parse_stmt_switch(struct context *ctx);
+static struct ast     *parse_stmt_case(struct context *ctx);
 
 // EXPRESSIONS
-static struct ast *parse_expr(struct parser_context *ctx);
-static struct ast *_parse_expr(struct parser_context *ctx, s32 p);
-static struct ast *parse_expr_atom(struct parser_context *ctx);
-static struct ast *parse_expr_primary(struct parser_context *ctx);
-static struct ast *parse_expr_unary(struct parser_context *ctx);
-static struct ast *parse_expr_binary(struct parser_context *ctx, struct ast *lhs, struct ast *rhs, struct token *op);
-static struct ast *parse_expr_addrof(struct parser_context *ctx);
-static struct ast *parse_expr_deref(struct parser_context *ctx);
-static struct ast *parse_expr_type(struct parser_context *ctx);
-static struct ast *parse_expr_ref(struct parser_context *ctx);
-static struct ast *parse_expr_nested(struct parser_context *ctx);
-static struct ast *parse_expr_null(struct parser_context *ctx);
-static struct ast *parse_expr_cast(struct parser_context *ctx);
-static struct ast *parse_expr_cast_auto(struct parser_context *ctx);
-static struct ast *parse_expr_lit(struct parser_context *ctx);
-static struct ast *parse_expr_lit_fn(struct parser_context *ctx);
-static struct ast *parse_expr_lit_fn_group(struct parser_context *ctx);
-static struct ast *parse_expr_test_cases(struct parser_context *ctx);
-static inline bool parse_semicolon(struct parser_context *ctx);
-static inline bool parse_semicolon_rq(struct parser_context *ctx);
+static struct ast *parse_expr(struct context *ctx);
+static struct ast *_parse_expr(struct context *ctx, s32 p);
+static struct ast *parse_expr_atom(struct context *ctx);
+static struct ast *parse_expr_primary(struct context *ctx);
+static struct ast *parse_expr_unary(struct context *ctx);
+static struct ast *parse_expr_binary(struct context *ctx, struct ast *lhs, struct ast *rhs, struct token *op);
+static struct ast *parse_expr_addrof(struct context *ctx);
+static struct ast *parse_expr_deref(struct context *ctx);
+static struct ast *parse_expr_type(struct context *ctx);
+static struct ast *parse_expr_ref(struct context *ctx);
+static struct ast *parse_expr_nested(struct context *ctx);
+static struct ast *parse_expr_null(struct context *ctx);
+static struct ast *parse_expr_cast(struct context *ctx);
+static struct ast *parse_expr_cast_auto(struct context *ctx);
+static struct ast *parse_expr_lit(struct context *ctx);
+static struct ast *parse_expr_lit_fn(struct context *ctx);
+static struct ast *parse_expr_lit_fn_group(struct context *ctx);
+static struct ast *parse_expr_test_cases(struct context *ctx);
+static inline bool parse_semicolon(struct context *ctx);
+static inline bool parse_semicolon_rq(struct context *ctx);
 static inline bool hash_directive_to_flags(enum hash_directive_flags hd, u32 *out_flags);
-static struct ast *parse_expr_call(struct parser_context *ctx, struct ast *prev);
-static struct ast *parse_expr_elem(struct parser_context *ctx, struct ast *prev);
-static struct ast *parse_expr_compound(struct parser_context *ctx, struct ast *prev);
+static struct ast *parse_expr_call(struct context *ctx, struct ast *prev);
+static struct ast *parse_expr_elem(struct context *ctx, struct ast *prev);
+static struct ast *parse_expr_compound(struct context *ctx, struct ast *prev);
 
-static inline union token_value get_token_value(struct parser_context *ctx, struct token *token) {
+static inline union token_value get_token_value(struct context *ctx, struct token *token) {
 	bassert(token && token->value_index < arrlenu(ctx->tokens->values));
 	return ctx->tokens->values[token->value_index];
 }
 
 #define parse_ident(ctx) (tokens_peek((ctx)->tokens)->sym == SYM_IDENT ? _parse_ident(ctx) : NULL)
-static inline struct ast *_parse_ident(struct parser_context *ctx) {
+static inline struct ast *_parse_ident(struct context *ctx) {
 	zone();
 	struct token *tok_ident = tokens_consume(ctx->tokens);
 	assert(tok_ident->sym == SYM_IDENT);
@@ -171,7 +171,7 @@ static inline struct ast *_parse_ident(struct parser_context *ctx) {
 
 // Set function type flavor flag of current parent function type being parsed. Asserts in case there
 // is no current function type in the fn_type_stack.
-static inline void set_parent_function_type_flavor(struct parser_context        *ctx,
+static inline void set_parent_function_type_flavor(struct context               *ctx,
                                                    const enum ast_type_fn_flavor flavor) {
 	bassert(
 	    arrlenu(ctx->fn_type_stack) &&
@@ -196,7 +196,7 @@ static inline bool rq_semicolon_after_decl_entity(struct ast *node) {
 	}
 }
 
-static inline str_t pop_docs(struct parser_context *ctx) {
+static inline str_t pop_docs(struct context *ctx) {
 	str_t text = str_empty;
 	if (ctx->current_docs) {
 		text              = ctx->current_docs->data.docs.text;
@@ -281,7 +281,7 @@ enum unop_kind sym_to_unop_kind(enum sym sm) {
 	}
 }
 
-struct ast *parse_expr_ref(struct parser_context *ctx) {
+struct ast *parse_expr_ref(struct context *ctx) {
 	zone();
 	struct token *tok = tokens_peek(ctx->tokens);
 	if (tok->sym != SYM_IDENT) return_zone(NULL);
@@ -292,7 +292,7 @@ struct ast *parse_expr_ref(struct parser_context *ctx) {
 	return_zone(ref);
 }
 
-bool parse_docs(struct parser_context *ctx) {
+bool parse_docs(struct context *ctx) {
 	struct token *tok_begin = tokens_consume_if(ctx->tokens, SYM_DCOMMENT);
 	if (!tok_begin) return false;
 	zone();
@@ -316,7 +316,7 @@ bool parse_docs(struct parser_context *ctx) {
 	return_zone(true);
 }
 
-bool parse_unit_docs(struct parser_context *ctx) {
+bool parse_unit_docs(struct context *ctx) {
 	struct token *tok_begin = tokens_peek(ctx->tokens);
 	if (token_is_not(tok_begin, SYM_DGCOMMENT)) return false;
 	zone();
@@ -331,7 +331,7 @@ bool parse_unit_docs(struct parser_context *ctx) {
 
 // Try to parse hash directive. List of enabled directives can be set by 'expected_mask',
 // 'satisfied' is optional output set to parsed directive id if there is one.
-struct ast *parse_hash_directive(struct parser_context *ctx, s32 expected_mask, enum hash_directive_flags *satisfied, const bool is_in_expression) {
+struct ast *parse_hash_directive(struct context *ctx, s32 expected_mask, enum hash_directive_flags *satisfied, const bool is_in_expression) {
 	zone();
 #define set_satisfied(_hd)               \
 	{                                    \
@@ -595,7 +595,7 @@ INVALID:
 #undef set_satisfied
 }
 
-struct ast *parse_expr_compound(struct parser_context *ctx, struct ast *prev) {
+struct ast *parse_expr_compound(struct context *ctx, struct ast *prev) {
 	zone();
 	if (!tokens_is_seq(ctx->tokens, 2, SYM_DOT, SYM_LBLOCK)) return_zone(NULL);
 	// eat .
@@ -645,7 +645,7 @@ NEXT:
 	return_zone(compound);
 }
 
-struct ast *parse_expr_test_cases(struct parser_context *ctx) {
+struct ast *parse_expr_test_cases(struct context *ctx) {
 	zone();
 	struct token *tok_begin = tokens_consume_if(ctx->tokens, SYM_TESTCASES);
 	if (!tok_begin) return_zone(NULL);
@@ -654,7 +654,7 @@ struct ast *parse_expr_test_cases(struct parser_context *ctx) {
 	return_zone(tc);
 }
 
-struct ast *parse_expr_cast_auto(struct parser_context *ctx) {
+struct ast *parse_expr_cast_auto(struct context *ctx) {
 	zone();
 	struct token *tok_begin = tokens_consume_if(ctx->tokens, SYM_CAST_AUTO);
 	if (!tok_begin) return_zone(NULL);
@@ -673,7 +673,7 @@ struct ast *parse_expr_cast_auto(struct parser_context *ctx) {
 	return_zone(cast);
 }
 
-struct ast *parse_expr_cast(struct parser_context *ctx) {
+struct ast *parse_expr_cast(struct context *ctx) {
 	zone();
 	struct token *tok_begin = tokens_consume_if(ctx->tokens, SYM_CAST);
 	if (!tok_begin) return_zone(NULL);
@@ -712,7 +712,7 @@ struct ast *parse_expr_cast(struct parser_context *ctx) {
 	return_zone(cast);
 }
 
-struct ast *parse_decl_member(struct parser_context *ctx, s32 UNUSED(index)) {
+struct ast *parse_decl_member(struct context *ctx, s32 UNUSED(index)) {
 	zone();
 	struct token *tok_begin = tokens_peek(ctx->tokens);
 	struct ast   *name      = NULL;
@@ -763,7 +763,7 @@ struct ast *parse_decl_member(struct parser_context *ctx, s32 UNUSED(index)) {
 	return_zone(mem);
 }
 
-struct ast *parse_decl_arg(struct parser_context *ctx, bool named) {
+struct ast *parse_decl_arg(struct context *ctx, bool named) {
 	zone();
 	struct token *tok_begin = tokens_peek(ctx->tokens);
 	struct ast   *name      = NULL;
@@ -839,7 +839,7 @@ struct ast *parse_decl_arg(struct parser_context *ctx, bool named) {
 	return_zone(arg);
 }
 
-struct ast *parse_decl_variant(struct parser_context *ctx, struct ast *prev) {
+struct ast *parse_decl_variant(struct context *ctx, struct ast *prev) {
 	zone();
 	struct token *tok_begin = tokens_peek(ctx->tokens);
 	struct ast   *name      = parse_ident(ctx);
@@ -866,11 +866,11 @@ struct ast *parse_decl_variant(struct parser_context *ctx, struct ast *prev) {
 	return_zone(variant);
 }
 
-bool parse_semicolon(struct parser_context *ctx) {
+bool parse_semicolon(struct context *ctx) {
 	return tokens_consume_if(ctx->tokens, SYM_SEMICOLON);
 }
 
-bool parse_semicolon_rq(struct parser_context *ctx) {
+bool parse_semicolon_rq(struct context *ctx) {
 	struct token *tok = tokens_consume_if(ctx->tokens, SYM_SEMICOLON);
 	if (!tok && builder.errorc == 0) {
 		tok = tokens_peek_prev(ctx->tokens);
@@ -911,7 +911,7 @@ bool hash_directive_to_flags(enum hash_directive_flags hd, u32 *out_flags) {
 	return false;
 }
 
-struct ast *parse_stmt_using(struct parser_context *ctx) {
+struct ast *parse_stmt_using(struct context *ctx) {
 	zone();
 	struct token *tok_begin = tokens_consume_if(ctx->tokens, SYM_USING);
 	if (!tok_begin) return_zone(NULL);
@@ -932,7 +932,7 @@ struct ast *parse_stmt_using(struct parser_context *ctx) {
 	return_zone(stmt_using);
 }
 
-struct ast *parse_stmt_return(struct parser_context *ctx) {
+struct ast *parse_stmt_return(struct context *ctx) {
 	zone();
 	struct token *tok_begin = tokens_consume_if(ctx->tokens, SYM_RETURN);
 	if (!tok_begin) return_zone(NULL);
@@ -962,7 +962,7 @@ NEXT:
 	return_zone(ret);
 }
 
-struct ast *parse_stmt_if(struct parser_context *ctx, bool is_static) {
+struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 	zone();
 
 	struct token *tok_begin = tokens_consume_if(ctx->tokens, SYM_IF);
@@ -1096,7 +1096,7 @@ struct ast *parse_stmt_if(struct parser_context *ctx, bool is_static) {
 	return_zone(stmt_if);
 }
 
-struct ast *parse_stmt_switch(struct parser_context *ctx) {
+struct ast *parse_stmt_switch(struct context *ctx) {
 	zone();
 	struct token *tok_switch = tokens_consume_if(ctx->tokens, SYM_SWITCH);
 	if (!tok_switch) return_zone(NULL);
@@ -1156,7 +1156,7 @@ NEXT:
 	return_zone(stmt_switch);
 }
 
-struct ast *parse_stmt_case(struct parser_context *ctx) {
+struct ast *parse_stmt_case(struct context *ctx) {
 	zone();
 	ast_nodes_t *exprs = NULL;
 	struct ast  *block = NULL;
@@ -1212,7 +1212,7 @@ static enum tokens_lookahead_state cmp_stmt_loop(struct token *curr) {
 	return TOK_LOOK_CONTINUE;
 }
 
-struct ast *parse_stmt_loop(struct parser_context *ctx) {
+struct ast *parse_stmt_loop(struct context *ctx) {
 	zone();
 	struct token *tok_begin = tokens_consume_if(ctx->tokens, SYM_LOOP);
 	if (!tok_begin) return_zone(NULL);
@@ -1263,7 +1263,7 @@ struct ast *parse_stmt_loop(struct parser_context *ctx) {
 	return_zone(loop);
 }
 
-struct ast *parse_stmt_break(struct parser_context *ctx) {
+struct ast *parse_stmt_break(struct context *ctx) {
 	zone();
 	struct token *tok = tokens_consume_if(ctx->tokens, SYM_BREAK);
 	if (!tok) return_zone(NULL);
@@ -1274,7 +1274,7 @@ struct ast *parse_stmt_break(struct parser_context *ctx) {
 	return_zone(ast_create_node(ctx->ast_arena, AST_STMT_BREAK, tok, scope_get(ctx)));
 }
 
-struct ast *parse_stmt_continue(struct parser_context *ctx) {
+struct ast *parse_stmt_continue(struct context *ctx) {
 	zone();
 	struct token *tok = tokens_consume_if(ctx->tokens, SYM_CONTINUE);
 	if (!tok) return_zone(NULL);
@@ -1286,7 +1286,7 @@ struct ast *parse_stmt_continue(struct parser_context *ctx) {
 	return_zone(ast_create_node(ctx->ast_arena, AST_STMT_CONTINUE, tok, scope_get(ctx)));
 }
 
-struct ast *parse_stmt_defer(struct parser_context *ctx) {
+struct ast *parse_stmt_defer(struct context *ctx) {
 	zone();
 	struct token *tok = tokens_consume_if(ctx->tokens, SYM_DEFER);
 	if (!tok) return_zone(NULL);
@@ -1307,11 +1307,11 @@ struct ast *parse_stmt_defer(struct parser_context *ctx) {
 	return_zone(defer);
 }
 
-struct ast *parse_expr(struct parser_context *ctx) {
+struct ast *parse_expr(struct context *ctx) {
 	return _parse_expr(ctx, 0);
 }
 
-struct ast *_parse_expr(struct parser_context *ctx, s32 p) {
+struct ast *_parse_expr(struct context *ctx, s32 p) {
 	zone();
 	const bool prev_is_inside_expression = ctx->is_inside_expression;
 	ctx->is_inside_expression            = true;
@@ -1340,7 +1340,7 @@ struct ast *_parse_expr(struct parser_context *ctx, s32 p) {
 	return_zone(lhs);
 }
 
-struct ast *parse_expr_primary(struct parser_context *ctx) {
+struct ast *parse_expr_primary(struct context *ctx) {
 	struct ast *expr = NULL;
 	switch (tokens_peek_sym(ctx->tokens)) {
 	case SYM_LPAREN:
@@ -1371,7 +1371,7 @@ struct ast *parse_expr_primary(struct parser_context *ctx) {
 	return NULL;
 }
 
-struct ast *parse_expr_unary(struct parser_context *ctx) {
+struct ast *parse_expr_unary(struct context *ctx) {
 	zone();
 	struct token *op = tokens_peek(ctx->tokens);
 	if (!token_is_unary(op)) return_zone(NULL);
@@ -1394,7 +1394,7 @@ struct ast *parse_expr_unary(struct parser_context *ctx) {
 	return_zone(unary);
 }
 
-struct ast *parse_expr_atom(struct parser_context *ctx) {
+struct ast *parse_expr_atom(struct context *ctx) {
 	struct ast *expr = NULL;
 	switch (tokens_peek_sym(ctx->tokens)) {
 	case SYM_AT:
@@ -1422,7 +1422,7 @@ struct ast *parse_expr_atom(struct parser_context *ctx) {
 }
 
 struct ast *
-parse_expr_binary(struct parser_context *ctx, struct ast *lhs, struct ast *rhs, struct token *op) {
+parse_expr_binary(struct context *ctx, struct ast *lhs, struct ast *rhs, struct token *op) {
 	zone();
 	if (!token_is_binop(op)) return_zone(NULL);
 
@@ -1433,7 +1433,7 @@ parse_expr_binary(struct parser_context *ctx, struct ast *lhs, struct ast *rhs, 
 	return_zone(binop);
 }
 
-struct ast *parse_expr_addrof(struct parser_context *ctx) {
+struct ast *parse_expr_addrof(struct context *ctx) {
 	zone();
 	struct token *tok = tokens_consume_if(ctx->tokens, SYM_AND);
 	if (!tok) return_zone(NULL);
@@ -1452,7 +1452,7 @@ struct ast *parse_expr_addrof(struct parser_context *ctx) {
 	return_zone(addrof);
 }
 
-struct ast *parse_expr_deref(struct parser_context *ctx) {
+struct ast *parse_expr_deref(struct context *ctx) {
 	zone();
 	struct token *tok = tokens_consume_if(ctx->tokens, SYM_AT);
 	if (!tok) return_zone(NULL);
@@ -1474,7 +1474,7 @@ struct ast *parse_expr_deref(struct parser_context *ctx) {
 	return_zone(deref);
 }
 
-struct ast *parse_expr_lit(struct parser_context *ctx) {
+struct ast *parse_expr_lit(struct context *ctx) {
 	zone();
 	struct token *tok = tokens_peek(ctx->tokens);
 	struct ast   *lit = NULL;
@@ -1544,7 +1544,7 @@ struct ast *parse_expr_lit(struct parser_context *ctx) {
 	return_zone(lit);
 }
 
-struct ast *parse_expr_lit_fn(struct parser_context *ctx) {
+struct ast *parse_expr_lit_fn(struct context *ctx) {
 	zone();
 	if (!tokens_is_seq(ctx->tokens, 2, SYM_FN, SYM_LPAREN)) return_zone(NULL);
 	struct token *tok_fn = tokens_peek(ctx->tokens);
@@ -1604,7 +1604,7 @@ struct ast *parse_expr_lit_fn(struct parser_context *ctx) {
 	return_zone(fn);
 }
 
-struct ast *parse_expr_lit_fn_group(struct parser_context *ctx) {
+struct ast *parse_expr_lit_fn_group(struct context *ctx) {
 	zone();
 	if (!tokens_is_seq(ctx->tokens, 2, SYM_FN, SYM_LBLOCK)) return_zone(NULL);
 	struct token *tok_group = tokens_consume(ctx->tokens); // eat fn
@@ -1631,7 +1631,7 @@ NEXT:
 	return_zone(group);
 }
 
-struct ast *parse_expr_nested(struct parser_context *ctx) {
+struct ast *parse_expr_nested(struct context *ctx) {
 	zone();
 	struct ast   *expr      = NULL;
 	struct token *tok_begin = tokens_consume_if(ctx->tokens, SYM_LPAREN);
@@ -1655,7 +1655,7 @@ struct ast *parse_expr_nested(struct parser_context *ctx) {
 	return_zone(expr);
 }
 
-struct ast *parse_expr_elem(struct parser_context *ctx, struct ast *prev) {
+struct ast *parse_expr_elem(struct context *ctx, struct ast *prev) {
 	zone();
 	if (!prev) return_zone(NULL);
 	struct token *tok_elem = tokens_consume_if(ctx->tokens, SYM_LBRACKET);
@@ -1677,7 +1677,7 @@ struct ast *parse_expr_elem(struct parser_context *ctx, struct ast *prev) {
 	return_zone(elem);
 }
 
-struct ast *parse_ident_group(struct parser_context *ctx) {
+struct ast *parse_ident_group(struct context *ctx) {
 	zone();
 	struct ast *root = NULL;
 	struct ast *prev = NULL;
@@ -1702,7 +1702,7 @@ NEXT:
 	return_zone(root);
 }
 
-struct ast *parse_type_ptr(struct parser_context *ctx) {
+struct ast *parse_type_ptr(struct context *ctx) {
 	zone();
 	struct token *tok_begin = tokens_consume_if(ctx->tokens, SYM_ASTERISK);
 	if (!tok_begin) return_zone(NULL);
@@ -1722,7 +1722,7 @@ struct ast *parse_type_ptr(struct parser_context *ctx) {
 	return_zone(ptr);
 }
 
-struct ast *parse_type_vargs(struct parser_context *ctx) {
+struct ast *parse_type_vargs(struct context *ctx) {
 	zone();
 	struct token *tok_begin = tokens_consume_if(ctx->tokens, SYM_VARGS);
 	if (!tok_begin) return_zone(NULL);
@@ -1732,7 +1732,7 @@ struct ast *parse_type_vargs(struct parser_context *ctx) {
 	return_zone(ptr);
 }
 
-struct ast *parse_type_enum(struct parser_context *ctx) {
+struct ast *parse_type_enum(struct context *ctx) {
 	zone();
 	struct token *tok_enum = tokens_consume_if(ctx->tokens, SYM_ENUM);
 	if (!tok_enum) return_zone(NULL);
@@ -1810,7 +1810,7 @@ NEXT:
 	return_zone(enm);
 }
 
-struct ast *parse_ref(struct parser_context *ctx) {
+struct ast *parse_ref(struct context *ctx) {
 	zone();
 	struct token *tok   = tokens_peek(ctx->tokens);
 	struct ast   *ident = parse_ident(ctx);
@@ -1825,7 +1825,7 @@ struct ast *parse_ref(struct parser_context *ctx) {
 	return_zone(lhs);
 }
 
-struct ast *parse_ref_nested(struct parser_context *ctx, struct ast *prev) {
+struct ast *parse_ref_nested(struct context *ctx, struct ast *prev) {
 	zone();
 	if (!prev) return_zone(NULL);
 	// @Hack: This is a little hack for now, because we have .{ combination reserved for compound
@@ -1847,7 +1847,7 @@ struct ast *parse_ref_nested(struct parser_context *ctx, struct ast *prev) {
 	return_zone(ref);
 }
 
-struct ast *parse_type_polymorph(struct parser_context *ctx) {
+struct ast *parse_type_polymorph(struct context *ctx) {
 	zone();
 	struct token *tok_begin = tokens_consume_if(ctx->tokens, SYM_QUESTION);
 	if (!tok_begin) return_zone(NULL);
@@ -1873,7 +1873,7 @@ struct ast *parse_type_polymorph(struct parser_context *ctx) {
 	return_zone(poly);
 }
 
-struct ast *parse_type_arr(struct parser_context *ctx) {
+struct ast *parse_type_arr(struct context *ctx) {
 	zone();
 	struct token *tok_begin = tokens_consume_if(ctx->tokens, SYM_LBRACKET);
 	if (!tok_begin) return_zone(NULL);
@@ -1916,7 +1916,7 @@ struct ast *parse_type_arr(struct parser_context *ctx) {
 	return_zone(arr);
 }
 
-struct ast *parse_type_slice(struct parser_context *ctx) {
+struct ast *parse_type_slice(struct context *ctx) {
 	zone();
 	if (tokens_peek(ctx->tokens)->sym != SYM_LBRACKET) return_zone(NULL);
 	if (tokens_peek_2nd(ctx->tokens)->sym != SYM_RBRACKET) return_zone(NULL);
@@ -1937,7 +1937,7 @@ struct ast *parse_type_slice(struct parser_context *ctx) {
 	return_zone(slice);
 }
 
-struct ast *parse_type_dynarr(struct parser_context *ctx) {
+struct ast *parse_type_dynarr(struct context *ctx) {
 	zone();
 	if (tokens_peek(ctx->tokens)->sym != SYM_LBRACKET) return_zone(NULL);
 	if (tokens_peek_2nd(ctx->tokens)->sym != SYM_DYNARR) return_zone(NULL);
@@ -1969,7 +1969,7 @@ struct ast *parse_type_dynarr(struct parser_context *ctx) {
 	return_zone(slice);
 }
 
-struct ast *parse_type(struct parser_context *ctx) {
+struct ast *parse_type(struct context *ctx) {
 	struct ast *type = NULL;
 
 	type = parse_type_ptr(ctx);
@@ -1999,7 +1999,7 @@ struct ast *parse_type(struct parser_context *ctx) {
 	return type;
 }
 
-struct ast *parse_type_fn_return(struct parser_context *ctx) {
+struct ast *parse_type_fn_return(struct context *ctx) {
 	zone();
 	if (tokens_current_is(ctx->tokens, SYM_LPAREN)) {
 		// multiple return type ( T1, T2 )
@@ -2044,7 +2044,7 @@ struct ast *parse_type_fn_return(struct parser_context *ctx) {
 	return_zone(parse_type(ctx));
 }
 
-struct ast *parse_type_fn(struct parser_context *ctx, bool named_args, bool create_scope) {
+struct ast *parse_type_fn(struct context *ctx, bool named_args, bool create_scope) {
 	zone();
 	struct token *tok_fn = tokens_consume_if(ctx->tokens, SYM_FN);
 	if (!tok_fn) return_zone(NULL);
@@ -2106,7 +2106,7 @@ NEXT:
 	return_zone(fn);
 }
 
-struct ast *parse_type_fn_group(struct parser_context *ctx) {
+struct ast *parse_type_fn_group(struct context *ctx) {
 	zone();
 	if (!tokens_is_seq(ctx->tokens, 2, SYM_FN, SYM_LBLOCK)) return_zone(NULL);
 	struct token *tok_group = tokens_consume(ctx->tokens); // eat fn
@@ -2140,7 +2140,7 @@ NEXT:
 	return_zone(group);
 }
 
-struct ast *parse_type_struct(struct parser_context *ctx) {
+struct ast *parse_type_struct(struct context *ctx) {
 	zone();
 	struct token *tok_struct = tokens_consume_if(ctx->tokens, SYM_STRUCT);
 	if (!tok_struct) tok_struct = tokens_consume_if(ctx->tokens, SYM_UNION);
@@ -2231,7 +2231,7 @@ static enum tokens_lookahead_state cmp_decl(struct token *curr) {
 	}
 }
 
-struct ast *parse_decl(struct parser_context *ctx) {
+struct ast *parse_decl(struct context *ctx) {
 	zone();
 	// is value declaration?
 	if (!tokens_lookahead(ctx->tokens, cmp_decl)) return_zone(NULL);
@@ -2302,7 +2302,7 @@ struct ast *parse_decl(struct parser_context *ctx) {
 	return_zone(decl);
 }
 
-struct ast *parse_expr_call(struct parser_context *ctx, struct ast *prev) {
+struct ast *parse_expr_call(struct context *ctx, struct ast *prev) {
 	zone();
 	if (!prev) return_zone(NULL);
 
@@ -2349,26 +2349,26 @@ arg:
 	return_zone(call);
 }
 
-struct ast *parse_expr_null(struct parser_context *ctx) {
+struct ast *parse_expr_null(struct context *ctx) {
 	struct token *tok_null = tokens_consume_if(ctx->tokens, SYM_NULL);
 	if (!tok_null) return NULL;
 	return ast_create_node(ctx->ast_arena, AST_EXPR_NULL, tok_null, scope_get(ctx));
 }
 
-struct ast *parse_unrecheable(struct parser_context *ctx) {
+struct ast *parse_unrecheable(struct context *ctx) {
 	struct token *tok = tokens_consume_if(ctx->tokens, SYM_UNREACHABLE);
 	if (!tok) return NULL;
 
 	return ast_create_node(ctx->ast_arena, AST_UNREACHABLE, tok, scope_get(ctx));
 }
 
-struct ast *parse_debugbreak(struct parser_context *ctx) {
+struct ast *parse_debugbreak(struct context *ctx) {
 	struct token *tok = tokens_consume_if(ctx->tokens, SYM_DEBUGBREAK);
 	if (!tok) return NULL;
 	return ast_create_node(ctx->ast_arena, AST_DEBUGBREAK, tok, scope_get(ctx));
 }
 
-struct ast *parse_expr_type(struct parser_context *ctx) {
+struct ast *parse_expr_type(struct context *ctx) {
 	struct token *tok  = tokens_peek(ctx->tokens);
 	struct ast   *type = NULL;
 
@@ -2392,7 +2392,7 @@ struct ast *parse_expr_type(struct parser_context *ctx) {
 	return NULL;
 }
 
-struct ast *parse_single_block_stmt_or_expr(struct parser_context *ctx, bool *out_require_semicolon) {
+struct ast *parse_single_block_stmt_or_expr(struct context *ctx, bool *out_require_semicolon) {
 	struct token *tok;
 	struct ast   *tmp = NULL;
 
@@ -2477,7 +2477,7 @@ NEXT:
 	return NULL;
 }
 
-struct ast *parse_block(struct parser_context *ctx, enum scope_kind scope_kind) {
+struct ast *parse_block(struct context *ctx, enum scope_kind scope_kind) {
 	struct token *tok_begin = tokens_consume_if(ctx->tokens, SYM_LBLOCK);
 	if (!tok_begin) return NULL;
 
@@ -2522,7 +2522,7 @@ struct ast *parse_block(struct parser_context *ctx, enum scope_kind scope_kind) 
 	return block;
 }
 
-void parse_ublock_content(struct parser_context *ctx, struct ast *ublock) {
+void parse_ublock_content(struct context *ctx, struct ast *ublock) {
 	bassert(ublock->kind == AST_UBLOCK);
 	arrsetcap(ublock->data.ublock.nodes, 64);
 	struct ast *tmp;
@@ -2571,7 +2571,7 @@ NEXT:
 	}
 }
 
-void init_hash_directives(struct parser_context *ctx) {
+void init_hash_directives(struct context *ctx) {
 	static const char *hash_directive_names[] = {
 #define HD_GEN(kind, name, flag) name,
 #include "parser.def"
@@ -2603,7 +2603,7 @@ void parser_run(struct assembly *assembly, struct unit *unit) {
 	zone();
 	runtime_measure_begin(parse);
 
-	struct parser_context ctx = {
+	struct context ctx = {
 	    .assembly = assembly,
 	    .unit     = unit,
 	    .tokens   = &unit->tokens,

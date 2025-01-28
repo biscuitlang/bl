@@ -158,7 +158,7 @@ static void parse_triple(const char *llvm_triple, struct target_triple *out_trip
 	free(tmp);
 }
 
-static void assembly_llvm_init(struct assembly *assembly) {
+static void llvm_init(struct assembly *assembly) {
 	const s32 triple_len = target_triple_to_string(&assembly->target->triple, NULL, 0);
 	char     *triple     = bmalloc(triple_len);
 	target_triple_to_string(&assembly->target->triple, triple, triple_len);
@@ -195,7 +195,7 @@ static void assembly_llvm_init(struct assembly *assembly) {
 	assembly->llvm.triple        = triple;
 }
 
-static void assembly_llvm_terminate(struct assembly *assembly) {
+static void llvm_terminate(struct assembly *assembly) {
 	LLVMDisposeModule(assembly->llvm.module);
 	LLVMDisposeTargetMachine(assembly->llvm.TM);
 	LLVMDisposeTargetData(assembly->llvm.TD);
@@ -449,7 +449,7 @@ struct assembly *assembly_new(const struct target *target) {
 	spl_init(&assembly->lib_paths_lock);
 	spl_init(&assembly->libs_lock);
 
-	assembly_llvm_init(assembly);
+	llvm_init(assembly);
 	arrsetcap(assembly->units, 64);
 	str_buf_setcap(&assembly->custom_linker_opt, 128);
 	vm_init(&assembly->vm, VM_STACK_SIZE);
@@ -565,7 +565,7 @@ void assembly_delete(struct assembly *assembly) {
 
 	str_buf_free(&assembly->custom_linker_opt);
 	vm_terminate(&assembly->vm);
-	assembly_llvm_terminate(assembly);
+	llvm_terminate(assembly);
 	dl_terminate(assembly);
 	mir_terminate(assembly);
 	thread_local_terminate(assembly);
