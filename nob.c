@@ -20,7 +20,6 @@
     operating system.
 
     TODO:
-    - 2025-01-29: Missing compile_commands.json export.
     - 2025-01-29: Add assert mode switch argument.
     - 2025-01-27: Missing Tracy support.
     - 2025-01-27: Missing build of dlib runtime used by compiler.

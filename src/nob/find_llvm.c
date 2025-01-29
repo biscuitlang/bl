@@ -7,18 +7,19 @@ void find_llvm(void) {
 	nob_log(NOB_INFO, "Looking for LLVM " STR(LLVM_REQUIRED) "...");
 
 #if _WIN32
+	LLVM_VERSION = "18.1.8";
+
 	nob_log(NOB_INFO, "Using bundled LLVM package.");
 	if (!file_exists("./deps/llvm-18.1.8-win64")) {
 		nob_log(NOB_INFO, "Unpacking LLVM...");
 		Cmd cmd = {0};
-		cmd_append(&cmd, "tar", "-xf", "./deps/llvm-" STR(LLVM_REQUIRED) "-win64.zip", "-C", "./deps");
+		cmd_append(&cmd, "tar", "-xf", temp_sprintf("./deps/llvm-%s-win64-nob.zip", LLVM_VERSION), "-C", "./deps");
 		if (!cmd_run_sync(cmd)) exit(1);
 		cmd_free(cmd);
 	}
 
-	LLVM_VERSION     = "18.1.8";
-	LLVM_INCLUDE_DIR = temp_sprintf("./deps/llvm-%s-win64/include", LLVM_VERSION);
-	LLVM_LIB_DIR     = temp_sprintf("./deps/llvm-%s-win64/lib", LLVM_VERSION);
+	LLVM_INCLUDE_DIR = temp_sprintf("./deps/llvm-%s-win64-nob/include", LLVM_VERSION);
+	LLVM_LIB_DIR     = temp_sprintf("./deps/llvm-%s-win64-nob/lib", LLVM_VERSION);
 	LLVM_LIBS        = "LLVM.lib";
 
 #else
