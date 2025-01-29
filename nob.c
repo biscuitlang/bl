@@ -58,6 +58,7 @@
 #define STR(x)                  STR_HELPER(x)
 #define VERSION_STRING(a, b, c) STR(a) "." STR(b) "." STR(c)
 #define quote(x)                temp_sprintf("\"%s\"", (x))
+#define trim_and_dup(sb)        temp_sv_to_cstr(sv_trim(sb_to_sv(sb)))
 
 #ifdef _WIN32
 #define SHELL "CMD", "/C"
@@ -69,13 +70,15 @@ void ar(const char *dir, const char *libname);
 #error "Unsupported platform."
 #endif
 
-#define run_shell_cmd(...)                    \
-	do {                                      \
-		Cmd cmd = {0};                        \
-		cmd_append(&cmd, SHELL, __VA_ARGS__); \
-		if (!cmd_run_sync(cmd)) exit(1);      \
-		cmd_free(cmd);                        \
-	} while (0)
+const char *shell(const char *c);
+
+// #define run_shell_cmd(c)                 \
+// 	do {                                 \
+// 		Cmd cmd = {0};                   \
+// 		cmd_append(&cmd, SHELL, c);      \
+// 		if (!cmd_run_sync(cmd)) exit(1); \
+// 		cmd_free(cmd);                   \
+// 	} while (0)
 
 #define wait(procs)                                  \
 	do {                                             \
@@ -98,8 +101,9 @@ void parse_command_line_arguments(int argc, char *argv[]);
 int main(int argc, char *argv[]) {
 	parse_command_line_arguments(argc, argv);
 	nob_log(NOB_INFO, "Running in '%s' in '%s' mode.", get_current_dir_temp(), IS_DEBUG ? "DEBUG" : "RELEASE");
+	mkdir_if_not_exists(BUILD_DIR);
 
-	find_llvm();
+	setup();
 
 	if (!file_exists(BUILD_DIR "/dyncall/" DYNCALL_LIB)) dyncall();
 	if (!file_exists(BUILD_DIR "/libyaml/" YAML_LIB)) libyaml();
@@ -128,7 +132,6 @@ void parse_command_line_arguments(int argc, char *argv[]) {
 		} else if (strcmp(arg, "release") == 0) {
 			IS_DEBUG = 0; // by default
 		} else if (strcmp(arg, "clean") == 0) {
-			// run_shell_cmd("RD", "/S", "/Q", quote(BUILD_DIR));
 			cleanup();
 			exit(0);
 		} else if (strcmp(arg, "help") == 0) {
@@ -140,6 +143,17 @@ void parse_command_line_arguments(int argc, char *argv[]) {
 			exit(1);
 		}
 	}
+}
+
+const char *shell(const char *c) {
+	Cmd            cmd = {0};
+	String_Builder sb  = {0};
+	cmd_append(&cmd, SHELL, c);
+	if (!cmd_run_sync_read_and_reset(&cmd, &sb)) {
+		exit(1);
+	}
+	if (!sb.count) return "";
+	return trim_and_dup(sb);
 }
 
 #ifdef _WIN32
