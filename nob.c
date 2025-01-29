@@ -20,6 +20,7 @@
     operating system.
 
     TODO:
+    - 2025-01-29: Missing compile_commands.json export.
     - 2025-01-29: Add assert mode switch argument.
     - 2025-01-27: Missing Tracy support.
     - 2025-01-27: Missing build of dlib runtime used by compiler.
@@ -188,32 +189,3 @@ void ar(const char *dir, const char *libname) {
 }
 
 #endif
-
-// void cmd_append_bl_includes(Cmd *cmd) {
-// 	cmd_append(cmd, "-I./deps/dyncall-" DYNCALL_VERSION "/dyncall");
-// 	cmd_append(cmd, "-I./deps/dyncall-" DYNCALL_VERSION "/dynload");
-// 	cmd_append(cmd, "-I./deps/dyncall-" DYNCALL_VERSION "/dyncallback");
-// 	cmd_append(cmd, "-I./deps/libyaml-" YAML_VERSION "/include");
-// 	cmd_append(cmd, "-I./deps/tracy-" TRACY_VERSION "/public/tracy");
-// 	cmd_append(cmd, "-I./deps/rpmalloc-" RPMALLOC_VERSION "/rpmalloc");
-// 	cmd_append(cmd, temp_sprintf("-I%s", LLVM_INCLUDE_DIR));
-// }
-
-// void cmd_append_bl_flags(Cmd *cmd) {
-// 	cmd_append(cmd,
-// 	           "-DBL_VERSION_MAJOR=" STR(BL_VERSION_MAJOR),
-// 	           "-DBL_VERSION_MINOR=" STR(BL_VERSION_MINOR),
-// 	           "-DBL_VERSION_PATCH=" STR(BL_VERSION_PATCH),
-// 	           "-DYAML_DECLARE_STATIC");
-// 	if (IS_DEBUG) {
-// 		cmd_append(cmd, BASE_FLAGS, BASE_FLAGS_DEBUG, "-DBL_DEBUG", "-DBL_ASSERT_ENABLE=1");
-// 	} else {
-// 		cmd_append(cmd, BASE_FLAGS, BASE_FLAGS_RELEASE);
-// 	}
-// 	if (BL_SIMD_ENABLE) {
-// 		cmd_append(cmd, "-DBL_USE_SIMD", "/arch:AVX");
-// 	}
-// 	if (BL_RPMALLOC_ENABLE) {
-// 		cmd_append(cmd, "-DBL_RPMALLOC_ENABLE=1");
-// 	}
-// }
