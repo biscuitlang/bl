@@ -47,7 +47,6 @@ void libyaml(void) {
 	}
 	wait(procs);
 	lib(temp_sprintf("%s/libyaml", BUILD_DIR), YAML_LIB);
-	shell("DEL /Q /F" quote(BUILD_DIR "\\libyaml\\*.obj"));
 
 #elif __linux__
 
@@ -69,7 +68,6 @@ void libyaml(void) {
 	}
 	wait(procs);
 	ar(temp_sprintf("%s/libyaml", BUILD_DIR), YAML_LIB);
-	shell("rm -f " BUILD_DIR "/libyaml/*.o");
 
 #endif
 }

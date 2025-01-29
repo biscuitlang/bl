@@ -30,50 +30,50 @@ void blc(void) {
 	nob_log(NOB_INFO, "Compiling blc-" BL_VERSION ".");
 
 	const char *src[] = {
-	    "./src/arena.c",
-	    "./src/asm_writer.c",
-	    "./src/assembly.c",
-	    "./src/ast_printer.c",
-	    "./src/ast.c",
-	    "./src/bc_writer.c",
-	    "./src/bldebug.c",
-	    "./src/blmemory.c",
-	    "./src/build_api.c",
-	    "./src/builder.c",
-	    "./src/common.c",
-	    "./src/conf.c",
-	    "./src/docs.c",
-	    "./src/file_loader.c",
-	    "./src/intrinsic.c",
-	    "./src/ir_opt.c",
-	    "./src/ir.c",
-	    "./src/lexer.c",
-	    "./src/linker.c",
-	    "./src/lld_ld.c",
-	    "./src/lld_link.c",
-	    "./src/llvm_api.cpp",
-	    "./src/main.c",
-	    "./src/mir_printer.c",
-	    "./src/mir_writer.c",
-	    "./src/mir.c",
-	    "./src/native_bin.c",
-	    "./src/obj_writer.c",
-	    "./src/parser.c",
-	    "./src/scope_printer.c",
-	    "./src/scope.c",
-	    "./src/setup.c",
-	    "./src/table.c",
-	    "./src/threading.c",
-	    "./src/tinycthread.c",
-	    "./src/token_printer.c",
-	    "./src/tokens.c",
-	    "./src/unit.c",
-	    "./src/vm_runner.c",
-	    "./src/vm.c",
-	    "./src/vmdbg.c",
-	    "./src/x86_64.c",
+		"./src/arena.c",
+		"./src/asm_writer.c",
+		"./src/assembly.c",
+		"./src/ast_printer.c",
+		"./src/ast.c",
+		"./src/bc_writer.c",
+		"./src/bldebug.c",
+		"./src/blmemory.c",
+		"./src/build_api.c",
+		"./src/builder.c",
+		"./src/common.c",
+		"./src/conf.c",
+		"./src/docs.c",
+		"./src/file_loader.c",
+		"./src/intrinsic.c",
+		"./src/ir_opt.c",
+		"./src/ir.c",
+		"./src/lexer.c",
+		"./src/linker.c",
+		"./src/lld_ld.c",
+		"./src/lld_link.c",
+		"./src/llvm_api.cpp",
+		"./src/main.c",
+		"./src/mir_printer.c",
+		"./src/mir_writer.c",
+		"./src/mir.c",
+		"./src/native_bin.c",
+		"./src/obj_writer.c",
+		"./src/parser.c",
+		"./src/scope_printer.c",
+		"./src/scope.c",
+		"./src/setup.c",
+		"./src/table.c",
+		"./src/threading.c",
+		"./src/tinycthread.c",
+		"./src/token_printer.c",
+		"./src/tokens.c",
+		"./src/unit.c",
+		"./src/vm_runner.c",
+		"./src/vm.c",
+		"./src/vmdbg.c",
+		"./src/x86_64.c",
 #if BL_RPMALLOC_ENABLE
-	    "./deps/rpmalloc-" RPMALLOC_VERSION "/rpmalloc/rpmalloc.c",
+		"./deps/rpmalloc-" RPMALLOC_VERSION "/rpmalloc/rpmalloc.c",
 #endif
 	};
 
@@ -155,7 +155,7 @@ void blc(void) {
 		if (!cmd_run_sync_and_reset(&cmd)) exit(1);
 	}
 
-	shell("DEL /Q /F" quote(BUILD_DIR "\\*.obj"));
+	shell("del", "/Q", "/F", "\"" BUILD_DIR "\\*.obj\"");
 
 #elif __linux__
 
@@ -228,7 +228,7 @@ void finalize(void) {
 
 void cleanup(void) {
 #ifdef _WIN32
-	shell("RD /S /Q" quote(BUILD_DIR));
+	shell("RD", "/S", "/Q", "\"" BUILD_DIR "\"");
 #else
 	shell("rm -fr " BUILD_DIR);
 #endif

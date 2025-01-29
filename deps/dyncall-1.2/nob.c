@@ -43,7 +43,6 @@ void dyncall(void) {
 	}
 	wait(procs);
 	lib(temp_sprintf("%s/dyncall", BUILD_DIR), DYNCALL_LIB);
-	shell("DEL /Q /F" quote(BUILD_DIR "\\dyncall\\*.obj"));
 
 #elif __linux__
 
@@ -63,7 +62,6 @@ void dyncall(void) {
 	}
 	wait(procs);
 	ar(temp_sprintf("%s/dyncall", BUILD_DIR), DYNCALL_LIB);
-	shell("rm -f " BUILD_DIR "/dyncall/*.o");
 
 #endif
 }

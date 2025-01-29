@@ -47,7 +47,7 @@
 // Comment this to disable ANSI color output.
 #define NOB_COLORS
 // Comment this to enable verbose build.
-#define NOB_NO_ECHO
+// #define NOB_NO_ECHO
 #define NOB_FORCE_UNIX_PATH
 
 #define NOB_IMPLEMENTATION
@@ -70,7 +70,8 @@ void ar(const char *dir, const char *libname);
 #error "Unsupported platform."
 #endif
 
-const char *shell(const char *c);
+#define shell(...) _shell((sizeof((const char *[]){__VA_ARGS__}) / sizeof(const char *)), ((const char *[]){__VA_ARGS__}))
+const char *_shell(int argc, const char *argv[]);
 
 // #define run_shell_cmd(c)                 \
 // 	do {                                 \
@@ -145,10 +146,12 @@ void parse_command_line_arguments(int argc, char *argv[]) {
 	}
 }
 
-const char *shell(const char *c) {
+const char *_shell(int argc, const char *argv[]) {
 	Cmd            cmd = {0};
 	String_Builder sb  = {0};
-	cmd_append(&cmd, SHELL, c);
+
+	cmd_append(&cmd, SHELL);
+	for (int i = 0; i < argc; ++i) cmd_append(&cmd, argv[i]);
 	if (!cmd_run_sync_read_and_reset(&cmd, &sb)) {
 		exit(1);
 	}
