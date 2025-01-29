@@ -3,7 +3,7 @@
     We use 'nob.h' "build system" created by Alexey Kutepov (https://github.com/tsoding/nob.h) with some small
     modifications.
 
-    Since build system is written in C you need to compile it first in order to build the compiler.
+    Since the build system is written in C you need to compile it first in order to build the compiler.
 
     Windows:
     - You need x64 Visual Studio development environment loaded in you environment, use "Developer Command Prompt"
@@ -20,6 +20,7 @@
     operating system.
 
     TODO:
+    - 2025-01-29: Add assert mode switch argument.
     - 2025-01-27: Missing Tracy support.
     - 2025-01-27: Missing build of dlib runtime used by compiler.
     - 2025-01-27: There is no way to "install" results.
@@ -47,7 +48,7 @@
 // Comment this to disable ANSI color output.
 #define NOB_COLORS
 // Comment this to enable verbose build.
-// #define NOB_NO_ECHO
+#define NOB_NO_ECHO
 #define NOB_FORCE_UNIX_PATH
 
 #define NOB_IMPLEMENTATION
@@ -59,6 +60,7 @@
 #define VERSION_STRING(a, b, c) STR(a) "." STR(b) "." STR(c)
 #define quote(x)                temp_sprintf("\"%s\"", (x))
 #define trim_and_dup(sb)        temp_sv_to_cstr(sv_trim(sb_to_sv(sb)))
+#define strok(x)                (x && x[0] != '\0')
 
 #ifdef _WIN32
 #define SHELL "CMD", "/C"
@@ -66,20 +68,19 @@ void lib(const char *dir, const char *libname);
 #elif __linux__
 #define SHELL "bash", "-c"
 void ar(const char *dir, const char *libname);
+#elif __APPLE__
+#if !defined(__aarch64__) && !defined(__arm64__)
+#error "Old intel based Apple CPUs are not supported right now."
+#endif
+#define SHELL "zsh", "-c"
+void ar(const char *dir, const char *libname);
 #else
 #error "Unsupported platform."
 #endif
 
 #define shell(...) _shell((sizeof((const char *[]){__VA_ARGS__}) / sizeof(const char *)), ((const char *[]){__VA_ARGS__}))
+#define shell(...) _shell((sizeof((const char *[]){__VA_ARGS__}) / sizeof(const char *)), ((const char *[]){__VA_ARGS__}))
 const char *_shell(int argc, const char *argv[]);
-
-// #define run_shell_cmd(c)                 \
-// 	do {                                 \
-// 		Cmd cmd = {0};                   \
-// 		cmd_append(&cmd, SHELL, c);      \
-// 		if (!cmd_run_sync(cmd)) exit(1); \
-// 		cmd_free(cmd);                   \
-// 	} while (0)
 
 #define wait(procs)                                  \
 	do {                                             \
@@ -153,7 +154,7 @@ const char *_shell(int argc, const char *argv[]) {
 	cmd_append(&cmd, SHELL);
 	for (int i = 0; i < argc; ++i) cmd_append(&cmd, argv[i]);
 	if (!cmd_run_sync_read_and_reset(&cmd, &sb)) {
-		exit(1);
+		return NULL;
 	}
 	if (!sb.count) return "";
 	return trim_and_dup(sb);

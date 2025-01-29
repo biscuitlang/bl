@@ -44,7 +44,7 @@ void dyncall(void) {
 	wait(procs);
 	lib(temp_sprintf("%s/dyncall", BUILD_DIR), DYNCALL_LIB);
 
-#elif __linux__
+#elif defined(__linux__) || defined(__APPLE__)
 
 	Cmd cmd = {0};
 	cmd_append(&cmd, "cc", "-o", BUILD_DIR "/dyncall/dyncall_call.S.o", "-c", "./deps/dyncall-" DYNCALL_VERSION "/dyncall/dyncall_call.S");
@@ -55,7 +55,11 @@ void dyncall(void) {
 	Proc procs[ARRAY_LEN(src)];
 	for (int i = 0; i < ARRAY_LEN(src); ++i) {
 		cmd_append(&cmd, "cc", "-c", src[i]);
+#ifdef __APPLE__
+		cmd_append(&cmd, "-arch", "arm64", "-O3", "-DNDEBUG");
+#else
 		cmd_append(&cmd, "-D_GNU_SOURCE", "-O3", "-DNDEBUG");
+#endif
 		cmd_append(&cmd, "-I./deps/dyncall-" DYNCALL_VERSION "/dyncall");
 		cmd_append(&cmd, "-o", temp_sprintf(BUILD_DIR "/dyncall/%d.o", i));
 		procs[i] = nob_cmd_run_async_and_reset(&cmd);

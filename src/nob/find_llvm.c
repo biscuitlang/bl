@@ -26,8 +26,33 @@ void find_llvm(void) {
 	// try to resolve llvm-config-<VERSION>
 	Cmd            cmd = {0};
 	String_Builder sb  = {0};
-	cmd_append(&cmd, SHELL, "command -v llvm-config-" STR(LLVM_REQUIRED));
-	if (!cmd_run_sync_read_and_reset(&cmd, &sb) || sb.count == 0) {
+
+	const char *llvm_config = "";
+
+#ifdef __APPLE__
+	// Try brew on mac...
+	cmd_append(&cmd, SHELL, "brew --prefix llvm@" STR(LLVM_REQUIRED) " 2>/dev/null");
+	cmd_run_sync_read_and_reset(&cmd, &sb);
+	const char *brew_prefix = trim_and_dup(sb);
+	sb.count = 0;
+
+	if (strlen(brew_prefix)) {
+		nob_log(NOB_INFO, "Brew prefix: '%s'.", brew_prefix);
+		cmd_append(&cmd, SHELL, temp_sprintf("command -v %s/bin/llvm-config", brew_prefix));
+		cmd_run_sync_read_and_reset(&cmd, &sb);
+		llvm_config = trim_and_dup(sb);
+		sb.count    = 0;
+	}
+#endif
+
+	if (!strlen(llvm_config)) {
+		cmd_append(&cmd, SHELL, "command -v llvm-config-" STR(LLVM_REQUIRED) " 2>/dev/null");
+		cmd_run_sync_read_and_reset(&cmd, &sb);
+		llvm_config = trim_and_dup(sb);
+		sb.count    = 0;
+	}
+
+	if (!strlen(llvm_config)) {
 		nob_log(NOB_ERROR,
 		        "Unable to find 'llvm-config-" STR(LLVM_REQUIRED) "'. LLVM might not be installed on your system, it's missing from PATH or you have incorrect version. Expected LLVM version " STR(LLVM_REQUIRED) ".");
 #ifdef __linux__
@@ -37,12 +62,12 @@ void find_llvm(void) {
 		                                                                              "\twget https://apt.llvm.org/llvm.sh\n"
 		                                                                              "\tchmod +x llvm.sh\n"
 		                                                                              "\tsudo ./llvm.sh " STR(LLVM_REQUIRED) "\n");
+#elif __APPLE__
+		nob_log(NOB_INFO, "Use homebrew package manager to install LLVM 'brew install llvm@"STR(LLVM_REQUIRED)"'.");
 #endif
 		exit(1);
 	}
 
-	const char *llvm_config = trim_and_dup(sb);
-	sb.count                = 0;
 	nob_log(NOB_INFO, "LLVM " STR(LLVM_REQUIRED) " config found: %s", llvm_config);
 
 	// version

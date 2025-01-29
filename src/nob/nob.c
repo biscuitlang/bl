@@ -15,15 +15,17 @@
 const char *LIBZ     = "";
 const char *LIBZSTD  = "";
 const char *LIBTINFO = "";
+#elif __APPLE__
+const char *LIBZ       = "";
+const char *LIBZSTD    = "";
+const char *LIBCURSES  = "";
+#endif
 
 void find_deps(void);
-#endif
 
 void setup(void) {
 	find_llvm();
-#ifdef __linux__
 	find_deps();
-#endif
 }
 
 void blc(void) {
@@ -157,7 +159,7 @@ void blc(void) {
 
 	shell("del", "/Q", "/F", "\"" BUILD_DIR "\\*.obj\"");
 
-#elif __linux__
+#elif defined(__linux__) || defined(__APPLE__)
 
 	Cmd  cmd = {0};
 	Proc procs[ARRAY_LEN(src)];
@@ -171,12 +173,22 @@ void blc(void) {
 		           "-DBL_VERSION_MINOR=" STR(BL_VERSION_MINOR),
 		           "-DBL_VERSION_PATCH=" STR(BL_VERSION_PATCH),
 		           "-DYAML_DECLARE_STATIC");
+#ifdef __APPLE__
+		cmd_append(&cmd, "-arch", "arm64", "-isysroot", "/Library/Developer/CommandLineTools/SDKs/MacOSX14.4.sdk");
+		if (IS_DEBUG) {
+			cmd_append(&cmd, "-O0", "-g", "-DBL_DEBUG", "-DBL_ASSERT_ENABLE=1");
+		} else {
+			cmd_append(&cmd, "-O3", "-DNDEBUG");
+		}
+#else
 		cmd_append(&cmd, "-D_GNU_SOURCE", "-rdynamic");
 		if (IS_DEBUG) {
 			cmd_append(&cmd, "-O0", "-g", "-DBL_DEBUG", "-DBL_ASSERT_ENABLE=1");
 		} else {
 			cmd_append(&cmd, "-O3", "-DNDEBUG", "-flto=auto", "-ffat-lto-objects");
 		}
+#endif
+
 		if (BL_SIMD_ENABLE) nob_log(NOB_WARNING, "BL_SIMD_ENABLE not supported on this platform.");
 		if (BL_RPMALLOC_ENABLE) cmd_append(&cmd, "-DBL_RPMALLOC_ENABLE=1");
 		cmd_append(&cmd, is_cxx ? "-std=c++17" : "-std=gnu11");
@@ -189,8 +201,11 @@ void blc(void) {
 	{
 		File_Paths files = {0};
 		nob_read_entire_dir(BUILD_DIR, &files);
-
+#ifdef __APPLE__
+		cmd_append(&cmd, "c++", "-arch", "arm64", "-lm", "-mmacosx-version-min=14.3");
+#else
 		cmd_append(&cmd, "c++", "-D_GNU_SOURCE", "-flto=auto", "-ffat-lto-objects", "-lrt", "-ldl", "-lm");
+#endif
 
 		for (int i = 0; i < files.count; ++i) {
 			if (ends_with(files.items[i], ".o")) cmd_append(&cmd, temp_sprintf(BUILD_DIR "/%s", files.items[i]));
@@ -203,8 +218,11 @@ void blc(void) {
 			if (lib.count)
 				cmd_append(&cmd, temp_sprintf("%s/" SV_Fmt, LLVM_LIB_DIR, SV_Arg(lib)));
 		}
-
+#ifdef __APPLE__
+		cmd_append(&cmd, LIBZ, LIBZSTD, LIBCURSES);
+#else
 		cmd_append(&cmd, LIBZ, LIBZSTD, LIBTINFO);
+#endif
 		cmd_append(&cmd, "-o", BIN_DIR "/blc");
 
 		if (!cmd_run_sync_and_reset(&cmd)) exit(1);
@@ -228,33 +246,81 @@ void finalize(void) {
 
 void cleanup(void) {
 #ifdef _WIN32
-	shell("RD", "/S", "/Q", "\"" BUILD_DIR "\"");
+	if (!shell("RD", "/S", "/Q", "\"" BUILD_DIR "\"")) exit(1);
 #else
-	shell("rm -fr " BUILD_DIR);
+	if (!shell("rm -fr " BUILD_DIR)) exit(1);
 #endif
 }
 
 #ifdef __linux__
 void find_deps(void) {
-	LIBZ = shell("find /usr/lib /usr/local/lib -name \"libz.a\"");
-	if (!strlen(LIBZ)) {
+	LIBZ = shell("find /usr/lib /usr/local/lib -name \"libz.a\" -print -quit 2>/dev/null");
+	if (!strok(LIBZ)) {
 		nob_log(NOB_ERROR, "Unable to find 'libz'.");
 		exit(1);
 	}
-	nob_log(NOB_INFO, "Using 'libz' %s.", LIBZ);
+	nob_log(NOB_INFO, "Using 'libz' '%s'.", LIBZ);
 
-	LIBZSTD = shell("find /usr/lib /usr/local/lib -name \"libzstd.a\"");
-	if (!strlen(LIBZSTD)) {
+	LIBZSTD = shell("find /usr/lib /usr/local/lib -name \"libzstd.a\" -print -quit 2>/dev/null");
+	if (!strok(LIBZSTD)) {
 		nob_log(NOB_ERROR, "Unable to find 'libzstd'.");
 		exit(1);
 	}
-	nob_log(NOB_INFO, "Using 'libzstd' %s.", LIBZSTD);
+	nob_log(NOB_INFO, "Using 'libzstd' '%s'.", LIBZSTD);
 
-	LIBTINFO = shell("find /usr/lib /usr/local/lib -name \"libtinfo.a\"");
-	if (!strlen(LIBTINFO)) {
+	LIBTINFO = shell("find /usr/lib /usr/local/lib -name \"libtinfo.a\" -print -quit 2>/dev/null");
+	if (!strok(LIBTINFO)) {
 		nob_log(NOB_ERROR, "Unable to find 'libtinfo'.");
 		exit(1);
 	}
-	nob_log(NOB_INFO, "Using 'libtinfo' %s.", LIBTINFO);
+	nob_log(NOB_INFO, "Using 'libtinfo' '%s'.", LIBTINFO);
+}
+
+#elif __APPLE__
+void find_deps(void) {
+	if (!strok(shell("which brew"))) {
+		nob_log(NOB_ERROR, "Homebrew package manager not found. We currently require dependencies installed using homebrew because in some cases the MacOS Command Line tools does not provide static libraries.");
+		exit(1);
+	}
+
+	const char * libz_prefix = shell("brew --prefix zlib 2>/dev/null");
+	if (!strok(libz_prefix)) {
+		nob_log(NOB_ERROR, "Unable to find zlib brew package.");
+		exit(1);
+	}
+	LIBZ = shell(temp_sprintf(temp_sprintf("find %s/lib -name \"libz.a\" -print -quit 2>/dev/null", libz_prefix)));
+	if (!strok(LIBZ)) {
+		nob_log(NOB_ERROR, "Unable to find 'libz'.");
+		exit(1);
+	}
+	nob_log(NOB_INFO, "Using 'libz' '%s'.", LIBZ);
+
+	const char * zstd_prefix = shell("brew --prefix zstd 2>/dev/null");
+	if (!strok(zstd_prefix)) {
+		nob_log(NOB_ERROR, "Unable to find zstd brew package.");
+		exit(1);
+	}
+	LIBZSTD = shell(temp_sprintf(temp_sprintf("find %s/lib -name \"libzstd.a\" -print -quit 2>/dev/null", zstd_prefix)));
+	if (!strok(LIBZSTD)) {
+		nob_log(NOB_ERROR, "Unable to find 'libzstd'.");
+		exit(1);
+	}
+	nob_log(NOB_INFO, "Using 'libzstd' '%s'.", LIBZSTD);
+
+	// This is required by LLVM for 3 or 4 functions, we should find the way how to not require this whole shit...
+	const char * ncurses_prefix = shell("brew --prefix ncurses 2>/dev/null");
+	if (!strok(ncurses_prefix)) {
+		nob_log(NOB_ERROR, "Unable to find ncurses brew package.");
+		exit(1);
+	}
+	LIBCURSES = shell(temp_sprintf(temp_sprintf("find %s/lib -name \"libcurses.a\" -print -quit 2>/dev/null", ncurses_prefix)));
+	if (!strok(LIBCURSES)) {
+		nob_log(NOB_ERROR, "Unable to find 'libcurses'.");
+		exit(1);
+	}
+	nob_log(NOB_INFO, "Using 'libcurses' '%s'.", LIBCURSES);
+}
+#else
+void find_deps(void) {
 }
 #endif

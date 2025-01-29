@@ -1,7 +1,7 @@
 //************************************************************************************************
 // bl
 //
-// File:   config.c
+// File:   config.h
 // Author: Martin Dorazil
 // Date:   3/12/18
 //
@@ -26,62 +26,65 @@
 // SOFTWARE.
 //************************************************************************************************
 
-#define STR_HELPER(x) #x
-#define STR(x) STR_HELPER(x)
-#define BL_VERSION STR(BL_VERSION_MAJOR) "." STR(BL_VERSION_MINOR) "." STR(BL_VERSION_PATCH)
+#ifndef BL_CONFIG_H
+#define BL_CONFIG_H
+
+// Values set automatically during build by cmake.
+#define BL_VERSION "0.13.0"
+#define BL_VERSION_MAJOR 0
+#define BL_VERSION_MINOR 13
+#define BL_VERSION_PATCH 0
 
 #define BL_CONFIG_FILE "etc/bl.yaml"
 #define BL_API_DIR "../lib/bl/api"
+#define BL_LINKER "lld"
 
 // MULTIPLATFORM: os preload depends on target build platform and should be chosen in runtime later!
 #ifdef _WIN32
-#define BL_PLATFORM_WIN 1
-#define BL_PLATFORM_MACOS 0
-#define BL_PLATFORM_LINUX 0
-#define BL_EXPORT __declspec(dllexport)
-#define BL_VSWHERE_EXE "vswhere.exe"
-#define BL_LINKER "bl-lld.exe"
+#	define BL_PLATFORM_WIN 1
+#	define BL_PLATFORM_MACOS 0
+#	define BL_PLATFORM_LINUX 0
+#	define BL_EXPORT __declspec(dllexport)
+#	define BL_VSWHERE_EXE ""
 #elif __APPLE__
-#define BL_PLATFORM_WIN 0
-#define BL_PLATFORM_MACOS 1
-#define BL_PLATFORM_LINUX 0
-#define BL_EXPORT
-#define BL_LINKER ""
+#	define BL_PLATFORM_WIN 0
+#	define BL_PLATFORM_MACOS 1
+#	define BL_PLATFORM_LINUX 0
+#	define BL_EXPORT
 #elif __linux__
-#define BL_PLATFORM_WIN 0
-#define BL_PLATFORM_MACOS 0
-#define BL_PLATFORM_LINUX 1
-#define BL_EXPORT __attribute__((used))
-#define BL_LINKER ""
+#	define BL_PLATFORM_WIN 0
+#	define BL_PLATFORM_MACOS 0
+#	define BL_PLATFORM_LINUX 1
+#	define BL_EXPORT __attribute__((used))
 #else
-#error "Unknown platform"
+#	error "Unknown platform"
 #endif
 
 #ifdef __clang__
-#define BL_COMPILER_CLANG 1
-#define BL_COMPILER_GNUC 0
-#define BL_COMPILER_MSVC 0
+#	define BL_COMPILER_CLANG 1
+#	define BL_COMPILER_GNUC 0
+#	define BL_COMPILER_MSVC 0
 #elif defined(__GNUC__) || defined(__MINGW32__)
-#define BL_COMPILER_CLANG 0
-#define BL_COMPILER_GNUC 1
-#define BL_COMPILER_MSVC 0
+#	define BL_COMPILER_CLANG 0
+#	define BL_COMPILER_GNUC 1
+#	define BL_COMPILER_MSVC 0
 #elif _MSC_VER
-#define BL_COMPILER_CLANG 0
-#define BL_COMPILER_GNUC 0
-#define BL_COMPILER_MSVC 1
+#	define BL_COMPILER_CLANG 0
+#	define BL_COMPILER_GNUC 0
+#	define BL_COMPILER_MSVC 1
 #endif
 
 #define ENV_PATH "PATH"
 
 #if BL_PLATFORM_WIN
-#define ENVPATH_SEPARATORC ';'
-#define ENVPATH_SEPARATOR ";"
-#define MSVC_CRT "MSVCRT.dll"
-#define KERNEL32 "Kernel32.dll"
-#define SHLWAPI "Shlwapi.dll"
+#	define ENVPATH_SEPARATORC ';'
+#	define ENVPATH_SEPARATOR ";"
+#	define MSVC_CRT "MSVCRT.dll"
+#	define KERNEL32 "Kernel32.dll"
+#	define SHLWAPI "Shlwapi.dll"
 #else
-#define ENVPATH_SEPARATORC ':'
-#define ENVPATH_SEPARATOR ":"
+#	define ENVPATH_SEPARATORC ':'
+#	define ENVPATH_SEPARATOR ":"
 #endif
 
 #define CONFIG_SEPARATOR ","
@@ -94,11 +97,11 @@
 #define PATH_SEPARATORC '/'
 
 #ifdef BL_DEBUG
-#define ASSERT_ON_CMP_ERROR 0
-#define BL_MAGIC_ENABLE 1
+#	define ASSERT_ON_CMP_ERROR 0
+#	define BL_MAGIC_ENABLE 1
 #else
-#define ASSERT_ON_CMP_ERROR 0
-#define BL_MAGIC_ENABLE 0
+#	define ASSERT_ON_CMP_ERROR 0
+#	define BL_MAGIC_ENABLE 0
 #endif
 
 #define VM_STACK_SIZE 2097152              // 2MB
@@ -107,46 +110,4 @@
 #define MODULE_CONFIG_FILE "module.yaml"
 #define BUILD_SCRIPT_FILE "build.bl"
 
-#if BL_COMPILER_CLANG || BL_COMPILER_GNUC
-
-//
-// FROM common.h
-//
-
-// clang-format off
-#define _SHUT_UP_BEGIN \
-_Pragma("GCC diagnostic push") \
-_Pragma("GCC diagnostic ignored \"-Wcast-qual\"") \
-_Pragma("GCC diagnostic ignored \"-Wpedantic\"") \
-_Pragma("GCC diagnostic ignored \"-Wsign-conversion\"")
-// clang-format on
-
-#define _SHUT_UP_END _Pragma("GCC diagnostic pop")
-#define UNUSED(x) __attribute__((unused)) x
-#define _Thread_local __thread
-
-#elif BL_COMPILER_MSVC
-
-#define _SHUT_UP_BEGIN __pragma(warning(push, 0))
-#define _SHUT_UP_END __pragma(warning(pop))
-#define UNUSED(x) __pragma(warning(suppress : 4100)) x
-#define _Thread_local __declspec(thread)
-
-#else
-#error "Unsuported compiler!"
-#endif
-
-//
-// FROM bldebug.h
-//
-
-#define zone()               \
-	TracyCZone(_tctx, true); \
-	(void)0
-
-#define _BL_VARGS(...) __VA_ARGS__
-#define return_zone(...)                                    \
-	{                                                       \
-		TracyCZoneEnd(_tctx) return _BL_VARGS(__VA_ARGS__); \
-	}                                                       \
-	(void)0
+#endif // BL_CONFIG_H

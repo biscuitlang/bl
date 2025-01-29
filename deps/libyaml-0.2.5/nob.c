@@ -48,14 +48,18 @@ void libyaml(void) {
 	wait(procs);
 	lib(temp_sprintf("%s/libyaml", BUILD_DIR), YAML_LIB);
 
-#elif __linux__
+#elif defined(__linux__) || defined(__APPLE__)
 
 	Proc procs[ARRAY_LEN(src)];
 
 	Cmd cmd = {0};
 	for (int i = 0; i < src_num; ++i) {
 		cmd_append(&cmd, "cc", "-c", src[i]);
+#ifdef __APPLE__
+		cmd_append(&cmd, "-arch", "arm64", "-O3", "-DNDEBUG");
+#else
 		cmd_append(&cmd, "-D_GNU_SOURCE", "-O3", "-DNDEBUG");
+#endif
 		cmd_append(&cmd,
 		           "-DYAML_DECLARE_STATIC",
 		           "-DYAML_VERSION_MAJOR=" STR(YAML_VERSION_MAJOR),
