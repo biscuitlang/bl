@@ -3,6 +3,22 @@ const char *LLVM_LIB_DIR     = "";
 const char *LLVM_LIBS        = "";
 
 void find_llvm(void) {
+
+#if _WIN32
+	if (!file_exists("./deps/llvm-18.1.8-win64")) {
+		nob_log(NOB_INFO, "Unpacking LLVM...");
+		Cmd cmd = {0};
+		cmd_append(&cmd, "tar", "-xf", "./deps/llvm-" LLVM_VERSION "-win64.zip", "-C", "./deps");
+		if (!cmd_run_sync(cmd)) exit(1);
+		cmd_free(cmd);
+	}
+
+	LLVM_INCLUDE_DIR = "./deps/llvm-" LLVM_VERSION "-win64/include";
+	LLVM_LIB_DIR     = "./deps/llvm-" LLVM_VERSION "-win64/lib";
+	LLVM_LIBS        = "LLVM.lib";
+
+#else
+
 #define trim_and_dup(sb) temp_sv_to_cstr(sv_trim(sb_to_sv(sb)))
 	// try to resolve llvm-config-<VERSION>
 	Cmd            cmd = {0};
@@ -51,4 +67,8 @@ void find_llvm(void) {
 	LLVM_LIB_DIR = trim_and_dup(sb);
 	sb.count     = 0;
 	nob_log(NOB_INFO, "LLVM " STR(LLVM_VERSION_MAJOR) " lib directory found: %s", LLVM_LIB_DIR);
+
+#undef trim_and_dup
+
+#endif
 }

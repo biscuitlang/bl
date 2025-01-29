@@ -8,10 +8,10 @@
     Windows:
     - You need x64 Visual Studio development environment loaded in you environment, use "Developer Command Prompt"
       or 'vcvars.bat' to inject environment variables in current shell.
-    - Run 'cl build.c'
+    - Run 'cl nob.c'
 
     Linux/macOS:
-    - Run 'cc build.c -o build'
+    - Run 'cc nob.c -o nob'
 
 
     Some notes:
@@ -44,69 +44,133 @@
 #define BUILD_DIR "./build"
 #define BIN_DIR   "./bin"
 
+// Comment this to disable ANSI color output.
 #define NOB_COLORS
-#define NOB_FORCE_UNIX_PATH
+// Comment this to enable verbose build.
 #define NOB_NO_ECHO
+#define NOB_FORCE_UNIX_PATH
 
-#define BL_VERSION_MAJOR 0
-#define BL_VERSION_MINOR 13
-#define BL_VERSION_PATCH 0
+#define NOB_IMPLEMENTATION
+#define NOB_STRIP_PREFIX
+#include "deps/nob.h"
 
-#define YAML_VERSION_MAJOR 0
-#define YAML_VERSION_MINOR 2
-#define YAML_VERSION_PATCH 5
-
-#define LLVM_VERSION_MAJOR 18
-#define LLVM_VERSION_MINOR 1
-#define LLVM_VERSION_PATCH 8
-
-#define BL_VERSION       VERSION_STRING(BL_VERSION_MAJOR, BL_VERSION_MINOR, BL_VERSION_PATCH)
-#define YAML_VERSION     VERSION_STRING(YAML_VERSION_MAJOR, YAML_VERSION_MINOR, YAML_VERSION_PATCH)
-#define LLVM_VERSION     VERSION_STRING(LLVM_VERSION_MAJOR, LLVM_VERSION_MINOR, LLVM_VERSION_PATCH)
-#define TRACY_VERSION    "0.9.1"
-#define RPMALLOC_VERSION "1.4.4"
-#define DYNCALL_VERSION  "1.2"
-#define VSWHERE_VERSION  "2.8.4"
-
-#include "src/nob/common.c"
+#define STR_HELPER(x)           #x
+#define STR(x)                  STR_HELPER(x)
+#define VERSION_STRING(a, b, c) STR(a) "." STR(b) "." STR(c)
+#define quote(x)                temp_sprintf("\"%s\"", (x))
 
 #ifdef _WIN32
+#define SHELL "CMD", "/C"
+void lib(const char *dir, const char *libname);
 #elif __linux__
-#include "src/nob/linux.c"
+#define SHELL "bash", "-c"
+void ar(const char *dir, const char *libname);
 #else
 #error "Unsupported platform."
 #endif
 
-void copy_results(void);
+#define run_shell_cmd(...)                    \
+	do {                                      \
+		Cmd cmd = {0};                        \
+		cmd_append(&cmd, SHELL, __VA_ARGS__); \
+		if (!cmd_run_sync(cmd)) exit(1);      \
+		cmd_free(cmd);                        \
+	} while (0)
+
+#define wait(procs)                                  \
+	do {                                             \
+		bool success = true;                         \
+		for (int i = 0; i < ARRAY_LEN(procs); ++i) { \
+			success &= proc_wait(procs[i]);          \
+		}                                            \
+		if (!success) exit(1);                       \
+	} while (0);
+
+int IS_DEBUG = 0;
+
 void print_help(void);
-void cmd_append_bl_includes(Cmd *cmd);
-void cmd_append_bl_flags(Cmd *cmd);
+void parse_command_line_arguments(int argc, char *argv[]);
+
+#include "deps/dyncall-1.2/nob.c"
+#include "deps/libyaml-0.2.5/nob.c"
+#include "src/nob/nob.c"
 
 int main(int argc, char *argv[]) {
-	NOB_GO_REBUILD_URSELF(argc, argv);
 	parse_command_line_arguments(argc, argv);
-
 	nob_log(NOB_INFO, "Running in '%s' in '%s' mode.", get_current_dir_temp(), IS_DEBUG ? "DEBUG" : "RELEASE");
-	mkdir_if_not_exists(BUILD_DIR);
 
 	find_llvm();
-	build_dyncall();
-	build_libyaml();
-	build_blc();
-	finalize();
 
-	/*
-	if (!file_exists(BIN_DIR "/bl-lld.exe")) {
-	    copy_file("./deps/lld.exe", BIN_DIR "/bl-lld.exe");
-	}
-	if (!file_exists(BIN_DIR "/vswhere.exe")) {
-	    copy_file("./deps/vswhere-" VSWHERE_VERSION "/vswhere.exe", BIN_DIR "/vswhere.exe");
-	}
-	*/
+	if (!file_exists(BUILD_DIR "/dyncall/" DYNCALL_LIB)) dyncall();
+	if (!file_exists(BUILD_DIR "/libyaml/" YAML_LIB)) libyaml();
+	blc();
+	finalize();
 
 	nob_log(NOB_INFO, "All files compiled successfully.");
 	return 0;
 }
+
+void print_help(void) {
+	printf("Usage:\n\tbuild [options]\n\n");
+	printf("Options:\n");
+	printf("\trelease Build in release mode.\n");
+	printf("\tdebug   Build in debug mode.\n");
+	printf("\tclean   Remove build directory and exit.\n");
+	printf("\thelp    Print this help and exit.\n");
+}
+
+void parse_command_line_arguments(int argc, char *argv[]) {
+	shift_args(&argc, &argv);
+	while (argc > 0) {
+		char *arg = shift_args(&argc, &argv);
+		if (strcmp(arg, "debug") == 0) {
+			IS_DEBUG = 1;
+		} else if (strcmp(arg, "release") == 0) {
+			IS_DEBUG = 0; // by default
+		} else if (strcmp(arg, "clean") == 0) {
+			// run_shell_cmd("RD", "/S", "/Q", quote(BUILD_DIR));
+			cleanup();
+			exit(0);
+		} else if (strcmp(arg, "help") == 0) {
+			print_help();
+			exit(0);
+		} else {
+			nob_log(NOB_ERROR, "Invalid argument '%s'.", arg);
+			print_help();
+			exit(1);
+		}
+	}
+}
+
+#ifdef _WIN32
+
+void lib(const char *dir, const char *libname) {
+	File_Paths files = {0};
+	nob_read_entire_dir(dir, &files);
+
+	Cmd cmd = {0};
+	cmd_append(&cmd, "lib", "-nologo", temp_sprintf("-OUT:\"%s/%s\"", dir, libname));
+	for (int i = 0; i < files.count; ++i) {
+		if (ends_with(files.items[i], ".obj")) cmd_append(&cmd, temp_sprintf("%s/%s", dir, files.items[i]));
+	}
+	if (!cmd_run_sync_and_reset(&cmd)) exit(1);
+}
+
+#else
+
+void ar(const char *dir, const char *libname) {
+	File_Paths files = {0};
+	nob_read_entire_dir(dir, &files);
+
+	Cmd cmd = {0};
+	cmd_append(&cmd, "ar", "rcs", temp_sprintf("%s/%s", dir, libname));
+	for (int i = 0; i < files.count; ++i) {
+		if (ends_with(files.items[i], ".o")) cmd_append(&cmd, temp_sprintf("%s/%s", dir, files.items[i]));
+	}
+	if (!cmd_run_sync_and_reset(&cmd)) exit(1);
+}
+
+#endif
 
 // void cmd_append_bl_includes(Cmd *cmd) {
 // 	cmd_append(cmd, "-I./deps/dyncall-" DYNCALL_VERSION "/dyncall");
