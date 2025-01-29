@@ -1,8 +1,12 @@
 version: 20220923
 src: "pthread.bl"
+supported: "x86_64-pc-linux-gnu, x86_64-unknown-linux-gnu, arm64-apple-darwin"
 
 x86_64-pc-linux-gnu:
   linker_opt: "-lpthread"
 
 x86_64-unknown-linux-gnu:
   linker_opt: "-lpthread"
+
+arm64-apple-darwin:
+  src: "pthread.macos.bl"

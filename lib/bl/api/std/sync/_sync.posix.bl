@@ -14,12 +14,16 @@ _mutex_init :: fn (mutex: *_Mutex, kind: MutexKind) Error #inline {
 	}
 
 	attribute: pthread_mutexattr_t #noinit;
-	pthread_mutexattr_settype(&attribute, pthread_kind);
+	set_state :: pthread_mutexattr_settype(&attribute, pthread_kind);
+	if set_state != 0 {
+		estr :: cast(*u8) C.strerror(set_state);
+		return error("Cannot init mutex: '%' (%).", estr, set_state);
+	}
 
-	state :: pthread_mutex_init(mutex, &attribute);
-	if state != 0 {
-		estr :: cast(*u8) C.strerror(state);
-		return error("Cannot init mutex: '%' (%).", estr, state);
+	init_state :: pthread_mutex_init(mutex, &attribute);
+	if init_state != 0 {
+		estr :: cast(*u8) C.strerror(init_state);
+		return error("Cannot init mutex: '%' (%).", estr, init_state);
 	}
 	return OK;
 }

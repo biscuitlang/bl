@@ -84,7 +84,7 @@ os_get_exec_path :: fn () string {
 }
 
 os_execute :: fn (command: string_view) s32 {
-	return WEXITSTATUS(C.system(strtoc(command)));
+	return C.WEXITSTATUS(C.system(strtoc(command)));
 }
 
 os_get_last_error :: fn () (s32, string_view) #inline {
@@ -208,7 +208,4 @@ std_io_read :: fn (stream: *OsStdIoStream, dest: *u8, size: s64) (s64, Error) {
 	return auto read_bytes, OK;
 }
 
-WEXITSTATUS :: fn (x: s32) s32 #inline {
-	return (x >> 8) & 0x000000ff;
-}
 

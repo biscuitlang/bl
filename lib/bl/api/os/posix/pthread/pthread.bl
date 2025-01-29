@@ -13,20 +13,9 @@ pthread_condattr_t :: struct {
 	__opaque: [SIZE_PTHREAD_CONDATTR]C.char;
 }
 
-PTHREAD_MUTEX :: enum {
-	TIMED_NP;
-	RECURSIVE_NP;
-	ERRORCHECK_NP;
-	ADAPTIVE_NP;
-	NORMAL     = TIMED_NP;
-	RECURSIVE  = RECURSIVE_NP;
-	ERRORCHECK = ERRORCHECK_NP;
-	DEFAULT    = NORMAL;
-}
-
-// @Incomplete: These may differ across platforms?!
 pthread_mutexattr_t :: struct {
-	_: [8]u8;
+	__sig: C.long;
+	__opaque: [SIZE_PTHREAD_MUTEXATTR]C.char;
 }
 
 pthread_t :: *u8;
@@ -52,7 +41,3 @@ pthread_mutexattr_settype :: fn (attr: *pthread_mutexattr_t, type: PTHREAD_MUTEX
 
 C :: #import "libc";
 
-// @Incomplete: These may differ across platforms?!
-SIZE_OF_PTHREAD_MUTEX_T :: 56;
-SIZE_OF_PTHREAD_COND :: 40;
-SIZE_PTHREAD_CONDATTR :: 8;
