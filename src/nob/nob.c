@@ -106,7 +106,7 @@ void blc(void) {
 		           "-DYAML_DECLARE_STATIC");
 		cmd_append(&cmd, "-D_WIN32", "-D_WINDOWS", "-DNOMINMAX", "-D_HAS_EXCEPTIONS=0", "-GF", "-MD");
 		if (IS_DEBUG) {
-			cmd_append(&cmd, "-Od", "-Zi", "-DBL_DEBUG", "-DBL_ASSERT_ENABLE=1");
+			cmd_append(&cmd, "-Od", "-Zi", "-DBL_DEBUG", "-DBL_ASSERT_ENABLE=1", "-FS");
 		} else {
 			cmd_append(&cmd, "-O2", "-Oi", "-DNDEBUG", "-GL");
 		}
@@ -124,7 +124,7 @@ void blc(void) {
 		nob_read_entire_dir(BUILD_DIR, &files);
 
 		cmd_append(&cmd, "cl", "-nologo");
-		cmd_append(&cmd, "-D_WIN32", "-D_WINDOWS", "-DNOMINMAX", "-D_HAS_EXCEPTIONS=0", "-GF", "-MD");
+		cmd_append(&cmd, "-D_WIN32", "-D_WINDOWS", "-DNOMINMAX", "-D_HAS_EXCEPTIONS=0", "-GF", "-MD", "-FS");
 		if (IS_DEBUG) {
 			cmd_append(&cmd, "-Od", "-Zi", "-DBL_DEBUG", "-DBL_ASSERT_ENABLE=1");
 		} else {
