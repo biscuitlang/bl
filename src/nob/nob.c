@@ -209,6 +209,8 @@ void blc(void) {
 		if (BL_SIMD_ENABLE) nob_log(NOB_WARNING, "BL_SIMD_ENABLE not supported on this platform.");
 		if (BL_RPMALLOC_ENABLE) cmd_append(&cmd, "-DBL_RPMALLOC_ENABLE=1");
 		cmd_append(&cmd, is_cxx ? "-std=c++17" : "-std=gnu11");
+		db_add_entry(src[i], cmd);
+
 		cmd_append(&cmd, "-o", temp_sprintf(BUILD_DIR "/%d.o", i));
 		procs[i] = nob_cmd_run_async_and_reset(&cmd);
 	}
