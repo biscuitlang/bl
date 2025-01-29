@@ -79,7 +79,6 @@ void ar(const char *dir, const char *libname);
 #endif
 
 #define shell(...) _shell((sizeof((const char *[]){__VA_ARGS__}) / sizeof(const char *)), ((const char *[]){__VA_ARGS__}))
-#define shell(...) _shell((sizeof((const char *[]){__VA_ARGS__}) / sizeof(const char *)), ((const char *[]){__VA_ARGS__}))
 const char *_shell(int argc, const char *argv[]);
 
 #define wait(procs)                                  \
