@@ -49,7 +49,6 @@
 #define NOB_COLORS
 // Comment this to enable verbose build.
 #define NOB_NO_ECHO
-#define NOB_FORCE_UNIX_PATH
 
 #define NOB_IMPLEMENTATION
 #define NOB_STRIP_PREFIX

@@ -159,6 +159,25 @@
 
       If only few specific names create conflicts for you, you can just #undef those names after the
       `#include <nob.h>` since they are macros anyway.
+   
+   # Other options
+ 
+      The NOB_NO_ECHO, if defined disables echo (printing) of the executed commads via nob_cmd_run_* functions.
+      
+      ```c
+      #define NOB_NO_ECHO
+      #define NOB_IMPLEMENTATION
+      #include "nob.h"
+      ```
+
+      The NOB_COLORS, if defined enables ANSI colors in messages printed by nob_log.
+
+      ```c
+      #define NOB_COLORS
+      #define NOB_IMPLEMENTATION
+      #include "nob.h"
+      ```
+
 */
 
 #ifndef NOB_H_
@@ -376,6 +395,7 @@ typedef struct {
 // use it as a C string.
 void nob_cmd_render(Nob_Cmd cmd, Nob_String_Builder *render);
 
+// Print command render result as NOB_INFO.
 #define nob_cmd_print(cmd) \
     do { \
         Nob_String_Builder sb = {0}; \
@@ -415,7 +435,9 @@ bool nob_cmd_run_sync_and_reset(Nob_Cmd *cmd);
 bool nob_cmd_run_sync_redirect(Nob_Cmd cmd, Nob_Cmd_Redirect redirect);
 // Run redirected command synchronously and set cmd.count to 0 and close all the opened files
 bool nob_cmd_run_sync_redirect_and_reset(Nob_Cmd *cmd, Nob_Cmd_Redirect redirect);
+// Run command synchronously and read the output from pipe.
 bool nob_cmd_run_sync_read(Nob_Cmd cmd, Nob_String_Builder *sb);
+// Run command synchronously and read the output from pip and set cmd.count to 0.
 bool nob_cmd_run_sync_read_and_reset(Nob_Cmd *cmd, Nob_String_Builder *sb);
 
 #ifndef NOB_TEMP_CAPACITY
@@ -431,7 +453,6 @@ void nob_temp_rewind(size_t checkpoint);
 // Given any path returns the last part of that path.
 // "/path/to/a/file.c" -> "file.c"; "/path/to/a/directory" -> "directory"
 const char *nob_path_name(const char *path);
-const char *nob_path_to_unix(char *path);
 bool nob_rename(const char *old_path, const char *new_path);
 int nob_needs_rebuild(const char *output_path, const char **input_paths, size_t input_paths_count);
 int nob_needs_rebuild1(const char *output_path, const char *input_path);
@@ -761,14 +782,11 @@ Nob_Proc nob_cmd_run_async_redirect(Nob_Cmd cmd, Nob_Cmd_Redirect redirect)
         return NOB_INVALID_PROC;
     }
 
-    Nob_String_Builder sb = {0};
 #ifndef NOB_NO_ECHO
-    nob_cmd_render(cmd, &sb);
-    nob_sb_append_null(&sb);
-    nob_log(NOB_INFO, "CMD: %s", sb.items);
-    nob_sb_free(sb);
+	nob_cmd_print(cmd);
 #endif
-    memset(&sb, 0, sizeof(sb));
+	
+	Nob_String_Builder sb = {0};
 
 #ifdef _WIN32
     // https://docs.microsoft.com/en-us/windows/win32/procthread/creating-a-child-process-with-redirected-input-and-output
@@ -1484,15 +1502,6 @@ const char *nob_path_name(const char *path)
 #endif // _WIN32
 }
 
-const char *nob_path_to_unix(char *path) {
-    char *it = path;
-    while (*it != '\0') {
-        if (*it == '\\') *it = '/';
-		++it;
-    }
-	return path;
-}
-
 bool nob_rename(const char *old_path, const char *new_path)
 {
     nob_log(NOB_INFO, "Renaming %s -> %s.", old_path, new_path);
@@ -1655,11 +1664,7 @@ const char *nob_get_current_dir_temp()
         return NULL;
     }
 
-#ifdef NOB_FORCE_UNIX_PATH
-    return nob_path_to_unix(buffer);
-#else
     return buffer;
-#endif
 #else
     char *buffer = (char*) nob_temp_alloc(PATH_MAX);
     if (getcwd(buffer, PATH_MAX) == NULL) {
@@ -1859,7 +1864,6 @@ int closedir(DIR *dirp)
         #define temp_save nob_temp_save
         #define temp_rewind nob_temp_rewind
         #define path_name nob_path_name
-        #define path_to_unix nob_path_to_unix
         #define rename nob_rename
         #define needs_rebuild nob_needs_rebuild
         #define needs_rebuild1 nob_needs_rebuild1
