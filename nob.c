@@ -151,7 +151,8 @@ const char *_shell(int argc, const char *argv[]) {
 	String_Builder sb  = {0};
 
 	cmd_append(&cmd, SHELL);
-	for (int i = 0; i < argc; ++i) cmd_append(&cmd, argv[i]);
+	for (int i = 0; i < argc; ++i)
+		cmd_append(&cmd, argv[i]);
 	if (!cmd_run_sync_read_and_reset(&cmd, &sb)) {
 		return NULL;
 	}

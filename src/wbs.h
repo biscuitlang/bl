@@ -42,11 +42,11 @@
 
 // Lookup various Windows bullshit and yes 'wbs' stands for 'windows bullshit'
 #define BUILD_TOOLS "Microsoft Visual Studio/2019/BuildTools"
-#define MSVC_TOOLS "VC/Tools/MSVC"
-#define WIN_SDK "Windows Kits/10/Lib"
-#define UCRT "ucrt/x64"
-#define UM "um/x64"
-#define MSVC_LIB "/lib/x64"
+#define MSVC_TOOLS  "VC/Tools/MSVC"
+#define WIN_SDK     "Windows Kits/10/Lib"
+#define UCRT        "ucrt/x64"
+#define UM          "um/x64"
+#define MSVC_LIB    "/lib/x64"
 
 struct wbs {
 	bool      is_valid;

@@ -30,13 +30,13 @@
 
 struct thread_context;
 
-#define REX 0b01000000
+#define REX   0b01000000
 #define REX_W 0b01001000
 
-#define MOD_INDIRECT 0
-#define MOD_BYTE_DISP 1
+#define MOD_INDIRECT       0
+#define MOD_BYTE_DISP      1
 #define MOD_FOUR_BYTE_DISP 2
-#define MOD_REG_ADDR 3
+#define MOD_REG_ADDR       3
 
 #define REGISTER_SIZE 8
 
@@ -83,8 +83,8 @@ static const char *register_name[] = {
 };
 
 #define encode_mod_reg_rm(mod, reg, rm) (((mod) << 6) | ((reg & 0b111) << 3) | (rm & 0b111))
-#define encode_sib(scale, index, base) (((scale) << 6) | ((index & 0b111) << 3) | (base & 0b111))
-#define is_byte_disp(off) ((off) >= -128 && (off) < 128)
+#define encode_sib(scale, index, base)  (((scale) << 6) | ((index & 0b111) << 3) | (base & 0b111))
+#define is_byte_disp(off)               ((off) >= -128 && (off) < 128)
 
 static void              add_code(struct thread_context *tctx, const void *buf, s32 len);
 static enum x64_register get_temporary_register(struct thread_context *tctx, const enum x64_register exclude[], s32 exclude_num);

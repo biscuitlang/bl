@@ -34,7 +34,7 @@ void find_llvm(void) {
 	cmd_append(&cmd, SHELL, "brew --prefix llvm@" STR(LLVM_REQUIRED) " 2>/dev/null");
 	cmd_run_sync_read_and_reset(&cmd, &sb);
 	const char *brew_prefix = trim_and_dup(sb);
-	sb.count = 0;
+	sb.count                = 0;
 
 	if (strlen(brew_prefix)) {
 		nob_log(NOB_INFO, "Brew prefix: '%s'.", brew_prefix);
@@ -63,7 +63,7 @@ void find_llvm(void) {
 		                                                                              "\tchmod +x llvm.sh\n"
 		                                                                              "\tsudo ./llvm.sh " STR(LLVM_REQUIRED) "\n");
 #elif __APPLE__
-		nob_log(NOB_INFO, "Use homebrew package manager to install LLVM 'brew install llvm@"STR(LLVM_REQUIRED)"'.");
+		nob_log(NOB_INFO, "Use homebrew package manager to install LLVM 'brew install llvm@" STR(LLVM_REQUIRED) "'.");
 #endif
 		exit(1);
 	}

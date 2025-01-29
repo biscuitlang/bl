@@ -68,16 +68,16 @@ _Pragma("GCC diagnostic ignored \"-Wpedantic\"") \
 _Pragma("GCC diagnostic ignored \"-Wsign-conversion\"")
 // clang-format on
 
-#define _SHUT_UP_END _Pragma("GCC diagnostic pop")
-#define UNUSED(x) __attribute__((unused)) x
+#define _SHUT_UP_END  _Pragma("GCC diagnostic pop")
+#define UNUSED(x)     __attribute__((unused)) x
 #define _Thread_local __thread
 
 #elif BL_COMPILER_MSVC
 
 #define _SHUT_UP_BEGIN __pragma(warning(push, 0))
-#define _SHUT_UP_END __pragma(warning(pop))
-#define UNUSED(x) __pragma(warning(suppress : 4100)) x
-#define _Thread_local __declspec(thread)
+#define _SHUT_UP_END   __pragma(warning(pop))
+#define UNUSED(x)      __pragma(warning(suppress : 4100)) x
+#define _Thread_local  __declspec(thread)
 
 #else
 #error "Unsuported compiler!"
@@ -91,10 +91,10 @@ _Pragma("GCC diagnostic ignored \"-Wsign-conversion\"")
 
 #define alignment_of(T) _Alignof(T)
 
-#define isflag(_v, _flag) ((bool)(((_v) & (_flag)) == (_flag)))
-#define isnotflag(_v, _flag) ((bool)(((_v) & (_flag)) != (_flag)))
-#define setflag(_v, _flag) ((_v) |= (_flag))
-#define clrflag(_v, _flag) ((_v) &= ~(_flag))
+#define isflag(_v, _flag)             ((bool)(((_v) & (_flag)) == (_flag)))
+#define isnotflag(_v, _flag)          ((bool)(((_v) & (_flag)) != (_flag)))
+#define setflag(_v, _flag)            ((_v) |= (_flag))
+#define clrflag(_v, _flag)            ((_v) &= ~(_flag))
 #define setflagif(_v, _flag, _toggle) ((_toggle) ? setflag(_v, _flag) : clrflag(_v, _flag))
 
 enum { BL_RED,
@@ -105,7 +105,7 @@ enum { BL_RED,
 	   BL_NO_COLOR = -1 };
 
 #define runtime_measure_begin(name) f64 __##name = get_tick_ms()
-#define runtime_measure_end(name) ((s32)(get_tick_ms() - __##name))
+#define runtime_measure_end(name)   ((s32)(get_tick_ms() - __##name))
 
 #define LIB_NAME_MAX 256
 
@@ -157,7 +157,7 @@ typedef struct {
 	char *ptr;
 } str_t;
 
-#define STR_FMT "%.*s"
+#define STR_FMT    "%.*s"
 #define STR_ARG(S) (s32)((S).len), ((S).ptr)
 
 static_assert(sizeof(str_t) == 16, "Invalid size of string view type.");
@@ -244,7 +244,7 @@ s32 bvsnprint(char *buf, s32 buf_len, const char *fmt, va_list args);
 // =================================================================================================
 
 // These are used for explicitness.
-#define array(T) T *
+#define array(T)      T *
 #define hash_table(T) T *
 
 #define queue_t(T) \
@@ -255,15 +255,15 @@ s32 bvsnprint(char *buf, s32 buf_len, const char *fmt, va_list args);
 	}
 
 #define _qcurrent(Q) ((Q)->q[(Q)->qi])
-#define _qother(Q) ((Q)->q[(Q)->qi ^ 1])
+#define _qother(Q)   ((Q)->q[(Q)->qi ^ 1])
 #define qmaybeswap(Q)                                                                       \
 	((Q)->i >= arrlen(_qcurrent(Q))                                                         \
 	     ? (arrsetlen(_qcurrent(Q), 0), (Q)->qi ^= 1, (Q)->i = 0, arrlen(_qcurrent(Q)) > 0) \
 	     : (true))
-#define qfree(Q) (arrfree((Q)->q[0]), arrfree((Q)->q[1]))
+#define qfree(Q)         (arrfree((Q)->q[0]), arrfree((Q)->q[1]))
 #define qpush_back(Q, V) arrput(_qother(Q), (V))
-#define qpop_front(Q) (_qcurrent(Q)[(Q)->i++])
-#define qsetcap(Q, c) (arrsetcap(_qother(Q), c))
+#define qpop_front(Q)    (_qcurrent(Q)[(Q)->i++])
+#define qsetcap(Q, c)    (arrsetcap(_qother(Q), c))
 
 // =================================================================================================
 // Small Array
@@ -286,15 +286,15 @@ typedef sarr_t(u8, 1) sarr_any_t;
 #define sarraddn(A, N)                                                                     \
 	(sarradd_impl((A), sizeof((A)->_buf[0]), sizeof((A)->_buf) / sizeof((A)->_buf[0]), N), \
 	 &sarrpeek(A, sarrlenu(A) - N))
-#define sarrput(A, V) (*sarradd(A) = (V))
-#define sarrpop(A) (sarrlenu(A) > 0 ? sarrpeek(A, --(A)->len) : (abort(), (A)->_data[0]))
-#define sarrlenu(A) ((usize)((A) ? (A)->len : 0))
-#define sarrlen(A) ((s64)((A) ? (A)->len : 0))
-#define sarrdata(A) ((A)->cap ? ((A)->_data) : ((A)->_buf))
-#define sarrpeek(A, I) (sarrdata(A)[I])
+#define sarrput(A, V)       (*sarradd(A) = (V))
+#define sarrpop(A)          (sarrlenu(A) > 0 ? sarrpeek(A, --(A)->len) : (abort(), (A)->_data[0]))
+#define sarrlenu(A)         ((usize)((A) ? (A)->len : 0))
+#define sarrlen(A)          ((s64)((A) ? (A)->len : 0))
+#define sarrdata(A)         ((A)->cap ? ((A)->_data) : ((A)->_buf))
+#define sarrpeek(A, I)      (sarrdata(A)[I])
 #define sarrpeekor(A, I, D) ((I) < sarrlenu(A) ? sarrdata(A)[I] : (D))
-#define sarrclear(A) ((A)->len = 0)
-#define sarrfree(A) ((A)->cap ? bfree((A)->_data) : (void)0, (A)->len = 0, (A)->cap = 0)
+#define sarrclear(A)        ((A)->len = 0)
+#define sarrfree(A)         ((A)->cap ? bfree((A)->_data) : (void)0, (A)->len = 0, (A)->cap = 0)
 #define sarrsetlen(A, L)                       \
 	{                                          \
 		const s64 d = ((s64)(L)) - sarrlen(A); \

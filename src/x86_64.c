@@ -50,12 +50,12 @@
 #include "tinycthread.h"
 #include "x86_64_instructions.h"
 
-#define UNUSED_REGISTER_MAP_VALUE -1
+#define UNUSED_REGISTER_MAP_VALUE   -1
 #define RESERVED_REGISTER_MAP_VALUE -2
 
 #define SECTION_EXTERN 0
-#define SECTION_TEXT 1
-#define SECTION_DATA 2
+#define SECTION_TEXT   1
+#define SECTION_DATA   2
 
 #define DT_FUNCTION 0x20
 
@@ -107,12 +107,12 @@ struct x64_value {
 	};
 };
 
-#define peek(index) (tctx->values[(index)])
-#define peek_immediate(index) (tctx->values[(index)].imm)
-#define peek_relocation(index) (tctx->values[(index)].reloc)
-#define peek_offset(index) (tctx->values[(index)].offset)
-#define peek_register(index) (tctx->values[(index)].reg)
-#define peek_register_offset(index) (tctx->values[(index)].reg_off_addr)
+#define peek(index)                  (tctx->values[(index)])
+#define peek_immediate(index)        (tctx->values[(index)].imm)
+#define peek_relocation(index)       (tctx->values[(index)].reloc)
+#define peek_offset(index)           (tctx->values[(index)].offset)
+#define peek_register(index)         (tctx->values[(index)].reg)
+#define peek_register_offset(index)  (tctx->values[(index)].reg_off_addr)
 #define peek_register_address(index) (tctx->values[(index)].reg_off_addr)
 
 struct sym_patch {
@@ -232,7 +232,7 @@ static inline enum x64_type_kind get_type_kind(struct mir_type *type) {
 }
 
 #define op(value_kind, type_kind) ((value_kind << 4) | get_type_kind(type_kind))
-#define op_combined(a, b) ((((u64)a) << 8) | ((u64)b))
+#define op_combined(a, b)         ((((u64)a) << 8) | ((u64)b))
 
 enum op_kind {
 	// FFFF value_kind | FFFF type_kind

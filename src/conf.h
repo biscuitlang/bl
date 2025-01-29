@@ -31,8 +31,8 @@
 
 // Config file entries
 #define CONF_LIB_DIR_KEY "/lib_dir"
-#define CONF_VERSION "/version"
-#define CONF_FILEPATH "@filepath"
+#define CONF_VERSION     "/version"
+#define CONF_FILEPATH    "@filepath"
 
 struct config;
 

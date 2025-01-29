@@ -32,9 +32,9 @@
 #include "basic_types.h"
 #include "config.h"
 
-#define bmalloc(size) bl_malloc_impl(size, __FILE__, __LINE__)
+#define bmalloc(size)       bl_malloc_impl(size, __FILE__, __LINE__)
 #define brealloc(ptr, size) bl_realloc_impl(ptr, size, __FILE__, __LINE__)
-#define bfree(ptr) bl_free_impl(ptr, __FILE__, __LINE__)
+#define bfree(ptr)          bl_free_impl(ptr, __FILE__, __LINE__)
 
 // These might not be implemented in some cases...
 void bl_alloc_init(void);

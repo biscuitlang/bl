@@ -31,7 +31,7 @@
 
 #include "assembly.h"
 
-#define COMPILE_OK 0
+#define COMPILE_OK   0
 #define COMPILE_FAIL 1
 
 struct config;
@@ -108,11 +108,11 @@ s32            builder_compile(const struct target *target);
 // Submit new unit for async compilation, in case no-jobs flag is set, this function does nothing.
 void builder_submit_unit(struct assembly *assembly, struct unit *unit);
 
-#define builder_log(format, ...) builder_msg(MSG_LOG, -1, NULL, CARET_NONE, format, ##__VA_ARGS__)
-#define builder_info(format, ...) builder_msg(MSG_INFO, -1, NULL, CARET_NONE, format, ##__VA_ARGS__)
-#define builder_note(format, ...) builder_msg(MSG_ERR_NOTE, -1, NULL, CARET_NONE, format, ##__VA_ARGS__)
+#define builder_log(format, ...)     builder_msg(MSG_LOG, -1, NULL, CARET_NONE, format, ##__VA_ARGS__)
+#define builder_info(format, ...)    builder_msg(MSG_INFO, -1, NULL, CARET_NONE, format, ##__VA_ARGS__)
+#define builder_note(format, ...)    builder_msg(MSG_ERR_NOTE, -1, NULL, CARET_NONE, format, ##__VA_ARGS__)
 #define builder_warning(format, ...) builder_msg(MSG_WARN, -1, NULL, CARET_NONE, format, ##__VA_ARGS__)
-#define builder_error(format, ...) builder_msg(MSG_ERR, -1, NULL, CARET_NONE, format, ##__VA_ARGS__)
+#define builder_error(format, ...)   builder_msg(MSG_ERR, -1, NULL, CARET_NONE, format, ##__VA_ARGS__)
 
 void builder_vmsg(enum builder_msg_type type,
                   s32                   code,

@@ -32,21 +32,21 @@
 #include <setjmp.h>
 
 #define report_error(code, tok, pos, format, ...) builder_msg(MSG_ERR, ERR_##code, &(tok)->location, (pos), (format), ##__VA_ARGS__)
-#define report_warning(tok, pos, format, ...) builder_msg(MSG_WARN, 0, &(tok)->location, (pos), (format), ##__VA_ARGS__)
-#define report_note(tok, pos, format, ...) builder_msg(MSG_ERR_NOTE, 0, &(tok)->location, (pos), (format), ##__VA_ARGS__)
+#define report_warning(tok, pos, format, ...)     builder_msg(MSG_WARN, 0, &(tok)->location, (pos), (format), ##__VA_ARGS__)
+#define report_note(tok, pos, format, ...)        builder_msg(MSG_ERR_NOTE, 0, &(tok)->location, (pos), (format), ##__VA_ARGS__)
 
 #define scope_push(ctx, scope) arrput((ctx)->scope_stack, (scope))
-#define scope_pop(ctx) arrpop((ctx)->scope_stack)
-#define scope_get(ctx) arrlast((ctx)->scope_stack)
-#define scope_set(ctx, scope) (arrlast((ctx)->scope_stack) = (scope))
+#define scope_pop(ctx)         arrpop((ctx)->scope_stack)
+#define scope_get(ctx)         arrlast((ctx)->scope_stack)
+#define scope_set(ctx, scope)  (arrlast((ctx)->scope_stack) = (scope))
 
 #define decl_push(ctx, decl) arrput((ctx)->decl_stack, decl)
-#define decl_pop(ctx) arrpop((ctx)->decl_stack)
-#define decl_get(ctx) (arrlenu((ctx)->decl_stack) ? arrlast((ctx)->decl_stack) : NULL)
+#define decl_pop(ctx)        arrpop((ctx)->decl_stack)
+#define decl_get(ctx)        (arrlenu((ctx)->decl_stack) ? arrlast((ctx)->decl_stack) : NULL)
 
 #define block_push(ctx, block) arrput((ctx)->block_stack, block)
-#define block_pop(ctx) arrpop((ctx)->block_stack)
-#define block_get(ctx) (arrlenu((ctx)->block_stack) ? arrlast((ctx)->block_stack) : NULL)
+#define block_pop(ctx)         arrpop((ctx)->block_stack)
+#define block_get(ctx)         (arrlenu((ctx)->block_stack) ? arrlast((ctx)->block_stack) : NULL)
 
 #define consume_till(tokens, ...)                                 \
 	{                                                             \

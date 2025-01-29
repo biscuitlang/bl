@@ -30,9 +30,9 @@
 
 #define DEFAULT_SLOT_COUNT 128
 #define DEFAULT_ELEM_COUNT 64
-#define LOAD_FACTOR 70
-#define EMPTY_INDEX 0
-#define DELETED_INDEX -1
+#define LOAD_FACTOR        70
+#define EMPTY_INDEX        0
+#define DELETED_INDEX      -1
 
 #define HASH_T BL_TBL_HASH_T
 

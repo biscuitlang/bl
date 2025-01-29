@@ -43,20 +43,20 @@
 
 #define RESOLVE_TYPE_FN_NAME cstr(".type")
 #define RESOLVE_EXPR_FN_NAME cstr(".expr")
-#define INIT_VALUE_FN_NAME cstr(".init")
-#define IMPL_FN_NAME cstr(".impl")
-#define IMPL_VARGS_TMP_ARR cstr(".vargs.arr")
-#define IMPL_VARGS_TMP cstr(".vargs")
-#define IMPL_ANY_TMP cstr(".any")
-#define IMPL_ANY_EXPR_TMP cstr(".any.expr")
-#define IMPL_COMPOUND_TMP cstr(".compound")
-#define IMPL_RTTI_ENTRY cstr(".rtti")
-#define IMPL_TESTCASES_TMP cstr(".testcases")
-#define IMPL_ARG_DEFAULT cstr(".arg.default")
-#define IMPL_CALL_LOC cstr(".call.loc")
-#define IMPL_RET_TMP cstr(".ret")
-#define IMPL_CALL_TMP cstr(".call.tmp")
-#define IMPL_TOSLICE_TMP cstr(".toslice")
+#define INIT_VALUE_FN_NAME   cstr(".init")
+#define IMPL_FN_NAME         cstr(".impl")
+#define IMPL_VARGS_TMP_ARR   cstr(".vargs.arr")
+#define IMPL_VARGS_TMP       cstr(".vargs")
+#define IMPL_ANY_TMP         cstr(".any")
+#define IMPL_ANY_EXPR_TMP    cstr(".any.expr")
+#define IMPL_COMPOUND_TMP    cstr(".compound")
+#define IMPL_RTTI_ENTRY      cstr(".rtti")
+#define IMPL_TESTCASES_TMP   cstr(".testcases")
+#define IMPL_ARG_DEFAULT     cstr(".arg.default")
+#define IMPL_CALL_LOC        cstr(".call.loc")
+#define IMPL_RET_TMP         cstr(".ret")
+#define IMPL_CALL_TMP        cstr(".call.tmp")
+#define IMPL_TOSLICE_TMP     cstr(".toslice")
 
 #define PASS                    \
 	(struct result) {           \
@@ -774,10 +774,10 @@ static struct mir_var *rtti_gen_fn_group(struct context *ctx, struct mir_type *t
 
 // INLINES
 
-#define report_error(code, node, format, ...) _report(MSG_ERR, ERR_##code, (node), CARET_WORD, (format), ##__VA_ARGS__)
+#define report_error(code, node, format, ...)       _report(MSG_ERR, ERR_##code, (node), CARET_WORD, (format), ##__VA_ARGS__)
 #define report_error_after(code, node, format, ...) _report(MSG_ERR, ERR_##code, (node), CARET_AFTER, (format), ##__VA_ARGS__)
-#define report_warning(node, format, ...) _report(MSG_WARN, 0, (node), CARET_WORD, (format), ##__VA_ARGS__)
-#define report_note(node, format, ...) _report(MSG_ERR_NOTE, 0, (node), CARET_WORD, (format), ##__VA_ARGS__)
+#define report_warning(node, format, ...)           _report(MSG_WARN, 0, (node), CARET_WORD, (format), ##__VA_ARGS__)
+#define report_note(node, format, ...)              _report(MSG_ERR_NOTE, 0, (node), CARET_WORD, (format), ##__VA_ARGS__)
 
 static inline void analyze_instr_rq(struct context *ctx, struct mir_instr *instr) {
 	const struct result r = analyze_instr(ctx, instr);
@@ -1270,7 +1270,7 @@ static inline void add_phi_income(struct mir_instr_phi *phi, struct mir_instr *v
 // Get current analyze stack.
 #define analyze_current(ctx) ((ctx)->analyze->stack[(ctx)->analyze->si])
 // Swap analyze stacks and return previous index.
-#define analyze_swap(ctx) ((ctx)->analyze->si ^= 1, (ctx)->analyze->si ^ 1)
+#define analyze_swap(ctx)          ((ctx)->analyze->si ^= 1, (ctx)->analyze->si ^ 1)
 #define analyze_pending_count(ctx) (arrlenu((ctx)->analyze->stack[0]) + arrlenu((ctx)->analyze->stack[1]))
 
 static int         push_count = 0;

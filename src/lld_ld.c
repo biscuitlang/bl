@@ -33,19 +33,19 @@
 #include "stb_ds.h"
 
 #if BL_PLATFORM_MACOS
-#define SHARED_EXT "dylib"
+#define SHARED_EXT    "dylib"
 #define SHARED_PREFIX "lib"
-#define LLD_FLAVOR "darwin"
+#define LLD_FLAVOR    "darwin"
 #else
-#define SHARED_EXT "so"
+#define SHARED_EXT    "so"
 #define SHARED_PREFIX "lib"
-#define LLD_FLAVOR "gnu"
+#define LLD_FLAVOR    "gnu"
 #endif
 #define OBJECT_EXT "o"
 
 #define FLAG_LIBPATH "-L"
-#define FLAG_LIB "-l"
-#define FLAG_OUT "-o"
+#define FLAG_LIB     "-l"
+#define FLAG_OUT     "-o"
 
 // Wrapper for ld linker on Unix platforms.
 static const char *get_out_extension(struct assembly *assembly) {

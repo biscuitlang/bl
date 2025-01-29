@@ -230,7 +230,7 @@ static void setup_assembly_pipeline(struct assembly *assembly) {
 }
 
 static void print_stats(struct assembly *assembly) {
-#define SECONDS(t) ((f32)t / 1000.f)
+#define SECONDS(t)     ((f32)t / 1000.f)
 #define PERC(t, total) ((f32)t / (f32)total * 100.f)
 
 	const s32 total_ms =

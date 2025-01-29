@@ -33,7 +33,7 @@
 #include "common.h"
 
 #define AST_IS_BAD(node) ((node) && (node)->kind == AST_BAD)
-#define AST_IS_OK(node) ((node) && (node)->kind != AST_BAD)
+#define AST_IS_OK(node)  ((node) && (node)->kind != AST_BAD)
 
 struct scope;
 struct token;

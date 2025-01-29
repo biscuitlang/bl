@@ -41,17 +41,17 @@ enum tokens_lookahead_state {
 
 typedef enum tokens_lookahead_state (*token_cmp_func_t)(struct token *curr);
 
-#define tokens_len(tokens) arrlenu((tokens)->buf)
+#define tokens_len(tokens)     arrlenu((tokens)->buf)
 #define tokens_push(tokens, t) arrput((tokens)->buf, t)
 #define tokens_peek_nth(tokens, n) \
 	((tokens)->iter + (n) < tokens_len(tokens) ? &(tokens)->buf[(tokens)->iter + (n)] : token_end)
-#define tokens_peek(tokens) tokens_peek_nth(tokens, 0)
-#define tokens_peek_sym(tokens) ((tokens)->buf[(tokens)->iter].sym)
-#define tokens_peek_2nd(tokens) tokens_peek_nth(tokens, 1)
+#define tokens_peek(tokens)      tokens_peek_nth(tokens, 0)
+#define tokens_peek_sym(tokens)  ((tokens)->buf[(tokens)->iter].sym)
+#define tokens_peek_2nd(tokens)  tokens_peek_nth(tokens, 1)
 #define tokens_peek_prev(tokens) tokens_peek_nth(tokens, -1)
 #define tokens_consume(tokens) \
 	((tokens)->iter < tokens_len(tokens) ? &(tokens)->buf[(tokens)->iter++] : token_end)
-#define tokens_current_is(tokens, s) (tokens_peek(tokens)->sym == (s))
+#define tokens_current_is(tokens, s)     (tokens_peek(tokens)->sym == (s))
 #define tokens_current_is_not(tokens, s) (tokens_peek(tokens)->sym != (s))
 
 static inline void tokens_consume_till(struct tokens *tokens, enum sym sym) {

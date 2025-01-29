@@ -35,7 +35,7 @@
 #include "conf.h"
 #define STB_DS_IMPLEMENTATION
 #define STBDS_REALLOC(context, ptr, size) brealloc(ptr, size)
-#define STBDS_FREE(context, ptr) bfree(ptr)
+#define STBDS_FREE(context, ptr)          bfree(ptr)
 #include "stb_ds.h"
 
 #include "assembly.h"
@@ -430,7 +430,7 @@ bool str_match(str_t a, str_t b) {
 #endif
 }
 
-#define MIN3(a, b, c) ((a) < (b) ? ((a) < (c) ? (a) : (c)) : ((b) < (c) ? (b) : (c)))
+#define MIN3(a, b, c)          ((a) < (b) ? ((a) < (c) ? (a) : (c)) : ((b) < (c) ? (b) : (c)))
 #define LEVENSHTEIN_MAX_LENGTH 256
 
 // Compute Levenshtein distance of two strings (the legth of both string is limited to

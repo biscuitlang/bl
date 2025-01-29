@@ -33,16 +33,16 @@
 
 // Wrapper for lld.exe on Windows platform.
 
-#define LLD_FLAVOR "link"
+#define LLD_FLAVOR     "link"
 #define EXECUTABLE_EXT "exe"
-#define DLL_EXT "dll"
-#define LIB_EXT "lib"
-#define OBJECT_EXT "obj"
+#define DLL_EXT        "dll"
+#define LIB_EXT        "lib"
+#define OBJECT_EXT     "obj"
 
 #define FLAG_LIBPATH "/LIBPATH"
-#define FLAG_OUT "/OUT"
-#define FLAG_ENTRY "/ENTRY"
-#define FLAG_DEBUG "/DEBUG"
+#define FLAG_OUT     "/OUT"
+#define FLAG_ENTRY   "/ENTRY"
+#define FLAG_DEBUG   "/DEBUG"
 
 static const char *get_out_extension(struct assembly *assembly) {
 	switch (assembly->target->kind) {

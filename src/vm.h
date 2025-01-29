@@ -167,7 +167,7 @@ void           vm_abort(struct virtual_machine *vm);
 // Return pointer to constant or stack allocated variable.
 vm_stack_ptr_t vm_read_var(struct virtual_machine *vm, const struct mir_var *var);
 
-#define vm_read_as(T, src) (*((T *)(src)))
+#define vm_read_as(T, src)        (*((T *)(src)))
 #define vm_write_as(T, dest, src) (*((T *)(dest)) = (T)(src))
 
 u64            vm_read_int(const struct mir_type *type, vm_stack_ptr_t src);

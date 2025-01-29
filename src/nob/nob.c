@@ -16,12 +16,25 @@ const char *LIBZ     = "";
 const char *LIBZSTD  = "";
 const char *LIBTINFO = "";
 #elif __APPLE__
-const char *LIBZ       = "";
-const char *LIBZSTD    = "";
-const char *LIBCURSES  = "";
+const char *LIBZ      = "";
+const char *LIBZSTD   = "";
+const char *LIBCURSES = "";
 #endif
 
 void find_deps(void);
+
+// Compilation database recording...
+#if BL_EXPORT_COMPILE_COMMANDS
+String_Builder db;
+char          *db_dir;
+void           db_begin(void);
+void           db_end(void);
+void           db_add_entry(const char *file, Cmd cmd);
+#else
+#define db_begin()
+#define db_end()
+#define db_add_entry(a, b)
+#endif
 
 void setup(void) {
 	find_llvm();
@@ -90,6 +103,8 @@ void blc(void) {
 	cmd_append(&include_paths, "-I./deps/rpmalloc-" RPMALLOC_VERSION "/rpmalloc");
 	cmd_append(&include_paths, temp_sprintf("-I%s", LLVM_INCLUDE_DIR));
 
+	db_begin();
+
 #ifdef _WIN32
 
 	Cmd  cmd = {0};
@@ -113,6 +128,8 @@ void blc(void) {
 		if (BL_SIMD_ENABLE) cmd_append(&cmd, "-DBL_USE_SIMD", "-arch:AVX");
 		if (BL_RPMALLOC_ENABLE) cmd_append(&cmd, "-DBL_RPMALLOC_ENABLE=1");
 		cmd_append(&cmd, is_cxx ? "-std:c++17" : "-std:c11");
+		db_add_entry(src[i], cmd);
+
 		cmd_append(&cmd, "-Fo\"" BUILD_DIR "/\"");
 		procs[i] = nob_cmd_run_async_and_reset(&cmd);
 	}
@@ -183,7 +200,7 @@ void blc(void) {
 #else
 		cmd_append(&cmd, "-D_GNU_SOURCE", "-rdynamic");
 		if (IS_DEBUG) {
-			cmd_append(&cmd, "-O0", "-g", "-DBL_DEBUG", "-DBL_ASSERT_ENABLE=1");
+			cmd_append(&cmd, "-O0", "-ggdb", "-DBL_DEBUG", "-DBL_ASSERT_ENABLE=1");
 		} else {
 			cmd_append(&cmd, "-O3", "-DNDEBUG", "-flto=auto", "-ffat-lto-objects");
 		}
@@ -231,6 +248,8 @@ void blc(void) {
 	shell("rm -f " BUILD_DIR "/*.o");
 
 #endif
+
+	db_end();
 }
 
 void finalize(void) {
@@ -283,7 +302,7 @@ void find_deps(void) {
 		exit(1);
 	}
 
-	const char * libz_prefix = shell("brew --prefix zlib 2>/dev/null");
+	const char *libz_prefix = shell("brew --prefix zlib 2>/dev/null");
 	if (!strok(libz_prefix)) {
 		nob_log(NOB_ERROR, "Unable to find zlib brew package.");
 		exit(1);
@@ -295,7 +314,7 @@ void find_deps(void) {
 	}
 	nob_log(NOB_INFO, "Using 'libz' '%s'.", LIBZ);
 
-	const char * zstd_prefix = shell("brew --prefix zstd 2>/dev/null");
+	const char *zstd_prefix = shell("brew --prefix zstd 2>/dev/null");
 	if (!strok(zstd_prefix)) {
 		nob_log(NOB_ERROR, "Unable to find zstd brew package.");
 		exit(1);
@@ -308,7 +327,7 @@ void find_deps(void) {
 	nob_log(NOB_INFO, "Using 'libzstd' '%s'.", LIBZSTD);
 
 	// This is required by LLVM for 3 or 4 functions, we should find the way how to not require this whole shit...
-	const char * ncurses_prefix = shell("brew --prefix ncurses 2>/dev/null");
+	const char *ncurses_prefix = shell("brew --prefix ncurses 2>/dev/null");
 	if (!strok(ncurses_prefix)) {
 		nob_log(NOB_ERROR, "Unable to find ncurses brew package.");
 		exit(1);
@@ -322,5 +341,37 @@ void find_deps(void) {
 }
 #else
 void find_deps(void) {
+}
+#endif
+
+#if BL_EXPORT_COMPILE_COMMANDS
+void db_begin(void) {
+	db_dir = (char *)get_current_dir_temp();
+	for (int i = 0; db_dir[i] != '\0'; ++i) {
+		if (db_dir[i] == '\\') db_dir[i] = '/';
+	}
+
+	sb_append_cstr(&db, "[");
+}
+
+void db_end(void) {
+	sb_append_cstr(&db, "\n]");
+	write_entire_file("compile_commands.json", db.items, db.count);
+}
+
+void db_add_entry(const char *file, Cmd cmd) {
+	// Your json with love...
+	sb_append_cstr(&db, db.items[db.count - 1] == '[' ? "\n{\n" : ",\n{\n");
+	sb_append_cstr(&db, temp_sprintf("\"directory\":\"%s\",\n", db_dir));
+	sb_append_cstr(&db, "\"command\":\"");
+	for (int i = 0; i < cmd.count; ++i) {
+		sb_append_cstr(&db, cmd.items[i]);
+		sb_append_cstr(&db, " ");
+	}
+	sb_append_cstr(&db, "\",\n");
+	sb_append_cstr(&db, "\"file\":\"");
+	sb_append_cstr(&db, file);
+	sb_append_cstr(&db, "\"\n");
+	sb_append_cstr(&db, "}");
 }
 #endif

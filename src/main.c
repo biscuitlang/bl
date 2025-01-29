@@ -338,14 +338,14 @@ int main(s32 argc, char *argv[]) {
 	char *user_conf_filepath     = NULL;
 	bool  has_input_files        = false;
 
-#define ID_BUILD 1
-#define ID_RUN 2
-#define ID_DOC 3
-#define ID_SHARED 4
-#define ID_VMDBG_BREAK_ON 5
-#define ID_RELEASE 6
-#define ID_SILENT_RUN 7
-#define ID_INIT_PROJECT 8
+#define ID_BUILD                 1
+#define ID_RUN                   2
+#define ID_DOC                   3
+#define ID_SHARED                4
+#define ID_VMDBG_BREAK_ON        5
+#define ID_RELEASE               6
+#define ID_SILENT_RUN            7
+#define ID_INIT_PROJECT          8
 #define ID_DUMP_SCOPES_PARENTING 9
 #define ID_DUMP_SCOPES_INJECTION 10
 
