@@ -110,8 +110,7 @@ os_get_backtrace :: fn (skip_frames := 0 #maybe_unused, max_frame_count := 64 #m
 }
 
 __os_debug_break :: fn () #inline #compiler {
-	// @Incomplete: I'm not sure what to do here.
-	//_raise(_SIGTRAP);
+	C.raise(C.SIGTRAP);
 }
 
 __os_write :: fn (fd: s32, buf: *u8, count: usize) s32 {
