@@ -392,6 +392,9 @@ localtime :: fn (timep: *time_t) *tm #extern "localtime";
 strftime :: fn (buf: *char, buf_size: size_t, fmt: *char, t: *tm) size_t #extern "strftime";
 waitpid :: fn (pid: pid_t, status: *int, options: int) pid_t #extern "waitpid";
 
+setenv :: fn (name: *char, value: *char, overwrite: int) int #extern "setenv";
+unsetenv :: fn (name: *char) int #extern "unsetenv";
+
 WEXITSTATUS :: fn (x: s32) s32 #inline {
 	return (x >> 8) & 0x000000ff;
 }
