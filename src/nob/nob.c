@@ -198,11 +198,11 @@ void blc(void) {
 			cmd_append(&cmd, "-O3", "-DNDEBUG");
 		}
 #else
-		cmd_append(&cmd, "-D_GNU_SOURCE", "-rdynamic");
+		cmd_append(&cmd, "-D_GNU_SOURCE");
 		if (IS_DEBUG) {
 			cmd_append(&cmd, "-O0", "-ggdb", "-DBL_DEBUG", "-DBL_ASSERT_ENABLE=1");
 		} else {
-			cmd_append(&cmd, "-O3", "-DNDEBUG", "-flto=auto", "-ffat-lto-objects");
+			cmd_append(&cmd, "-O3", "-DNDEBUG");
 		}
 #endif
 
@@ -223,7 +223,7 @@ void blc(void) {
 #ifdef __APPLE__
 		cmd_append(&cmd, "c++", "-arch", "arm64", "-lm", "-mmacosx-version-min=14.3");
 #else
-		cmd_append(&cmd, "c++", "-D_GNU_SOURCE", "-flto=auto", "-ffat-lto-objects", "-lrt", "-ldl", "-lm");
+		cmd_append(&cmd, "c++", "-D_GNU_SOURCE", "-lrt", "-ldl", "-lm", "-rdynamic", "-Wl,--export-dynamic");
 #endif
 
 		for (int i = 0; i < files.count; ++i) {
