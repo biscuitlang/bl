@@ -385,5 +385,5 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 	)
 endif()
 
-configure_file(${CMAKE_SOURCE_DIR}/src/config.h.in ${CMAKE_SOURCE_DIR}/src/config.h)
+# configure_file(${CMAKE_SOURCE_DIR}/src/config.h.in ${CMAKE_SOURCE_DIR}/src/config.h)
 

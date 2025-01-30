@@ -29,15 +29,13 @@
 #ifndef BL_CONFIG_H
 #define BL_CONFIG_H
 
-// Values set automatically during build by cmake.
-#define BL_VERSION       "0.13.0"
-#define BL_VERSION_MAJOR 0
-#define BL_VERSION_MINOR 13
-#define BL_VERSION_PATCH 0
+#define STR_HELPER(x) #x
+#define STR(x)        STR_HELPER(x)
+
+#define BL_VERSION STR(BL_VERSION_MAJOR) "." STR(BL_VERSION_MINOR) "." STR(BL_VERSION_PATCH)
 
 #define BL_CONFIG_FILE "etc/bl.yaml"
 #define BL_API_DIR     "../lib/bl/api"
-#define BL_LINKER      "lld"
 
 // MULTIPLATFORM: os preload depends on target build platform and should be chosen in runtime later!
 #ifdef _WIN32
@@ -45,17 +43,20 @@
 #define BL_PLATFORM_MACOS 0
 #define BL_PLATFORM_LINUX 0
 #define BL_EXPORT         __declspec(dllexport)
-#define BL_VSWHERE_EXE    ""
+#define BL_VSWHERE_EXE    "vwshere.exe"
+#define BL_LINKER         "bl-lld.exe"
 #elif __APPLE__
 #define BL_PLATFORM_WIN   0
 #define BL_PLATFORM_MACOS 1
 #define BL_PLATFORM_LINUX 0
+#define BL_LINKER         "ld"
 #define BL_EXPORT
 #elif __linux__
 #define BL_PLATFORM_WIN   0
 #define BL_PLATFORM_MACOS 0
 #define BL_PLATFORM_LINUX 1
 #define BL_EXPORT         __attribute__((used))
+#define BL_LINKER         "ld"
 #else
 #error "Unknown platform"
 #endif
