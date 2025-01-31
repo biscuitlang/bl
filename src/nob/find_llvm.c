@@ -10,7 +10,7 @@ void find_llvm(void) {
 	LLVM_VERSION = "18.1.8";
 
 	nob_log(NOB_INFO, "Using bundled LLVM package.");
-	if (!file_exists("./deps/llvm-18.1.8-win64")) {
+	if (!file_exists("./deps/llvm-18.1.8-win64-nob")) {
 		nob_log(NOB_INFO, "Unpacking LLVM...");
 		Cmd cmd = {0};
 		cmd_append(&cmd, "tar", "-xf", temp_sprintf("./deps/llvm-%s-win64-nob.zip", LLVM_VERSION), "-C", "./deps");
