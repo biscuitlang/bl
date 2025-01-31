@@ -40,9 +40,7 @@ _mutex_lock :: fn (mutex: *_Mutex) Error #inline {
 	using MutexKind;
 	switch mutex.kind {
 		NORMAL {
-			if TryAcquireSRWLockExclusive(&mutex.data.srw) == 0 {
-				panic("The mutex is already locked on the same thread.");
-			}
+			AcquireSRWLockExclusive(&mutex.data.srw);
 		}
 		RECURSIVE {
 			EnterCriticalSection(&mutex.data.cs);
