@@ -13,13 +13,26 @@ _mutex_init :: fn (mutex: *_Mutex, kind: MutexKind) Error #inline {
 		default   { panic("Invalid mutex kind.");           }
 	}
 
-	attribute: pthread_mutexattr_t #noinit;
-	pthread_mutexattr_settype(&attribute, pthread_kind);
+	state: s32;
 
-	state :: pthread_mutex_init(mutex, &attribute);
+	attribute: pthread_mutexattr_t #noinit;
+	state = pthread_mutexattr_init(&attribute);
 	if state != 0 {
 		estr :: cast(*u8) C.strerror(state);
-		return error("Cannot init mutex: '%' (%).", estr, state);
+		return error("Cannot init mutex attribute: '%' (%).", ctostr(auto estr), state);
+	}
+	defer pthread_mutexattr_destroy(&attribute);
+
+	state = pthread_mutexattr_settype(&attribute, pthread_kind);
+	if state != 0 {
+		estr :: cast(*u8) C.strerror(state);
+		return error("Cannot set mutex attribute: '%' (%).", ctostr(auto estr), state);
+	}
+
+	state = pthread_mutex_init(mutex, &attribute);
+	if state != 0 {
+		estr :: cast(*u8) C.strerror(state);
+		return error("Cannot init mutex: '%' (%).", ctostr(auto estr), state);
 	}
 	return OK;
 }
@@ -28,7 +41,7 @@ _mutex_terminate :: fn (mutex: *_Mutex) Error #inline {
 	state :: pthread_mutex_destroy(mutex);
 	if state != 0 {
 		estr :: cast(*u8) C.strerror(state);
-		return error("Cannot terminate mutex: '%' (%).", estr, state);
+		return error("Cannot terminate mutex: '%' (%).", ctostr(auto estr), state);
 	}
 	return OK;
 }
@@ -37,7 +50,7 @@ _mutex_lock :: fn (mutex: *_Mutex) Error #inline {
 	state :: pthread_mutex_lock(mutex);
 	if state != 0 {
 		estr :: cast(*u8) C.strerror(state);
-		return error("Cannot lock mutex: '%' (%).", estr, state);
+		return error("Cannot lock mutex: '%' (%).", ctostr(auto estr), state);
 	}
 	return OK;
 }
@@ -51,14 +64,14 @@ _mutex_try_lock :: fn (mutex: *_Mutex) (bool, Error) #inline {
 		return false, OK;
 	}
 	estr :: cast(*u8) C.strerror(state);
-	return false, error("Cannot lock mutex: '%' (%).", estr, state);
+	return false, error("Cannot lock mutex: '%' (%).", ctostr(auto estr), state);
 }
 
 _mutex_unlock :: fn (mutex: *_Mutex) Error #inline {
 	state :: pthread_mutex_unlock(mutex);
 	if state != 0 {
 		estr :: cast(*u8) C.strerror(state);
-		return error("Cannot unlock mutex: '%' (%).", estr, state);
+		return error("Cannot unlock mutex: '%' (%).", ctostr(auto estr), state);
 	}
 	return OK;
 }
@@ -67,7 +80,7 @@ _condition_init :: fn (condition: *_Condition) Error #inline {
 	state :: pthread_cond_init(condition, null);
 	if state != 0 {
 		estr :: cast(*u8) C.strerror(state);
-		return error("Cannot initialize condition variable: '%' (%).", estr, state);
+		return error("Cannot initialize condition variable: '%' (%).", ctostr(auto estr), state);
 	}
 	return OK;
 }
@@ -76,7 +89,7 @@ _condition_wait :: fn (condition: *_Condition, mutex: *_Mutex) Error #inline {
 	state :: pthread_cond_wait(condition, mutex);
 	if state != 0 {
 		estr :: cast(*u8) C.strerror(state);
-		return error("Cannot wait for condition variable: '%' (%).", estr, state);
+		return error("Cannot wait for condition variable: '%' (%).", ctostr(auto estr), state);
 	}
 	return OK;
 }
@@ -85,7 +98,7 @@ _condition_signal :: fn (condition: *_Condition) Error #inline {
 	state :: pthread_cond_signal(condition);
 	if state != 0 {
 		estr :: cast(*u8) C.strerror(state);
-		return error("Cannot signal condition variable: '%' (%).", estr, state);
+		return error("Cannot signal condition variable: '%' (%).", ctostr(auto estr), state);
 	}
 	return OK;
 }
@@ -94,5 +107,6 @@ _condition_signal :: fn (condition: *_Condition) Error #inline {
 
 #import "os/posix/pthread"
 #import "os/posix/semaphore"
+#import "std/string"
 
 C :: #import "libc";

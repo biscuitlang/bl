@@ -13,20 +13,9 @@ pthread_condattr_t :: struct {
 	__opaque: [SIZE_PTHREAD_CONDATTR]C.char;
 }
 
-PTHREAD_MUTEX :: enum {
-	TIMED_NP;
-	RECURSIVE_NP;
-	ERRORCHECK_NP;
-	ADAPTIVE_NP;
-	NORMAL     = TIMED_NP;
-	RECURSIVE  = RECURSIVE_NP;
-	ERRORCHECK = ERRORCHECK_NP;
-	DEFAULT    = NORMAL;
-}
-
-// @Incomplete: These may differ across platforms?!
 pthread_mutexattr_t :: struct {
-	_: [8]u8;
+	__sig: C.long;
+	__opaque: [SIZE_PTHREAD_MUTEXATTR]C.char;
 }
 
 pthread_t :: *u8;
@@ -45,14 +34,12 @@ pthread_mutex_destroy :: fn (mutex: *pthread_mutex_t) C.int #extern "pthread_mut
 pthread_cond_init :: fn (cv: *pthread_cond_t, cattr: *pthread_condattr_t) C.int #extern "pthread_cond_init";
 pthread_cond_signal :: fn (cond: *pthread_cond_t) C.int #extern "pthread_cond_signal";
 pthread_cond_wait :: fn (cond: *pthread_cond_t, mutex: *pthread_mutex_t) C.int #extern "pthread_cond_wait";
+pthread_mutexattr_init :: fn (attr: *pthread_mutexattr_t) C.int #extern "pthread_mutexattr_init";
+pthread_mutexattr_destroy :: fn (attr: *pthread_mutexattr_t) C.int #extern "pthread_mutexattr_destroy";
 pthread_mutexattr_gettype :: fn (attr: *pthread_mutexattr_t, type: *PTHREAD_MUTEX) C.int #extern "pthread_mutexattr_gettype";
 pthread_mutexattr_settype :: fn (attr: *pthread_mutexattr_t, type: PTHREAD_MUTEX) C.int #extern "pthread_mutexattr_settype";
 
-#scope_private
+#scope_module
 
 C :: #import "libc";
 
-// @Incomplete: These may differ across platforms?!
-SIZE_OF_PTHREAD_MUTEX_T :: 56;
-SIZE_OF_PTHREAD_COND :: 40;
-SIZE_PTHREAD_CONDATTR :: 8;
