@@ -1,0 +1,50 @@
+SRWLOCK :: struct {
+	ptr: LPVOID;
+}
+
+PSRWLOCK :: *SRWLOCK;
+
+RTL_CRITICAL_SECTION_DEBUG :: struct {
+	Type: WORD;
+	CreatorBackTraceIndex: WORD;
+	CriticalSection: *RTL_CRITICAL_SECTION;
+	ProcessLocksList: LIST_ENTRY;
+	EntryCount: DWORD;
+	ContentionCount: DWORD;
+	Flags: DWORD;
+	CreatorBackTraceIndexHigh: WORD;
+	SpareWORD: WORD;
+}
+PRTL_CRITICAL_SECTION_DEBUG :: *RTL_CRITICAL_SECTION_DEBUG;
+RTL_CRITICAL_SECTION :: struct {
+	DebugInfo: PRTL_CRITICAL_SECTION_DEBUG;
+	LockCount: LONG;
+	RecursionCount: LONG;
+	OwningThread: HANDLE;
+	LockSemaphore: HANDLE;
+	SpinCount: ULONG_PTR;
+}
+LPCRITICAL_SECTION :: *RTL_CRITICAL_SECTION;
+PCRITICAL_SECTION :: *RTL_CRITICAL_SECTION;
+
+RTL_CONDITION_VARIABLE :: struct {
+	Ptr: PVOID;
+}
+PRTL_CONDITION_VARIABLE :: *RTL_CONDITION_VARIABLE;
+CONDITION_VARIABLE :: RTL_CONDITION_VARIABLE;
+PCONDITION_VARIABLE :: PRTL_CONDITION_VARIABLE;
+
+CreateMutexA :: fn (lpMutexAttributes: LPSECURITY_ATTRIBUTES, bInitialOwner: BOOL, lpName: LPCSTR) HANDLE #extern "CreateMutexA";
+ReleaseMutex :: fn (hMutex: HANDLE) BOOL #extern "ReleaseMutex";
+InitializeCriticalSection :: fn (lpCriticalSection: LPCRITICAL_SECTION) #extern "InitializeCriticalSection";
+DeleteCriticalSection :: fn (lpCriticalSection: LPCRITICAL_SECTION) #extern "DeleteCriticalSection";
+EnterCriticalSection  :: fn (lpCriticalSection: LPCRITICAL_SECTION) #extern "EnterCriticalSection";
+LeaveCriticalSection  :: fn (lpCriticalSection: LPCRITICAL_SECTION) #extern "LeaveCriticalSection";
+TryEnterCriticalSection :: fn (lpCriticalSection: LPCRITICAL_SECTION ) BOOL #extern "TryEnterCriticalSection";
+SleepConditionVariableCS :: fn (ConditionVariable: PCONDITION_VARIABLE, CriticalSection: PCRITICAL_SECTION, dwMilliseconds: DWORD) BOOL #extern "SleepConditionVariableCS";
+WakeConditionVariable :: fn (ConditionVariable: PCONDITION_VARIABLE) #extern "WakeConditionVariable"
+InitializeConditionVariable :: fn (ConditionVariable: PCONDITION_VARIABLE) #extern "InitializeConditionVariable";
+InitializeSRWLock :: fn (SRWLock: PSRWLOCK) #extern "InitializeSRWLock";
+ReleaseSRWLockExclusive :: fn (SRWLock: PSRWLOCK) #extern "ReleaseSRWLockExclusive";
+AcquireSRWLockExclusive :: fn (SRWLock: PSRWLOCK) #extern "AcquireSRWLockExclusive";
+TryAcquireSRWLockExclusive :: fn (SRWLock: PSRWLOCK) BOOL #extern "TryAcquireSRWLockExclusive";
