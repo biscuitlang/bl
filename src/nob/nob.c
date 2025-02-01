@@ -16,6 +16,7 @@ const char *LIBZ     = "";
 const char *LIBZSTD  = "";
 const char *LIBTINFO = "";
 #elif __APPLE__
+const char *MACOS_SDK = "";
 const char *LIBZ      = "";
 const char *LIBZSTD   = "";
 const char *LIBCURSES = "";
@@ -209,7 +210,7 @@ void blc(void) {
 		           "-DBL_VERSION_PATCH=" STR(BL_VERSION_PATCH),
 		           "-DYAML_DECLARE_STATIC");
 #ifdef __APPLE__
-		cmd_append(&cmd, "-arch", "arm64", "-isysroot", "/Library/Developer/CommandLineTools/SDKs/MacOSX14.4.sdk");
+		cmd_append(&cmd, "-arch", "arm64", "-isysroot", MACOS_SDK);
 		if (IS_DEBUG) {
 			cmd_append(&cmd, "-O0", "-g", "-DBL_DEBUG", "-DBL_ASSERT_ENABLE=1");
 		} else {
@@ -337,9 +338,16 @@ void find_deps(void) {
 		exit(1);
 	}
 
+	MACOS_SDK = shell("xcrun --show-sdk-path 2>/dev/null");
+	if (!strok(MACOS_SDK)) {
+		nob_log(NOB_ERROR, "Unable to find MacOS SDK, you might try to run 'xcode-select --install'.");
+		exit(1);
+	}
+	nob_log(NOB_INFO, "Using MacOS SDK '%s'.", MACOS_SDK);
+
 	const char *libz_prefix = shell("brew --prefix zlib 2>/dev/null");
 	if (!strok(libz_prefix)) {
-		nob_log(NOB_ERROR, "Unable to find zlib brew package.");
+		nob_log(NOB_ERROR, "Unable to find zlib brew package. Run 'brew install zlib'.");
 		exit(1);
 	}
 	LIBZ = shell(temp_sprintf(temp_sprintf("find %s/lib -name \"libz.a\" -print -quit 2>/dev/null", libz_prefix)));
@@ -364,7 +372,7 @@ void find_deps(void) {
 	// This is required by LLVM for 3 or 4 functions, we should find the way how to not require this whole shit...
 	const char *ncurses_prefix = shell("brew --prefix ncurses 2>/dev/null");
 	if (!strok(ncurses_prefix)) {
-		nob_log(NOB_ERROR, "Unable to find ncurses brew package.");
+		nob_log(NOB_ERROR, "Unable to find ncurses brew package. Run 'brew install zlib'.");
 		exit(1);
 	}
 	LIBCURSES = shell(temp_sprintf(temp_sprintf("find %s/lib -name \"libcurses.a\" -print -quit 2>/dev/null", ncurses_prefix)));
