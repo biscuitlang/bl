@@ -55,8 +55,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Download LLVM
       run: |
-        brew install llvm@18
-        brew install zlib
+        brew install llvm@18 zlib ncurses
         TMP_PATH=$(xcrun --show-sdk-path)/user/include
         echo "CPATH=$TMP_PATH" >> $GITHUB_ENV
     - name: Build
@@ -69,7 +68,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Download LLVM
       run: |
-        brew install llvm@18
+        brew install llvm@18 zlib ncurses
         TMP_PATH=$(xcrun --show-sdk-path)/user/include
         echo "CPATH=$TMP_PATH" >> $GITHUB_ENV
     - name: Build
