@@ -117,6 +117,7 @@ int main(int argc, char *argv[]) {
 	check_compiler();
 	if (TARGET & TARGET_BLC) {
 		mkdir_if_not_exists(BUILD_DIR);
+		mkdir_if_not_exists(BIN_DIR);
 
 		setup();
 		if (!file_exists(BUILD_DIR "/dyncall/" DYNCALL_LIB)) dyncall();

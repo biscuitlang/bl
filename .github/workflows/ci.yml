@@ -5,6 +5,7 @@ on: [push, pull_request, workflow_dispatch]
 jobs:
   windows-debug:
     runs-on: windows-latest
+    shell: cmd
     steps:
     - uses: actions/checkout@v2
     - name: Build
@@ -14,6 +15,7 @@ jobs:
 
   windows-release:
     runs-on: windows-latest
+    shell: cmd
     steps:
     - uses: actions/checkout@v2
     - name: Build
@@ -54,6 +56,7 @@ jobs:
     - name: Download LLVM
       run: |
         brew install llvm@18
+        brew install zlib
         TMP_PATH=$(xcrun --show-sdk-path)/user/include
         echo "CPATH=$TMP_PATH" >> $GITHUB_ENV
     - name: Build
