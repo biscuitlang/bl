@@ -1,0 +1,76 @@
+name: CI
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  windows-debug:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build
+      shell: cmd
+      run: | 
+        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        ./build.bat debug all
+
+  windows-release:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build
+      shell: cmd
+      run: | 
+        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        ./build.bat release all
+
+  linux-debug:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Download LLVM
+      run: |
+        wget https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh 18
+    - name: Build
+      run: |
+        ./build.sh debug all
+
+  linux-release:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Download LLVM
+      run: |
+        wget https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh 18
+    - name: Build
+      run: |
+        ./build.sh release all
+
+  macos-debug:
+    runs-on: macOS-14
+    steps:
+    - uses: actions/checkout@v2
+    - name: Download LLVM
+      run: |
+        brew install llvm@18 zlib ncurses
+        TMP_PATH=$(xcrun --show-sdk-path)/user/include
+        echo "CPATH=$TMP_PATH" >> $GITHUB_ENV
+    - name: Build
+      run: |
+        ./build.sh debug all
+
+  macos-release:
+    runs-on: macOS-14
+    steps:
+    - uses: actions/checkout@v2
+    - name: Download LLVM
+      run: |
+        brew install llvm@18 zlib ncurses
+        TMP_PATH=$(xcrun --show-sdk-path)/user/include
+        echo "CPATH=$TMP_PATH" >> $GITHUB_ENV
+    - name: Build
+      run: |
+        ./build.sh release all
