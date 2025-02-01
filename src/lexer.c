@@ -53,10 +53,11 @@ struct context {
 	struct tokens        *tokens;
 	struct string_cache **string_cache;
 	sarr_t(char, 64) strtmp; // @Cleanup: Use tmp string from builder.
+	char *c;
+	s32   line;
+	s32   col;
+
 	jmp_buf jmp_error;
-	char   *c;
-	s32     line;
-	s32     col;
 };
 
 static void       scan(struct context *ctx);

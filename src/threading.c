@@ -117,7 +117,7 @@ void start_threads(const s32 n) {
 	cnd_init(&working_cond);
 
 	for (s32 i = 0; i < thread_count; ++i) {
-		thrd_t thread;
+		thrd_t thread = 0;
 		thrd_create(&thread, &worker, (void *)(u64)i);
 		thrd_detach(thread);
 	}

@@ -22,7 +22,6 @@
     TODO:
     - 2025-01-29: Add assert mode switch argument.
     - 2025-01-27: Missing Tracy support.
-    - 2025-01-27: Missing build of dlib runtime used by compiler.
     - 2025-01-27: There is no way to "install" results.
 
 */
@@ -89,10 +88,12 @@ const char *_shell(int argc, const char *argv[]);
 		if (!success) exit(1);                       \
 	} while (0);
 
-int IS_DEBUG = 0;
+bool IS_DEBUG = false;
+bool BUILD_RUNTIME = false;
 
 void print_help(void);
 void parse_command_line_arguments(int argc, char *argv[]);
+void check_compiler(void);
 
 #include "deps/dyncall-1.2/nob.c"
 #include "deps/libyaml-0.2.5/nob.c"
@@ -103,11 +104,13 @@ int main(int argc, char *argv[]) {
 	nob_log(NOB_INFO, "Running in '%s' in '%s' mode.", get_current_dir_temp(), IS_DEBUG ? "DEBUG" : "RELEASE");
 	mkdir_if_not_exists(BUILD_DIR);
 
+	check_compiler();
 	setup();
 
 	if (!file_exists(BUILD_DIR "/dyncall/" DYNCALL_LIB)) dyncall();
 	if (!file_exists(BUILD_DIR "/libyaml/" YAML_LIB)) libyaml();
 	blc();
+	if (BUILD_RUNTIME) blc_runtime();
 	finalize();
 
 	nob_log(NOB_INFO, "All files compiled successfully.");
@@ -120,6 +123,7 @@ void print_help(void) {
 	printf("\trelease Build in release mode.\n");
 	printf("\tdebug   Build in debug mode.\n");
 	printf("\tclean   Remove build directory and exit.\n");
+	printf("\truntime Build compiler runtime.\n");
 	printf("\thelp    Print this help and exit.\n");
 }
 
@@ -128,9 +132,11 @@ void parse_command_line_arguments(int argc, char *argv[]) {
 	while (argc > 0) {
 		char *arg = shift_args(&argc, &argv);
 		if (strcmp(arg, "debug") == 0) {
-			IS_DEBUG = 1;
+			IS_DEBUG = true;
 		} else if (strcmp(arg, "release") == 0) {
-			IS_DEBUG = 0; // by default
+			IS_DEBUG = false; // by default
+		} else if (strcmp(arg, "runtime") == 0) {
+			BUILD_RUNTIME = true;
 		} else if (strcmp(arg, "clean") == 0) {
 			cleanup();
 			exit(0);
@@ -157,6 +163,16 @@ const char *_shell(int argc, const char *argv[]) {
 	}
 	if (!sb.count) return "";
 	return trim_and_dup(sb);
+}
+
+void check_compiler(void) {
+#ifdef _WIN32
+	const char *cl = shell("where", "cl");
+	if (!strok(cl)) {
+		nob_log(NOB_ERROR, "Cannot find 'cl.exe' compiler. Have you forgot to run 'vcvars64.bat' to inject development environment?");
+		exit(1);
+	}
+#endif
 }
 
 #ifdef _WIN32

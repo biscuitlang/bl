@@ -410,11 +410,11 @@ char **builder_get_supported_targets(void) {
 	return dest;
 }
 
-const str_t builder_get_lib_dir(void) {
+str_t builder_get_lib_dir(void) {
 	return make_str_from_c(confreads(builder.config, CONF_LIB_DIR_KEY, NULL));
 }
 
-const str_t builder_get_exec_dir(void) {
+str_t builder_get_exec_dir(void) {
 	bassert(builder.exec_dir.len && "Executable directory not set, call 'builder_init' first.");
 	return str_buf_view(builder.exec_dir);
 }
@@ -424,7 +424,7 @@ bool builder_load_config(const str_t filepath) {
 	str_buf_t tmp_path = get_tmp_str();
 	builder.config     = confload(str_to_c(&tmp_path, filepath));
 	put_tmp_str(tmp_path);
-	return (bool)builder.config;
+	return builder.config;
 }
 
 struct target *builder_add_target(const char *name) {

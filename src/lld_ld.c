@@ -68,7 +68,6 @@ static const char *get_out_prefix(struct assembly *assembly) {
 	default:
 		babort("Unknown output kind!");
 	}
-	babort("Unknown output kind!");
 }
 
 static void append_lib_paths(struct assembly *assembly, str_buf_t *buf) {

@@ -555,6 +555,8 @@ static inline void imul_ri(struct thread_context *tctx, u8 r1, u8 r2, u64 imm, u
 		buf[i++]   = 0x69;
 		value_size = sizeof(u32);
 		break;
+	default:
+		babort("Invalid size.");
 	}
 	buf[i++] = mrr;
 	add_code(tctx, buf, i);

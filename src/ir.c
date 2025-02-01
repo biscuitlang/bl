@@ -841,7 +841,7 @@ LLVMValueRef emit_const_string(struct context *ctx, const str_t s) {
 	LLVMValueRef     llvm_str = NULL;
 	if (s.len) {
 		s64    index = -1;
-		hash_t hash;
+		hash_t hash  = 0;
 
 		const bool use_cache = s.len < 256;
 		// There is probably no good reason to try cache large string data.

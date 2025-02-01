@@ -1958,7 +1958,7 @@ static void emit_instr(struct context *ctx, struct thread_context *tctx, struct 
 		struct mir_type *ret_type    = callee_type->data.fn.ret_type;
 		const bool       does_return = ret_type->kind != MIR_TYPE_VOID;
 
-		s32 ret_value_tmp_offset;
+		s32 ret_value_tmp_offset = 0;
 
 		if (does_return && does_function_return_composit(callee_type)) { // @Performance [travis]: Generate only if result is used?
 			// We have to allocate stack memory for the return value not fitting into RAX.

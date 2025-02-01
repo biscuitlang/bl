@@ -880,7 +880,7 @@ void _dyncall_generate_signature(struct virtual_machine *vm, struct mir_type *ty
 	default: {
 		str_buf_t type_name = mir_type2str(type, true);
 		babort("Unsupported DC-signature type '%s'.", str_buf_to_c(type_name));
-		put_tmp_str(type_name);
+		// put_tmp_str(type_name);
 	}
 	}
 }

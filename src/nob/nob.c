@@ -112,7 +112,25 @@ void blc(void) {
 
 	for (int i = 0; i < src_num; ++i) {
 		const bool is_cxx = ends_with(src[i], ".cpp");
-		cmd_append(&cmd, "cl", "-nologo", "-c", src[i]);
+		cmd_append(&cmd,
+		           "cl",
+		           "-nologo",
+		           "-W4",
+		           "-wd4100",
+		           "-wd4127",
+		           "-wd4189",
+		           "-wd4200",
+		           "-wd4244",
+		           "-wd4245",
+		           "-wd4310",
+		           "-wd4324",
+		           "-wd4389",
+		           "-wd4456",
+		           "-wd4457",
+		           "-wd4702",
+		           "-wd4996",
+		           "-c",
+		           src[i]);
 		cmd_extend(&cmd, &include_paths);
 		cmd_append(&cmd,
 		           "-DBL_VERSION_MAJOR=" STR(BL_VERSION_MAJOR),
@@ -252,6 +270,21 @@ void blc(void) {
 #endif
 
 	db_end();
+}
+
+void blc_runtime(void) {
+	nob_log(NOB_INFO, "Compiling BL runtime.");
+	Cmd cmd = {0};
+
+#ifdef _WIN32
+	cmd_append(&cmd, "cl", "-nologo", "/LD", "./src/dlib/dlib_runtime.c", "-O2", "-Oi", "-DNDEBUG", "-I./src", "-Fo\"./lib/bl/api/std/dlib/win32/dlib.lib\"");
+#elif __linux__
+	cmd_append(&cmd, "cc", "-c", "./src/dlib/dlib_runtime.c", "-I./src", "-D_GNU_SOURCE", "-O3", "-DNDEBUG", "-o", "./lib/bl/api/std/dlib/linux/libdlib.a");
+#elif __APPLE__
+	cmd_append(&cmd, "cc", "-c", "./src/dlib/dlib_runtime.c", "-I./src", "-arch", "arm64", "-O3", "-DNDEBUG", "-o", "./lib/bl/api/std/dlib/darwin/libdlib.a");
+#endif
+
+	nob_cmd_run_sync_and_reset(&cmd);
 }
 
 void finalize(void) {
