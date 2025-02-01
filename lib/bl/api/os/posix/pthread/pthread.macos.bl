@@ -1,11 +1,26 @@
-SIZE_OF_PTHREAD_MUTEX_T :: 56;
-SIZE_OF_PTHREAD_COND :: 40;
-SIZE_PTHREAD_CONDATTR :: 8;
-SIZE_PTHREAD_MUTEXATTR :: 8;
-
 PTHREAD_MUTEX :: enum {
 	NORMAL;
 	ERRORCHECK;
 	RECURSIVE;
 	DEFAULT = NORMAL;
+}
+
+pthread_mutex_t :: struct {
+	__sig: C.long;
+	__opaque: [56]C.char;
+}
+
+pthread_cond_t :: struct {
+	__sig: C.long;
+	__opaque: [40]C.char;
+}
+
+pthread_condattr_t :: struct {
+	__sig: C.long;
+	__opaque: [8]C.char;
+}
+
+pthread_mutexattr_t :: struct {
+	__sig: C.long;
+	__opaque: [8]C.char;
 }

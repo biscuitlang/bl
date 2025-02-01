@@ -8,3 +8,19 @@ PTHREAD_MUTEX :: enum {
 	ERRORCHECK = ERRORCHECK_NP;
 	DEFAULT    = NORMAL;
 }
+
+pthread_mutex_t :: struct {
+	_: [40]C.char;
+}
+
+pthread_cond_t :: struct {
+	_: [48]C.char;
+}
+
+pthread_condattr_t :: struct {
+	_: [4]C.char;
+}
+
+pthread_mutexattr_t :: struct {
+	_: [4]C.char;
+}
