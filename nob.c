@@ -223,7 +223,7 @@ void docs(void) {
 	cmd_append(&cmd, "../" BIN_DIR "/" EXEC_NAME("blc"), "-build", "docs.bl");
 	if (!nob_cmd_run_sync_and_reset(&cmd)) exit(1);
 
-	cmd_append(&cmd, EXEC_NAME("docs"));
+	cmd_append(&cmd, "./" EXEC_NAME("docs"));
 	if (!nob_cmd_run_sync_and_reset(&cmd)) exit(1);
 
 	nob_set_current_dir(root);

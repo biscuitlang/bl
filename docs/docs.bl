@@ -249,14 +249,20 @@ main :: fn () s32 {
 	loop i := 0; i < MD_PAGES.len; i += 1 {
 		page :: MD_PAGES[i];
 		err :: md2html(page, menu, null);
-		if err then print_err(err);
+		if err { 
+			print_err(err);
+			return 1;
+		}
 		temporary_reset();
 	}
 
 	loop i := 0; i < MD_PAGES_MODULES.len; i += 1 {
 		page :: MD_PAGES_MODULES[i];
 		err :: md2html(page, menu, &search_json);
-		if err then print_err(err);
+		if err {
+			print_err(err);
+			return 1;
+		}
 		temporary_reset();
 	}
 
@@ -266,7 +272,10 @@ main :: fn () s32 {
 	temporary_reset();
 
 	err :: write_search_db(search_json);
-	if err then print_err(err);
+	if err {
+		print_err(err);
+		return 1;
+	}
 
 	loop i := 0; i < include_file_cache.values.len; i += 1 {
 		str_delete(&include_file_cache.values[i]);
@@ -274,7 +283,10 @@ main :: fn () s32 {
 	tbl_terminate(&include_file_cache);
 
 	copy_err :: copy_additional_files();
-	if copy_err then print_err(copy_err);
+	if copy_err {
+		print_err(copy_err);
+		return 1;
+	}
 
 	runtime :: measure_elapsed_ms_end("-");
 	print_info("Completed in %s.\n", fmt_real(runtime / 1000., 3));

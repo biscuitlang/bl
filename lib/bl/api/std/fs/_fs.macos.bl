@@ -61,7 +61,7 @@ _copy :: fn (src: string_view, dest: string_view, override: bool) Error {
 	defer close_file(&src_stream);
 	if err_src { return err_src; }
 
-	dest_stream, err_dest :: open_file(dest, OpenFileMode.READ | OpenFileMode.CREATE);
+	dest_stream, err_dest :: open_file(dest, OpenFileMode.WRITE | OpenFileMode.CREATE);
 	defer close_file(&dest_stream);
 	if err_dest { return err_dest; }
 
