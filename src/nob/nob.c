@@ -277,7 +277,9 @@ void blc_runtime(void) {
 	Cmd cmd = {0};
 
 #ifdef _WIN32
-	cmd_append(&cmd, "cl", "-nologo", "/LD", "./src/dlib/dlib_runtime.c", "-O2", "-Oi", "-DNDEBUG", "-I./src", "-Fo\"./lib/bl/api/std/dlib/win32/dlib.lib\"");
+	cmd_append(&cmd, "cl", "-c", "-nologo", "./src/dlib/dlib_runtime.c", "-O2", "-Oi", "-DNDEBUG", "-I./src", "-Fo\"./lib/bl/api/std/dlib/win32/\"");
+	nob_cmd_run_sync_and_reset(&cmd);
+	cmd_append(&cmd, "lib", "-nologo", "./lib/bl/api/std/dlib/win32/dlib_runtime.obj", "-OUT:\"./lib/bl/api/std/dlib/win32/dlib.lib\"");
 #elif __linux__
 	cmd_append(&cmd, "cc", "-c", "./src/dlib/dlib_runtime.c", "-I./src", "-D_GNU_SOURCE", "-O3", "-DNDEBUG", "-o", "./lib/bl/api/std/dlib/linux/libdlib.a");
 #elif __APPLE__

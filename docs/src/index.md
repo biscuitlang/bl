@@ -9,7 +9,7 @@
 
 # Build from Source Code
 
-Biscuit compiler is written in C and all major dependencies are packed in the compiler repository except [LLVM](https://llvm.org/). [CMake](https://cmake.org) is used as a build system.
+Biscuit compiler is using [nob](https://github.com/tsoding/nob.h) "build system". Since `nob` build system is written in C, it needs to be compiled first in order to compile the compiler itself. There is helper script to do so called `build.bat` or `build.sh`.
 
 ## Supported targets
 
@@ -22,15 +22,13 @@ Biscuit compiler is written in C and all major dependencies are packed in the co
 ## Windows
 
 * Install Visual Studio 2022 or [MS Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools) with C/C++ support
+* Run `vcvars64.bat` in your shell or use Visual Studio Developer Command Prompt.
 * Download and compile
 
 ```bash
 git clone https://github.com/travisdoor/bl.git
 cd bl
-mkdir build
-cd build
-cmake .. -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release"
-cmake --build . --config Release
+build.bat
 ```
 
 * You can add `bin` directory to the system `PATH`.
@@ -48,7 +46,7 @@ cmake --build . --config Release
 
 * Install LLVM
 
-This step might differ across linux distributions, following snippet might help. You might want to use  `-DLLVM_DIR` pointing to the custom location with LLVM.
+This step might differ across linux distributions, following snippet might help.
 
 ```bash
 # Ubuntu
@@ -70,10 +68,7 @@ sudo ./llvm.sh 18
 ```bash
 git clone https://github.com/travisdoor/bl.git
 cd bl
-mkdir build
-cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-cmake --build . --config=Release
+./build.sh
 ```
 
 * You can add `bin` directory to the system `PATH`.
@@ -84,16 +79,13 @@ export PATH=$PATH:/path/to/bl/bin
 
 ## macOS
 * Install command line tools ``xcode-select --install``.
-* Install LLVM using [brew](https://brew.sh) `brew install llvm@18` or you might want to use  `-DLLVM_DIR` pointing to the custom location with LLVM.
+* Install dependencies using [brew](https://brew.sh) `brew install llvm@18 zlib ncurses`.
 * Download and compile
 
 ```bash
 git clone https://github.com/travisdoor/bl.git
 cd bl
-mkdir build
-cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release"
-cmake --build . --config=Release
+./build.sh
 ```
 
 * You can add `bin` directory to the system `PATH`.
@@ -105,17 +97,26 @@ export PATH=$PATH:/path/to/bl/bin
 
 ## Additional Setup
 
-Following flags might be passed to CMake during configuration:
+To show additional options pass `help` to the `build` script.
 
-- `-DCMAKE_BUILD_TYPE=<Release|Debug>` - To toggle release/debug configuration.
-- `-DCMAKE_INSTALL_PREFIX=<"path">` - To set installation directory.
-- `-DTRACY_ENABLE=<ON|OFF>` - To toggle [Tracy profiler](https://github.com/wolfpld/tracy) integration.
-- `-DLLVM_DIR=<"path">` - To set custom path to LLVM dev package. Must point to `llvm-directory/lib/cmake/llvm`.
-- `-DBL_X64_TESTS_ENABLE=<ON|OFF>` - To toggle compilation of tests for experimental x64 backend.
-- `-DBL_DEVELOPER=<ON|OFF>` - To toggle some incomplete experimental features (for example x64 backend).
-- `-DBL_ASSERT_ENABLE=<ON|OFF>` - To toggle asserts (by default disabled in release mode).
-- `-DBL_SIMD_ENABLE=<ON|OFF>` - To toggle SIMD. *Windows only*
-- `-DBL_RPMALLOC_ENABLE=<ON|OFF>` - To toggle [rpmalloc](https://github.com/mjansson/rpmalloc).
+```
+build help
+Usage:
+        build [options]
+
+Options:
+        all        Build everything and run unit tests.
+        build-all  Build everything.
+        clean      Remove build directory and exit.
+        debug      Build bl compiler in debug mode.
+        docs       Build bl documentation.
+        help       Print this help and exit.
+        release    Build bl compiler in release mode.
+        runtime    Build compiler runtime.
+        test       Run tests.
+```
+
+Other internal options might be adjusted directly in `nob.c` file.
 
 ## Configuration
 
@@ -154,5 +155,8 @@ x86_64-pc-windows-msvc:
 To run compiler unit tests use:
 ```
 cd path/to/bl/directory
+# Invoke tests directly.
 blc -run doctor.bl
+# Use build script
+build test
 ```
