@@ -223,7 +223,7 @@ main :: fn () s32 {
 	print("Finished in:       %s\n", fmt_real(duration_ms*0.001, 2));
 	print("--------------------------------------------------------------------------------\n\n");
 
-	return 0;
+	return failed_count;
 }
 
 cleanup :: fn () {
