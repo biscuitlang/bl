@@ -61,17 +61,20 @@
 #define strok(x)                (x && x[0] != '\0')
 
 #ifdef _WIN32
-#define SHELL "CMD", "/C"
+#define SHELL        "CMD", "/C"
+#define EXEC_NAME(n) n ".exe"
 void lib(const char *dir, const char *libname);
 #elif __linux__
-#define SHELL "bash", "-c"
+#define SHELL        "bash", "-c"
 void ar(const char *dir, const char *libname);
+#define EXEC_NAME(n) n
 #elif __APPLE__
 #if !defined(__aarch64__) && !defined(__arm64__)
 #error "Old intel based Apple CPUs are not supported right now."
 #endif
-#define SHELL "zsh", "-c"
+#define SHELL        "zsh", "-c"
 void ar(const char *dir, const char *libname);
+#define EXEC_NAME(n) n
 #else
 #error "Unsupported platform."
 #endif
@@ -89,11 +92,19 @@ const char *_shell(int argc, const char *argv[]);
 	} while (0);
 
 bool IS_DEBUG = false;
-bool BUILD_RUNTIME = false;
+
+#define TARGET_BLC     1 << 0
+#define TARGET_RUNTIME 1 << 1
+#define TARGET_TESTS   1 << 2
+#define TARGET_DOCS    1 << 3
+
+int TARGET = 0;
 
 void print_help(void);
 void parse_command_line_arguments(int argc, char *argv[]);
 void check_compiler(void);
+void run_tests(void);
+void docs(void);
 
 #include "deps/dyncall-1.2/nob.c"
 #include "deps/libyaml-0.2.5/nob.c"
@@ -102,16 +113,20 @@ void check_compiler(void);
 int main(int argc, char *argv[]) {
 	parse_command_line_arguments(argc, argv);
 	nob_log(NOB_INFO, "Running in '%s' in '%s' mode.", get_current_dir_temp(), IS_DEBUG ? "DEBUG" : "RELEASE");
-	mkdir_if_not_exists(BUILD_DIR);
 
 	check_compiler();
-	setup();
+	if (TARGET & TARGET_BLC) {
+		mkdir_if_not_exists(BUILD_DIR);
 
-	if (!file_exists(BUILD_DIR "/dyncall/" DYNCALL_LIB)) dyncall();
-	if (!file_exists(BUILD_DIR "/libyaml/" YAML_LIB)) libyaml();
-	blc();
-	if (BUILD_RUNTIME) blc_runtime();
-	finalize();
+		setup();
+		if (!file_exists(BUILD_DIR "/dyncall/" DYNCALL_LIB)) dyncall();
+		if (!file_exists(BUILD_DIR "/libyaml/" YAML_LIB)) libyaml();
+		blc();
+	}
+	if (TARGET & TARGET_RUNTIME) blc_runtime();
+	if (TARGET & TARGET_BLC) finalize();
+	if (TARGET & TARGET_TESTS) run_tests();
+	if (TARGET & TARGET_DOCS) docs();
 
 	nob_log(NOB_INFO, "All files compiled successfully.");
 	return 0;
@@ -120,23 +135,38 @@ int main(int argc, char *argv[]) {
 void print_help(void) {
 	printf("Usage:\n\tbuild [options]\n\n");
 	printf("Options:\n");
-	printf("\trelease Build in release mode.\n");
-	printf("\tdebug   Build in debug mode.\n");
-	printf("\tclean   Remove build directory and exit.\n");
-	printf("\truntime Build compiler runtime.\n");
-	printf("\thelp    Print this help and exit.\n");
+	printf("\tall        Build everything and run unit tests.\n");
+	printf("\tbuild-all  Build everything.\n");
+	printf("\tclean      Remove build directory and exit.\n");
+	printf("\tdebug      Build bl compiler in debug mode.\n");
+	printf("\tdocs       Build bl documentation.\n");
+	printf("\thelp       Print this help and exit.\n");
+	printf("\trelease    Build bl compiler in release mode.\n");
+	printf("\truntime    Build compiler runtime.\n");
+	printf("\ttest       Run tests.\n");
 }
 
 void parse_command_line_arguments(int argc, char *argv[]) {
 	shift_args(&argc, &argv);
+	// In case no arguments were specified build te compiler by default in release mode.
 	while (argc > 0) {
 		char *arg = shift_args(&argc, &argv);
 		if (strcmp(arg, "debug") == 0) {
 			IS_DEBUG = true;
+			TARGET |= TARGET_BLC;
 		} else if (strcmp(arg, "release") == 0) {
-			IS_DEBUG = false; // by default
+			IS_DEBUG = false;
+			TARGET |= TARGET_BLC;
 		} else if (strcmp(arg, "runtime") == 0) {
-			BUILD_RUNTIME = true;
+			TARGET |= TARGET_RUNTIME;
+		} else if (strcmp(arg, "test") == 0) {
+			TARGET |= TARGET_TESTS;
+		} else if (strcmp(arg, "docs") == 0) {
+			TARGET |= TARGET_DOCS;
+		} else if (strcmp(arg, "all") == 0) {
+			TARGET |= TARGET_RUNTIME | TARGET_BLC | TARGET_DOCS | TARGET_TESTS;
+		} else if (strcmp(arg, "build-all") == 0) {
+			TARGET |= TARGET_RUNTIME | TARGET_BLC | TARGET_DOCS;
 		} else if (strcmp(arg, "clean") == 0) {
 			cleanup();
 			exit(0);
@@ -149,6 +179,8 @@ void parse_command_line_arguments(int argc, char *argv[]) {
 			exit(1);
 		}
 	}
+
+	if (TARGET == 0) TARGET |= TARGET_BLC;
 }
 
 const char *_shell(int argc, const char *argv[]) {
@@ -173,6 +205,29 @@ void check_compiler(void) {
 		exit(1);
 	}
 #endif
+}
+
+void run_tests(void) {
+	nob_log(NOB_INFO, "Running tests.");
+	Cmd cmd = {0};
+	cmd_append(&cmd, BIN_DIR "/" EXEC_NAME("blc"), "-run", "doctor.bl");
+	if (!nob_cmd_run_sync_and_reset(&cmd)) exit(1);
+}
+
+void docs(void) {
+	const char *root = get_current_dir_temp();
+	nob_set_current_dir("./docs");
+
+	nob_log(NOB_INFO, "Generate documentation.");
+	Cmd cmd = {0};
+	cmd_append(&cmd, "../" BIN_DIR "/" EXEC_NAME("blc"), "-build", "docs.bl");
+	if (!nob_cmd_run_sync_and_reset(&cmd)) exit(1);
+
+	cmd_append(&cmd, EXEC_NAME("docs"));
+	if (!nob_cmd_run_sync_and_reset(&cmd)) exit(1);
+
+	nob_set_current_dir(root);
+	nob_log(NOB_INFO, "Documentation generated './docs/side/index.html'");
 }
 
 #ifdef _WIN32

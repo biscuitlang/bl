@@ -30,3 +30,7 @@ compile_commands.json
 /lib/bl/api/std/dlib/_test/libtest.dylib
 /lib/bl/api/std/dlib/_test/libtest.so
 /bl.yaml
+nob.exe
+nob.obj
+nob.o
+/*.pdb
