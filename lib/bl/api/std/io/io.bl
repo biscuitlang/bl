@@ -51,6 +51,7 @@ write_data :: fn (stream: *Stream, data: []u8, bytes_to_write := S64_MAX) (s64, 
 	return write(stream, data.ptr, min(data.len, bytes_to_write));
 }
 
+// @Incomplete: Use write_all?
 /// Write the data string into the stream, the `bytes_to_write` can be specified to limit count
 /// of written bytes. Returns count of actually written bytes or an error.
 write_string :: fn (stream: *Stream, str: string_view, bytes_to_write := S64_MAX) (s64, Error) #inline {

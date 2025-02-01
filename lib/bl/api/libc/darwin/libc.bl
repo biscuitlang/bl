@@ -390,6 +390,14 @@ fcntl :: fn (fd: fd_t, request: int, flags: int = 0) int #extern "__fcntl";
 time :: fn (tloc: *time_t) time_t #extern "time";
 localtime :: fn (timep: *time_t) *tm #extern "localtime";
 strftime :: fn (buf: *char, buf_size: size_t, fmt: *char, t: *tm) size_t #extern "strftime";
+waitpid :: fn (pid: pid_t, status: *int, options: int) pid_t #extern "waitpid";
+
+setenv :: fn (name: *char, value: *char, overwrite: int) int #extern "setenv";
+unsetenv :: fn (name: *char) int #extern "unsetenv";
+
+WEXITSTATUS :: fn (x: s32) s32 #inline {
+	return (x >> 8) & 0x000000ff;
+}
 
 #scope_private
 #import "os/posix/syscall"
