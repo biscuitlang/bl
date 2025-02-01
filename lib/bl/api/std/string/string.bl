@@ -691,11 +691,21 @@ str_is_zero_terminated :: fn (str: string_view) bool #inline {
 	return extend[extend.len-1] == '\0';
 }
 
+// @Incomplete 2025-01-30: We might prefer using tstrtoc and remove this one?
 /// Converts string view into C string representation. The original string `str` must be zero-terminated
 /// (checked by assert).
 strtoc :: fn (str: string_view) *C.char #inline {
 	assert(str_is_zero_terminated(str));
 	return auto str.ptr;
+}
+
+/// Converts string view into C string representation. This function first checks if the input string
+/// is zero terminated, in case it's not, the temporary allocator is used to create zero terminated
+/// copy which is returned. Otherwise returns pointer to data of original string without any allocations.
+tstrtoc :: fn (str: string_view) *C.char #inline {
+	if str_is_zero_terminated(str) then return auto str.ptr;
+	tmp :: str_new(str, application_context.temporary_allocator);
+	return auto tmp.ptr;
 }
 
 /// Converts C string into string view. The `len` argument is optional and is used as string length if

@@ -26,4 +26,7 @@ compile_commands.json
 /lib/bl/api/std/dlib/_test/test.lib
 /lib/bl/api/std/dlib/_test/test.obj
 /lib/bl/api/std/dlib/_test/test.pdb
+/lib/bl/api/std/dlib/_test/test.o
+/lib/bl/api/std/dlib/_test/libtest.dylib
+/lib/bl/api/std/dlib/_test/libtest.so
 /bl.yaml

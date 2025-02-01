@@ -1,3 +1,5 @@
+#load "synchapi.bl"
+
 TRUE :: 1;
 FALSE :: 0;
 MAX_PATH :: 260;
@@ -637,35 +639,6 @@ LIST_ENTRY :: struct {
    Flink: *LIST_ENTRY;
    Blink: *LIST_ENTRY;
 }
-RTL_CRITICAL_SECTION_DEBUG :: struct {
-	Type: WORD;
-	CreatorBackTraceIndex: WORD;
-	CriticalSection: *RTL_CRITICAL_SECTION;
-	ProcessLocksList: LIST_ENTRY;
-	EntryCount: DWORD;
-	ContentionCount: DWORD;
-	Flags: DWORD;
-	CreatorBackTraceIndexHigh: WORD;
-	SpareWORD: WORD;
-}
-PRTL_CRITICAL_SECTION_DEBUG :: *RTL_CRITICAL_SECTION_DEBUG;
-RTL_CRITICAL_SECTION :: struct {
-	DebugInfo: PRTL_CRITICAL_SECTION_DEBUG;
-	LockCount: LONG;
-	RecursionCount: LONG;
-	OwningThread: HANDLE;
-	LockSemaphore: HANDLE;
-	SpinCount: ULONG_PTR;
-}
-LPCRITICAL_SECTION :: *RTL_CRITICAL_SECTION;
-PCRITICAL_SECTION :: *RTL_CRITICAL_SECTION;
-
-RTL_CONDITION_VARIABLE :: struct {
-	Ptr: PVOID;
-}
-PRTL_CONDITION_VARIABLE :: *RTL_CONDITION_VARIABLE;
-CONDITION_VARIABLE :: RTL_CONDITION_VARIABLE;
-PCONDITION_VARIABLE :: PRTL_CONDITION_VARIABLE;
 
 POINT :: struct {
 	x: LONG;
@@ -792,12 +765,6 @@ ResumeThread :: fn (hThread: HANDLE) DWORD #extern "ResumeThread";
 GetExitCodeThread :: fn (hThread: HANDLE, lpExitCode: LPDWORD) BOOL #extern "GetExitCodeThread";
 
 TerminateProcess :: fn (hProcess: HANDLE, uExitCode: UINT) BOOL #extern "TerminateProcess";
-
-CreateMutexA :: fn (
-	lpMutexAttributes: LPSECURITY_ATTRIBUTES,
-	bInitialOwner: BOOL,
-	lpName: LPCSTR
-) HANDLE #extern "CreateMutexA";
 
 HMENU :: *C.int;
 CW_USEDEFAULT : C.int : 0x80000000;
@@ -1185,7 +1152,6 @@ WIN32_FILE_ATTRIBUTE_DATA :: struct {
 }
 LPWIN32_FILE_ATTRIBUTE_DATA :: *WIN32_FILE_ATTRIBUTE_DATA;
 
-ReleaseMutex :: fn (hMutex: HANDLE) BOOL #extern "ReleaseMutex";
 GetTickCount :: fn () DWORD #extern "GetTickCount";
 QueryPerformanceCounter :: fn (lpPerformanceCount: *LARGE_INTEGER) BOOL #extern "QueryPerformanceCounter";
 QueryPerformanceFrequency :: fn (lpPerformanceCount: *LARGE_INTEGER) BOOL #extern "QueryPerformanceFrequency";
@@ -1212,14 +1178,8 @@ WriteFile :: fn (hFile: HANDLE, lpBuffer: LPVOID, nNumberOfBytesToWrite: DWORD, 
 CopyFileA :: fn (lpExistingFileName: LPCSTR, lpNewFileName: LPCSTR, bFailIfExists: BOOL) BOOL #extern "CopyFileA";
 SetEndOfFile :: fn (hFile: HANDLE) BOOL #extern "SetEndOfFile";
 SetFilePointer :: fn (hFile: HANDLE, lDistanceToMove: LONG, lpDistanceToMoveHigh: PLONG, dwMoveMethod: DWORD) DWORD #extern "SetFilePointer";
-InitializeCriticalSection :: fn (lpCriticalSection: LPCRITICAL_SECTION) #extern "InitializeCriticalSection";
-DeleteCriticalSection :: fn (lpCriticalSection: LPCRITICAL_SECTION) #extern "DeleteCriticalSection";
-EnterCriticalSection  :: fn (lpCriticalSection: LPCRITICAL_SECTION) #extern "EnterCriticalSection";
-LeaveCriticalSection  :: fn (lpCriticalSection: LPCRITICAL_SECTION) #extern "LeaveCriticalSection";
-TryEnterCriticalSection :: fn (lpCriticalSection: LPCRITICAL_SECTION ) BOOL #extern "TryEnterCriticalSection";
-SleepConditionVariableCS :: fn (ConditionVariable: PCONDITION_VARIABLE, CriticalSection: PCRITICAL_SECTION, dwMilliseconds: DWORD) BOOL #extern "SleepConditionVariableCS";
-WakeConditionVariable :: fn (ConditionVariable: PCONDITION_VARIABLE) #extern "WakeConditionVariable"
-InitializeConditionVariable :: fn (ConditionVariable: PCONDITION_VARIABLE) #extern "InitializeConditionVariable";
+
+
 GetFileInformationByHandle :: fn (hFile: HANDLE, lpFileInformation: LPBY_HANDLE_FILE_INFORMATION) BOOL #extern "GetFileInformationByHandle";
 GetOverlappedResult :: fn (hFile: HANDLE, lpOverlapped: LPOVERLAPPED, lpNumberOfBytesTransferred: LPDWORD, bWait: BOOL) BOOL #extern "GetOverlappedResult";
 ResetEvent :: fn (hEvent: HANDLE) BOOL #extern "ResetEvent";

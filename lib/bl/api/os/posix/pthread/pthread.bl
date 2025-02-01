@@ -1,18 +1,3 @@
-pthread_mutex_t :: struct {
-	__sig: C.long;
-	__opaque: [SIZE_OF_PTHREAD_MUTEX_T]C.char;
-}
-
-pthread_cond_t :: struct {
-	__sig: C.long;
-	__opaque: [SIZE_OF_PTHREAD_COND]C.char;
-}
-
-pthread_condattr_t :: struct {
-	__sig: C.long;
-	__opaque: [SIZE_PTHREAD_CONDATTR]C.char;
-}
-
 pthread_t :: *u8;
 pthread_attr_t :: *u8;
 pthread_start_routine_t :: *fn (args: C.void_ptr) C.void_ptr;
@@ -24,20 +9,17 @@ pthread_self :: fn () pthread_t #extern "pthread_self";
 pthread_mutex_lock :: fn (mutex: *pthread_mutex_t) C.int #extern "pthread_mutex_lock";
 pthread_mutex_trylock :: fn (mutex: *pthread_mutex_t) C.int #extern "pthread_mutex_trylock";
 pthread_mutex_unlock :: fn (mutex: *pthread_mutex_t) C.int #extern "pthread_mutex_unlock";
-pthread_mutex_init :: fn (mutex: *pthread_mutex_t, attr: C.void_ptr) C.int #extern "pthread_mutex_init";
+pthread_mutex_init :: fn (mutex: *pthread_mutex_t, attr: *pthread_mutexattr_t) C.int #extern "pthread_mutex_init";
 pthread_mutex_destroy :: fn (mutex: *pthread_mutex_t) C.int #extern "pthread_mutex_destroy";
 pthread_cond_init :: fn (cv: *pthread_cond_t, cattr: *pthread_condattr_t) C.int #extern "pthread_cond_init";
 pthread_cond_signal :: fn (cond: *pthread_cond_t) C.int #extern "pthread_cond_signal";
 pthread_cond_wait :: fn (cond: *pthread_cond_t, mutex: *pthread_mutex_t) C.int #extern "pthread_cond_wait";
+pthread_mutexattr_init :: fn (attr: *pthread_mutexattr_t) C.int #extern "pthread_mutexattr_init";
+pthread_mutexattr_destroy :: fn (attr: *pthread_mutexattr_t) C.int #extern "pthread_mutexattr_destroy";
+pthread_mutexattr_gettype :: fn (attr: *pthread_mutexattr_t, type: *PTHREAD_MUTEX) C.int #extern "pthread_mutexattr_gettype";
+pthread_mutexattr_settype :: fn (attr: *pthread_mutexattr_t, type: PTHREAD_MUTEX) C.int #extern "pthread_mutexattr_settype";
 
-#scope_private
+#scope_module
 
 C :: #import "libc";
 
-// @Incomplete: These may differ across platforms?!
-// @Incomplete: These may differ across platforms?!
-// @Incomplete: These may differ across platforms?!
-
-SIZE_OF_PTHREAD_MUTEX_T :: 56;
-SIZE_OF_PTHREAD_COND :: 40;
-SIZE_PTHREAD_CONDATTR :: 8;

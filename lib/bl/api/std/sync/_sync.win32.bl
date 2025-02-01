@@ -1,29 +1,77 @@
 #scope_module
 
-_Mutex :: RTL_CRITICAL_SECTION;
+_Mutex :: struct {
+	data: union {
+		cs:  RTL_CRITICAL_SECTION;
+		srw: SRWLOCK;
+	};
+	kind: MutexKind;
+}
+
 _Condition :: CONDITION_VARIABLE;
 
-_mutex_init :: fn (mutex: *_Mutex) Error #inline {
-	InitializeCriticalSection(mutex);
+_mutex_init :: fn (mutex: *_Mutex, kind: MutexKind) Error #inline {
+	using MutexKind;
+	switch kind {
+		NORMAL {
+			InitializeSRWLock(&mutex.data.srw);
+		}
+		RECURSIVE {
+			InitializeCriticalSection(&mutex.data.cs);
+		}
+	}
+	mutex.kind = kind;
 	return OK;
 }
 
 _mutex_terminate :: fn (mutex: *_Mutex) Error #inline {
-	DeleteCriticalSection(mutex);
+	using MutexKind;
+	switch mutex.kind {
+		NORMAL;
+		RECURSIVE {
+			DeleteCriticalSection(&mutex.data.cs);
+		}
+	}
+	zeroinit(mutex);
 	return OK;
 }
 
 _mutex_lock :: fn (mutex: *_Mutex) Error #inline {
-	EnterCriticalSection(mutex);
+	using MutexKind;
+	switch mutex.kind {
+		NORMAL {
+			AcquireSRWLockExclusive(&mutex.data.srw);
+		}
+		RECURSIVE {
+			EnterCriticalSection(&mutex.data.cs);
+		}
+	}
 	return OK;
 }
 
 _mutex_try_lock :: fn (mutex: *_Mutex) (bool, Error) #inline {
-	return TryEnterCriticalSection(mutex) != 0, OK;
+	using MutexKind;
+	switch mutex.kind {
+		NORMAL {
+			return TryAcquireSRWLockExclusive(&mutex.data.srw) != 0, OK;
+		}
+		RECURSIVE {
+			return TryEnterCriticalSection(&mutex.data.cs) != 0, OK;
+		}
+	}
+	return false, error("Invalid mutex kind.");
 }
 
 _mutex_unlock :: fn (mutex: *_Mutex) Error #inline {
-	LeaveCriticalSection(mutex);
+	using MutexKind;
+	switch mutex.kind {
+		NORMAL {
+			ReleaseSRWLockExclusive(&mutex.data.srw);
+		}
+		RECURSIVE {
+			LeaveCriticalSection(&mutex.data.cs);
+		}
+	}
 	return OK;
 }
 
@@ -33,7 +81,15 @@ _condition_init :: fn (condition: *_Condition) Error #inline {
 }
 
 _condition_wait :: fn (condition: *_Condition, mutex: *_Mutex) Error #inline {
-	SleepConditionVariableCS(condition, mutex, INFINITE);
+	using MutexKind;
+	switch mutex.kind {
+		NORMAL {
+			panic();
+		}
+		RECURSIVE {
+			SleepConditionVariableCS(condition, &mutex.data.cs, INFINITE);
+		}
+	}
 	return OK;
 }
 
