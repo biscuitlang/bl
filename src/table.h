@@ -37,7 +37,7 @@ BL_STATIC_ASSERT(sizeof(BL_TBL_HASH_T) == sizeof(void *), "Table hash type shoul
 
 void *_tbl_init(void *ptr, u32 elem_size, u32 elem_count);
 void  _tbl_free(void *ptr);
-void *_tbl_insert(void *ptr, BL_TBL_HASH_T hash, void *elem_data, u32 elem_size);
+void *_tbl_insert(void *RESTRICT ptr, BL_TBL_HASH_T hash, void *RESTRICT elem_data, u32 elem_size);
 s32   _tbl_lookup_index(void *ptr, BL_TBL_HASH_T hash, str_t key, u32 entry_size, s32 data_key_offset);
 void  _tbl_clear(void *ptr);
 u32   _tbl_len(void *ptr);

@@ -117,7 +117,7 @@ struct search_context {
 	struct scope_entry **found_buf;
 };
 
-static void search_scope(struct search_context *ctx, struct scope *root_scope, scope_lookup_args_t *args) {
+static void search_scope(struct search_context *RESTRICT ctx, struct scope *RESTRICT root_scope, scope_lookup_args_t *RESTRICT args) {
 	if (tbl_lookup_index(*ctx->queue, root_scope) != -1) return; // Scope already processed...
 
 	u32 layer = SCOPE_DEFAULT_LAYER;
@@ -150,7 +150,7 @@ static void search_scope(struct search_context *ctx, struct scope *root_scope, s
 	}
 }
 
-s32 scope_lookup(struct assembly *assembly, struct scope *scope, scope_lookup_args_t *args, struct scope_entry **out_buf, const s32 out_buf_size) {
+s32 scope_lookup(struct assembly *RESTRICT assembly, struct scope *RESTRICT scope, scope_lookup_args_t *RESTRICT args, struct scope_entry **RESTRICT out_buf, const s32 out_buf_size) {
 	zone();
 	bassert(scope && args->id);
 	const u32 thread_index = get_worker_index();

@@ -150,7 +150,7 @@ typedef struct {
 } scope_lookup_args_t;
 
 // Returns number of entries written into out_buf.
-s32 scope_lookup(struct assembly *assembly, struct scope *scope, scope_lookup_args_t *args, struct scope_entry **out_buf, const s32 out_buf_size);
+s32 scope_lookup(struct assembly *RESTRICT assembly, struct scope *RESTRICT scope, scope_lookup_args_t *RESTRICT args, struct scope_entry **RESTRICT out_buf, const s32 out_buf_size);
 
 // Checks whether passed scope is of kind or is nested in scope of kind.
 bool          scope_is_subtree_of_kind(const struct scope *scope, enum scope_kind kind);

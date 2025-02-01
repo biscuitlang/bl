@@ -71,6 +71,7 @@ _Pragma("GCC diagnostic ignored \"-Wsign-conversion\"")
 #define _SHUT_UP_END  _Pragma("GCC diagnostic pop")
 #define UNUSED(x)     __attribute__((unused)) x
 #define _Thread_local __thread
+#define RESTRICT __restrict__
 
 #elif BL_COMPILER_MSVC
 
@@ -78,6 +79,7 @@ _Pragma("GCC diagnostic ignored \"-Wsign-conversion\"")
 #define _SHUT_UP_END   __pragma(warning(pop))
 #define UNUSED(x)      __pragma(warning(suppress : 4100)) x
 #define _Thread_local  __declspec(thread)
+#define RESTRICT __restrict
 
 #else
 #error "Unsuported compiler!"

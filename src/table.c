@@ -82,7 +82,7 @@ void _tbl_clear(void *ptr) {
 	tbl->len = 0;
 }
 
-void *_tbl_insert(void *ptr, HASH_T hash, void *elem_data, u32 elem_size) {
+void *_tbl_insert(void *RESTRICT ptr, HASH_T hash, void *RESTRICT elem_data, u32 elem_size) {
 	struct header *tbl = get_header(ptr);
 	tbl                = ensure_capacity(tbl, elem_size, tbl ? tbl->len + 1 : DEFAULT_ELEM_COUNT);
 	bassert(tbl);
