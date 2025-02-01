@@ -129,7 +129,8 @@ bool _tbl_erase(void *ptr, BL_TBL_HASH_T hash, str_t key, u32 entry_size, u32 ha
 		memcpy(&last_entry_hash, (void *)(tbl->data + (tbl->len - 1) * entry_size + data_hash_offset), hash_size);
 		const str_t last_entry_key = data_key_offset == -1 ? (str_t){0} : (*(str_t *)(tbl->data + (tbl->len - 1) * entry_size + data_key_offset));
 
-		u32 last_slot_index, last_entry_index;
+		u32 last_slot_index  = 0;
+		u32 last_entry_index = 0;
 		if (!lookup_indices(tbl, last_entry_hash, last_entry_key, entry_size, data_key_offset, &last_slot_index, &last_entry_index)) {
 			bassert(false && "Cannot find the last table element!");
 		}

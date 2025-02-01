@@ -1554,7 +1554,8 @@ struct ast *parse_expr_lit_fn(struct context *ctx) {
 	ctx->is_inside_expression            = false;
 
 	// Create function scope for function signature.
-	scope_push(ctx, scope_create(ctx->scope_thread_local, SCOPE_FN, scope_get(ctx), &tok_fn->location));
+	struct scope *scope = scope_create(ctx->scope_thread_local, SCOPE_FN, scope_get(ctx), &tok_fn->location);
+	scope_push(ctx, scope);
 
 	struct ast *type = parse_type_fn(ctx, /* named_args */ true, /* create_scope */ false);
 	bassert(type);
@@ -2057,7 +2058,8 @@ struct ast *parse_type_fn(struct context *ctx, bool named_args, bool create_scop
 	struct ast *fn = ast_create_node(ctx->ast_arena, AST_TYPE_FN, tok_fn, scope_get(ctx));
 
 	if (create_scope) {
-		scope_push(ctx, scope_create(ctx->scope_thread_local, SCOPE_FN, scope_get(ctx), &tok_fn->location));
+		struct scope *scope = scope_create(ctx->scope_thread_local, SCOPE_FN, scope_get(ctx), &tok_fn->location);
+		scope_push(ctx, scope);
 	}
 
 	// parse arg types

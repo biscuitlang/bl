@@ -219,7 +219,7 @@ void blc(void) {
 			cmd_append(&cmd, "-O3", "-DNDEBUG");
 		}
 #else
-		cmd_append(&cmd, "-D_GNU_SOURCE");
+		cmd_append(&cmd, "-D_GNU_SOURCE", "-Wall", "-Wno-address", "-Wno-unused-value", "-Wno-unused-function");
 		if (IS_DEBUG) {
 			cmd_append(&cmd, "-O0", "-ggdb", "-DBL_DEBUG");
 		} else {

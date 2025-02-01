@@ -4496,7 +4496,7 @@ struct result analyze_instr_phi(struct context *ctx, struct mir_instr_phi *phi) 
 	struct mir_instr_block *phi_owner_block = phi->base.owner_block;
 	struct mir_instr       *origin_br       = phi->origin_br;
 
-	bassert(origin_br && origin_br->kind == MIR_INSTR_COND_BR || origin_br->kind == MIR_INSTR_BR);
+	bassert(origin_br && (origin_br->kind == MIR_INSTR_COND_BR || origin_br->kind == MIR_INSTR_BR));
 
 	struct mir_instr_block *result_block = NULL;
 	if (origin_br->kind == MIR_INSTR_BR) {
@@ -8207,7 +8207,9 @@ struct result analyze_call_stage_generate(struct context *ctx, struct mir_instr_
 
 	const hash_t replacement_hash = get_current_poly_replacement_hash(ctx);
 #if BL_ASSERT_ENABLE
-	if (is_polymorph) bassert(replacement_hash != 0);
+	if (is_polymorph) {
+		bassert(replacement_hash != 0);
+	}
 #endif
 
 	const s32 index = replacement_hash ? tbl_lookup_index(recipe->entries, replacement_hash) : -1;
@@ -9063,7 +9065,7 @@ struct result analyze_instr(struct context *ctx, struct mir_instr *instr) {
 			fprintf(stdout, "\n\n");
 #endif
 		} else if (state.state == ANALYZE_SKIP) {
-#if defined(BL_ASSERT_ENABLE)
+#if BL_ASSERT_ENABLE
 			bassert(instr->kind == MIR_INSTR_COMPOUND && "ANALYZE_SKIP is supported only for compounds right now!");
 			const s32 index = tbl_lookup_index(ctx->analyze->skipped_instructions, instr);
 			bassert(index == -1);
