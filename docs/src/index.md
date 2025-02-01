@@ -106,12 +106,13 @@ Usage:
 
 Options:
         all        Build everything and run unit tests.
+        assert     Build bl compiler in release mode with asserts enabled.
         build-all  Build everything.
         clean      Remove build directory and exit.
         debug      Build bl compiler in debug mode.
         docs       Build bl documentation.
         help       Print this help and exit.
-        release    Build bl compiler in release mode.
+        release    Build bl compiler in release mode (default).
         runtime    Build compiler runtime.
         test       Run tests.
 ```

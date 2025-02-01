@@ -43,7 +43,8 @@ void setup(void) {
 }
 
 void blc(void) {
-	nob_log(NOB_INFO, "Compiling blc-" BL_VERSION ".");
+	const char *config_name = IS_DEBUG ? "DEBUG" : (ASSERT_ENABLE ? "ASSERT" : "RELEASE");
+	nob_log(NOB_INFO, temp_sprintf("Compiling blc-" BL_VERSION " (%s).", config_name));
 
 	const char *src[] = {
 		"./src/arena.c",
@@ -140,10 +141,11 @@ void blc(void) {
 		           "-DYAML_DECLARE_STATIC");
 		cmd_append(&cmd, "-D_WIN32", "-D_WINDOWS", "-DNOMINMAX", "-D_HAS_EXCEPTIONS=0", "-GF", "-MD");
 		if (IS_DEBUG) {
-			cmd_append(&cmd, "-Od", "-Zi", "-DBL_DEBUG", "-DBL_ASSERT_ENABLE=1", "-FS");
+			cmd_append(&cmd, "-Od", "-Zi", "-DBL_DEBUG", "-FS");
 		} else {
 			cmd_append(&cmd, "-O2", "-Oi", "-DNDEBUG", "-GL");
 		}
+		cmd_append(&cmd, temp_sprintf("-DBL_ASSERT_ENABLE=%d", ASSERT_ENABLE ? 1 : 0));
 		if (BL_SIMD_ENABLE) cmd_append(&cmd, "-DBL_USE_SIMD", "-arch:AVX");
 		if (BL_RPMALLOC_ENABLE) cmd_append(&cmd, "-DBL_RPMALLOC_ENABLE=1");
 		cmd_append(&cmd, is_cxx ? "-std:c++17" : "-std:c11");
@@ -162,11 +164,11 @@ void blc(void) {
 		cmd_append(&cmd, "cl", "-nologo");
 		cmd_append(&cmd, "-D_WIN32", "-D_WINDOWS", "-DNOMINMAX", "-D_HAS_EXCEPTIONS=0", "-GF", "-MD", "-FS");
 		if (IS_DEBUG) {
-			cmd_append(&cmd, "-Od", "-Zi", "-DBL_DEBUG", "-DBL_ASSERT_ENABLE=1");
+			cmd_append(&cmd, "-Od", "-Zi", "-DBL_DEBUG");
 		} else {
 			cmd_append(&cmd, "-O2", "-Oi", "-DNDEBUG", "-GL");
 		}
-
+		cmd_append(&cmd, temp_sprintf("-DBL_ASSERT_ENABLE=%d", ASSERT_ENABLE ? 1 : 0));
 		for (int i = 0; i < files.count; ++i) {
 			if (ends_with(files.items[i], ".obj")) cmd_append(&cmd, temp_sprintf(BUILD_DIR "/%s", files.items[i]));
 		}
@@ -212,19 +214,19 @@ void blc(void) {
 #ifdef __APPLE__
 		cmd_append(&cmd, "-arch", "arm64", "-isysroot", MACOS_SDK);
 		if (IS_DEBUG) {
-			cmd_append(&cmd, "-O0", "-g", "-DBL_DEBUG", "-DBL_ASSERT_ENABLE=1");
+			cmd_append(&cmd, "-O0", "-g", "-DBL_DEBUG");
 		} else {
 			cmd_append(&cmd, "-O3", "-DNDEBUG");
 		}
 #else
 		cmd_append(&cmd, "-D_GNU_SOURCE");
 		if (IS_DEBUG) {
-			cmd_append(&cmd, "-O0", "-ggdb", "-DBL_DEBUG", "-DBL_ASSERT_ENABLE=1");
+			cmd_append(&cmd, "-O0", "-ggdb", "-DBL_DEBUG");
 		} else {
 			cmd_append(&cmd, "-O3", "-DNDEBUG");
 		}
 #endif
-
+		cmd_append(&cmd, temp_sprintf("-DBL_ASSERT_ENABLE=%d", ASSERT_ENABLE ? 1 : 0));
 		if (BL_SIMD_ENABLE) nob_log(NOB_WARNING, "BL_SIMD_ENABLE not supported on this platform.");
 		if (BL_RPMALLOC_ENABLE) cmd_append(&cmd, "-DBL_RPMALLOC_ENABLE=1");
 		cmd_append(&cmd, is_cxx ? "-std=c++17" : "-std=gnu11");

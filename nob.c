@@ -91,7 +91,8 @@ const char *_shell(int argc, const char *argv[]);
 		if (!success) exit(1);                       \
 	} while (0);
 
-bool IS_DEBUG = false;
+bool IS_DEBUG      = false;
+bool ASSERT_ENABLE = false;
 
 #define TARGET_BLC     1 << 0
 #define TARGET_RUNTIME 1 << 1
@@ -112,7 +113,7 @@ void docs(void);
 
 int main(int argc, char *argv[]) {
 	parse_command_line_arguments(argc, argv);
-	nob_log(NOB_INFO, "Running in '%s' in '%s' mode.", get_current_dir_temp(), IS_DEBUG ? "DEBUG" : "RELEASE");
+	nob_log(NOB_INFO, "Running in '%s'.", get_current_dir_temp());
 
 	check_compiler();
 	if (TARGET & TARGET_BLC) {
@@ -137,12 +138,13 @@ void print_help(void) {
 	printf("Usage:\n\tbuild [options]\n\n");
 	printf("Options:\n");
 	printf("\tall        Build everything and run unit tests.\n");
+	printf("\tassert     Build bl compiler in release mode with asserts enabled.\n");
 	printf("\tbuild-all  Build everything.\n");
 	printf("\tclean      Remove build directory and exit.\n");
 	printf("\tdebug      Build bl compiler in debug mode.\n");
 	printf("\tdocs       Build bl documentation.\n");
 	printf("\thelp       Print this help and exit.\n");
-	printf("\trelease    Build bl compiler in release mode.\n");
+	printf("\trelease    Build bl compiler in release mode (default).\n");
 	printf("\truntime    Build compiler runtime.\n");
 	printf("\ttest       Run tests.\n");
 }
@@ -156,7 +158,12 @@ void parse_command_line_arguments(int argc, char *argv[]) {
 			IS_DEBUG = true;
 			TARGET |= TARGET_BLC;
 		} else if (strcmp(arg, "release") == 0) {
-			IS_DEBUG = false;
+			IS_DEBUG      = false;
+			ASSERT_ENABLE = false;
+			TARGET |= TARGET_BLC;
+		} else if (strcmp(arg, "assert") == 0) {
+			IS_DEBUG      = false;
+			ASSERT_ENABLE = true;
 			TARGET |= TARGET_BLC;
 		} else if (strcmp(arg, "runtime") == 0) {
 			TARGET |= TARGET_RUNTIME;
@@ -182,6 +189,7 @@ void parse_command_line_arguments(int argc, char *argv[]) {
 	}
 
 	if (TARGET == 0) TARGET |= TARGET_BLC;
+	if (IS_DEBUG) ASSERT_ENABLE = true;
 }
 
 const char *_shell(int argc, const char *argv[]) {
