@@ -41,7 +41,7 @@ struct unit *unit_new(struct assembly *assembly, const str_t filepath, const str
 	struct unit *unit = bmalloc(sizeof(struct unit)); // @Performance 2024-09-14 Use arena?
 	bl_zeromem(unit, sizeof(struct unit));
 
-	blog("Create unit: " STR_FMT, STR_ARG(name));
+	// blog("Create unit: " STR_FMT, STR_ARG(name));
 
 	const u32             thread_index = get_worker_index();
 	struct string_cache **string_cache = &assembly->thread_local_contexts[thread_index].string_cache;
