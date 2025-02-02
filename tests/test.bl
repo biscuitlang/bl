@@ -50,12 +50,26 @@ open_file :: fn (filepath: string_view) (handle: s32, err: !FileError) {
 // #import "std/print"
 */
 
-#import "std/sync";
-#import "os/posix/pthread";
+/*
+
+Static shit
+- We should not create scope nesting for static if.
+- Fix variables in static if block.
+- Global static if block.
+
+- Import in static if... eh
+- Static if essentially at any place?
+
+*/
+
 #import "std/print"
 
+VALUE :: true;
+
 main :: fn () s32 {
-	print("%", sizeof(pthread_mutex_t));
+	#if VALUE {
+		print("hello\n");
+	}
 	return 0;
 }
 
