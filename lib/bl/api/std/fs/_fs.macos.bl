@@ -65,7 +65,7 @@ _copy :: fn (src: string_view, dest: string_view, override: bool) Error {
 	defer close_file(&dest_stream);
 	if err_dest { return err_dest; }
 
-	tmp: [1024 * 64]u8 #noinit;
+	tmp: [1024 * 4]u8 #noinit;
 	loop {
 		read_bytes, read_err :: io.read(&src_stream, tmp.ptr, tmp.len);
 		if read_err { return read_err; }

@@ -1,31 +1,87 @@
 master
 ---------------------------------------------------------------------------------------
-Add explicit module namespacing.
-Add #scope_module to limit symbol visibility to module only.
-Add math module.
-Compiler will report all possible ambiguous symbol in case there is more of them.
-Fix module import and load to not use current working directory implicitly.
-Fix reports of ambiguous symbols coming from module imports in case we have symbols with the same name in current module.
-Load directive now loads source units multiple times in case the #load directive appears in different scope context.
-Module congifuration use comma separators on all platforms.
-Redesign module system.
-Remove ModuleImportPolicy.
 
-Remove named scopes (introduced by #scope directive).
+Compilator:
+
+- Change build system.
+
+	In order to get rid of CMake as dependency, a new custom build system was implemened
+	using 'nob' as the base "library". In fact, it's just a bunch of helper functions
+	implemented in C, thus whole new build system is implemented in the same language as
+	the compiler itself. This way we don't need special DSL to handle compilation process.
+
+	Use ./build.bat or ./build.sh now.
+
+- Redesign module system.
+
+	This version introduces a new module system completely changing the way the import and
+	symbol visibility works.
+	The original solution used one big shared global scope for all symbols in the program, thus
+	no matter where the import was used, all its symbols were public and accessible even
+	from other (completely unrelated) modules.
+	With the new system, imported module symbols might be private or even explicitly
+	namespaced based on the usage. In general, each module (even target assembly) has its
+	own namespace (module namespace) divided into public and private part. The private part
+	might be introduced by `#scope_module` directive. All symbols and other modules imported
+	in the `#scope_module` block are visible only inside the parent module.
+	By calling the #import directive, all "public" symbols of imported module are implicitly
+	inserted into the parent scope of the `#import` directive.
+
+	As result, one should have to import explicitly all used modules, so for example even
+	a simple "hello world" application now have to import print module in order to get access
+	to the print function. However, this way we can be 100% sure about what dependencies each
+	module require and achieve better module isolation.
+
+- Load directive now loads source units multiple times in case the #load directive appears
+  in different scope context.
+
+- Remove ModuleImportPolicy.
+
+	The import policy (originally used to allow automatic bundling of used modules into the
+	project local module directory) was removed. In general it was unnecessary complexity in
+	the build system I've never used. Note that the same behaviour can be still achieved by
+	manual copying of required modules into the custom module directory.
+
+- Remove named scopes (introduced by #scope directive).
 
 	Named scopes were completely removed from the language with introduction of a new
 	module system. This reduced amount of 'using' required for 'std' for example. Imported
-	modules can be namespaced on "import" side like this: foo :: #import "std/string";
+	modules can be namespaced on "import" side like this:
 
-Modules injected into the module scope are accessible recursively on use-side.
+	foo :: #import "std/string";
+
+- Modules injected into the module scope are accessible recursively on use-side.
 
 	Modules imported into "public" module scope are accessible from outside when the module
 	gets imported. This allows creation of module merging bunch of other modules for example.
 
-Add windows flag --legacy-colors to enable old style of output coloring on Windows.
+- Add windows flag --legacy-colors to enable old style of output coloring on Windows.
 
 	Compiler by default outputs ANSI color codes for error messages in terminal even on
-	Windows. To get back old style of coloring use --legacy-colors compiler flag.
+	Windows. To get back old style of coloring use --legacy-colors compiler flag. This option
+	is available only on Windows.
+
+- Add explicit module namespacing.
+- Compiler will report all possible ambiguous symbol in case there is more of them.
+- Fix module import and load to not use current working directory implicitly.
+- Fix reports of ambiguous symbols coming from module imports in case we have symbols
+  with the same name in current module.
+- Module congifuration use comma separators on all platforms.
+
+Modules:
+- Add math module.
+
+std/sync:
+- Mutex now can be explicitly initialized as recursive or non-recursive.
+
+std/string
+- Add tstrtoc function which automatically checks if passed string can be directly converted
+  to C string (checks zero terminator). In case the string is not zero-terminated,
+  implicit zero-terminated copy is created using temporary allocator.
+
+std/fs
+- Fix invalid file descriptor reported by `copy` function on linux and mac.
+
 
 0.12.0
 ---------------------------------------------------------------------------------------
