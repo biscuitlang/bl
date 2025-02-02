@@ -58,6 +58,57 @@ main :: fn () s32 {
 
 See more examples [here](https://biscuitlang.org).
 
+# Build From Source
+
+## Windows
+
+* Install Visual Studio 2022 or [MS Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools) with C/C++ support.
+* Run `vcvars64.bat` in your shell or use Visual Studio Developer Command Prompt.
+* Download and compile.
+
+```bash
+git clone https://github.com/travisdoor/bl.git
+cd bl
+build.bat
+```
+
+## Linux
+
+* Install LLVM. This step might differ across linux distributions, following snippet might help.
+
+```bash
+# Ubuntu
+apt-get install llvm-18-dev
+
+# Fedora
+dnf copr enable -y @fedora-llvm-team/llvm-snapshots
+dnf install llvm18-devel
+
+# Using LLVM installation script
+wget https://apt.llvm.org/llvm.sh
+chmod +x llvm.sh
+sudo ./llvm.sh 18
+```
+
+* Download and compile.
+
+```bash
+git clone https://github.com/travisdoor/bl.git
+cd bl
+./build.sh
+```
+
+## macOS
+* Install command line tools `xcode-select --install`.
+* Install dependencies using [brew](https://brew.sh) `brew install llvm@18 zlib ncurses`.
+* Download and compile
+
+```bash
+git clone https://github.com/travisdoor/bl.git
+cd bl
+./build.sh
+```
+
 # Authors
 
 - **Martin Dorazil** (travis) [SPONSOR](https://www.paypal.com/donate/?hosted_button_id=WKSP23ADBFDP6)
