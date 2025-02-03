@@ -10,7 +10,7 @@ LLVM version: %s\n\
 \n\
 General purpose compiled programming language, for more information please\n\
 visit https://biscuitlang.org. This project is maintained in spare time; please\n\
-consider supporting it on https://github.com/sponsors/travisdoor.\n\
+consider supporting it on https://github.com/sponsors/biscuitlang.\n\
 \n\
 \n\
 MIT License\n\

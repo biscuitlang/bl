@@ -60,7 +60,7 @@ void log_impl(log_msg_kind_t t, const char *file, s32 line, const char *msg, ...
 		color_print(stderr,
 		            BL_RED,
 		            "internal compiler error [%s:%d]: %s (Please report the issue on "
-		            "'https://github.com/travisdoor/bl/issues')\n",
+		            "'https://github.com/biscuitlang/bl/issues')\n",
 		            file,
 		            line,
 		            buffer);

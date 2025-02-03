@@ -70,7 +70,7 @@ static bool load_conf_file(const char *custom_conf_filepath) {
 			goto FAILED;
 		}
 		if (!generate_conf()) {
-			builder_error("Failed to generate the configuration file, please report the issue on https://github.com/travisdoor/bl/issues");
+			builder_error("Failed to generate the configuration file, please report the issue on https://github.com/biscuitlang/bl/issues");
 			goto FAILED;
 		}
 	}

@@ -39,7 +39,7 @@
 //! used shader is changed or [flush](#drawflush) is called explicitly. This approach reduces count of required draw
 //! calls a bit.
 //!
-//! See the [example](https://github.com/travisdoor/bl/tree/master/how-to/gunner).
+//! See the [example](https://github.com/biscuitlang/bl/tree/master/how-to/gunner).
 
 // =================================================================================================
 // Main API

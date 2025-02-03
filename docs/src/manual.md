@@ -1947,7 +1947,7 @@ One, not so common concept is a *defer* statement. The *defer* statement can be 
 
 ```bl
 #import "std/print"
-    
+
 main :: fn () s32 {
     defer print("1\n");
 
@@ -1996,7 +1996,7 @@ Where the *defer* is used to `close_file` and `str_delete`; we can nicely couple
 
 # Code Structure
 
-The top-level building stone of each BL program is called assembly. Each assembly can be compiled into executable file or library. 
+The top-level building stone of each BL program is called assembly. Each assembly can be compiled into executable file or library.
 
 A BL code itself is organized into scopes. Each scope groups entities inside, and can limit their visibility from the outside. Scopes can be used also to avoid naming collisions. They are organized into a tree structure, where one scope may contain a bunch of other scopes. In this chapter, we describe all possible scope kinds in detail.
 
@@ -2008,7 +2008,7 @@ The global scope is implicitly created root scope of the assembly containing bui
 
 The module scope is the root scope of each module (for example `std/print`, `std/string`, ... ), where each module provides some specific piece od functionality. Symbols from one module are not accessible from the other unless we use `#import` directive. When module A is imported into module B, all symbols in the module scope of A are visible to B, but not the other way around.
 
-As mentioned in [Global Scope](manual.html#global-scope) section, even the entry point of the program is encapsulated into implicit module, however, for simplicity, we usually refer to this implicit module scope as the global scope. 
+As mentioned in [Global Scope](manual.html#global-scope) section, even the entry point of the program is encapsulated into implicit module, however, for simplicity, we usually refer to this implicit module scope as the global scope.
 
 ### Load
 
@@ -2049,7 +2049,7 @@ Compiler will lookup source files according to the following rules.
 
 The import directive can be used to import symbols from one module to the other. Module importing does not act like an insertion, thus even if you import two modules in the same target scope, code in both of them remains separated. Even if the same module is imported multiple times, it's compiled only once.
 
-In case one module is imported multiple times in the same scope (without explicit namespacing), compiler will produce errors when symbols from such module are used (they are ambiguous). 
+In case one module is imported multiple times in the same scope (without explicit namespacing), compiler will produce errors when symbols from such module are used (they are ambiguous).
 
 Internally this process of import is called *scope injection*. The list of symbols from imported module scope is injected into the target scope.
 
@@ -2071,9 +2071,9 @@ In some cases we wan't to encapsulate symbols from imported module to prevent co
 ```bl
 print :: fn () {} // This is my print implementation.
 
-// The print module also contains print function, so we wrap all symbols 
+// The print module also contains print function, so we wrap all symbols
 // from the module into namespace 'foo' to prevent name collision.
-foo :: #import "std/print"; 
+foo :: #import "std/print";
 
 main :: fn () s32 {
     // Call our print.
@@ -2146,7 +2146,7 @@ Note that private block can be used to limit symbol visibility from loaded files
 The public scope `#scope_public` can be introduced in a source file to switch back from current private or module private scope. Functions or variables in public scope can be used from current file or from other files as well. All global declarations in BL are public by default.
 
 ```bl
-// This function is public by default and can be called 
+// This function is public by default and can be called
 // anywhere in the current module.
 say_hello :: fn () {
     num += 1;
@@ -2225,13 +2225,13 @@ Color :: enum {
 
 main :: fn () s32 {
     foo.print("Hello\n");
-    
+
     // Content of module namespace foo becomes directly available.
     using foo;
     print("Hello\n");
 
     set_color(Color.RED);
-    
+
     // Content of enum scope Color becomes directly available.
     using Color;
     set_color(RED);
@@ -2518,7 +2518,7 @@ Count of printed bytes is returned.
 
 # Compiler Usage
 
-Biscuit language compiler is a standalone terminal application called *blc*.  It can be compiled from source code found on [GitHub](https://github.com/travisdoor/bl) repository or downloaded from the home page as a binary executable (since the compiler is still under development, the binary versions may be outdated, currently [compilation](index.html) from the source code is preferred). All three major operating systems (Windows, macOS and Linux) are supported, but current active development is done on Windows and it usually takes some time to port the latest changes to the other platforms. The compiler executable can be found in *bin* directory it's usually a good idea to add the executable location to the system *PATH* to be accessible from other locations.
+Biscuit language compiler is a standalone terminal application called *blc*.  It can be compiled from source code found on [GitHub](https://github.com/biscuitlang/bl) repository or downloaded from the home page as a binary executable (since the compiler is still under development, the binary versions may be outdated, currently [compilation](index.html) from the source code is preferred). All three major operating systems (Windows, macOS and Linux) are supported, but current active development is done on Windows and it usually takes some time to port the latest changes to the other platforms. The compiler executable can be found in *bin* directory it's usually a good idea to add the executable location to the system *PATH* to be accessible from other locations.
 
 There are several options that can be passed to the compiler.
 

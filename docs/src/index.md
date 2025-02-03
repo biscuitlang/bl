@@ -2,7 +2,7 @@
 
 # Use Pre-built Package
 
-* Download required compiler version from [Github](https://github.com/travisdoor/bl/releases).
+* Download required compiler version from [Github](https://github.com/biscuitlang/bl/releases).
 * Unpack downloaded file.
 * Optionally add `/path/to/blc/bin` to your system `PATH`.
 * Run `blc --help`.
@@ -26,7 +26,7 @@ Biscuit compiler is using [nob](https://github.com/tsoding/nob.h) "build system"
 * Download and compile
 
 ```bash
-git clone https://github.com/travisdoor/bl.git
+git clone https://github.com/biscuitlang/bl.git
 cd bl
 build.bat
 ```
@@ -66,7 +66,7 @@ sudo ./llvm.sh 18
 
 
 ```bash
-git clone https://github.com/travisdoor/bl.git
+git clone https://github.com/biscuitlang/bl.git
 cd bl
 ./build.sh
 ```
@@ -83,7 +83,7 @@ export PATH=$PATH:/path/to/bl/bin
 * Download and compile
 
 ```bash
-git clone https://github.com/travisdoor/bl.git
+git clone https://github.com/biscuitlang/bl.git
 cd bl
 ./build.sh
 ```

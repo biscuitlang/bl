@@ -67,7 +67,7 @@ See more examples [here](https://biscuitlang.org).
 * Download and compile.
 
 ```bash
-git clone https://github.com/travisdoor/bl.git
+git clone https://github.com/biscuitlang/bl.git
 cd bl
 build.bat
 ```
@@ -93,7 +93,7 @@ sudo ./llvm.sh 18
 * Download and compile.
 
 ```bash
-git clone https://github.com/travisdoor/bl.git
+git clone https://github.com/biscuitlang/bl.git
 cd bl
 ./build.sh
 ```
@@ -104,7 +104,7 @@ cd bl
 * Download and compile
 
 ```bash
-git clone https://github.com/travisdoor/bl.git
+git clone https://github.com/biscuitlang/bl.git
 cd bl
 ./build.sh
 ```
@@ -158,13 +158,13 @@ Screenshot of an unnamed 3D experimental game created using BL.
 
 ### Space Shooter
 
-- Source code [here](https://github.com/travisdoor/bl/tree/master/how-to/gunner).
+- Source code [here](https://github.com/biscuitlang/bl/tree/master/how-to/gunner).
 
 <div style="text-align:center"><img src="how-to/gunner/gunner.gif" /></div>
 
 # Contribution
 
-Please follow the instructions on [wiki](https://github.com/travisdoor/bl/wiki/Contribution).
+Please follow the instructions on [wiki](https://github.com/biscuitlang/bl/wiki/Contribution).
 
 # Links
 
