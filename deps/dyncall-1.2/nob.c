@@ -36,7 +36,7 @@ void dyncall(void) {
 	Proc procs[ARRAY_LEN(src)];
 	for (int i = 0; i < ARRAY_LEN(src); ++i) {
 		cmd_append(&cmd, "cl", "-nologo", "-c", src[i]);
-		cmd_append(&cmd, "-D_WIN32", "-D_WINDOWS", "-DNOMINMAX", "-D_HAS_EXCEPTIONS=0", "-GF", "-MD", "-O2", "-Oi", "-DNDEBUG", "-GL");
+		cmd_append(&cmd, "-D_WIN32", "-D_WINDOWS", "-DNOMINMAX", "-D_HAS_EXCEPTIONS=0", "-GF", "-MT", "-O2", "-Oi", "-DNDEBUG", "-GL");
 		cmd_append(&cmd, "-I./deps/dyncall-" DYNCALL_VERSION "/dyncall");
 		cmd_append(&cmd, "-Fo\"" BUILD_DIR "/dyncall/\"", );
 		procs[i] = nob_cmd_run_async_and_reset(&cmd);

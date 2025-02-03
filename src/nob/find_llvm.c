@@ -13,7 +13,7 @@ void find_llvm(void) {
 	if (!file_exists("./deps/llvm-18.1.8-win64-nob")) {
 		nob_log(NOB_INFO, "Unpacking LLVM...");
 		Cmd cmd = {0};
-		cmd_append(&cmd, "tar", "-xf", temp_sprintf("./deps/llvm-%s-win64-nob.zip", LLVM_VERSION), "-C", "./deps");
+		cmd_append(&cmd, "./deps/unzip.exe", "-o", "-q", temp_sprintf("./deps/llvm-%s-win64-nob.zip", LLVM_VERSION), "-d", "./deps");
 		if (!cmd_run_sync(cmd)) exit(1);
 		cmd_free(cmd);
 	}
