@@ -34,7 +34,7 @@ void libyaml(void) {
 	Cmd cmd = {0};
 	for (int i = 0; i < src_num; ++i) {
 		cmd_append(&cmd, "cl", "-nologo", "-c", src[i]);
-		cmd_append(&cmd, "-D_WIN32", "-D_WINDOWS", "-DNOMINMAX", "-D_HAS_EXCEPTIONS=0", "-GF", "-MD", "-O2", "-Oi", "-DNDEBUG", "-GL");
+		cmd_append(&cmd, "-D_WIN32", "-D_WINDOWS", "-DNOMINMAX", "-D_HAS_EXCEPTIONS=0", "-GF", "-MT", "-O2", "-Oi", "-DNDEBUG", "-GL");
 		cmd_append(&cmd,
 		           "-DYAML_DECLARE_STATIC",
 		           "-DYAML_VERSION_MAJOR=" STR(YAML_VERSION_MAJOR),

@@ -139,7 +139,7 @@ void blc(void) {
 		           "-DBL_VERSION_MINOR=" STR(BL_VERSION_MINOR),
 		           "-DBL_VERSION_PATCH=" STR(BL_VERSION_PATCH),
 		           "-DYAML_DECLARE_STATIC");
-		cmd_append(&cmd, "-D_WIN32", "-D_WINDOWS", "-DNOMINMAX", "-D_HAS_EXCEPTIONS=0", "-GF", "-MD");
+		cmd_append(&cmd, "-D_WIN32", "-D_WINDOWS", "-DNOMINMAX", "-D_HAS_EXCEPTIONS=0", "-GF", "-MT");
 		if (IS_DEBUG) {
 			cmd_append(&cmd, "-Od", "-Zi", "-DBL_DEBUG", "-FS");
 		} else {
@@ -162,7 +162,7 @@ void blc(void) {
 		nob_read_entire_dir(BUILD_DIR, &files);
 
 		cmd_append(&cmd, "cl", "-nologo");
-		cmd_append(&cmd, "-D_WIN32", "-D_WINDOWS", "-DNOMINMAX", "-D_HAS_EXCEPTIONS=0", "-GF", "-MD", "-FS");
+		cmd_append(&cmd, "-D_WIN32", "-D_WINDOWS", "-DNOMINMAX", "-D_HAS_EXCEPTIONS=0", "-GF", "-MT", "-FS");
 		if (IS_DEBUG) {
 			cmd_append(&cmd, "-Od", "-Zi", "-DBL_DEBUG");
 		} else {
