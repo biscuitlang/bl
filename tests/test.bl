@@ -64,13 +64,17 @@ Static shit
 
 #import "std/print"
 
-VALUE :: true;
+VALUE :: false;
 
 main :: fn () s32 {
 	#if VALUE {
-		print("hello\n");
+		n: Unknown;
+	} else {
+		n: s32;
 	}
-	return 0;
+
+	n = 10;
+	return n;
 }
 
 /* BUG
