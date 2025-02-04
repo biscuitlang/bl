@@ -195,6 +195,17 @@ static_if_2 :: fn () #test {
 	}
 }
 
+static_if_variable_used :: fn () #test {
+	#if true {
+		n: s32;
+	} else {
+		n: __Unknown__;
+	}
+
+	n = 10;
+	test_eq(n, 10);
+}
+
 optional_then :: fn () #test {
 	v := false;
 	expr := true;

@@ -970,7 +970,9 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 
 	const bool is_expression = ctx->is_inside_expression;
 
-	struct ast *stmt_if                 = ast_create_node(ctx->ast_arena, AST_STMT_IF, tok_begin, scope_get(ctx));
+	struct scope *parent_scope = scope_get(ctx);
+
+	struct ast *stmt_if                 = ast_create_node(ctx->ast_arena, AST_STMT_IF, tok_begin, parent_scope);
 	stmt_if->data.stmt_if.is_static     = is_static;
 	stmt_if->data.stmt_if.is_expression = is_expression;
 	stmt_if->data.stmt_if.test          = parse_expr(ctx);
@@ -979,7 +981,7 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 		report_error(
 		    EXPECTED_EXPR, tok_err, CARET_WORD, "Expected expression for the if statement.");
 		tokens_consume_till(ctx->tokens, SYM_SEMICOLON);
-		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
+		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, parent_scope));
 	}
 
 	struct token *tok_then = tokens_consume_if(ctx->tokens, SYM_THEN);
@@ -987,7 +989,7 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 		struct token *tok_err = tokens_peek(ctx->tokens);
 		report_error(INVALID_EXPR, tok_err, CARET_WORD, "Expected 'then' keyword after ternary if statement expression.");
 		tokens_consume_till(ctx->tokens, SYM_SEMICOLON);
-		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
+		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, parent_scope));
 	}
 
 	bool is_semicolon_required = !is_expression;
@@ -995,7 +997,7 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 	//
 	// Then branch
 	//
-	struct ast *true_branch = parse_block(ctx, SCOPE_LEXICAL);
+	struct ast *true_branch = parse_block(ctx, is_static ? SCOPE_NONE : SCOPE_LEXICAL);
 	if (true_branch) {
 		if (is_expression) {
 			builder_msg(MSG_ERR, ERR_EXPECTED_EXPR, true_branch->location, CARET_WORD, "Blocks cannot be used in ternary if expressions.");
@@ -1009,7 +1011,10 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 		} else if (is_expression) {
 			true_branch = parse_single_block_stmt_or_expr(ctx, NULL);
 		} else {
-			struct scope *scope = scope_create(ctx->scope_thread_local, SCOPE_LEXICAL, scope_get(ctx), &tok_then->location);
+			// 2025-02-03: Static scope does not produce scope nesting.
+			struct scope *scope = is_static
+			                          ? parent_scope
+			                          : scope_create(ctx->scope_thread_local, SCOPE_LEXICAL, scope_get(ctx), &tok_then->location);
 			scope_push(ctx, scope);
 			struct ast *block       = ast_create_node(ctx->ast_arena, AST_BLOCK, tok_then, scope_get(ctx));
 			block->data.block.nodes = arena_alloc(ctx->sarr_arena);
@@ -1041,7 +1046,7 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 	struct ast *false_branch = NULL;
 	if (tokens_consume_if(ctx->tokens, SYM_ELSE)) {
 		false_branch = parse_stmt_if(ctx, is_static);
-		if (!false_branch) false_branch = parse_block(ctx, SCOPE_LEXICAL);
+		if (!false_branch) false_branch = parse_block(ctx, is_static ? SCOPE_NONE : SCOPE_LEXICAL);
 		if (false_branch) {
 			if (is_expression) {
 				builder_msg(MSG_ERR, ERR_EXPECTED_EXPR, false_branch->location, CARET_WORD, "Blocks cannot be used in ternary if expressions.");
@@ -1054,7 +1059,10 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 			} else if (is_expression) {
 				false_branch = parse_single_block_stmt_or_expr(ctx, NULL);
 			} else {
-				struct scope *scope = scope_create(ctx->scope_thread_local, SCOPE_LEXICAL, scope_get(ctx), &tok_then->location);
+				// 2025-02-03: Static scope does not produce scope nesting.
+				struct scope *scope = is_static
+				                          ? parent_scope
+				                          : scope_create(ctx->scope_thread_local, SCOPE_LEXICAL, scope_get(ctx), &tok_then->location);
 				scope_push(ctx, scope);
 				struct ast *block       = ast_create_node(ctx->ast_arena, AST_BLOCK, tok_then, scope_get(ctx));
 				block->data.block.nodes = arena_alloc(ctx->sarr_arena);

@@ -1507,8 +1507,13 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 		return_zone(ctx->analyze->unnamed_entry);
 	}
 
+	// @Incomplete 2025-02-04: We might don't need locking in case this is called from analyze pass only?
 	const bool is_locked = scope->kind == SCOPE_GLOBAL || scope->kind == SCOPE_MODULE || scope->kind == SCOPE_MODULE_PRIVATE;
 	if (is_locked) scope_lock(scope);
+
+	// @Incomplete 2025-02-04: We cannot take layer index like this in case we register from analyze pass!!!
+	// @Incomplete 2025-02-04: We cannot take layer index like this in case we register from analyze pass!!!
+	// @Incomplete 2025-02-04: We cannot take layer index like this in case we register from analyze pass!!!
 	const hash_t layer_index = ctx->fn_generate.current_scope_layer;
 
 	scope_lookup_args_t lookup_args = {
@@ -3763,7 +3768,8 @@ static struct mir_instr *append_instr_decl_var(struct context *ctx, append_instr
 	tmp->base.ref_count            = MIR_NO_REF_COUNTING;
 	tmp->type                      = ref_instr(args->type);
 	tmp->init                      = ref_instr(args->init);
-	const bool is_global           = !scope_is_local(args->scope);
+
+	const bool is_global = !scope_is_local(args->scope);
 
 	tmp->var = create_var(ctx,
 	                      &(create_var_args_t){
@@ -7498,6 +7504,12 @@ struct result analyze_instr_decl_var(struct context *ctx, struct mir_instr_decl_
 	struct mir_var *var = decl->var;
 	bassert(var);
 
+	// 2025-02-04: Register variable first in case it hasn't been already registered.
+	if (!var->entry && var->decl_scope) {
+		var->entry = register_symbol(ctx, var->decl_node, var->id, var->decl_scope, var->builtin_id != BUILTIN_ID_NONE);
+		if (!var->entry) return_zone(FAIL);
+	}
+
 	// Immutable declaration can be comptime, but only if it's initializer value is also
 	// comptime!
 	bool is_decl_comptime = isnotflag(var->iflags, MIR_VAR_MUTABLE) && decl->init && mir_is_comptime(decl->init);
@@ -10889,7 +10901,7 @@ static void ast_decl_var_local(struct context *ctx, struct ast *ast_local) {
 		                                                  .builtin_id = builtin_id,
 		                                              });
 
-		((struct mir_instr_decl_var *)var)->var->entry = register_symbol(ctx, ast_current_name, id, scope, is_compiler);
+		// ((struct mir_instr_decl_var *)var)->var->entry = register_symbol(ctx, ast_current_name, id, scope, is_compiler);
 
 		bassert(ast_current_name->kind == AST_IDENT);
 		ast_current_name = ast_current_name->data.ident.next;
