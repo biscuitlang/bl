@@ -4,6 +4,7 @@ on: [push, pull_request, workflow_dispatch]
 
 jobs:
   windows-debug:
+    if: "!contains(github.event.head_commit.message, '[no-ci]')"
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
@@ -14,6 +15,7 @@ jobs:
         ./build.bat debug all
 
   windows-release:
+    if: "!contains(github.event.head_commit.message, '[no-ci]')"
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
@@ -24,6 +26,7 @@ jobs:
         ./build.bat assert all
 
   linux-debug:
+    if: "!contains(github.event.head_commit.message, '[no-ci]')"
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -37,6 +40,7 @@ jobs:
         ./build.sh debug all
 
   linux-release:
+    if: "!contains(github.event.head_commit.message, '[no-ci]')"
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -50,6 +54,7 @@ jobs:
         ./build.sh assert all
 
   macos-debug:
+    if: "!contains(github.event.head_commit.message, '[no-ci]')"
     runs-on: macOS-14
     steps:
     - uses: actions/checkout@v2
@@ -63,6 +68,7 @@ jobs:
         ./build.sh debug all
 
   macos-release:
+    if: "!contains(github.event.head_commit.message, '[no-ci]')"
     runs-on: macOS-14
     steps:
     - uses: actions/checkout@v2
