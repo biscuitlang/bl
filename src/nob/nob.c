@@ -141,7 +141,7 @@ void blc(void) {
 		           "-DYAML_DECLARE_STATIC");
 		cmd_append(&cmd, "-D_WIN32", "-D_WINDOWS", "-DNOMINMAX", "-D_HAS_EXCEPTIONS=0", "-GF", "-MT");
 		if (IS_DEBUG) {
-			cmd_append(&cmd, "-Od", "-Zi", "-DBL_DEBUG", "-FS");
+			cmd_append(&cmd, "-Od", "-Z7", "-DBL_DEBUG", "-FS");
 		} else {
 			cmd_append(&cmd, "-O2", "-Oi", "-DNDEBUG", "-GL");
 		}
@@ -181,6 +181,7 @@ void blc(void) {
 		}
 
 		cmd_append(&cmd, "-link", "-LTCG", "-incremental:no", "-opt:ref", "-subsystem:console", "-NODEFAULTLIB:MSVCRTD.lib");
+		if (IS_DEBUG) cmd_append(&cmd, "/DEBUG:FULL");
 
 		cmd_append(&cmd,
 		           BUILD_DIR "/libyaml/libyaml.lib",
