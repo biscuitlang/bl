@@ -212,7 +212,7 @@ main :: fn () s32 {
 	loop i := 0; i < results.len; i += 1 {
 		result :: &results[i];
 		if result.state != State.PASSED {
-			print("[ FAILED ] '%' (%)\n", result.name, result.state);
+			print("[ \033[31mFAIL\033[0m ] '%' (%)\n", result.name, result.state);
 			failed_count += 1;
 		}
 	}
@@ -328,9 +328,9 @@ test_file :: fn (results: *[..]Result, filepath: string_view, kind: TestKind) {
 
 report :: fn (result: *Result, msg := "") {
 	if result.state != State.PASSED {
-		print("[      | FAIL ] % %\n", result.name, msg);
+		print("[      | \033[31mFAIL\033[0m ] % %\n", result.name, msg);
 	} else {
-		print("[ PASS |      ] % %\n", result.name, msg);
+		print("[ \033[32mPASS\033[0m |      ] % %\n", result.name, msg);
 	}
 }
 

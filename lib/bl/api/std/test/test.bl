@@ -340,7 +340,7 @@ _start_time: f64;
 abort_handler :: fn () {
 	_current.runtime_ms = os_ftick_ms() - _start_time;
 	_current.passed = false;
-	print("[      | FAIL ] % (% ms)\n", _current.name, _current.runtime_ms);
+	print("[      | \033[31mFAIL\033[0m ] % (% ms)\n", _current.name, _current.runtime_ms);
 	thread_exit(1);
 	__os_abort_default();
 }
@@ -353,7 +353,7 @@ worker :: fn (_: *u8) s32 {
 		_current.func();
 		_current.runtime_ms = os_ftick_ms() - _start_time;
 		_current.passed = true;
-		print("[ PASS |      ] % (% ms)\n", _current.name, _current.runtime_ms);
+		print("[ \033[32mPASS\033[0m |      ] % (% ms)\n", _current.name, _current.runtime_ms);
 	}
 	return 0;
 }
