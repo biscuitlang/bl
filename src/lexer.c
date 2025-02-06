@@ -226,8 +226,66 @@ inline char scan_specch(char c) {
 	}
 }
 
+static char scan_specch2(struct context *ctx, s32 *len) {
+	*len += 1;
+	const char c = *ctx->c++;
+	switch (c) {
+	case 'n':
+		return '\n';
+	case 'r':
+		return '\r';
+	case 't':
+		return '\t';
+	case '\"':
+		return '\"';
+	case '\'':
+		return '\'';
+	case '\\':
+		return '\\';
+	case 'x':
+	case '0': {
+		u16       v    = 0;
+		const s32 base = c == 'x' ? 16 : 8;
+
+		while (true) {
+			const s32 d = c_to_number(*ctx->c, base);
+			if (d == -1) break;
+			v = v * base + d;
+			if (v > 0xFF) {
+				if (base == 16) {
+					report_error(
+					    NUM_LIT_OVERFLOW,
+					    STR_FMT " %d:%d hex character notation overflow, maximum possible value is 0xFF, provided value is 0x%X.",
+					    STR_ARG(ctx->unit->name),
+					    ctx->line,
+					    ctx->col,
+					    v);
+				} else if (base == 8) {
+					report_error(
+					    NUM_LIT_OVERFLOW,
+					    STR_FMT " %d:%d octal character notation overflow, maximum possible value is 0377, provided value is 0%o.",
+					    STR_ARG(ctx->unit->name),
+					    ctx->line,
+					    ctx->col,
+					    v);
+				} else {
+					babort("Invalid number base.");
+				}
+			}
+			++ctx->c;
+			++*len;
+		}
+
+		return (char)v;
+	}
+
+	default:
+		return *ctx->c;
+	}
+}
+
 bool scan_string(struct context *ctx, struct token *tok) {
-	if (*ctx->c != '"') return false;
+	if (*ctx->c != '\"') return false;
 	zone();
 	sarrclear(&ctx->strtmp);
 	tok->location.line = ctx->line;
@@ -240,7 +298,7 @@ bool scan_string(struct context *ctx, struct token *tok) {
 	ctx->c++;
 	while (true) {
 		switch (*ctx->c) {
-		case '"': {
+		case '\"': {
 			ctx->c++;
 			goto DONE;
 		}
@@ -248,11 +306,11 @@ bool scan_string(struct context *ctx, struct token *tok) {
 			report_error(UNTERMINATED_STRING, STR_FMT " %d:%d unterminated string.", STR_ARG(ctx->unit->name), ctx->line, ctx->col);
 		}
 		case '\\':
-			// special character
-			c = scan_specch(*(ctx->c + 1));
-			ctx->c += 2;
-			len += 2;
+			++ctx->c; // Eat backslash.
+			++len;
+			c = scan_specch2(ctx, &len);
 			break;
+
 		default:
 			c = *ctx->c;
 			len++;
@@ -323,7 +381,11 @@ inline s32 c_to_number(char c, s32 base) {
 			return c - 'A' + 10;
 		}
 	case 10:
-		if (c >= '2' && c <= '9') {
+		if (c == '8' || c == '9') {
+			return c - '0';
+		}
+	case 8:
+		if (c >= '2' && c <= '7') {
 			return c - '0';
 		}
 	case 2:
@@ -332,7 +394,7 @@ inline s32 c_to_number(char c, s32 base) {
 		}
 		break;
 	default:
-		babort("invalid number base");
+		babort("Invalid number base.");
 	}
 
 	return -1;

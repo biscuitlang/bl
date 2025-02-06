@@ -74,6 +74,13 @@ Compiler:
 - Add LLVM version check on linux.
 - Add more search paths for compiler dependencies on linux.
 
+- Add support for character escape codes.
+
+	Newly '\0OOO' (octal notation) and '\xHH' (hex notation) can be used in strings. Thus
+	we can now handle things like:
+
+	print("\033[34mBlue Text\033[0m\n");
+
 Modules:
 - Add math module.
 
