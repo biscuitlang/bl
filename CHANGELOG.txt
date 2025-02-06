@@ -70,6 +70,9 @@ Compiler:
 - Improved "Libraries" section in documentation.
 - Add new examples into 'how-to' showing how to do static and dynamic linking of external
   libraries.
+- Nob on linux tries to fallback to `llvm-config` in case `llvm-config-X` wasnt found.
+- Add LLVM version check on linux.
+- Add more search paths for compiler dependencies on linux.
 
 Modules:
 - Add math module.

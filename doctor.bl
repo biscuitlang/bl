@@ -24,8 +24,8 @@ MISC :: [_]Test.{
 	Test.{ name = "how-to/gunner",             kind = TestKind.BUILD, platform = Platform.WINDOWS },
 	Test.{ name = "how-to/glwindow_gunner",    kind = TestKind.BUILD, platform = Platform.WINDOWS },
 	Test.{ name = "how-to/glwindow_creation",  kind = TestKind.BUILD, platform = Platform.WINDOWS },
-	Test.{ name = "how-to/static_library",     kind = TestKind.BUILD, platform = Platform.WINDOWS },
-	Test.{ name = "how-to/dynamic_library",    kind = TestKind.BUILD, platform = Platform.WINDOWS },
+	Test.{ name = "how-to/static_library",     kind = TestKind.BUILD },
+	Test.{ name = "how-to/dynamic_library",    kind = TestKind.BUILD },
 	Test.{ name = "tests/build_api_test",      kind = TestKind.BUILD },
 	Test.{ name = "tests/library",             kind = TestKind.BUILD, platform = Platform.WINDOWS },
 };

@@ -416,7 +416,7 @@ link_static_library :: fn (target: *Target, name: string_view) {
 		}
 
 		LINUX, DARWIN {
-			append_linker_options(target, tprint("-llib%.a", name));
+			append_linker_options(target, tprint("lib%.a", name));
 		}
 
 		default { panic("Unsupported target for static linking!"); }

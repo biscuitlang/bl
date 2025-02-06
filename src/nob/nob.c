@@ -47,50 +47,50 @@ void blc(void) {
 	nob_log(NOB_INFO, temp_sprintf("Compiling blc-" BL_VERSION " (%s).", config_name));
 
 	const char *src[] = {
-		"./src/arena.c",
-		"./src/asm_writer.c",
-		"./src/assembly.c",
-		"./src/ast_printer.c",
-		"./src/ast.c",
-		"./src/bc_writer.c",
-		"./src/bldebug.c",
-		"./src/blmemory.c",
-		"./src/build_api.c",
-		"./src/builder.c",
-		"./src/common.c",
-		"./src/conf.c",
-		"./src/docs.c",
-		"./src/file_loader.c",
-		"./src/intrinsic.c",
-		"./src/ir_opt.c",
-		"./src/ir.c",
-		"./src/lexer.c",
-		"./src/linker.c",
-		"./src/lld_ld.c",
-		"./src/lld_link.c",
-		"./src/llvm_api.cpp",
-		"./src/main.c",
-		"./src/mir_printer.c",
-		"./src/mir_writer.c",
-		"./src/mir.c",
-		"./src/native_bin.c",
-		"./src/obj_writer.c",
-		"./src/parser.c",
-		"./src/scope_printer.c",
-		"./src/scope.c",
-		"./src/setup.c",
-		"./src/table.c",
-		"./src/threading.c",
-		"./src/tinycthread.c",
-		"./src/token_printer.c",
-		"./src/tokens.c",
-		"./src/unit.c",
-		"./src/vm_runner.c",
-		"./src/vm.c",
-		"./src/vmdbg.c",
-		"./src/x86_64.c",
+	    "./src/arena.c",
+	    "./src/asm_writer.c",
+	    "./src/assembly.c",
+	    "./src/ast_printer.c",
+	    "./src/ast.c",
+	    "./src/bc_writer.c",
+	    "./src/bldebug.c",
+	    "./src/blmemory.c",
+	    "./src/build_api.c",
+	    "./src/builder.c",
+	    "./src/common.c",
+	    "./src/conf.c",
+	    "./src/docs.c",
+	    "./src/file_loader.c",
+	    "./src/intrinsic.c",
+	    "./src/ir_opt.c",
+	    "./src/ir.c",
+	    "./src/lexer.c",
+	    "./src/linker.c",
+	    "./src/lld_ld.c",
+	    "./src/lld_link.c",
+	    "./src/llvm_api.cpp",
+	    "./src/main.c",
+	    "./src/mir_printer.c",
+	    "./src/mir_writer.c",
+	    "./src/mir.c",
+	    "./src/native_bin.c",
+	    "./src/obj_writer.c",
+	    "./src/parser.c",
+	    "./src/scope_printer.c",
+	    "./src/scope.c",
+	    "./src/setup.c",
+	    "./src/table.c",
+	    "./src/threading.c",
+	    "./src/tinycthread.c",
+	    "./src/token_printer.c",
+	    "./src/tokens.c",
+	    "./src/unit.c",
+	    "./src/vm_runner.c",
+	    "./src/vm.c",
+	    "./src/vmdbg.c",
+	    "./src/x86_64.c",
 #if BL_RPMALLOC_ENABLE
-		"./deps/rpmalloc-" RPMALLOC_VERSION "/rpmalloc/rpmalloc.c",
+	    "./deps/rpmalloc-" RPMALLOC_VERSION "/rpmalloc/rpmalloc.c",
 #endif
 	};
 
@@ -312,30 +312,35 @@ void cleanup(void) {
 }
 
 #ifdef __linux__
+
 void find_deps(void) {
-	LIBZ = shell("find /usr/lib /usr/local/lib -name \"libz.a\" -print -quit 2>/dev/null");
+
+#define LIB_PATH "/lib /usr/lib /usr/local/lib /lib64 /usr/lib64 /usr/lib/x86_64-linux-gnu"
+
+	LIBZ = shell("find " LIB_PATH " -name \"libz.a\" -print -quit 2>/dev/null");
 	if (!strok(LIBZ)) {
-		nob_log(NOB_ERROR, "Unable to find 'libz'.");
+		nob_log(NOB_ERROR, "Unable to find 'libz.a' in non of following paths: '" LIB_PATH "'.");
 		exit(1);
 	}
 	nob_log(NOB_INFO, "Using 'libz' '%s'.", LIBZ);
 
-	LIBZSTD = shell("find /usr/lib /usr/local/lib -name \"libzstd.a\" -print -quit 2>/dev/null");
+	LIBZSTD = shell("find " LIB_PATH " -name \"libzstd.a\" -print -quit 2>/dev/null");
 	if (!strok(LIBZSTD)) {
-		nob_log(NOB_ERROR, "Unable to find 'libzstd'.");
+		nob_log(NOB_ERROR, "Unable to find 'libzstd.a' in non of following paths: '" LIB_PATH "'.");
 		exit(1);
 	}
 	nob_log(NOB_INFO, "Using 'libzstd' '%s'.", LIBZSTD);
 
-	LIBTINFO = shell("find /usr/lib /usr/local/lib -name \"libtinfo.a\" -print -quit 2>/dev/null");
+	LIBTINFO = shell("find " LIB_PATH " -name \"libtinfo.a\" -print -quit 2>/dev/null");
 	if (!strok(LIBTINFO)) {
-		nob_log(NOB_ERROR, "Unable to find 'libtinfo'.");
+		nob_log(NOB_ERROR, "Unable to find 'libtinfo.a' in non of following paths: '" LIB_PATH "'.");
 		exit(1);
 	}
 	nob_log(NOB_INFO, "Using 'libtinfo' '%s'.", LIBTINFO);
 }
 
 #elif __APPLE__
+
 void find_deps(void) {
 	if (!strok(shell("which brew"))) {
 		nob_log(NOB_ERROR, "Homebrew package manager not found. We currently require dependencies installed using homebrew because in some cases the MacOS Command Line tools does not provide static libraries.");

@@ -46,8 +46,17 @@ void find_llvm(void) {
 	}
 #endif
 
+	// Try llvm-config-N
 	if (!strlen(llvm_config)) {
 		cmd_append(&cmd, SHELL, "command -v llvm-config-" STR(LLVM_REQUIRED) " 2>/dev/null");
+		cmd_run_sync_read_and_reset(&cmd, &sb);
+		llvm_config = trim_and_dup(sb);
+		sb.count    = 0;
+	}
+
+	// Try llvm-config
+	if (!strlen(llvm_config)) {
+		cmd_append(&cmd, SHELL, "command -v llvm-config 2>/dev/null");
 		cmd_run_sync_read_and_reset(&cmd, &sb);
 		llvm_config = trim_and_dup(sb);
 		sb.count    = 0;
@@ -77,6 +86,19 @@ void find_llvm(void) {
 	if (sb.count == 0) exit(1);
 	LLVM_VERSION = trim_and_dup(sb);
 	sb.count     = 0;
+
+	// Check the version
+	int llvm_major, llvm_minor, llvm_patch;
+	if (sscanf(LLVM_VERSION, "%d.%d.%d", &llvm_major, &llvm_minor, &llvm_patch) != 3) {
+		nob_log(NOB_ERROR, "Unable to parse LLVM version '%s'.", LLVM_VERSION);
+		exit(1);
+	}
+
+	if (llvm_major != LLVM_REQUIRED) {
+		nob_log(NOB_ERROR, "Unsupported LLVM version '%s', expected is %d.", LLVM_VERSION, LLVM_REQUIRED);
+		exit(1);
+	}
+
 	nob_log(NOB_INFO, "Using LLVM %s.", LLVM_VERSION);
 
 	// include dir
@@ -93,7 +115,6 @@ void find_llvm(void) {
 	if (sb.count == 0) exit(1);
 	LLVM_LIBS = trim_and_dup(sb);
 	sb.count  = 0;
-	// nob_log(NOB_INFO, "LLVM " STR(LLVM_REQUIRED) " libs: %s", LLVM_LIBS);
 
 	// libdir
 	cmd_append(&cmd, llvm_config, "--libdir");
