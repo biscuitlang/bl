@@ -1,0 +1,25 @@
+build :: fn () #build_entry {
+
+	// Build the C library first.
+	switch PLATFORM {
+		Platform.WINDOWS {
+			os_execute("cl /c add.c & lib /out:add.lib add.obj");
+		}
+		Platform.LINUX, Platform.DARWIN {
+			os_execute("cc -c -fPIC add.c -o add.o && ar rcs libadd.a add.o");
+		}
+		default;
+	}
+
+	// Create executable target with name "test".
+	exe :: add_executable("test");
+	// Add one source file into the target.
+	add_unit(exe, "test.bl");
+	// Tell the linker to look for libs in current directory.
+	add_lib_path(exe, ".");
+	// Link static library called 'add'.
+	link_static_library(exe, "add");
+
+	// Compile the target.
+	compile(exe);
+}

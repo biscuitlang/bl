@@ -1,0 +1,16 @@
+#import "std/print" // Just for print.
+
+// Interface for the function implemented in out library. It must match the
+// C version:
+//
+//     int add(int a, int b)
+//
+// Name of the function can be whatever you want, but symbol name after
+// #extern directive must match the library function name.
+add_from_lib :: fn (a: s32, b: s32) s32 #extern "add";
+
+main :: fn () s32 {
+	result :: add_from_lib(10, 20);
+	print("result = %\n", result);
+	return 0;
+}

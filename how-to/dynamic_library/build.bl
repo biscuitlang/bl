@@ -1,0 +1,28 @@
+build :: fn () #build_entry {
+
+	// Build the C library first.
+	switch PLATFORM {
+		Platform.WINDOWS {
+			os_execute("CL /LD add.c");
+		}
+		Platform.LINUX {
+			os_execute("cc -shared -fPIC add.c -o libadd.so");
+		}
+		Platform.DARWIN {
+			os_execute("cc -shared -fPIC add.c -o libadd.dylib");
+		}
+		default;
+	}
+
+	// Create executable target with name "test".
+	exe :: add_executable("test");
+	// Add one source file into the target.
+	add_unit(exe, "test.bl");
+	// Tell the linker to look for dll in current directory.
+	add_lib_path(exe, ".");
+	// Link dynamic library called 'add'.
+	link_library(exe, "add");
+
+	// Compile the target.
+	compile(exe);
+}

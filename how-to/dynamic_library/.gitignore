@@ -1,0 +1,10 @@
+*.lib
+*.a
+*.so
+*.dylib
+*.pdb
+*.obj
+*.exe
+*.dll
+*.exp
+test
