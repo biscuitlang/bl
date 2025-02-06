@@ -1,0 +1,89 @@
+name: Nightly
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: 0 23 * * *
+
+jobs:
+  windows-release:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build
+      shell: cmd
+      run: | 
+        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        ./build.bat release all
+    - name: Prepare package
+      shell: powershell
+      run: |
+        mkdir dist
+        cp -r lib dist
+        cp -r bin dist
+        cp -r syntax dist
+        cp -r docs/side dist/docs
+        cp CHANGELOG.txt dist
+        cp LEGAL dist
+        cp LICENSE dist
+        cp README.md dist
+    - uses: actions/upload-artifact@v4
+      with:
+        name: blc-nightly-x86_64-windows
+        path: dist
+
+  linux-release:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Download LLVM
+      run: |
+        wget https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh 18
+    - name: Build
+      run: |
+        ./build.sh release all
+    - name: Prepare package
+      run: |
+        mkdir dist
+        cp -r lib dist
+        cp -r bin dist
+        cp -r syntax dist
+        cp -r docs/side dist/docs
+        cp CHANGELOG.txt dist
+        cp LEGAL dist
+        cp LICENSE dist
+        cp README.md dist
+    - uses: actions/upload-artifact@v4
+      with:
+        name: blc-x86_64-linux
+        path: dist
+
+  macos-release:
+    runs-on: macOS-14
+    steps:
+    - uses: actions/checkout@v2
+    - name: Download LLVM
+      run: |
+        brew install llvm@18 zlib ncurses
+        TMP_PATH=$(xcrun --show-sdk-path)/user/include
+        echo "CPATH=$TMP_PATH" >> $GITHUB_ENV
+    - name: Build
+      run: |
+        ./build.sh release all   
+    - name: Prepare package
+      run: |
+        mkdir dist
+        cp -r lib dist
+        cp -r bin dist
+        cp -r syntax dist
+        cp -r docs/side dist/docs
+        cp CHANGELOG.txt dist
+        cp LEGAL dist
+        cp LICENSE dist
+        cp README.md dist
+    - uses: actions/upload-artifact@v4
+      with:
+        name: blc-nightly-arm64-macos
+        path: dist
