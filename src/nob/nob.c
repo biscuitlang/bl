@@ -356,24 +356,24 @@ void find_deps(void) {
 
 	const char *libz_prefix = shell("brew --prefix zlib 2>/dev/null");
 	if (!strok(libz_prefix)) {
-		nob_log(NOB_ERROR, "Unable to find zlib brew package. Run 'brew install zlib'.");
+		nob_log(NOB_ERROR, "Unable to find zlib. Try 'brew install zlib'.");
 		exit(1);
 	}
 	LIBZ = shell(temp_sprintf(temp_sprintf("find %s/lib -name \"libz.a\" -print -quit 2>/dev/null", libz_prefix)));
 	if (!strok(LIBZ)) {
-		nob_log(NOB_ERROR, "Unable to find 'libz'.");
+		nob_log(NOB_ERROR, "Unable to find 'libz.a' on prefix '%s'.", libz_prefix);
 		exit(1);
 	}
 	nob_log(NOB_INFO, "Using 'libz' '%s'.", LIBZ);
 
 	const char *zstd_prefix = shell("brew --prefix zstd 2>/dev/null");
 	if (!strok(zstd_prefix)) {
-		nob_log(NOB_ERROR, "Unable to find zstd brew package.");
+		nob_log(NOB_ERROR, "Unable to find zstd. Try 'brew install zstd'.");
 		exit(1);
 	}
 	LIBZSTD = shell(temp_sprintf(temp_sprintf("find %s/lib -name \"libzstd.a\" -print -quit 2>/dev/null", zstd_prefix)));
 	if (!strok(LIBZSTD)) {
-		nob_log(NOB_ERROR, "Unable to find 'libzstd'.");
+		nob_log(NOB_ERROR, "Unable to find 'libzstd.a' on prefix '%s'.", zstd_prefix);
 		exit(1);
 	}
 	nob_log(NOB_INFO, "Using 'libzstd' '%s'.", LIBZSTD);
@@ -381,12 +381,12 @@ void find_deps(void) {
 	// This is required by LLVM for 3 or 4 functions, we should find the way how to not require this whole shit...
 	const char *ncurses_prefix = shell("brew --prefix ncurses 2>/dev/null");
 	if (!strok(ncurses_prefix)) {
-		nob_log(NOB_ERROR, "Unable to find ncurses brew package. Run 'brew install zlib'.");
+		nob_log(NOB_ERROR, "Unable to find ncurses. Try 'brew install ncurses'.");
 		exit(1);
 	}
 	LIBCURSES = shell(temp_sprintf(temp_sprintf("find %s/lib -name \"libcurses.a\" -print -quit 2>/dev/null", ncurses_prefix)));
 	if (!strok(LIBCURSES)) {
-		nob_log(NOB_ERROR, "Unable to find 'libcurses'.");
+		nob_log(NOB_ERROR, "Unable to find 'libcurses.a' on prefix '%s'.", ncurses_prefix);
 		exit(1);
 	}
 	nob_log(NOB_INFO, "Using 'libcurses' '%s'.", LIBCURSES);
