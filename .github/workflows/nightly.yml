@@ -57,7 +57,7 @@ jobs:
         cp README.md dist
     - uses: actions/upload-artifact@v4
       with:
-        name: blc-x86_64-linux
+        name: blc-nightly-x86_64-linux
         path: dist
 
   macos-release:
