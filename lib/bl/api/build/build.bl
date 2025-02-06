@@ -314,13 +314,13 @@ AssertMode :: enum s32 {
 /// ```
 add_executable :: fn (name: string_view) *Target {
 	if name.len == 0 { panic("Invalid executable name!"); }
-	return __add_target(strtoc(name), cast(s32) TargetKind.EXECUTABLE);
+	return __add_target(tstrtoc(name), cast(s32) TargetKind.EXECUTABLE);
 }
 
 /// Add new shared library target target into the current compilation queue.
 add_library :: fn (name: string_view) *Target {
 	if name.len == 0 { panic("Invalid library name!"); }
-	return __add_target(strtoc(name), cast(s32) TargetKind.SHARED_LIBRARY);
+	return __add_target(tstrtoc(name), cast(s32) TargetKind.SHARED_LIBRARY);
 }
 
 /// Add new source file into the `target`. Function does nothing when `filepath` is already present
@@ -328,7 +328,7 @@ add_library :: fn (name: string_view) *Target {
 add_unit :: fn (target: *Target, filepath: string_view) {
 	if !target { panic("Invalid target!"); }
 	if filepath.len == 0 { panic("Invalid unit path!"); }
-	__add_unit(target, strtoc(filepath));
+	__add_unit(target, tstrtoc(filepath));
 }
 
 /// Start compilation of the `target` assembly and return `ok` or `error` in case compilation failed.
@@ -352,16 +352,15 @@ add_lib_path :: fn (target: *Target, path: string_view) {
 	if !target { panic("Invalid target!"); }
 	if path.len == 0 { panic("Invalid library path!"); }
 
-	__add_lib_path(target, strtoc(path));
+	__add_lib_path(target, tstrtoc(path));
 }
 
-/// Add system library. Only name is required (without extension and prefix). Compiler will lookup
+/// Link dynamic library. Only name is required (without extension and prefix). Compiler will lookup
 /// for this library in working directory, system `PATH` and `LINKER_LIB_PATH` variable specified
-/// in `bl.conf` file. Linked library can be used also during compile-time execution, in such case
-/// all needed symbols are loaded in compile-time.
+/// in `bl.conf` file. You might add custom search locations using `add_lib_path` function.
 ///
-/// In general there is no need to link libraries manually, all needed dependencies should be
-/// handled by module import mechanism, however there is still an option do it manually.
+/// Linked library can be used also during compile-time execution, in such case all needed symbols are
+/// loaded in compile-time using dlopen.
 ///
 /// Library name platform specific rules:
 ///
@@ -392,7 +391,50 @@ link_library :: fn (target: *Target, name: string_view) {
 	if !target { panic("Invalid target!"); }
 	if name.len == 0 { panic("Invalid library name!"); }
 
-	__link_library(target, strtoc(name));
+	__link_library(target, tstrtoc(name));
+}
+
+/// Link static library. Only name is required (without extension and prefix). Compiler will lookup
+/// for this library in working directory, system `PATH` and `LINKER_LIB_PATH` variable specified
+/// in `bl.conf` file. You might add custom search locations using `add_lib_path` function.
+///
+/// Linked library **cannot** be used during compile-time execution, because compiler cannot load
+/// static libraries in runtime.
+///
+/// Library name platform specific rules:
+///
+/// * On Linux and MacOS name will be extended by 'lib' prefix and '.a' extension.
+/// * On Windows name will be extended only by '.lib' extension.
+link_static_library :: fn (target: *Target, name: string_view) {
+	if !target { panic("Invalid target!"); }
+	if name.len == 0 { panic("Invalid library name!"); }
+
+	using Platform;
+	switch PLATFORM {
+		WINDOWS {
+			append_linker_options(target, tprint("%.lib", name));
+		}
+
+		LINUX, DARWIN {
+			append_linker_options(target, tprint("-llib%.a", name));
+		}
+
+		default { panic("Unsupported target for static linking!"); }
+	}
+}
+
+/// Link framework on macOS.
+link_framework :: fn (target: *Target, name: string_view) {
+	if !target { panic("Invalid target!"); }
+	if name.len == 0 { panic("Invalid framework name!"); }
+	append_linker_options(target, tprint("-framework %", name));
+}
+
+/// Add framework search path on macOS.
+add_framework_path :: fn (target: *Target, path: string_view) {
+	if !target { panic("Invalid target!"); }
+	if path.len == 0 { panic("Invalid framework path!"); }
+	append_linker_options(target, tprint("-F\"%\"", path));
 }
 
 /// Appends raw string data directly to linker command. Passed option is added without any
@@ -400,7 +442,7 @@ link_library :: fn (target: *Target, name: string_view) {
 append_linker_options :: fn (target: *Target, option: string_view) {
 	if !target { panic("Invalid target!"); }
 	if option.len == 0 { return; }
-	__append_linker_options(target, strtoc(option));
+	__append_linker_options(target, tstrtoc(option));
 }
 
 /// Set build output directory. This is directory where all output files will be written. For
@@ -413,7 +455,7 @@ append_linker_options :: fn (target: *Target, option: string_view) {
 set_output_dir :: fn (target: *Target, dir: string_view) {
 	if !target { panic("Invalid target!"); }
 	if str_is_empty(dir) { return; }
-	__set_output_dir(target, strtoc(dir));
+	__set_output_dir(target, tstrtoc(dir));
 }
 
 /// Get output directory specified by [set_output_dir](#set_output_dir) or empty string.
@@ -430,7 +472,7 @@ get_output_dir :: fn (target: *Target) string_view {
 set_module_dir :: fn (target: *Target, dir: string_view) {
 	if !target { panic("Invalid target!"); }
 	if str_is_empty(dir) { return; }
-	__set_module_dir(target, strtoc(dir));
+	__set_module_dir(target, tstrtoc(dir));
 }
 
 /// Get module directory specified by [set_module_dir](#set_module_dir) or default one.

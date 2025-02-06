@@ -2329,7 +2329,53 @@ x86_64-pc-linux-gnu:
 
 # Libraries
 
-> TODO
+Since BL ABI is compatible with C, you can use C libraries from BL code pretty easily. There are two mandatory steps to do so. Create BL interface for C functions and types, and link the library. In general there are two options for linking: static and dynamic.
+
+Since there is no CLI for adjusting linker options directly, we have to use `build.bl` file.
+
+## Linking
+
+First we need some C library to test:
+
+```c
+@@@../../how-to/dynamic_library/add.c
+```
+
+**Dynamic Linking**
+
+Following build script will compile the C library first using C compiler, and then create BL exectuable linking it dynamically:
+
+```bl
+@@@../../how-to/dynamic_library/build.bl
+```
+
+**Static Linking**
+
+Following build script will compile the C library first using C compiler, and then create BL exectuable linking it statically:
+
+```bl
+@@@../../how-to/static_library/build.bl
+```
+
+And finally our `test.bl` file using external code from the library:
+
+```bl
+@@@../../how-to/dynamic_library/test.bl
+```
+
+## macOS frameworks
+
+There are two additional functions available on macOS for linking frameworks.
+
+```bl
+// To link macOS framework by name.
+link_framework(exe, "CoreFoundation");
+
+// To add framework search path for linker.
+add_framework_path(exe, "path/to/frameworks");
+```
+
+Currently these are only wrappers around `append_linker_options`. Note that macOS frameworks are not supported in compile-time execution. This might be improved in the future.
 
 # Type Info
 

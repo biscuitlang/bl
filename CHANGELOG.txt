@@ -1,7 +1,7 @@
 master
 ---------------------------------------------------------------------------------------
 
-Compilator:
+Compiler:
 
 - Change build system.
 
@@ -67,6 +67,9 @@ Compilator:
 - Fix reports of ambiguous symbols coming from module imports in case we have symbols
   with the same name in current module.
 - Module congifuration use comma separators on all platforms.
+- Improved "Libraries" section in documentation.
+- Add new examples into 'how-to' showing how to do static and dynamic linking of external
+  libraries.
 
 Modules:
 - Add math module.
@@ -82,6 +85,11 @@ std/string
 std/fs
 - Fix invalid file descriptor reported by `copy` function on linux and mac.
 
+build.bl
+- Add link_static_library. This function just formats name of static library based on current
+  platform and use append_linker_options to adjust linker arguments.
+- Add link_framework. For linking of macOS frameworks.
+- Add add_framework_path. For adding search path for macOS framewors.
 
 0.12.0
 ---------------------------------------------------------------------------------------
