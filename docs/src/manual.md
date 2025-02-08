@@ -2347,7 +2347,9 @@ x86_64-pc-linux-gnu:
 
 Since BL ABI is compatible with C, you can use C libraries from BL code pretty easily. There are two mandatory steps to do so. Create BL interface for C functions and types, and link the library. In general there are two options for linking: static and dynamic.
 
-Since there is no CLI for adjusting linker options directly, we have to use `build.bl` file.
+Since there is no CLI for adjusting linker options directly, we have to use `build.bl` file. 
+
+See also [Build System](modules_build.html#Build-System)
 
 ## Linking
 
@@ -2378,6 +2380,12 @@ And finally our `test.bl` file using external code from the library:
 ```bl
 @@@../../how-to/dynamic_library/test.bl
 ```
+
+## Library Path
+
+To find libraries we have to provide the linker with library paths for search. Compiler by default uses paths listed in `etc/bl.yaml` file in the compiler root directory. All paths are listed in `linker_lib_path` section, you might append this entry in case your path is missing from the list.
+
+Another option is using of `add_lib_path` function provided in the build API.
 
 ## macOS frameworks
 

@@ -325,13 +325,13 @@ static bool x86_64_apple_darwin(struct context *ctx) {
 
 static bool arm64_apple_darwin(struct context *ctx) {
 	const str_t COMMAND_LINE_TOOLS = cstr("/Library/Developer/CommandLineTools");
-	const str_t MACOS_SDK          = cstr("/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib");
 	const str_t LINKER_OPT_EXEC    = cstr("-e ___os_start -arch arm64");
 	const str_t LINKER_OPT_SHARED  = cstr("-dylib -arch arm64");
 
 	const str_t LINKER_LIB_PATHS[] = {
 	    cstr("/usr/lib"),
 	    cstr("/usr/local/lib"),
+	    cstr("/opt/homebrew/lib"),
 	    // Extend this in case we have some more known locations...
 	};
 
@@ -339,6 +339,13 @@ static bool arm64_apple_darwin(struct context *ctx) {
 
 	if (!dir_exists(COMMAND_LINE_TOOLS)) {
 		builder_error("Cannot find Command Line Tools on '" STR_FMT "', use 'xcode-select --install'.", STR_ARG(COMMAND_LINE_TOOLS));
+		return false;
+	}
+
+	// Lookup macos sdk
+	str_buf_t macos_sdk = execute("xcrun --show-sdk-path 2>/dev/null");
+	if (!macos_sdk.len) {
+		builder_error("Cannot find macOS SDK.");
 		return false;
 	}
 
@@ -357,6 +364,19 @@ static bool arm64_apple_darwin(struct context *ctx) {
 		}
 	}
 
+	{ // Try append defautl framework path.
+		str_buf_t tmp = get_tmp_str();
+		str_buf_append_fmt(&tmp, "{str}/System/Library/Frameworks", macos_sdk);
+		if (file_exists(tmp)) {
+			str_buf_append_fmt(&optexec, "-F{str} ", tmp);
+			str_buf_append_fmt(&optshared, "-F{str} ", tmp);
+		}
+		put_tmp_str(tmp);
+	}
+
+	str_buf_append_fmt(&libpath, ":{str}/{str}", macos_sdk, cstr("usr/lib"));
+	str_buf_free(&macos_sdk);
+
 	str_buf_t osver = execute("sw_vers -productVersion");
 	if (osver.len == 0) {
 		builder_warning("Cannot detect macOS product version!");
@@ -364,15 +384,6 @@ static bool arm64_apple_darwin(struct context *ctx) {
 		s32 major, minor, patch;
 		major = minor = patch = 0;
 		if (sscanf(osver.ptr, "%d.%d.%d", &major, &minor, &patch) > 0) {
-			// @Note 2024-08-04: minor and patch numbers are optional in the received string. We assume 0 in case they are
-			// not provided... (We love apples...)
-			if (major >= 11) {
-				if (!dir_exists(MACOS_SDK)) {
-					builder_error("Cannot find macOS SDK on '" STR_FMT "'.", STR_ARG(MACOS_SDK));
-				} else {
-					str_buf_append_fmt(&libpath, ":{str}", MACOS_SDK);
-				}
-			}
 			// @Note 2024-08-04: This is a bit hack, newer macos versions does not have separated standard
 			// libraries (probably to make developers constantly playing hide and seek with each version of
 			// their shit). Since there is no concept of system version in module setup, we cannot set it
@@ -388,6 +399,7 @@ static bool arm64_apple_darwin(struct context *ctx) {
 		} else {
 			builder_warning("Cannot parse macOS product version, provided string is '" STR_FMT "'!", STR_ARG(osver));
 		}
+
 		str_buf_append_fmt(&optexec, "-macos_version_min {str} ", osver);
 		str_buf_append_fmt(&optshared, "-macos_version_min {str} ", osver);
 	}

@@ -1,11 +1,13 @@
 # Installation
 
-# Use Pre-built Package
+!!! warning
+	This documentation refers to the current master branch containing unreleased changes. Use nightly build or build from the source.
 
-* Download required compiler version from [Github](https://github.com/biscuitlang/bl/releases).
-* Unpack downloaded file.
-* Optionally add `/path/to/blc/bin` to your system `PATH`.
-* Run `blc --help`.
+# Nightly Build
+
+* You might use a nightly release build (created daily from the current master branch) [Github](https://github.com/biscuitlang/bl/actions/workflows/nightly.yml).
+* Note that the nightly versions might be unstable.
+* Make sure you're using [master](https://biscuitlang.org/versions/master/) documentation.
 
 # Build from Source Code
 
@@ -121,9 +123,14 @@ Other internal options might be adjusted directly in `nob.c` file.
 
 ## Configuration
 
-The compiler requires configuration file to be generated before the first use.
+The compiler requires configuration file to be generated before the first use. Default configuration file `/path/to/bl/etc/bl.yaml` is created automatically on the first run. 
 
-Default configuration file `/path/to/bl/etc/bl.yaml` is created automatically on the first run. You can use `blc --where-is-config` to get full path to the default config file. To generate new one use `blc --configure` (the old one will be kept as a backup).
+You can use `blc --where-is-config` to get full path to the default config file. 
+
+To generate new one use `blc --configure` (the old one will be kept as a backup).
+
+!!! warning
+	New configuration file should be generated after changes done to the working environment (things like system update, VS update etc.). It's recommended to regenerate the config after compiler updates.
 
 **Example Windows config file:**
 

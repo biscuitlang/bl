@@ -85,6 +85,12 @@ Compiler:
   might by disabled by passing '--no-color' argument to the compiler.
 - Fix 'blc -init' to produce compilable 'src/main.bl'.
 - Generated documentation for structs now contains name of base struct.
+- Improved documentation of library linking.
+
+- Compiler macOS setup now include search path for system frameworks and library path provided
+  by brew by default.
+
+	Generate new configuration by 'blc --configure'.
 
 Modules:
 - Add math module.
