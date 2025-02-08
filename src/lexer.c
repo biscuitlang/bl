@@ -328,8 +328,8 @@ bool scan_char(struct context *ctx, struct token *tok) {
 		++ctx->c; // Eat backslash.
 		++tok->location.len;
 		tok->value_index = add_token_value(ctx, (union token_value){
-			.character = scan_specch(ctx, &tok->location.len),
-		});
+		                                            .character = scan_specch(ctx, &tok->location.len),
+		                                        });
 		break;
 	default:
 		tok->value_index  = add_token_value(ctx, (union token_value){.character = *ctx->c});

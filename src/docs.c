@@ -237,13 +237,19 @@ void doc_type_enum(struct context *ctx, struct ast *type) {
 }
 
 void doc_type_struct(struct context *ctx, struct ast *type) {
-	if (!ctx->is_multi_return)
-		if (type->data.type_strct.is_union)
+	if (!ctx->is_multi_return) {
+		if (type->data.type_strct.is_union) {
 			fprintf(ctx->stream, "union {");
-		else
+		} else if (type->data.type_strct.base_type) {
+			struct ast *base_ident = type->data.type_strct.base_type->data.ref.ident;
+			const str_t base_name  = base_ident ? base_ident->data.ident.id.str : make_str_from_c("UNKNOWN");
+			fprintf(ctx->stream, "struct #base " STR_FMT " {", STR_ARG(base_name));
+		} else {
 			fprintf(ctx->stream, "struct {");
-	else
+		}
+	} else {
 		fprintf(ctx->stream, "(");
+	}
 
 	ctx->indentation += 1;
 	ast_nodes_t *members = type->data.type_strct.members;
