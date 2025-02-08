@@ -91,12 +91,14 @@ Result :: struct {
 Args :: struct {
 	keep_temporary: bool;
 	cases: []string_view;
+	no_color: bool;
 }
 
 args: Args;
 working_directory: string_view;
 temporary_directory: string_view;
 compiler: string_view;
+compiler_default_args: string_view;
 main_file: string_view;
 
 main :: fn () s32 {
@@ -104,6 +106,7 @@ main :: fn () s32 {
 
 	working_directory = get_working_directory();
 	compiler = get_compiler_path();
+	compiler_default_args = "--no-warning --silent";
 	temporary_directory = get_full_path(TEMPORARY_DIR);
 	main_file = get_full_path("tests/main.test.bl");
 
@@ -120,6 +123,7 @@ main :: fn () s32 {
 		argparse.add_usage(&parser, "[options]");
 		argparse.add_positional(&parser, &args.cases, "--test-cases", "-tc", "List of test cases to execute.");
 		argparse.add(&parser, &args.keep_temporary, "--keep-temporary", "", "Keep created temporary directory.");
+		argparse.add(&parser, &args.no_color, "--no-color", "", "Disable ANSI colors.");
 		_, parse_error :: argparse.parse(&parser, command_line_arguments);
 		if parse_error {
 			print_err(parse_error);
@@ -139,6 +143,10 @@ main :: fn () s32 {
 	array_init(&files, 256, &default_temporary_allocator);
 
 	print_sections :: args.cases.len == 0;
+
+	if (args.no_color) {
+		compiler_default_args = tprint("% --no-color", compiler_default_args);
+	}
 
 	using TestKind;
 
@@ -202,7 +210,7 @@ main :: fn () s32 {
 		if test.platform == Platform.UNKNOWN || test.platform == PLATFORM {
 			test_file(&results, get_full_path(test.name), test.kind);
 		} else {
-			print("[ SKIP |      ] %\n", test.name);
+			print("[ % |      ] %\n", colorize("SKIP", 33), test.name);
 		}
 	}
 
@@ -212,7 +220,7 @@ main :: fn () s32 {
 	loop i := 0; i < results.len; i += 1 {
 		result :: &results[i];
 		if result.state != State.PASSED {
-			print("[ \033[31mFAIL\033[0m ] '%' (%)\n", result.name, result.state);
+			print("[ % ] '%' (%)\n", colorize("FAIL", 31), result.name, result.state);
 			failed_count += 1;
 		}
 	}
@@ -264,7 +272,7 @@ test_file :: fn (results: *[..]Result, filepath: string_view, kind: TestKind) {
 	using TestKind;
 	switch kind {
 		EXECUTE {
-			if os_execute(tprint("% % %", compiler, "--no-warning --silent", filepath)) != 0 {
+			if os_execute(tprint("% % %", compiler, compiler_default_args, filepath)) != 0 {
 				result.state |= FAILED_COMPILE;
 			} else if os_execute(tprint("% %", get_exe_name(), silent_output())) != 0 {
 				result.state |= FAILED_EXECUTE;
@@ -273,37 +281,37 @@ test_file :: fn (results: *[..]Result, filepath: string_view, kind: TestKind) {
 		}
 
 		COMPILE {
-			if os_execute(tprint("% % %", compiler, "--no-warning --silent --no-bin", filepath)) != 0 {
+			if os_execute(tprint("% % % %", compiler, compiler_default_args, "--no-bin", filepath)) != 0 {
 				result.state |= FAILED_COMPILE;
 			}
 			report(result);
 		}
 
 		BUILD {
-			if os_execute(tprint("% % --work-dir=\"%\" -build", compiler, "--no-warning --silent", filepath)) != 0 {
+			if os_execute(tprint("% % --work-dir=\"%\" -build", compiler, compiler_default_args, filepath)) != 0 {
 				result.state |= FAILED_COMPILE;
 			}
 			report(result);
 		}
 
 		TEST_EXECUTE {
-			if os_execute(tprint("% % % %", compiler, "--no-warning --silent", main_file, filepath)) != 0 {
+			if os_execute(tprint("% % % %", compiler, compiler_default_args, main_file, filepath)) != 0 {
 				result.state |= FAILED_COMPILE;
-			} else if os_execute(get_exe_name()) != 0 {
+			} else if os_execute(tprint("% %", get_exe_name(), if args.no_color then "--no-color" else "")) != 0 {
 				result.state |= FAILED_EXECUTE;
 			}
 		}
 
 		TEST_EXECUTE_RELEASE {
-			if os_execute(tprint("% % % %", compiler, "--no-warning --silent -release", main_file, filepath)) != 0 {
+			if os_execute(tprint("% % % % %", compiler, compiler_default_args, "-release", main_file, filepath)) != 0 {
 				result.state |= FAILED_COMPILE_RELEASE;
-			} else if os_execute(get_exe_name()) != 0 {
+			} else if os_execute(tprint("% %", get_exe_name(), if args.no_color then "--no-color" else "")) != 0 {
 				result.state |= FAILED_EXECUTE_RELEASE;
 			}
 		}
 
 		TEST_RUN {
-			if os_execute(tprint("% % % %", compiler, "--no-warning --silent --no-bin --run-tests --tests-minimal-output", main_file, filepath)) != 0 {
+			if os_execute(tprint("% % % % %", compiler, compiler_default_args, "--no-bin --run-tests --tests-minimal-output", main_file, filepath)) != 0 {
 				result.state |= FAILED_RUN;
 			}
 		}
@@ -315,7 +323,7 @@ test_file :: fn (results: *[..]Result, filepath: string_view, kind: TestKind) {
 				result.state |= FAILED_EXPECT_FAIL;
 				msg = "Expected error code not found!";
 			} else {
-				state := os_execute(tprint("% % % %", compiler, "--no-warning --silent --no-bin", filepath, silent_output()));
+				state := os_execute(tprint("% % % % %", compiler, compiler_default_args, "--no-bin", filepath, silent_output()));
 				if state != expected_code {
 					result.state |= FAILED_EXPECT_FAIL;
 					msg = tprint("Expected '%' but returned '%'\n", errtostr(expected_code), errtostr(state));
@@ -326,11 +334,16 @@ test_file :: fn (results: *[..]Result, filepath: string_view, kind: TestKind) {
 	}
 }
 
+colorize :: fn (text: string_view, color: u8) string_view {
+	if args.no_color then return text;
+	return tprint("\033[%m%\033[0m", color, text);
+}
+
 report :: fn (result: *Result, msg := "") {
 	if result.state != State.PASSED {
-		print("[      | \033[31mFAIL\033[0m ] % %\n", result.name, msg);
+		print("[      | % ] % %\n", colorize("FAIL", 31), result.name, msg);
 	} else {
-		print("[ \033[32mPASS\033[0m |      ] % %\n", result.name, msg);
+		print("[ % |      ] % %\n", colorize("PASS", 32), result.name, msg);
 	}
 }
 

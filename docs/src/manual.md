@@ -1659,6 +1659,22 @@ text ::
     "lines.";
 ```
 
+Special characters might be encoded into string with use of escape sequence introduced by backslash character:
+
+```bl
+"\n" // New line.
+"\r" // Carriage return.
+"\t" // Tab.
+"\"" // Double quote.
+"\'" // Single quote.
+"\\" // Backslash.
+
+// ASCII code in octal format (up to 0377).
+"\033" // Escape character.
+
+// ASCII code in hex format (up to 0xFF).
+"\x1B" // Escape character.
+```
 
 # Operators
 

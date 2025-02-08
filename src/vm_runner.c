@@ -68,9 +68,13 @@ void vm_tests_run(struct assembly *assembly) {
 		const f64   runtime_ms = get_tick_ms() - start;
 		const str_t name       = test_fn->id->str;
 		if (state == VM_INTERP_PASSED) {
-			printf("[ PASS |      ] " STR_FMT " (%f ms)\n", STR_ARG(name), runtime_ms);
+			printf("[ ");
+			color_print(stdout, BL_GREEN, "PASS");
+			printf(" |      ] " STR_FMT " (%f ms)\n", STR_ARG(name), runtime_ms);
 		} else {
-			printf("[      | FAIL ] " STR_FMT " (%f ms)\n", STR_ARG(name), runtime_ms);
+			printf("[      | ");
+			color_print(stdout, BL_RED, "FAIL");
+			printf(" ] " STR_FMT " (%f ms)\n", STR_ARG(name), runtime_ms);
 			arrput(failed, ((struct case_meta){.name = name, .runtime_ms = runtime_ms}));
 			builder.errorc = 0;
 			++failed_count;
@@ -85,7 +89,9 @@ void vm_tests_run(struct assembly *assembly) {
 		printf(TEXT_LINE "\n");
 		for (s64 i = 0; i < arrlen(failed); ++i) {
 			struct case_meta *f = &failed[i];
-			printf("[      | FAIL ] " STR_FMT " (%f ms)\n", STR_ARG(f->name), f->runtime_ms);
+			printf("[      | ");
+			color_print(stdout, BL_RED, "FAIL");
+			printf(" ] " STR_FMT " (%f ms)\n", STR_ARG(f->name), f->runtime_ms);
 		}
 
 		if (arrlen(failed)) printf(TEXT_LINE "\n");

@@ -251,9 +251,11 @@ test_is_error :: fn (got_err: Error, expected_code: s32, loc := #call_location) 
 ///     return test_run();
 /// }
 /// ```
-test_run :: fn (print_results := true) s32 {
+test_run :: fn (print_results := true, ansi_colors := false) s32 {
 	sighup :: fn (_: C.int) {};
 	C.signal(C.SIGHUP, &sighup);
+
+	_colors = ansi_colors;
 
 	cases := TEST_CASES;
 	if cases.len == 0 {
@@ -298,7 +300,7 @@ test_run :: fn (print_results := true) s32 {
 		loop i := 0; i < _queue.len; i += 1 {
 			test :: &_queue[i];
 			if !test.passed {
-				print("[      | FAIL ] % (% ms)\n", test.name, test.runtime_ms);
+				print("[      | % ] % (% ms)\n", colorize("FILE", 31), test.name, test.runtime_ms);
 			}
 		}
 		perc := 100;
@@ -336,11 +338,20 @@ _queue: [..]TestRun;
 _current: *TestRun;
 _ci: s64;
 _start_time: f64;
+_colors: bool;
+
+_colorized_buffer: [128]u8;
+
+colorize :: fn (text: string_view, color: u8) string_view {
+	if !_colors then return text;
+	len :: bprint(_colorized_buffer, "\033[%m%\033[0m", color, text);
+	return .{ len, _colorized_buffer.ptr };
+}
 
 abort_handler :: fn () {
 	_current.runtime_ms = os_ftick_ms() - _start_time;
 	_current.passed = false;
-	print("[      | \033[31mFAIL\033[0m ] % (% ms)\n", _current.name, _current.runtime_ms);
+	print("[      | % ] % (% ms)\n", colorize("FAIL", 31), _current.name, _current.runtime_ms);
 	thread_exit(1);
 	__os_abort_default();
 }
@@ -353,7 +364,7 @@ worker :: fn (_: *u8) s32 {
 		_current.func();
 		_current.runtime_ms = os_ftick_ms() - _start_time;
 		_current.passed = true;
-		print("[ \033[32mPASS\033[0m |      ] % (% ms)\n", _current.name, _current.runtime_ms);
+		print("[ % |      ] % (% ms)\n", colorize("PASS", 32), _current.name, _current.runtime_ms);
 	}
 	return 0;
 }

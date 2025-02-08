@@ -74,12 +74,15 @@ Compiler:
 - Add LLVM version check on linux.
 - Add more search paths for compiler dependencies on linux.
 
-- Add support for character escape codes.
+- Add support for character escape code parsing in strings and character literals.
 
-	Newly '\0OOO' (octal notation) and '\xHH' (hex notation) can be used in strings. Thus
-	we can now handle things like:
+	Newly '\0OOO' (octal notation) and '\xHH' (hex notation) can be used to specify ASCII code.
+    Thus we can now handle things like:
 
 	print("\033[34mBlue Text\033[0m\n");
+
+- Compile-time test run when '--run-tests' is used now outputs ANSI colored reports, this
+  might by disabled by passing '--no-color' argument to the compiler.
 
 Modules:
 - Add math module.
@@ -94,6 +97,10 @@ std/string
 
 std/fs
 - Fix invalid file descriptor reported by `copy` function on linux and mac.
+
+std/test
+- test_run now output ANSI colored reports in case 'ansi_color' argument passed to the
+  function is 'true'.
 
 build.bl
 - Add link_static_library. This function just formats name of static library based on current

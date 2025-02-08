@@ -1,5 +1,9 @@
 TODO:
 
+- 'blc --init' does not compile there is missing '#import "std/print".
+- Documentation generated struct types miss base type.
+  - Add also link to source file on github.
+
 - Use #run to mark function to be executed in compile time on the call side: '#run foo()'.
 - Use #run to mark function executed only in compile time on the declaration side: 'foo :: fn () #run {}'.
 - Consider #import and #load to be limited only to the file scope.

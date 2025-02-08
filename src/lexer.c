@@ -68,7 +68,6 @@ static bool       scan_string(struct context *ctx, struct token *tok);
 static bool       scan_char(struct context *ctx, struct token *tok);
 static bool       scan_number(struct context *ctx, struct token *tok);
 static inline int c_to_number(char c, s32 base);
-static char       scan_specch(char c);
 
 static inline u32 add_token_value(struct context *ctx, union token_value value) {
 	const u32 index = (u32)arrlenu(ctx->tokens->values);
@@ -205,28 +204,7 @@ bool scan_ident(struct context *ctx, struct token *tok) {
 	return_zone(true);
 }
 
-inline char scan_specch(char c) {
-	switch (c) {
-	case 'n':
-		return '\n';
-	case 'r':
-		return '\r';
-	case 't':
-		return '\t';
-	case '0':
-		return '\0';
-	case '\"':
-		return '\"';
-	case '\'':
-		return '\'';
-	case '\\':
-		return '\\';
-	default:
-		return c;
-	}
-}
-
-static char scan_specch2(struct context *ctx, s32 *len) {
+static char scan_specch(struct context *ctx, u32 *len) {
 	*len += 1;
 	const char c = *ctx->c++;
 	switch (c) {
@@ -292,7 +270,7 @@ bool scan_string(struct context *ctx, struct token *tok) {
 	tok->location.col  = ctx->col;
 	tok->sym           = SYM_STRING;
 	char c;
-	s32  len = 0;
+	u32  len = 0;
 
 	// eat "
 	ctx->c++;
@@ -308,7 +286,7 @@ bool scan_string(struct context *ctx, struct token *tok) {
 		case '\\':
 			++ctx->c; // Eat backslash.
 			++len;
-			c = scan_specch2(ctx, &len);
+			c = scan_specch(ctx, &len);
 			break;
 
 		default:
@@ -347,9 +325,11 @@ bool scan_char(struct context *ctx, struct token *tok) {
 	}
 	case '\\':
 		// special character
-		tok->value_index = add_token_value(ctx, (union token_value){.character = scan_specch(*(ctx->c + 1))});
-		ctx->c += 2;
-		tok->location.len = 2;
+		++ctx->c; // Eat backslash.
+		++tok->location.len;
+		tok->value_index = add_token_value(ctx, (union token_value){
+			.character = scan_specch(ctx, &tok->location.len),
+		});
 		break;
 	default:
 		tok->value_index  = add_token_value(ctx, (union token_value){.character = *ctx->c});

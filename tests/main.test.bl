@@ -10,7 +10,11 @@ main :: fn () s32 {
 
 	//debug_allocator_break(&debug_allocator, 3);
 
-	result := test_run(false);
+	colors := true;
+	if command_line_arguments.len > 1 && str_match(command_line_arguments[1], "--no-color") then colors = false;
+
+	result := test_run(false, colors);
+
 	if dump_memory_leaks(&debug_allocator) > 0 {
 		result += 1;
 	}
@@ -22,6 +26,7 @@ main :: fn () s32 {
 #import "std/debug_allocator"
 #import "std/pool"
 #import "std/print"
+#import "std/string"
 
 io :: #import "std/io";
 

@@ -1,5 +1,31 @@
 #scope_private
 
+lex_char :: fn () #test {
+	test_eq('\n', 10);
+	test_eq('\r', 13);
+	test_eq('\t', 9);
+	test_eq('\'', 39);
+	test_eq('\"', 34);
+	test_eq('\\', 92);
+}
+
+lex_char_oct :: fn () #test {
+	test_eq('\0', 0);
+	test_eq('\01', 1);
+	test_eq('\011', 9);
+	test_eq('\0111', 73);
+	test_eq('\0377', 255);
+}
+
+lex_char_hex :: fn () #test {
+	test_eq('\x', 0);
+	test_eq('\x1', 0x1);
+	test_eq('\xa', 0xA);
+	test_eq('\xF', 0xF);
+	test_eq('\x11', 0x11);
+	test_eq('\xFF', 0xFF);
+}
+
 lex_string :: fn () #test {
 	s1 := "";
 	test_eq(s1.len, 0);
