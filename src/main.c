@@ -748,7 +748,8 @@ int main(s32 argc, char *argv[]) {
 				builder_error("Could not create main file!");
 				EXIT(EXIT_FAILURE);
 			}
-			const char *main_example = "main :: fn() s32 {\n"
+			const char *main_example = "#import \"std/print\"\n\n"
+			                           "main :: fn() s32 {\n"
 			                           "\tprint(\"Hello World!\\n\");\n"
 			                           "\treturn 0;\n"
 			                           "}\n";

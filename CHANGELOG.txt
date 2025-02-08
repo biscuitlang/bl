@@ -83,6 +83,7 @@ Compiler:
 
 - Compile-time test run when '--run-tests' is used now outputs ANSI colored reports, this
   might by disabled by passing '--no-color' argument to the compiler.
+- Fix 'blc -init' to produce compilable 'src/main.bl'.
 
 Modules:
 - Add math module.
