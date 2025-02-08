@@ -2347,7 +2347,7 @@ x86_64-pc-linux-gnu:
 
 Since BL ABI is compatible with C, you can use C libraries from BL code pretty easily. There are two mandatory steps to do so. Create BL interface for C functions and types, and link the library. In general there are two options for linking: static and dynamic.
 
-Since there is no CLI for adjusting linker options directly, we have to use `build.bl` file. 
+Since there is no CLI for adjusting linker options directly, we have to use `build.bl` file.
 
 See also [Build System](modules_build.html#Build-System)
 
@@ -2592,70 +2592,214 @@ Biscuit language compiler is a standalone terminal application called *blc*.  It
 
 There are several options that can be passed to the compiler.
 
-## Compiler Options
+## Compiler Arguments
 
-```text
-blc --help
+Run `blc --help` to get all supported arguments.
 
-Usage:
-  blc [options] [source-files]
+`-build`
 
-Alternative usage:
-  blc [options] <-build> [build-arguments]
-  blc [options] <-run> <source-file> [arguments] [forwarded-arguments]
+Invoke project build pipeline. All following arguments are forwarded into the build script and ignored by the compiler itself. Use as `-build [arguments]`.
 
-Options:
-  -build                   Invoke project build pipeline. All following arguments are forwarded into the build script and ignored by compiler itself. Use as '-build [arguments]'.
-  -doc                     Generate documentation and exit.
-  -opt=<debug|release-fast|release-small|release-with-debug-info>
-                           Specify binary optimization mode (use 'debug' by default).
-  -release                 Specify binary optimization mode to release. (same as '-opt=release-fast')
-  -run                     Execute BL program using interpreter and exit. The compiler expects <source-file> after '-run' flag, the file name and all following command line arguments are passed into the executed program and ignored by compiler itself. Use as '-run <source-file> [arguments]'.
-  -shared                  Compile shared library.
-  -silent-run              Execute BL program using interpreter and exit. The compiler expects <source-file> after '-silent-run' flag, the file name and all following command line arguments are passed into the executed program and ignored by compiler itself. Use as '-silent-run <source-file> [arguments]'. This flag also suppress all compiler console outputs. Basically it combines '-run' and '--silent' into a single flag. This can be useful in case the compiler is called implicitly from UNIX shebang.
-  --about                  Print compiler info and exit
-  --assert=<default|on|off>
-                           Set assert mode ('default' option sets assert 'on' in debug and 'off' in release mode).
-  --ast-dump               Print AST.
-  --configure              Generate configuration file and exit.
-  --di=<dwarf|codeview>    Set debug info format.
-  --doc-out-dir=<STRING>   Set documentation output directory. (Use 'out' in current working directory by default.)
-  --emit-asm               Write assembly to file.
-  --emit-llvm              Write LLVM-IR to file.
-  --emit-mir               Write MIR to file.
-  --error-limit=<N>        Set maximum reported error count.
-  --full-path              Report full file paths.
-  --help                   Print usage information and exit.
-  --lex-dump               Print tokens.
-  --no-analyze             Disable analyze pass, only parse and exit.
-  --no-api                 Don't load internal API.
-  --no-bin                 Don't write binary to disk.
-  --no-color               Disable colored output.
-  --no-jobs                Enable single-thread mode.
-  --no-llvm                Disable LLVM back-end.
-  --no-usage-check         Disable checking of unused symbols.
-  --no-warning             Ignore all warnings.
-  --override-config=<STRING>
-                           Set custom path to the 'bl.yaml' configuration file.
-  --reg-split=<off|on>     Enable/disable splitting of structures passed into the function by value into registers.
-  --run-tests              Execute all unit tests in compile time.
-  --scope-dump-injection   Print scope injection structure in dot Graphviz format.
-  --scope-dump-parenting   Print scope parenting structure in dot Graphviz format.
-  --silent                 Disable compiler console logging.
-  --stats                  Print compilation statistics.
-  --syntax-only            Check syntax and exit.
-  --target-experimental    Enable experimental compilation targets.
-  --target-host            Print current host target triple and exit.
-  --target-supported       Print all supported targets and exit. (Cross compilation is not allowed yet!)
-  --tests-minimal-output   Reduce compile-time tests (--run-tests) output (remove results section).
-  --verbose                Enable verbose mode.
-  --verify-llvm            Verify LLVM IR after generation.
-  --version                Print compiler version and exit.
-  --vmdbg-attach           Attach compile-time execution debugger.
-  --vmdbg-break-on=<N>     Attach compile-time execution debugger and sets break point to the MIR instruction with <N> id.
-  --where-is-api           Print path to API folder and exit.
-  --work-dir=<STRING>      Set current working directory. Compiler use by default the current working directory to output all files.
-```
+`-doc`
+
+Generate documentation and exit.
+
+`-init`
+
+Creates a new project in the current folder. Use as `-init [project-name]`.
+
+`-opt=<debug|release-fast|release-small|release-with-debug-info>`
+
+Specify binary optimization mode (use 'debug' by default).
+
+`-release`
+
+Specify binary optimization mode to release. (Same as `-opt=release-fast`).
+
+`-run`
+
+Execute BL program using interpreter and exit. The compiler expects `<source-file>` after `-run` flag. The file name and all following command line arguments are passed into the executed program and ignored by the compiler itself. Use as `-run <source-file> [arguments]`.
+
+`-shared`
+
+Compile shared library.
+
+`-silent-run`
+
+Execute BL program using interpreter and exit. The compiler expects `<source-file>` after `-silent-run` flag. The file name and all following command line arguments are passed into the executed program and ignored by the compiler itself. This flag also suppresses all compiler console outputs. Combines `-run` and `--silent` into a single flag. Useful when called implicitly from UNIX shebang.
+
+`--about`
+
+Print compiler info and exit.
+
+`--assert=<default|on|off>`
+
+Set assert mode (`'default'` option sets assert `'on'` in debug and `'off'` in release mode).
+
+`--ast-dump`
+
+Print Abstract Syntax Tree (AST).
+
+`--configure`
+
+Generate configuration file and exit.
+
+`--di=<dwarf|codeview>`
+
+Set debug info format.
+
+`--do-cleanup=<off|on>`
+
+Toggles whether compiler should release allocated memory when compilation is done. (`off` by default).
+
+`--doc-out-dir=<STRING>`
+
+Set documentation output directory. (Uses `out` in current working directory by default).
+
+`--emit-asm`
+
+Write assembly to file.
+
+`--emit-llvm`
+
+Write LLVM-IR to file.
+
+`--emit-mir`
+
+Write MIR to file.
+
+`--error-limit=<N>`
+
+Set maximum reported error count.
+
+`--full-path`
+
+Report full file paths.
+
+`--help`
+
+Print usage information and exit.
+
+`--lex-dump`
+
+Print tokens.
+
+`--no-analyze`
+
+Disable analyze pass, only parse and exit.
+
+`--no-api`
+
+Don't load internal API.
+
+`--no-bin`
+
+Don't write binary to disk.
+
+`--no-color`
+
+Disable colored output.
+
+`--no-jobs`
+
+Enable single-thread mode. Useful for compiler debugging.
+
+`--no-llvm`
+
+Disable LLVM back-end.
+
+`--no-usage-check`
+
+Disable checking of unused symbols.
+
+`--no-warning`
+
+Ignore all warnings.
+
+`--output=<STRING>`
+
+Specify name of the output binary.
+
+`--override-config=<STRING>`
+
+Set custom path to the `bl.yaml` configuration file.
+
+`--reg-split=<off|on>`
+
+Enable/disable splitting of structures passed into the function by value into registers. This feature is supposed to be enabled on System V ABI compatible systems.
+
+`--run-tests`
+
+Execute all unit tests during compile time.
+
+`--scope-dump-injection`
+
+Print scope injection structure in dot Graphviz format.
+
+`--scope-dump-parenting`
+
+Print scope parenting structure in dot Graphviz format.
+
+`--silent`
+
+Disable compiler console logging.
+
+`--stats`
+
+Print compilation statistics.
+
+`--syntax-only`
+
+Check syntax and exit.
+
+`--target-experimental`
+
+Enable experimental compilation targets.
+
+`--target-host`
+
+Print current host target triple and exit.
+
+`--target-supported`
+
+Print all supported targets and exit. (Cross compilation is not allowed yet!)
+
+`--tests-minimal-output`
+
+Reduce compile-time tests (`--run-tests`) output (removes results section).
+
+`--verbose`
+
+Enable verbose mode.
+
+`--verify-llvm`
+
+Verify LLVM IR after generation.
+
+`--version`
+
+Print compiler version and exit.
+
+`--vmdbg-attach`
+
+Attach compile-time execution debugger.
+
+`--vmdbg-break-on=<N>`
+
+Attach compile-time execution debugger and set break point to the MIR instruction with `<N>` id.
+
+`--where-is-api`
+
+Print path to API folder and exit.
+
+`--where-is-config`
+
+Print path to default `bl.yaml` configuration file and exit.
+
+`--work-dir=<STRING>`
+
+Set current working directory. The compiler uses the current working directory by default to output all files.
+
 
 ## Configuration
 
