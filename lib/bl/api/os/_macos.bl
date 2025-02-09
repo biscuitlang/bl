@@ -112,8 +112,27 @@ os_get_backtrace :: fn (skip_frames := 0 #maybe_unused, max_frame_count := 64 #m
 	trace: [..]CodeLocation;
 	return trace;
 }
+
 __os_debug_break :: fn () #inline #compiler {
 	C.raise(C.SIGTRAP);
+}
+
+__os_is_debugger_present :: fn () bool {
+	mib: [4]s32;
+	mib[0] = CTL_KERN;
+	mib[1] = KERN_PROC;
+	mib[2] = KERN_PROC_PID;
+	mib[3] = C.getpid();
+
+	info: kinfo_proc #noinit;
+	size : u64 : sizeof(info);
+
+	if sysctl(mib.ptr, auto mib.len, auto &info, &size, null, 0) == -1 {
+		// panic(os_get_last_error2());
+		return false;
+	}
+
+	return (info.kp_proc.p_flag & P_TRACED) != 0;
 }
 
 __os_write :: fn (fd: s32, buf: *u8, count: usize) s32 {
@@ -121,7 +140,6 @@ __os_write :: fn (fd: s32, buf: *u8, count: usize) s32 {
 }
 
 __os_abort :: fn () #compiler {
-	#if IS_DEBUG { __os_debug_break(); }
 	if application_context.abort_fn {
 		application_context.abort_fn();
 	} else {
@@ -130,6 +148,7 @@ __os_abort :: fn () #compiler {
 }
 
 __os_abort_default :: fn () {
+	if __os_is_debugger_present() then __os_debug_break();
 	if !IS_COMPTIME_RUN { print_backtrace(); }
 	C.raise(C.SIGABRT);
 }
@@ -167,6 +186,11 @@ __os_start :: fn (argc: s64, argv: **u8, _: **u8) #entry {
 #scope_private
 #import "os/macos"
 #import "std/string"
+
+// @Incomplete 2025-02-09: Both modules are arm-only. We might consider support also
+// intel based macs; but aren't they too old now?
+#import "os/posix/sysctl"
+#import "os/posix/proc"
 
 io :: #import "std/io";
 C  :: #import "libc";

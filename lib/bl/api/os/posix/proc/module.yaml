@@ -1,0 +1,5 @@
+version: 20240803
+supported: " arm64-apple-darwin"
+
+arm64-apple-darwin:
+  src: "proc.bl"

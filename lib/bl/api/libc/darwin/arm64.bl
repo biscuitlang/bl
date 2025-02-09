@@ -4,3 +4,5 @@ readdir :: fn (dirp: *DIR) *dirent_t #extern "readdir";
 rewinddir :: fn (dirp: *DIR) #extern "rewinddir";
 stat :: fn (path: *char, buf: *stat_t) int #extern "stat";
 fstat :: fn (fd: int, stat: *stat_t) int #extern "fstat";
+
+_JBLEN  :: ((14 + 8 + 2) * 2);

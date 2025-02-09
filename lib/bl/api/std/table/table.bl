@@ -161,7 +161,7 @@ tbl_erase :: fn (tbl: *?T, key: tbl_typeof_key(T)) bool #inline {
 		// slots here.
 		last_entry_key :: tbl.keys[tbl.len-1];
 		last_entry_slot_index :: lookup_indices(tbl, calculate_hash(last_entry_key), last_entry_key);
-		assert(last_entry_slot_index >= 0);
+		assert(last_entry_slot_index >= 0 && last_entry_slot_index < tbl.slots.len);
 		tbl.slots[last_entry_slot_index].index = erase_entry_index + 1;
 	}
 	array_erase(&tbl.keys, erase_entry_index);
@@ -271,6 +271,7 @@ insert :: fn (tbl: *?T, hash: u32, key: tbl_typeof_key(T)) *tbl_typeof_value(T) 
 	value_ptr := array_push(&tbl.values);
 	assert(tbl.keys.len == tbl.values.len);
 	tbl.len += 1;
+	assert(slot_index >= 0 && slot_index < tbl.slots.len);
 	tbl.slots[slot_index].index = cast(s32) tbl.len; // NO -1 (0 is free slot)
 	tbl.slots[slot_index].hash  = hash;
 	return value_ptr;
@@ -286,6 +287,7 @@ find_free_slot_index :: fn (tbl: *?T, hash: u32, panic_on_resize := false) s32 {
 	index := cast(s32) (hash % auto tbl.slots.len);
 	increment := initial_increment(tbl, hash);
 	loop {
+		assert(index >= 0 && index < tbl.slots.len);
 		entry_index :: tbl.slots[index].index;
 		if entry_index == EMPTY_INDEX || entry_index == DELETED_INDEX {
 			break;
@@ -304,6 +306,7 @@ lookup_indices :: fn (tbl: *?T, hash: u32, key: tbl_typeof_key(T)) (slot_index: 
 	index := cast(s32) (hash % auto slots.len);
 	increment := initial_increment(tbl, hash);
 	loop {
+		assert(index >= 0 && index < tbl.slots.len);
 		slot :: &slots[index];
 		if slot.index == EMPTY_INDEX { break; }
 		if slot.hash == hash && compare_keys(tbl.keys[slot.index-1], key) {
@@ -332,6 +335,7 @@ resize :: fn (tbl: *?T, new_size : s32 = DEFAULT_ENTRIES_COUNT) {
 		slot :: &old_slots[i];
 		if slot.index == EMPTY_INDEX || slot.index == DELETED_INDEX { continue; }
 		new_slot_index :: find_free_slot_index(tbl, slot.hash);
+		assert(new_slot_index >= 0 && new_slot_index < tbl.slots.len);
 		tbl.slots[new_slot_index].index = slot.index;
 		tbl.slots[new_slot_index].hash  = slot.hash;
 		used_count -= 1;

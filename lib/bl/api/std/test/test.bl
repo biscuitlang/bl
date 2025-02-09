@@ -255,18 +255,15 @@ test_run :: fn (print_results := true, ansi_colors := false) s32 {
 	sighup :: fn (_: C.int) {};
 	C.signal(C.SIGHUP, &sighup);
 
-	_colors = ansi_colors;
+	print_colors = ansi_colors;
 
 	cases := TEST_CASES;
-	if cases.len == 0 {
-		return 0;
-	}
-	_ci = 0;
+	if cases.len == 0 then return 0;
 
 	// setup cases
-	array_init(&_queue);
-	array_reserve(&_queue, cases.len);
-	defer array_terminate(&_queue);
+	array_init(&run_queue);
+	array_reserve(&run_queue, cases.len);
+	defer array_terminate(&run_queue);
 
 	string_pool :: pool_make(application_context.allocator);
 	defer release_allocator(&string_pool);
@@ -275,21 +272,31 @@ test_run :: fn (print_results := true, ansi_colors := false) s32 {
 		case :: &cases[i];
 		name := str_new(&string_pool);
 		str_concat(&name, case.file, ":", case.line, ": ", case.name);
-		array_push(&_queue, TestRun.{ case.func, name });
+		array_push(&run_queue, .{ case.func, name });
 	}
 
 	old_context :: application_context;
 	application_context.abort_fn = &abort_handler;
 
-	loop _ci < _queue.len {
-		t :: thread_create(&worker);
-		thread_join(t);
+	run_index = 0;
+	loop ; run_index < run_queue.len; run_index += 1 {
+		if C.setjmp(&jmp_buffer) == 1 {
+			continue;
+		}
+
+		test :: &run_queue[run_index];
+		test.start_time = os_ftick_ms();
+		test.func();
+		test.runtime_ms = os_ftick_ms() - test.start_time;
+		test.passed = true;
+
+		print("[ % |      ] % (% ms)\n", colorize("PASS", 32), test.name, test.runtime_ms);
 	}
 	application_context = old_context;
 
 	failed_count: s64;
-	loop i := 0; i < _queue.len; i += 1 {
-		if !_queue[i].passed {
+	loop i := 0; i < run_queue.len; i += 1 {
+		if !run_queue[i].passed {
 			failed_count += 1;
 		}
 	}
@@ -297,19 +304,19 @@ test_run :: fn (print_results := true, ansi_colors := false) s32 {
 	if print_results {
 		print("\nResults:\n");
 		print("%\n", TEXT_LINE);
-		loop i := 0; i < _queue.len; i += 1 {
-			test :: &_queue[i];
+		loop i := 0; i < run_queue.len; i += 1 {
+			test :: &run_queue[i];
 			if !test.passed {
 				print("[      | % ] % (% ms)\n", colorize("FILE", 31), test.name, test.runtime_ms);
 			}
 		}
 		perc := 100;
 		if failed_count > 0 {
-			perc = cast(s32) (cast(f32) (_queue.len - failed_count) / ((cast(f32) _queue.len) * 0.01f));
+			perc = cast(s32) (cast(f32) (run_queue.len - failed_count) / ((cast(f32) run_queue.len) * 0.01f));
 			print("%\n", TEXT_LINE);
 		}
 		// @HACK: Cannot print percent, escape sequence cannot be easily detected here.
-		print("Executed: %, passed %%.\n", _queue.len, perc, "%");
+		print("Executed: %, passed %%.\n", run_queue.len, perc, "%");
 		print("%\n", TEXT_LINE);
 	}
 
@@ -331,42 +338,33 @@ TestRun :: struct {
 	name: string_view;
 	passed: bool;
 	runtime_ms: f64;
+	start_time: f64;
 }
 
 TEXT_LINE :: "--------------------------------------------------------------------------------";
-_queue: [..]TestRun;
-_current: *TestRun;
-_ci: s64;
-_start_time: f64;
-_colors: bool;
+run_queue: [..]TestRun;
+run_index: s64;
 
-_colorized_buffer: [128]u8;
+print_colors: bool;
+jmp_buffer: C.jmp_buf;
+
+colorized_buffer: [128]u8;
 
 colorize :: fn (text: string_view, color: u8) string_view {
-	if !_colors then return text;
-	len :: bprint(_colorized_buffer, "\033[%m%\033[0m", color, text);
-	return .{ len, _colorized_buffer.ptr };
+	if !print_colors then return text;
+	len :: bprint(colorized_buffer, "\033[%m%\033[0m", color, text);
+	return .{ len, colorized_buffer.ptr };
 }
 
 abort_handler :: fn () {
-	_current.runtime_ms = os_ftick_ms() - _start_time;
-	_current.passed = false;
-	print("[      | % ] % (% ms)\n", colorize("FAIL", 31), _current.name, _current.runtime_ms);
-	thread_exit(1);
-	__os_abort_default();
-}
+	if __os_is_debugger_present() then __os_debug_break();
 
-worker :: fn (_: *u8) s32 {
-	loop _ci < _queue.len {
-		_current = &_queue[_ci];
-		_ci += 1;
-		_start_time = os_ftick_ms();
-		_current.func();
-		_current.runtime_ms = os_ftick_ms() - _start_time;
-		_current.passed = true;
-		print("[ % |      ] % (% ms)\n", colorize("PASS", 32), _current.name, _current.runtime_ms);
-	}
-	return 0;
+	test :: &run_queue[run_index];
+	test.runtime_ms = os_ftick_ms() - test.start_time;
+	test.passed     = false;
+	print("[      | % ] % (% ms)\n", colorize("FAIL", 31), test.name, test.runtime_ms);
+
+	C.longjmp(&jmp_buffer, 1);
 }
 
 stop :: fn (loc: *CodeLocation) #inline {

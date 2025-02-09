@@ -1,0 +1,85 @@
+// TODO:
+// - This api is incomplete.
+// - Implemented only for ARM64
+
+// Depricated on Linux
+
+proc :: u8;
+
+caddr_t :: *C.char;
+sigacts :: u8;
+vnode :: u8;
+pgrp :: u8;
+user :: u8;
+rusage :: u8;
+sigset_t :: u32;
+fixpt_t :: u32;
+
+// From sys/param.h
+MAXCOMLEN :: 16;              /* max command name remembered */
+
+vmspace :: struct {
+	dummy: s32;
+	dummy2: caddr_t;
+	dummy3: [5]s32;
+	dummy4: [3]caddr_t;
+}
+
+extern_proc :: struct {
+	p_un: union {
+		p_st1: struct {
+			__p_forw: *proc; /* Doubly-linked run/sleep queue. */
+			__p_back: *proc;
+		};
+		__p_starttime: C.timeval;
+	} ;
+	p_vmspace: *vmspace;     /* Address space. */
+	p_sigacts: *sigacts;     /* Signal actions, state (PROC ONLY). */
+	p_flag: C.int;                 /* P_* flags. */
+	p_stat: C.char;                 /* S* process status. */
+	p_pid: C.pid_t;                  /* Process identifier. */
+	p_oppid: C.pid_t;         /* Save parent pid during ptrace. XXX */
+	p_dupfd: C.int;         /* Sideways return value from fdopen. XXX */
+	/* Mach related  */
+	user_stack: caddr_t;     /* where user stack was allocated */
+	exit_thread: C.void_ptr;   /* XXX Which thread is exiting? */
+	p_debugger: C.int;             /* allow to debug */
+	sigwait: s32;        /* indication to suspend */
+	/* scheduling */
+	p_estcpu: C.uint;        /* Time averaged value of p_cpticks. */
+	p_cpticks: C.int;       /* Ticks of cpu time. */
+	p_pctcpu: fixpt_t;        /* %cpu for this process during p_swtime */
+	p_wchan: C.void_ptr;        /* Sleep address. */
+	p_wmesg: *C.char;        /* Reason for sleep. */
+	p_swtime: C.uint;        /* Time swapped in or out. */
+	p_slptime: C.uint;       /* Time since last blocked. */
+	p_realtimer: C.itimerval;  /* Alarm timer. */
+	p_rtime: C.timeval;        /* Real time. */
+	p_uticks: u64;              /* Statclock hits in user mode. */
+	p_sticks: u64;              /* Statclock hits in system mode. */
+	p_iticks: u64;              /* Statclock hits processing intr. */
+	p_traceflag: C.int;            /* Kernel trace points. */
+	p_tracep: *vnode;        /* Trace to vnode. */
+	p_siglist: C.int;              /* DEPRECATED. */
+	p_textvp: *vnode;        /* Vnode of executable. */
+	p_holdcnt: C.int;              /* If non-zero, don't swap. */
+	p_sigmask: sigset_t;     /* DEPRECATED. */
+	p_sigignore: sigset_t;   /* Signals being ignored. */
+	p_sigcatch: sigset_t;    /* Signals being caught by user. */
+	p_priority: u8;     /* Process priority. */
+	p_usrpri: u8;       /* User-priority based on p_cpu and p_nice. */
+	p_nice: C.char;         /* Process "nice" value. */
+	p_comm: [MAXCOMLEN + 1]C.char;
+	p_pgrp: *pgrp;   /* Pointer to process group. */
+	p_addr: *user;   /* Kernel virtual addr of u-area (PROC ONLY). */
+	p_xstat: C.ushort;        /* Exit status for wait; also stop signal. */
+	p_acflag: C.ushort;       /* Accounting flags. */
+	p_ru: *rusage;   /* Exit information. XXX */
+};
+
+
+P_TRACED :: 0x00000800;      /* Debugged process being traced */
+
+#scope_module
+
+C :: #import "libc";

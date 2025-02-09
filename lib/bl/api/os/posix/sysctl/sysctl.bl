@@ -1,0 +1,170 @@
+// TODO:
+// - This api is incomplete.
+// - Implemented only for ARM64
+
+// Note this API is deprecated on Linux.
+
+// extern_proc :: struct {
+// 	_: [296]u8;
+// }
+
+session :: u8;
+ucred :: u8;
+
+gid_t :: u32;
+uid_t :: u32;
+dev_t :: s32;
+segsz_t :: s32;
+
+CTL_UNSPEC ::      0;               /* unused */
+CTL_KERN ::        1;               /* "high kernel": proc, limits */
+CTL_VM ::          2;               /* virtual memory */
+CTL_VFS ::         3;               /* file system, mount type is next */
+CTL_NET ::         4;               /* network, see socket.h */
+CTL_DEBUG ::       5;               /* debugging parameters */
+CTL_HW ::          6;               /* generic cpu/io */
+CTL_MACHDEP ::     7;               /* machine dependent */
+CTL_USER ::        8;               /* user-level */
+CTL_MAXID ::       9;
+
+/*
+* KERN_PROC subtypes
+*/
+KERN_PROC_ALL ::           0;       /* everything */
+KERN_PROC_PID ::           1;       /* by process id */
+KERN_PROC_PGRP ::          2;       /* by process group id */
+KERN_PROC_SESSION ::       3;       /* by session of pid */
+KERN_PROC_TTY ::           4;       /* by controlling tty */
+KERN_PROC_UID ::           5;       /* by effective uid */
+KERN_PROC_RUID ::          6;       /* by real uid */
+KERN_PROC_LCID ::          7;       /* by login context id */
+
+/*
+* CTL_KERN identifiers
+*/
+KERN_OSTYPE ::              1;      /* string: system version */
+KERN_OSRELEASE ::           2;      /* string: system release */
+KERN_OSREV ::               3;      /* int: system revision */
+KERN_VERSION ::             4;      /* string: compile time info */
+KERN_MAXVNODES ::           5;      /* int: max vnodes */
+KERN_MAXPROC ::             6;      /* int: max processes */
+KERN_MAXFILES ::            7;      /* int: max open files */
+KERN_ARGMAX ::              8;      /* int: max arguments to exec */
+KERN_SECURELVL ::           9;      /* int: system security level */
+KERN_HOSTNAME ::           10;      /* string: hostname */
+KERN_HOSTID ::             11;      /* int: host identifier */
+KERN_CLOCKRATE ::          12;      /* struct: struct clockrate */
+KERN_VNODE ::              13;      /* struct: vnode structures */
+KERN_PROC ::               14;      /* struct: process entries */
+KERN_FILE ::               15;      /* struct: file entries */
+KERN_PROF ::               16;      /* node: kernel profiling info */
+KERN_POSIX1 ::             17;      /* int: POSIX.1 version */
+KERN_NGROUPS ::            18;      /* int: # of supplemental group ids */
+KERN_JOB_CONTROL ::        19;      /* int: is job control available */
+KERN_SAVED_IDS ::          20;      /* int: saved set-user/group-ID */
+KERN_BOOTTIME ::           21;      /* struct: time kernel was booted */
+KERN_NISDOMAINNAME ::      22;      /* string: YP domain name */
+KERN_DOMAINNAME ::         KERN_NISDOMAINNAME;
+KERN_MAXPARTITIONS ::      23;      /* int: number of partitions/disk */
+KERN_KDEBUG ::             24;      /* int: kernel trace points */
+KERN_UPDATEINTERVAL ::     25;      /* int: update process sleep time */
+KERN_OSRELDATE ::          26;      /* int: OS release date */
+KERN_NTP_PLL ::            27;      /* node: NTP PLL control */
+KERN_BOOTFILE ::           28;      /* string: name of booted kernel */
+KERN_MAXFILESPERPROC ::    29;      /* int: max open files per proc */
+KERN_MAXPROCPERUID ::      30;      /* int: max processes per uid */
+KERN_DUMPDEV ::            31;      /* dev_t: device to dump on */
+KERN_IPC ::                32;      /* node: anything related to IPC */
+KERN_DUMMY ::              33;      /* unused */
+KERN_PS_STRINGS :: 34;      /* int: address of PS_STRINGS */
+KERN_USRSTACK32 :: 35;      /* int: address of USRSTACK */
+KERN_LOGSIGEXIT :: 36;      /* int: do we log sigexit procs? */
+KERN_SYMFILE ::            37;      /* string: kernel symbol filename */
+KERN_PROCARGS ::           38;
+KERN_NETBOOT ::            40;      /* int: are we netbooted? 1=yes,0=no */
+KERN_SYSV ::               42;      /* node: System V IPC information */
+KERN_AFFINITY ::           43;      /* xxx */
+KERN_TRANSLATE ::          44;      /* xxx */
+KERN_CLASSIC ::            KERN_TRANSLATE;  /* XXX backwards compat */
+KERN_EXEC ::               45;      /* xxx */
+KERN_CLASSICHANDLER ::     KERN_EXEC; /* XXX backwards compatibility */
+KERN_AIOMAX ::             46;      /* int: max aio requests */
+KERN_AIOPROCMAX ::         47;      /* int: max aio requests per process */
+KERN_AIOTHREADS ::         48;      /* int: max aio worker threads */
+KERN_COREFILE ::           50;      /* string: corefile format string */
+KERN_COREDUMP ::           51;      /* int: whether to coredump at all */
+KERN_SUGID_COREDUMP ::     52;      /* int: whether to dump SUGID cores */
+KERN_PROCDELAYTERM ::      53;      /* int: set/reset current proc for delayed termination during shutdown */
+KERN_SHREG_PRIVATIZABLE :: 54;      /* int: can shared regions be privatized ? */
+KERN_LOW_PRI_WINDOW ::     56;      /* int: set/reset throttle window - milliseconds */
+KERN_LOW_PRI_DELAY ::      57;      /* int: set/reset throttle delay - milliseconds */
+KERN_POSIX ::              58;      /* node: posix tunables */
+KERN_USRSTACK64 ::         59;      /* LP64 user stack query */
+KERN_NX_PROTECTION ::      60;      /* int: whether no-execute protection is enabled */
+KERN_TFP ::                61;      /* Task for pid settings */
+KERN_PROCNAME ::           62;      /* setup process program  name(2*MAXCOMLEN) */
+KERN_THALTSTACK ::         63;      /* for compat with older x86 and does nothing */
+KERN_SPECULATIVE_READS ::  64;      /* int: whether speculative reads are disabled */
+KERN_OSVERSION ::          65;      /* for build number i.e. 9A127 */
+KERN_SAFEBOOT ::           66;      /* are we booted safe? */
+KERN_RAGEVNODE ::          68;
+KERN_TTY ::                69;      /* node: tty settings */
+KERN_CHECKOPENEVT ::       70;      /* spi: check the VOPENEVT flag on vnodes at open time */
+KERN_THREADNAME ::         71;      /* set/get thread name */
+KERN_MAXID ::              72;      /* number of valid kern ids */
+
+NGROUPS :: 16;
+
+_pcred :: struct {
+	pc_lock: [72]C.char;
+	pc_ucred: *ucred;
+	p_ruid: uid_t;
+	p_svuid: uid_t;
+	p_rgid: gid_t;
+	p_svgid: gid_t;
+	p_refcnt: C.int;
+}
+
+_ucred :: struct {
+	cr_ref: s32;
+	cr_uid: uid_t;
+	cr_ngroups: C.short;
+	cr_groups: [NGROUPS]gid_t;
+}
+
+WMESGLEN :: 7;
+EPROC_CTTY :: 0x01;
+EPROC_SLEADER :: 0x02;
+COMAPT_MAXLOGNAME :: 12;
+
+kinfo_proc :: struct {
+	kp_proc: extern_proc;
+	kp_eproc: struct {
+		e_paddr: *proc;
+		e_sess: *session;
+		e_pcred: _pcred;
+		e_ucred: _ucred;
+		e_vm: vmspace;
+		e_ppid: C.pid_t;
+		e_pgid: C.pid_t;
+		e_jobc: C.short;
+		e_tdev: dev_t;
+		e_tpgid: C.pid_t;
+		e_tsess: *session;
+		e_wmesg: [WMESGLEN + 1]C.char;
+		e_xsize: segsz_t;
+		e_xrssize: C.short;
+		e_xccount: C.short;
+		e_xswrss: C.short;
+		e_flag: s32;
+		e_login: [COMAPT_MAXLOGNAME]C.char;
+		e_spare: [4]s32;
+	};
+}
+
+sysctl :: fn (name: *C.int, namelen: C.uint, oldp: C.void_ptr, oldlenp: *C.size_t, newp: C.void_ptr, newlen: C.size_t) C.int #extern "sysctl";
+
+#scope_module
+
+C :: #import "libc";
+#import "os/posix/proc"

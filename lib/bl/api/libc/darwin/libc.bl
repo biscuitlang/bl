@@ -129,6 +129,11 @@ timeval :: struct {
 	tv_usec: suseconds_t;
 }
 
+itimerval :: struct {
+	it_interval: timeval;    /* timer interval */
+	it_value: timeval;       /* current value */
+}
+
 STDIN  :: 0;
 STDOUT :: 1;
 STDERR :: 2;
@@ -398,6 +403,15 @@ unsetenv :: fn (name: *char) int #extern "unsetenv";
 WEXITSTATUS :: fn (x: s32) s32 #inline {
 	return (x >> 8) & 0x000000ff;
 }
+
+jmp_buf :: struct {
+	_: [_JBLEN]int;
+}
+
+setjmp :: fn (buf: *jmp_buf) int #extern "setjmp";
+longjmp :: fn (buf: *jmp_buf, status: int) #extern "longjmp";
+
+getpid :: fn () pid_t #extern "getpid";
 
 #scope_private
 #import "os/posix/syscall"
