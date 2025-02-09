@@ -320,7 +320,8 @@ int main(s32 argc, char *argv[]) {
 	Options opt = {0};
 	setlocale(LC_ALL, "C.utf8");
 
-	s32 state = EXIT_SUCCESS;
+	s32  state         = EXIT_SUCCESS;
+	bool no_finish_msg = false;
 
 	bl_alloc_init();
 
@@ -471,6 +472,11 @@ int main(s32 argc, char *argv[]) {
 		    .name       = "--silent",
 		    .property.b = &opt.builder.silent,
 		    .help       = "Disable compiler console logging.",
+		},
+		{
+		    .name       = "--no-finished-report",
+		    .property.b = &no_finish_msg,
+		    .help       = "Disable printing of final compilation time report.",
 		},
 		{
 		    .name       = "--no-color",
@@ -854,9 +860,11 @@ SKIP:
 
 	opt.builder.do_cleanup_when_done = opt.app.do_cleanup_when_done;
 
-	state                = builder_compile(opt.target);
-	const f64 runtime_ms = get_tick_ms() - start_time_ms;
-	builder_info("Finished in %.3f seconds.", runtime_ms * 0.001);
+	state = builder_compile(opt.target);
+	if (!no_finish_msg) {
+		const f64 runtime_ms = get_tick_ms() - start_time_ms;
+		builder_info("Finished in %.3f seconds.", runtime_ms * 0.001);
+	}
 
 RELEASE:
 	if (opt.app.do_cleanup_when_done) {

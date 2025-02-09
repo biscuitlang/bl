@@ -1,7 +1,7 @@
 master
 ---------------------------------------------------------------------------------------
 
-Compiler:
+[Compiler]
 
 - Change build system.
 
@@ -67,7 +67,6 @@ Compiler:
 - Fix reports of ambiguous symbols coming from module imports in case we have symbols
   with the same name in current module.
 - Module congifuration use comma separators on all platforms.
-- Improved "Libraries" section in documentation.
 - Add new examples into 'how-to' showing how to do static and dynamic linking of external
   libraries.
 - Nob on linux tries to fallback to `llvm-config` in case `llvm-config-X` wasnt found.
@@ -85,14 +84,17 @@ Compiler:
   might by disabled by passing '--no-color' argument to the compiler.
 - Fix 'blc -init' to produce compilable 'src/main.bl'.
 - Generated documentation for structs now contains name of base struct.
-- Improved documentation of library linking.
 
 - Compiler macOS setup now include search path for system frameworks and library path provided
   by brew by default.
 
 	Generate new configuration by 'blc --configure'.
 
-Modules:
+- Add --no-finished-report compiler flag to disable printing of final compilation time report.
+- Doctor now outputs warnings in examples.
+
+
+[Modules]
 - Add math module.
 
 std/sync:
@@ -115,6 +117,14 @@ build.bl
   platform and use append_linker_options to adjust linker arguments.
 - Add link_framework. For linking of macOS frameworks.
 - Add add_framework_path. For adding search path for macOS framewors.
+
+[Documentation]
+- Improved "Libraries" section in documentation.
+- Improved documentation of library linking.
+- Add more examples into web documentation. Web listed examples now points directly to the
+  github.
+- Fix syntax highlight issues caused by multiline comments in generated documentation.
+- Fix warnings in examples.
 
 0.12.0
 ---------------------------------------------------------------------------------------

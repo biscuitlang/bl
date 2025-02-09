@@ -9,26 +9,15 @@ C  :: #import "libc";
 #import "std/print"
 #import "std/array"
 
+GITHUB_BASE :: "https://github.com/biscuitlang/bl/blob";
+
+GIT_BRANCH:  string;
+GITHUB_ROOT: string;
+
 MD_PAGES :: [_]string_view.{
 	"index",
 	"manual",
 	"examples",
-
-	"examples/argparse",
-	"examples/arrays",
-	"examples/bucket_array",
-	"examples/demo",
-	"examples/dynamic_arrays",
-	"examples/first_program",
-	"examples/flow_control",
-	"examples/polymorph",
-	"examples/simple_allocator",
-	"examples/slices",
-	"examples/streams",
-	"examples/table",
-	"examples/thread_local_variable",
-	"examples/threading",
-	"examples/variables",
 };
 
 MD_PAGES_MODULES :: [_]string_view.{
@@ -196,6 +185,12 @@ main :: fn () s32 {
 	SIDE_DIR       :: "side";
 	LIB_DIR        :: "../lib/bl/api";
 	MODULE_OUT_DIR :: tprint("%/%", SRC_DIR, "modules");
+
+	GIT_BRANCH  = get_blc_branch();
+	GITHUB_ROOT = sprint("%/%", GITHUB_BASE, GIT_BRANCH);
+
+	defer str_delete(&GIT_BRANCH);
+	defer str_delete(&GITHUB_ROOT);
 
 	defer temporary_release();
 
@@ -441,7 +436,7 @@ generate_page :: fn (filepath: string_view, menu: string_view, content: string_v
 		"<a href=\"https://biscuitlang.org\"><img src=\"biscuit_logo.svg\"></a>\n"
 		"<label class=\"version\">%</label>\n"
 		"</div>\n",
-		get_blc_branch())
+		GIT_BRANCH)
 	);
 
 	write_string(&file, menu);
@@ -623,7 +618,23 @@ enter_span :: fn (kind: MD_SPANTYPE, detail: *C.void_ptr, ctx: *Ctx) C.int {
 		MD_SPAN_STRONG { str_append(&ctx.content, "<b>"); }
 		MD_SPAN_A {
 			a :: cast(*MD_SPAN_A_DETAIL)detail;
-			str_concat(&ctx.content, "<a href=\"", string_view.{ auto a.href.size, auto a.href.text }, "\">");
+			link :: string_view.{ auto a.href.size, auto a.href.text };
+			str_append(&ctx.content, "<a href=\"");
+			loop i := 0; i < link.len; i += 1 {
+				if link[i] == '$' {
+					i += 1;
+					key := string_view.{ 0, &link[i] };
+					loop ; i < link.len; i += 1 {
+						if link[i] == '$' then break;
+						key.len += 1;
+					}
+					if str_match(key, "GITHUB") then str_append(&ctx.content, GITHUB_ROOT);
+					continue;
+				}
+				str_append(&ctx.content, string_view.{ 1, &link[i] });
+			}
+
+			str_append(&ctx.content, "\">");
 		}
 		default;
 	}
@@ -936,10 +947,10 @@ get_root_dir :: fn () string {
 	return str_new(exec_dir);
 }
 
-get_blc_branch :: fn () string_view #inline {
+get_blc_branch :: fn () string #inline {
 	branch_name, err :: cmd_read_stdout("git branch --show-current");
-	if err { print_err(err); return "UNKNOWN"; }
-	return branch_name;
+	if err { print_err(err); return str_new("UNKNOWN"); }
+	return str_new(branch_name);
 }
 
 list_files_recursive :: fn (dirpath: string_view, out: *string) {

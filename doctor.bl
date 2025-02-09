@@ -106,7 +106,7 @@ main :: fn () s32 {
 
 	working_directory = get_working_directory();
 	compiler = get_compiler_path();
-	compiler_default_args = "--no-warning --silent";
+	compiler_default_args = "--full-path --no-finished-report";
 	temporary_directory = get_full_path(TEMPORARY_DIR);
 	main_file = get_full_path("tests/main.test.bl");
 
@@ -191,7 +191,7 @@ main :: fn () s32 {
 	files.len = 0;
 	list_dir(&files, get_full_path(EXAMPLES_DIR));
 	loop i := 0; i < files.len; i += 1 {
-		test_file(&results, files[i], EXECUTE);
+		test_file(&results, files[i], EXECUTE, "");
 	}
 
 	// Test fail expected
@@ -243,7 +243,7 @@ cleanup :: fn () {
 	}
 }
 
-test_file :: fn (results: *[..]Result, filepath: string_view, kind: TestKind) {
+test_file :: fn (results: *[..]Result, filepath: string_view, kind: TestKind, compiler_custom_args := "--no-warning") {
 	using State;
 	name: string_view;
 	if !str_split_by_last(filepath, '/', null, &name) {
@@ -269,10 +269,12 @@ test_file :: fn (results: *[..]Result, filepath: string_view, kind: TestKind) {
 		if str_match(skip.name, result.name) && kind == skip.kind { return; }
 	}
 
+	compiler_args :: tprint("% %", compiler_default_args, compiler_custom_args);
+
 	using TestKind;
 	switch kind {
 		EXECUTE {
-			if os_execute(tprint("% % %", compiler, compiler_default_args, filepath)) != 0 {
+			if os_execute(tprint("% % %", compiler, compiler_args, filepath)) != 0 {
 				result.state |= FAILED_COMPILE;
 			} else if os_execute(tprint("% %", get_exe_name(), silent_output())) != 0 {
 				result.state |= FAILED_EXECUTE;
@@ -281,21 +283,21 @@ test_file :: fn (results: *[..]Result, filepath: string_view, kind: TestKind) {
 		}
 
 		COMPILE {
-			if os_execute(tprint("% % % %", compiler, compiler_default_args, "--no-bin", filepath)) != 0 {
+			if os_execute(tprint("% % % %", compiler, compiler_args, "--no-bin", filepath)) != 0 {
 				result.state |= FAILED_COMPILE;
 			}
 			report(result);
 		}
 
 		BUILD {
-			if os_execute(tprint("% % --work-dir=\"%\" -build", compiler, compiler_default_args, filepath)) != 0 {
+			if os_execute(tprint("% % --work-dir=\"%\" -build", compiler, compiler_args, filepath)) != 0 {
 				result.state |= FAILED_COMPILE;
 			}
 			report(result);
 		}
 
 		TEST_EXECUTE {
-			if os_execute(tprint("% % % %", compiler, compiler_default_args, main_file, filepath)) != 0 {
+			if os_execute(tprint("% % % %", compiler, compiler_args, main_file, filepath)) != 0 {
 				result.state |= FAILED_COMPILE;
 			} else if os_execute(tprint("% %", get_exe_name(), if args.no_color then "--no-color" else "")) != 0 {
 				result.state |= FAILED_EXECUTE;
@@ -303,7 +305,7 @@ test_file :: fn (results: *[..]Result, filepath: string_view, kind: TestKind) {
 		}
 
 		TEST_EXECUTE_RELEASE {
-			if os_execute(tprint("% % % % %", compiler, compiler_default_args, "-release", main_file, filepath)) != 0 {
+			if os_execute(tprint("% % % % %", compiler, compiler_args, "-release", main_file, filepath)) != 0 {
 				result.state |= FAILED_COMPILE_RELEASE;
 			} else if os_execute(tprint("% %", get_exe_name(), if args.no_color then "--no-color" else "")) != 0 {
 				result.state |= FAILED_EXECUTE_RELEASE;
@@ -311,7 +313,7 @@ test_file :: fn (results: *[..]Result, filepath: string_view, kind: TestKind) {
 		}
 
 		TEST_RUN {
-			if os_execute(tprint("% % % % %", compiler, compiler_default_args, "--no-bin --run-tests --tests-minimal-output", main_file, filepath)) != 0 {
+			if os_execute(tprint("% % % % %", compiler, compiler_args, "--no-bin --run-tests --tests-minimal-output", main_file, filepath)) != 0 {
 				result.state |= FAILED_RUN;
 			}
 		}
@@ -323,7 +325,7 @@ test_file :: fn (results: *[..]Result, filepath: string_view, kind: TestKind) {
 				result.state |= FAILED_EXPECT_FAIL;
 				msg = "Expected error code not found!";
 			} else {
-				state := os_execute(tprint("% % % % %", compiler, compiler_default_args, "--no-bin", filepath, silent_output()));
+				state := os_execute(tprint("% % % % %", compiler, compiler_args, "--no-bin", filepath, silent_output()));
 				if state != expected_code {
 					result.state |= FAILED_EXPECT_FAIL;
 					msg = tprint("Expected '%' but returned '%'\n", errtostr(expected_code), errtostr(state));

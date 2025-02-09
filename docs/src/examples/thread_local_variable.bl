@@ -16,7 +16,7 @@ main :: fn () s32 {
 	return 0;
 }
 
-first :: fn (args: *u8) s32 {
+first :: fn (args: *u8 #maybe_unused) s32 {
 	loop i := 0; i < COUNT; i += 1 {
 		counter += 1;
 		os_sleep_ms(5);
@@ -25,7 +25,7 @@ first :: fn (args: *u8) s32 {
 	return 0;
 }
 
-second :: fn (args: *u8) s32 {
+second :: fn (args: *u8 #maybe_unused) s32 {
 	loop i := 0; i < COUNT; i += 1 {
 		counter += 1;
 		os_sleep_ms(10);

@@ -2700,6 +2700,10 @@ Don't write binary to disk.
 
 Disable colored output.
 
+`--no-finished-report`
+
+Disable printing of final compilation time report.
+
 `--no-jobs`
 
 Enable single-thread mode. Useful for compiler debugging.
