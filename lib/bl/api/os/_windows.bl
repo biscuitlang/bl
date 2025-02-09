@@ -111,6 +111,11 @@ os_get_last_error2 :: fn () Error #inline {
 }
 
 os_get_backtrace :: fn (skip_frames := 0, max_frame_count := 64) []CodeLocation {
+	if IS_COMPTIME_RUN {
+		print_warn("os_get_backtrace is not available in VM execution mode.");
+		return .{};
+	}
+
 	trace: [..]CodeLocation;
 	if max_frame_count < 1 { return trace; }
 	allocator :: application_context.temporary_allocator; // In case we change allocator we should call free!
@@ -144,24 +149,33 @@ os_get_backtrace :: fn (skip_frames := 0, max_frame_count := 64) []CodeLocation 
 	return trace;
 }
 
-// This is internally called from runtime when `debugbreak` is reached. Basically this when execution
-// reach the `debugbreak` builtin expression, compiler will use internal break handling for compile-time
-// execution (using interpreter) and replace this expression with call to this function in runtime.
 __os_debug_break :: fn () #inline #compiler {
-	if IsDebuggerPresent() != 0 {
-		DebugBreak();
+	if IS_COMPTIME_RUN {
+		print_warn("__os_debug_break is not available in VM execution mode.");
+		return;
 	}
+
+	DebugBreak();
 }
 
-// This is internally called from runtime when execution reach unreachable code path.
-// Should not be called from interpreter.
+__os_is_debugger_present :: fn () bool {
+	if IS_COMPTIME_RUN {
+		print_warn("__os_is_debugger_present is not available in VM execution mode.");
+		return false;
+	}
+
+	return IsDebuggerPresent() != 0;
+}
+
 __os_abort :: fn () #compiler {
-	__os_debug_break();
 	application_context.abort_fn();
 }
 
-__os_abort_default :: fn () #inline {
-	if !IS_COMPTIME_RUN { print_backtrace(); }
+__os_abort_default :: fn () {
+	if !IS_COMPTIME_RUN {
+		if __os_is_debugger_present() then __os_debug_break();
+		print_backtrace();
+	}
 	C.raise(C.SIGABRT);
 }
 

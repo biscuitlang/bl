@@ -102,6 +102,11 @@ os_get_last_error2 :: fn () Error #inline {
 }
 
 os_get_backtrace :: fn (skip_frames := 0 #maybe_unused, max_frame_count := 64 #maybe_unused) []CodeLocation {
+	if IS_COMPTIME_RUN {
+		print_warn("os_get_backtrace is not available in VM execution mode.");
+		return .{};
+	}
+
 	// @Incomplete <2022-08-21 Sun>: Here we tried to use 'backtrace' from the C library, but is seems not
 	// working correctly. Documentation claims that '-rdynamic' linker flag must be used, but still, the
 	// resulting array does not contain any captured frames.
@@ -114,10 +119,20 @@ os_get_backtrace :: fn (skip_frames := 0 #maybe_unused, max_frame_count := 64 #m
 }
 
 __os_debug_break :: fn () #inline #compiler {
+	if IS_COMPTIME_RUN {
+		print_warn("__os_debug_break is not available in VM execution mode.");
+		return;
+	}
+
 	C.raise(C.SIGTRAP);
 }
 
 __os_is_debugger_present :: fn () bool {
+	if IS_COMPTIME_RUN {
+		print_warn("__os_is_debugger_present is not available in VM execution mode.");
+		return false;
+	}
+
 	mib: [4]s32;
 	mib[0] = CTL_KERN;
 	mib[1] = KERN_PROC;
@@ -140,16 +155,14 @@ __os_write :: fn (fd: s32, buf: *u8, count: usize) s32 {
 }
 
 __os_abort :: fn () #compiler {
-	if application_context.abort_fn {
-		application_context.abort_fn();
-	} else {
-		__os_abort_default();
-	}
+	application_context.abort_fn();
 }
 
 __os_abort_default :: fn () {
-	if __os_is_debugger_present() then __os_debug_break();
-	if !IS_COMPTIME_RUN { print_backtrace(); }
+	if !IS_COMPTIME_RUN {
+		if __os_is_debugger_present() then __os_debug_break();
+		print_backtrace();
+	}
 	C.raise(C.SIGABRT);
 }
 
