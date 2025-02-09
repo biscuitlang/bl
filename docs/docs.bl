@@ -249,7 +249,7 @@ main :: fn () s32 {
 	loop i := 0; i < MD_PAGES.len; i += 1 {
 		page :: MD_PAGES[i];
 		err :: md2html(page, menu, null);
-		if err { 
+		if err {
 			print_err(err);
 			return 1;
 		}
@@ -799,13 +799,10 @@ append_bl_comment :: fn (ctx: *Tokenizer) bool {
 			loop ctx.index < ctx.bytes.len {
 				c = ctx.bytes[ctx.index];
 				if c == 0 { break; }
-				if c == '*' && ctx.index+1 < ctx.bytes.len {
-					ctx.index += 1;
-					if ctx.bytes[ctx.index] == '/' {
-						len += 2; // /**/
-						break;
-					}
-					ctx.index -= 1;
+				if c == '*' && ctx.index+1 < ctx.bytes.len && ctx.bytes[ctx.index+1] == '/' {
+					ctx.index += 2;
+					len += 2; // /**/
+					break;
 				}
 				len       += 1;
 				ctx.index += 1;
