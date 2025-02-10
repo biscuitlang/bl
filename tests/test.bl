@@ -64,7 +64,16 @@ Static shit
 
 #import "std/print"
 
+get_type :: fn (T: type #comptime) type #comptime {
+	return T;
+}
+
+Foo :: struct #base 2 + 2 {
+	bar: s32;
+}
+
 main :: fn () s32 {
+	print(">> %\n", Foo);
 	return 0;
 }
 

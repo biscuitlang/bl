@@ -240,9 +240,18 @@ void doc_type_struct(struct context *ctx, struct ast *type) {
 	if (!ctx->is_multi_return) {
 		if (type->data.type_strct.is_union) {
 			fprintf(ctx->stream, "union {");
-		} else if (type->data.type_strct.base_type) {
-			struct ast *base_ident = type->data.type_strct.base_type->data.ref.ident;
-			const str_t base_name  = base_ident ? base_ident->data.ident.id.str : make_str_from_c("UNKNOWN");
+		} else if (type->data.type_strct.base_type_expr) {
+			struct ast *base_type_expr = type->data.type_strct.base_type_expr;
+			str_t       base_name;
+
+			// @Incomplete 2025-02-10: We might want to extend this to handle more expressions kinds?
+			if (base_type_expr->kind == AST_REF) {
+				struct ast *base_ident = base_type_expr->data.ref.ident;
+				base_name              = base_ident ? base_ident->data.ident.id.str : make_str_from_c("UNKNOWN");
+			} else {
+				base_name = cstr("<EXPR>");
+			}
+
 			fprintf(ctx->stream, "struct #base " STR_FMT " {", STR_ARG(base_name));
 		} else {
 			fprintf(ctx->stream, "struct {");
