@@ -18,6 +18,7 @@ MD_PAGES :: [_]string_view.{
 	"index",
 	"manual",
 	"examples",
+	"examples/demo",
 };
 
 MD_PAGES_MODULES :: [_]string_view.{
