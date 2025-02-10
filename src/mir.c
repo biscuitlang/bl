@@ -269,7 +269,7 @@ typedef struct
 static struct mir_type *create_type_struct(struct context *ctx, create_type_struct_args_t *args);
 
 // Create incomplete struct type placeholder to be filled later.
-static struct mir_type *create_type_struct_incomplete(struct context *ctx, struct id *user_id, bool is_union, bool has_base);
+static struct mir_type *create_type_struct_incomplete(struct context *ctx, struct id *user_id, bool is_union);
 
 typedef struct
 {
@@ -444,17 +444,21 @@ static struct mir_instr *append_instr_switch(struct context *ctx, struct ast *no
 static struct mir_instr *append_instr_load(struct context *ctx, struct ast *node, struct mir_instr *src, const bool is_deref);
 static struct mir_instr *append_instr_type_fn(struct context *ctx, struct ast *node, struct mir_instr *ret_type, mir_instrs_t *args, const bool is_polymorph, const bool is_inside_declaration);
 static struct mir_instr *append_instr_type_fn_group(struct context *ctx, struct ast *node, struct id *id, mir_instrs_t *variants);
-static struct mir_instr *append_instr_type_struct(struct context   *ctx,
-                                                  struct ast       *node,
-                                                  struct id        *user_id,
-                                                  struct mir_instr *fwd_decl, // Optional
-                                                  struct scope     *scope,
-                                                  hash_t            scope_layer,
-                                                  mir_instrs_t     *members,
-                                                  bool              is_packed,
-                                                  bool              is_union,
-                                                  bool              is_multiple_return_type);
 
+typedef struct {
+	struct ast       *node;
+	struct id        *user_id;
+	struct mir_instr *fwd_decl;   // Optional
+	struct mir_instr *align_expr; // Optional
+	struct scope     *scope;
+	hash_t            scope_layer;
+	mir_instrs_t     *members;
+	bool              is_packed;
+	bool              is_union;
+	bool              is_multiple_return_type;
+} append_instr_type_struct_args_t;
+
+static struct mir_instr *append_instr_type_struct(struct context *ctx, append_instr_type_struct_args_t *args);
 static struct mir_instr *append_instr_type_enum(struct context *ctx, struct ast *node, struct id *id, struct scope *scope, mir_instrs_t *variants, struct mir_instr *base_type, bool is_flags);
 static struct mir_instr *append_instr_type_ptr(struct context *ctx, struct ast *node, struct mir_instr *type);
 static struct mir_instr *append_instr_type_poly(struct context *ctx, struct ast *node, struct id *T_id);
@@ -2053,8 +2057,7 @@ static void generate_struct_signature(str_buf_t *name, create_type_struct_args_t
 	str_buf_append(name, cstr("}"));
 }
 
-struct mir_type *create_type_struct_incomplete(struct context *ctx, struct id *user_id, bool is_union, bool has_base) {
-	(void)has_base; // @Cleanup?
+struct mir_type *create_type_struct_incomplete(struct context *ctx, struct id *user_id, bool is_union) {
 	bassert(user_id);
 	str_buf_t name = get_tmp_str();
 	generate_struct_signature(&name,
@@ -3250,32 +3253,24 @@ struct mir_instr *append_instr_type_fn_group(struct context *ctx, struct ast *no
 	return &tmp->base;
 }
 
-struct mir_instr *append_instr_type_struct(struct context   *ctx,
-                                           struct ast       *node,
-                                           struct id        *user_id,
-                                           struct mir_instr *fwd_decl,
-                                           struct scope     *scope,
-                                           hash_t            scope_layer,
-                                           mir_instrs_t     *members,
-                                           bool              is_packed,
-                                           bool              is_union,
-                                           bool              is_multiple_return_type) {
-	struct mir_instr_type_struct *tmp = create_instr(ctx, MIR_INSTR_TYPE_STRUCT, node);
+struct mir_instr *append_instr_type_struct(struct context *ctx, append_instr_type_struct_args_t *args) {
+	struct mir_instr_type_struct *tmp = create_instr(ctx, MIR_INSTR_TYPE_STRUCT, args->node);
 	tmp->base.value.type              = ctx->builtin_types->t_type;
 	tmp->base.value.is_comptime       = true;
 	tmp->base.value.addr_mode         = MIR_VAM_RVALUE;
-	tmp->members                      = members;
-	tmp->scope                        = scope;
-	tmp->scope_layer                  = scope_layer;
-	tmp->is_packed                    = is_packed;
-	tmp->is_union                     = is_union;
-	tmp->is_multiple_return_type      = is_multiple_return_type;
+	tmp->members                      = args->members;
+	tmp->scope                        = args->scope;
+	tmp->scope_layer                  = args->scope_layer;
+	tmp->is_packed                    = args->is_packed;
+	tmp->is_union                     = args->is_union;
+	tmp->is_multiple_return_type      = args->is_multiple_return_type;
 
-	tmp->user_id  = user_id;
-	tmp->fwd_decl = fwd_decl;
+	tmp->user_id    = args->user_id;
+	tmp->fwd_decl   = args->fwd_decl;
+	tmp->align_expr = args->align_expr;
 
-	for (usize i = 0; i < sarrlenu(members); ++i) {
-		ref_instr(sarrpeek(members, i));
+	for (usize i = 0; i < sarrlenu(args->members); ++i) {
+		ref_instr(sarrpeek(args->members, i));
 	}
 
 	append_current_block(ctx, &tmp->base);
@@ -10922,10 +10917,9 @@ static void ast_decl_var_global_or_struct(struct context *ctx, struct ast *ast_g
 
 		struct ast *struct_type_value = ast_value->data.expr_type.type;
 		bassert(struct_type_value->kind == AST_TYPE_STRUCT);
-		const bool has_base_type = struct_type_value->data.type_strct.base_type_expr;
 
 		// Set to const type fwd decl
-		struct mir_type *fwd_decl_type = create_type_struct_incomplete(ctx, ctx->ast.current_entity_id, false, has_base_type);
+		struct mir_type *fwd_decl_type = create_type_struct_incomplete(ctx, ctx->ast.current_entity_id, false);
 
 		value = create_instr_const_type(ctx, ast_value, fwd_decl_type);
 		analyze_instr_rq(ctx, value);
@@ -11306,17 +11300,23 @@ struct mir_instr *ast_type_struct(struct context *ctx, struct ast *type_struct) 
 
 	bassert(ast_members);
 	struct ast *ast_base_type = type_struct->data.type_strct.base_type_expr;
+	struct ast *ast_align     = type_struct->data.type_strct.align_expr;
+
+	struct mir_instr *align_expr = ast(ctx, ast_align);
 
 	mir_instrs_t *members = arena_alloc(ctx->small_array_arena);
 	struct scope *scope   = type_struct->data.type_strct.scope;
 	bassert(scope);
 
 	if (ast_base_type) {
-		// Structure has base type, in such case we generate implicit first member
-		// 'base'.
+		// Structure has base type, in such case we generate implicit first member 'base'.
 		struct mir_instr *base_type = ast(ctx, ast_base_type);
 		struct id        *id2       = &builtin_ids[BUILTIN_ID_STRUCT_BASE];
-		base_type                   = append_instr_decl_member_impl(ctx, &(append_instr_decl_member_args_t){.node = ast_base_type, .id = id2, .type = base_type});
+		base_type                   = append_instr_decl_member_impl(ctx, &(append_instr_decl_member_args_t){
+		                                                                     .node = ast_base_type,
+		                                                                     .id   = id2,
+		                                                                     .type = base_type,
+                                                       });
 
 		struct mir_member *base_member = ((struct mir_instr_decl_member *)base_type)->member;
 		base_member->is_base           = true;
@@ -11340,7 +11340,18 @@ struct mir_instr *ast_type_struct(struct context *ctx, struct ast *type_struct) 
 		return NULL;
 	}
 
-	return append_instr_type_struct(ctx, type_struct, user_id, fwd_decl, scope, ctx->fn_generate.current_scope_layer, members, false, is_union, is_multiple_return_type);
+	return append_instr_type_struct(ctx, &(append_instr_type_struct_args_t){
+	                                         .node                    = type_struct,
+	                                         .user_id                 = user_id,
+	                                         .fwd_decl                = fwd_decl,
+	                                         .align_expr              = align_expr,
+	                                         .scope                   = scope,
+	                                         .scope_layer             = ctx->fn_generate.current_scope_layer,
+	                                         .members                 = members,
+	                                         .is_packed               = false,
+	                                         .is_union                = is_union,
+	                                         .is_multiple_return_type = is_multiple_return_type,
+	                                     });
 }
 
 struct mir_instr *ast_type_poly(struct context *ctx, struct ast *poly) {

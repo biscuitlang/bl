@@ -28,4 +28,5 @@
     HD_GEN(HD_OBSOLETE, "obsolete", 1 << 26)
     HD_GEN(HD_SCOPE_PRIVATE, "scope_private", 1 << 27)
     HD_GEN(HD_SCOPE_PUBLIC, "scope_public", 1 << 28)
+    HD_GEN(HD_ALIGN, "align", 1 << 29)
 #endif

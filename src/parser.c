@@ -475,6 +475,16 @@ struct ast *parse_hash_directive(struct context *ctx, s32 expected_mask, enum ha
 		return_zone(type);
 	}
 
+	case HD_ALIGN: {
+		struct ast *alignment_expr = parse_expr(ctx);
+		if (!alignment_expr) {
+			struct token *tok_err = tokens_peek(ctx->tokens);
+			report_error(EXPECTED_EXPR, tok_err, CARET_WORD, "Expected algnment value expression.");
+			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_directive, scope_get(ctx)));
+		}
+		return_zone(alignment_expr);
+	}
+
 	case HD_TAG: {
 		// Tags can contain one or move references separated by comma
 		struct ast *expr = parse_expr(ctx);
@@ -2157,9 +2167,10 @@ struct ast *parse_type_struct(struct context *ctx) {
 	const bool is_union = tok_struct->sym == SYM_UNION;
 
 	// parse flags
-	u32         accepted       = is_union ? 0 : HD_COMPILER | HD_BASE | HD_MAYBE_UNUSED;
+	u32         accepted       = is_union ? 0 : HD_COMPILER | HD_BASE | HD_MAYBE_UNUSED | HD_ALIGN;
 	u32         flags          = 0;
 	struct ast *base_type_expr = NULL;
+	struct ast *align_expr     = NULL;
 	while (true) {
 		struct ast               *hd_extension;
 		enum hash_directive_flags found = HD_NONE;
@@ -2167,6 +2178,9 @@ struct ast *parse_type_struct(struct context *ctx) {
 		if (found == HD_BASE) {
 			bassert(hd_extension);
 			base_type_expr = hd_extension;
+		} else if (found == HD_ALIGN) {
+			bassert(hd_extension);
+			align_expr = hd_extension;
 		} else if (!hash_directive_to_flags(found, &flags)) {
 			break;
 		}
@@ -2192,6 +2206,7 @@ struct ast *parse_type_struct(struct context *ctx) {
 	type_struct->data.type_strct.scope          = scope;
 	type_struct->data.type_strct.members        = arena_alloc(ctx->sarr_arena);
 	type_struct->data.type_strct.base_type_expr = base_type_expr;
+	type_struct->data.type_strct.align_expr     = align_expr;
 	type_struct->data.type_strct.is_union       = is_union;
 
 	// parse members

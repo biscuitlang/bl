@@ -761,6 +761,7 @@ struct mir_instr_type_struct {
 	struct mir_instr base;
 	// fwd_decl is optional pointer to forward declaration of this structure type.
 	struct mir_instr *fwd_decl;
+	struct mir_instr *align_expr;
 	struct id        *user_id;
 	struct scope     *scope;
 	hash_t            scope_layer;

@@ -64,11 +64,7 @@ Static shit
 
 #import "std/print"
 
-get_type :: fn (T: type #comptime) type #comptime {
-	return T;
-}
-
-Foo :: struct #base 2 + 2 {
+Foo :: struct #align(16) {
 	bar: s32;
 }
 
