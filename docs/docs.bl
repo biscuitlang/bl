@@ -516,6 +516,7 @@ add_search_entry :: fn (ctx: *Ctx, id: string_view, text: string_view) {
 	str_concat(ctx.search_json, "{\"id\":\"", id, "\",\"file\":\"", ctx.output_file, "\",\"text\":\"", text, "\"}");
 }
 
+// @Cleanup 2025-02-12: Can we use fs.read_entire_file?
 load_whole_file :: fn (stream: *io.Stream, allocator: *Allocator = null) (data: string, err: Error) {
 	using io;
 	using StreamLocator;
@@ -676,7 +677,9 @@ text :: fn (kind: MD_TEXTTYPE, ptr: *MD_CHAR, len: MD_SIZE, ctx: *Ctx) C.int {
 				}
 
 				switch ctx.current_code_block_lang {
-					Lang.BL { append_bl_code(ctx, str); }
+					Lang.BL {
+						append_bl_code(ctx, str);
+					}
 					default {
 						str_append(&ctx.content, str);
 					}
@@ -859,7 +862,7 @@ append_bl_identifier_or_keyword :: fn (ctx: *Tokenizer) bool {
 	}
 
 	str_append(ctx.dest, maybe_keyword);
-	return false;
+	return maybe_keyword.len > 0;
 }
 
 append_bl_directive :: fn (ctx: *Tokenizer) bool {
