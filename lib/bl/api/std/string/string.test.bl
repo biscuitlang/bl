@@ -1,6 +1,7 @@
 #scope_private
 #import "std/string"
 #import "std/array"
+#import "std/print"
 
 multiline_str_literal :: fn () #test {
 	FOO ::
@@ -16,7 +17,7 @@ multiline_str_literal :: fn () #test {
 }
 
 str_init_empty :: fn () #test {
-	s: string2;
+	s: string;
 	test_eq(s.len, 0);
 	test_eq(s.allocated_elems, 0);
 	test_null(s.ptr);
@@ -24,13 +25,13 @@ str_init_empty :: fn () #test {
 }
 
 str_terminate_empty :: fn () #test {
-	s: string2;
-	str2_terminate(&s);
+	s: string;
+	str_terminate(&s);
 }
 
 str_init_with_allocator :: fn () #test {
-	s: string2;
-	str2_init(&s, application_context.allocator);
+	s: string;
+	str_init(&s, application_context.allocator);
 
 	test_eq(s.len, 0);
 	test_eq(s.allocated_elems, 0);
@@ -39,9 +40,9 @@ str_init_with_allocator :: fn () #test {
 }
 
 str_init_with_reserve :: fn () #test {
-	s: string2;
-	str2_init(&s, 256);
-	defer str2_terminate(&s);
+	s: string;
+	str_init(&s, 256);
+	defer str_terminate(&s);
 
 	test_eq(s.len, 0);
 	test_eq(s.allocated_elems, 256);
@@ -50,9 +51,9 @@ str_init_with_reserve :: fn () #test {
 }
 
 str_init_with_string :: fn () #test {
-	s: string2;
-	str2_init(&s, "Hello");
-	defer str2_terminate(&s);
+	s: string;
+	str_init(&s, "Hello");
+	defer str_terminate(&s);
 
 	test_eq(s, "Hello");
 	test_eq(s.allocated_elems, ARRAY_ALLOC_BLOCK_SIZE);
@@ -63,9 +64,9 @@ str_init_with_string :: fn () #test {
 str_init_with_cstring :: fn () #test {
 	cstr :: [6]u8.{ 'H', 'e', 'l', 'l', 'o', 0 };
 
-	s: string2;
-	str2_init(&s, cast(*s8) cstr.ptr);
-	defer str2_terminate(&s);
+	s: string;
+	str_init(&s, cast(*s8) cstr.ptr);
+	defer str_terminate(&s);
 
 	test_eq(s, "Hello");
 	test_eq(s.allocated_elems, ARRAY_ALLOC_BLOCK_SIZE);
@@ -74,16 +75,16 @@ str_init_with_cstring :: fn () #test {
 }
 
 str_append_str :: fn () #test {
-	s: string2;
-	defer str2_terminate(&s);
+	s: string;
+	defer str_terminate(&s);
 
-	n := str2_append(&s, "Hello");
+	n := str_append(&s, "Hello");
 	test_eq(n, 5);
 	test_eq(s, "Hello");
 	test_eq(s.allocated_elems, ARRAY_ALLOC_BLOCK_SIZE);
 	test_null(s.allocator);
 
-	n = str2_append(&s, "World");
+	n = str_append(&s, "World");
 	test_eq(n, 5);
 	test_eq(s, "HelloWorld");
 	test_eq(s.allocated_elems, ARRAY_ALLOC_BLOCK_SIZE);
@@ -91,16 +92,16 @@ str_append_str :: fn () #test {
 }
 
 str_append_any :: fn () #test {
-	s: string2;
-	defer str2_terminate(&s);
+	s: string;
+	defer str_terminate(&s);
 
-	n := str2_append(&s, 666);
+	n := str_append(&s, 666);
 	test_eq(n, 3);
 	test_eq(s, "666");
 	test_eq(s.allocated_elems, ARRAY_ALLOC_BLOCK_SIZE);
 	test_null(s.allocator);
 
-	n = str2_append(&s, 999);
+	n = str_append(&s, 999);
 	test_eq(n, 3);
 	test_eq(s, "666999");
 	test_eq(s.allocated_elems, ARRAY_ALLOC_BLOCK_SIZE);
@@ -108,8 +109,8 @@ str_append_any :: fn () #test {
 }
 
 str_reserve_zero :: fn () #test {
-	s: string2;
-	str2_reserve(&s, 0);
+	s: string;
+	str_reserve(&s, 0);
 	test_eq(s.allocated_elems, 0);
 	test_eq(s.len, 0);
 	test_null(s.ptr);
@@ -117,10 +118,10 @@ str_reserve_zero :: fn () #test {
 }
 
 str_reserve_less_then_block :: fn () #test {
-	s: string2;
-	defer str2_terminate(&s);
+	s: string;
+	defer str_terminate(&s);
 
-	str2_reserve(&s, 8);
+	str_reserve(&s, 8);
 	test_eq(s.allocated_elems, ARRAY_ALLOC_BLOCK_SIZE);
 	test_eq(s.len, 0);
 	test_not_null(s.ptr);
@@ -128,10 +129,10 @@ str_reserve_less_then_block :: fn () #test {
 }
 
 str_reserve_bigger :: fn () #test {
-	s: string2;
-	defer str2_terminate(&s);
+	s: string;
+	defer str_terminate(&s);
 
-	str2_reserve(&s, 1024);
+	str_reserve(&s, 1024);
 	test_eq(s.allocated_elems, 1024);
 	test_eq(s.len, 0);
 	test_not_null(s.ptr);
@@ -139,16 +140,16 @@ str_reserve_bigger :: fn () #test {
 }
 
 str_reserve_two_times :: fn () #test {
-	s: string2;
-	defer str2_terminate(&s);
+	s: string;
+	defer str_terminate(&s);
 
-	str2_reserve(&s, 1024);
+	str_reserve(&s, 1024);
 	test_eq(s.allocated_elems, 1024);
 	test_eq(s.len, 0);
 	test_not_null(s.ptr);
 	test_null(s.allocator);
 
-	str2_reserve(&s, 8);
+	str_reserve(&s, 8);
 	test_eq(s.allocated_elems, 1024);
 	test_eq(s.len, 0);
 	test_not_null(s.ptr);
@@ -156,16 +157,16 @@ str_reserve_two_times :: fn () #test {
 }
 
 str_append_after_reserve :: fn () #test {
-	s: string2;
-	defer str2_terminate(&s);
+	s: string;
+	defer str_terminate(&s);
 
-	str2_reserve(&s, 1024);
+	str_reserve(&s, 1024);
 	test_eq(s.allocated_elems, 1024);
 	test_eq(s.len, 0);
 	test_not_null(s.ptr);
 	test_null(s.allocator);
 
-	str2_append(&s, "Hello");
+	str_append(&s, "Hello");
 	test_eq(s.allocated_elems, 1024);
 	test_eq(s.len, 5);
 	test_not_null(s.ptr);
@@ -173,16 +174,16 @@ str_append_after_reserve :: fn () #test {
 }
 
 str_reserve_after_append :: fn () #test {
-	s: string2;
-	defer str2_terminate(&s);
+	s: string;
+	defer str_terminate(&s);
 
-	str2_append(&s, "Hello");
+	str_append(&s, "Hello");
 	test_eq(s.allocated_elems, ARRAY_ALLOC_BLOCK_SIZE);
 	test_eq(s, "Hello");
 	test_not_null(s.ptr);
 	test_null(s.allocator);
 
-	str2_reserve(&s, 1024);
+	str_reserve(&s, 1024);
 	test_gt(s.allocated_elems, 1024);
 	test_not_null(s.ptr);
 	test_null(s.allocator);
@@ -191,10 +192,10 @@ str_reserve_after_append :: fn () #test {
 }
 
 str_resize_zero :: fn () #test {
-	s: string2;
-	defer str2_terminate(&s);
+	s: string;
+	defer str_terminate(&s);
 
-	str2_resize(&s, 0);
+	str_resize(&s, 0);
 	test_eq(s.allocated_elems, 0);
 	test_eq(s.len, 0);
 	test_null(s.ptr);
@@ -202,10 +203,10 @@ str_resize_zero :: fn () #test {
 }
 
 str_resize_grow :: fn () #test {
-	s: string2;
-	defer str2_terminate(&s);
+	s: string;
+	defer str_terminate(&s);
 
-	str2_resize(&s, 64);
+	str_resize(&s, 64);
 	test_eq(s.allocated_elems, 64);
 	test_eq(s.len, 64);
 	test_not_null(s.ptr);
@@ -213,12 +214,12 @@ str_resize_grow :: fn () #test {
 }
 
 str_resize_grow_keep_content :: fn () #test {
-	s: string2;
-	defer str2_terminate(&s);
+	s: string;
+	defer str_terminate(&s);
 
-	str2_append(&s, "Hello");
+	str_append(&s, "Hello");
 
-	str2_resize(&s, 64);
+	str_resize(&s, 64);
 	test_eq(s.len, 64);
 	test_not_null(s.ptr);
 	test_null(s.allocator);
@@ -227,14 +228,14 @@ str_resize_grow_keep_content :: fn () #test {
 }
 
 str_resize_shrink_keep_content :: fn () #test {
-	s: string2;
-	defer str2_terminate(&s);
+	s: string;
+	defer str_terminate(&s);
 
-	str2_append(&s, "HelloWorld");
+	str_append(&s, "HelloWorld");
 
 	prev_ptr :: s.ptr;
 
-	str2_resize(&s, 5);
+	str_resize(&s, 5);
 	test_eq(s.len, 5);
 	test_eq(s.ptr, prev_ptr);
 	test_null(s.allocator);
@@ -243,10 +244,10 @@ str_resize_shrink_keep_content :: fn () #test {
 }
 
 str_concat_empty :: fn () #test {
-	s: string2;
-	defer str2_terminate(&s);
+	s: string;
+	defer str_terminate(&s);
 
-	str2_concat(&s);
+	str_concat(&s);
 	test_eq(s.allocated_elems, 0);
 	test_eq(s.len, 0);
 	test_null(s.ptr);
@@ -254,132 +255,106 @@ str_concat_empty :: fn () #test {
 }
 
 str_concat_mixed :: fn () #test {
-	s: string2;
-	defer str2_terminate(&s);
+	s: string;
+	defer str_terminate(&s);
 
-	str2_concat(&s, "Hello", 666);
+	str_concat(&s, "Hello", 666);
 	test_gt(s.allocated_elems, 0);
 	test_eq(s, "Hello666");
 	test_null(s.allocator);
 }
 
 str_concat_append :: fn () #test {
-	s: string2;
-	defer str2_terminate(&s);
+	s: string;
+	defer str_terminate(&s);
 
-	str2_concat(&s, "Hello", 666);
+	str_concat(&s, "Hello", 666);
 	test_eq(s, "Hello666");
 
-	str2_concat(&s, "World", 999);
+	str_concat(&s, "World", 999);
 	test_eq(s, "Hello666World999");
 }
 
 str_concat_override :: fn () #test {
-	s: string2;
-	defer str2_terminate(&s);
+	s: string;
+	defer str_terminate(&s);
 
-	str2_clear_concat(&s, "Hello", 666);
+	str_clear_concat(&s, "Hello", 666);
 	test_eq(s, "Hello666");
 
-	str2_clear_concat(&s, "World", 999);
+	str_clear_concat(&s, "World", 999);
 	test_eq(s, "World999");
 }
 
-
-
-/*
-new_string_no_allocation :: fn () #test {
-	s :: str_new();
-	defer str_delete(&s);
-	test_eq(s.len, 0);
-	test_null(s.ptr);
-}
-
-new_string_append :: fn () #test {
-	s := str_new();
-	defer str_delete(&s);
-	test_null(s.ptr);
-	test_eq(s.len, 0);
-
-	str_append(&s, "foo");
-	test_eq("foo", s);
-
-	str_append(&s, 12);
-	test_eq("foo12", s);
-
-	str_append(&s, true);
-	test_eq("foo12true", s);
-}
-
-new_string_reserve :: fn () #test {
-	s :: str_new(100);
-	defer str_delete(&s);
-	test_eq(s.len, 0);
-	test_true(s.ptr);
-	test_gt(str_capacity(s), 0);
-	test_true(str_is_zero_terminated(s));
-}
-
-new_string_duplicate :: fn () #test {
-	s :: str_new("hello");
-	defer str_delete(&s);
-	test_eq(s.len, 5);
-	test_true(s.ptr);
-	test_eq(s, "hello");
-	test_true(str_is_zero_terminated(s));
-}
-
-new_string_duplicate_cstring :: fn () #test {
-	cstr := [6]u8.{'h', 'e', 'l', 'l', 'o', '\0'};
-	s :: str_new(cstr.ptr);
-	defer str_delete(&s);
-	test_eq(s.len, 5);
-	test_true(s.ptr);
-	test_eq(s, "hello");
-	test_true(str_is_zero_terminated(s));
-}
-
-zero_init_string :: fn () #test {
+str_erase1 :: fn () #test {
 	s: string;
-	defer str_delete(&s);
+	defer str_terminate(&s);
+
+	// @Incomplete 2025-02-12: We need long jump for this to work.
+	/*
+	test_expect_abort_begin(); {
+		str_erase(&s, 0);
+	} test_expect_abort_end();
+
+	test_expect_abort_begin(); {
+		str_erase(&s, 1);
+	} test_expect_abort_end();
+
+	test_expect_abort_begin(); {
+		str_erase(&s, -1);
+	} test_expect_abort_end();
+	*/
+}
+
+str_erase2 :: fn () #test {
+	s: string;
+	str_init(&s, "aaa");
+	defer str_terminate(&s);
+
+	str_erase(&s, 2);
+	str_erase(&s, 1);
+	str_erase(&s, 0);
+
 	test_eq(s.len, 0);
-	test_null(s.ptr);
-	test_eq(str_capacity(s), 0);
-	test_false(str_is_zero_terminated(s));
 }
 
-zero_init_string_append :: fn () #test {
+str_erase3 :: fn () #test {
 	s: string;
-	defer str_delete(&s);
+	str_init(&s, "abcdef");
+	defer str_terminate(&s);
 
-	str_append(&s, "hello");
-	test_eq(s, "hello");
-	test_gt(str_capacity(s), 0);
-	test_true(str_is_zero_terminated(s));
+	str_erase(&s, 5);
+	str_erase(&s, 4);
+	str_erase(&s, 3);
+	test_eq(s.len, 3);
+	test_eq(s, "abc");
 }
 
-zero_init_string_reserve :: fn () #test {
+str_erase4 :: fn () #test {
 	s: string;
-	defer str_delete(&s);
+	str_init(&s, "abcdef");
+	defer str_terminate(&s);
 
-	str_reserve(&s, 256);
-
-	test_not_null(s.ptr);
-	test_eq(s.len, 0);
-	test_gt(str_capacity(s), 0);
-	test_true(str_is_zero_terminated(s));
+	str_erase(&s, 0);
+	str_erase(&s, 0);
+	str_erase(&s, 0);
+	test_eq(s.len, 3);
+	test_eq(s, "def");
 }
 
-
-test_strs_default_misc :: fn () #test {
+str_erase5 :: fn () #test {
 	s: string;
+	str_init(&s, "abcdef");
+	defer str_terminate(&s);
 
-	str_clear(&s);
-	str_delete(&s);
-	str_get_allocated_bytes(s);
+	str_erase(&s, 3);
+	str_erase(&s, 3);
+	str_erase(&s, 3);
+	test_eq(s.len, 3);
+	test_eq(s, "abc");
 }
 
-test_str_split_by_last :: fn () #test {
+str_split_by_last_test :: fn () #test {
 	lhs: string_view;
 	rhs: string_view;
 
@@ -407,7 +382,7 @@ test_str_split_by_last :: fn () #test {
 	test_false(str_split_by_last("", '/', &lhs, &rhs));
 }
 
-test_str_split_by_first :: fn () #test {
+str_split_by_first_test :: fn () #test {
 	lhs: string_view;
 	rhs: string_view;
 
@@ -435,7 +410,7 @@ test_str_split_by_first :: fn () #test {
 	test_false(str_split_by_first("", '/', &lhs, &rhs));
 }
 
-test_str_compare1 :: fn () #test {
+str_compare1 :: fn () #test {
 	test_true(str_match("hello", "hello"));
 	test_true(str_match("", ""));
 	test_false(str_match("aaaa", "bb"));
@@ -444,7 +419,7 @@ test_str_compare1 :: fn () #test {
 	test_false(str_match("aa", ""));
 }
 
-test_str_compare2 :: fn () #test {
+str_compare2 :: fn () #test {
 	test_true(str_match("", "", 0));
 	test_true(str_match("", "", 10));
 	test_true(str_match("hello", "hello", 0));
@@ -589,55 +564,55 @@ test_strtof64 :: fn () #test {
 	}
 }
 
-test_str_replace1 :: fn () #test {
-	tmp := str_new();
-	defer str_delete(&tmp);
+str_replace1 :: fn () #test {
+	tmp: string;
+	defer str_terminate(&tmp);
 
-	str_clear(&tmp);
+	tmp.len = 0;
 	str_append(&tmp, "");
 	test_eq(str_replace_all(&tmp, ' ', ','), 0);
 	test_eq(tmp, "");
 
-	str_clear(&tmp);
+	tmp.len = 0;
 	str_append(&tmp, "1 23 456 7 89 ");
 	test_eq(str_replace_all(&tmp, ' ', ','), 5);
 	test_eq(tmp, "1,23,456,7,89,");
 
-	str_clear(&tmp);
+	tmp.len = 0;
 	str_append(&tmp, "     ");
 	test_eq(str_replace_all(&tmp, ' ', ','), 5);
 	test_eq(tmp, ",,,,,");
 }
 
-test_str_replace2 :: fn () #test {
-	tmp := str_new();
-	defer str_delete(&tmp);
+str_replace2 :: fn () #test {
+	tmp: string;
+	defer str_terminate(&tmp);
 
-	str_clear(&tmp);
+	tmp.len = 0;
 	str_append(&tmp, "");
 	test_eq(str_replace_all(&tmp, ' '), 0);
 	test_eq(tmp.len, 0);
 	test_eq(tmp, "");
 
-	str_clear(&tmp);
+	tmp.len = 0;
 	str_append(&tmp, "     ");
 	test_eq(str_replace_all(&tmp, ' '), 5);
 	test_eq(tmp.len, 0);
 	test_eq(tmp, "");
 
-	str_clear(&tmp);
+	tmp.len = 0;
 	str_append(&tmp, " 12  345 6 789     ");
 	test_eq(str_replace_all(&tmp, ' '), 10);
 	test_eq(tmp.len, 9);
 	test_eq(tmp, "123456789");
 
-	str_clear(&tmp);
+	tmp.len = 0;
 	str_append(&tmp, " 12  345 6 78     9");
 	test_eq(str_replace_all(&tmp, ' '), 10);
 	test_eq(tmp.len, 9);
 	test_eq(tmp, "123456789");
 
-	str_clear(&tmp);
+	tmp.len = 0;
 	str_append(&tmp, "d, d");
 	test_eq(str_replace_all(&tmp, ' '), 1);
 	test_eq(tmp.len, 3);
@@ -651,249 +626,160 @@ test_str_count :: fn () #test {
 }
 
 test_str_split_by1 :: fn () #test {
-	s1 :: str_split_by("this,is,cool,string", ',');
-	defer array_terminate(&s1);
-	test_eq(s1.len, 4);
-	test_eq(s1[0], "this");
-	test_eq(s1[1], "is");
-	test_eq(s1[2], "cool");
-	test_eq(s1[3], "string");
+	s :: str_split_by("this,is,cool,string", ',');
+	defer array_terminate(&s);
+	test_eq(s.len, 4);
+	test_eq(s[0], "this");
+	test_eq(s[1], "is");
+	test_eq(s[2], "cool");
+	test_eq(s[3], "string");
 }
 
 test_str_split_by2 :: fn () #test {
-	s1 :: str_split_by(",", ',');
-	defer array_terminate(&s1);
-	test_eq(s1.len, 2);
-	test_eq(s1[0], "");
-	test_eq(s1[1], "");
+	s :: str_split_by(",", ',');
+	defer array_terminate(&s);
+	test_eq(s.len, 2);
+	test_eq(s[0], "");
+	test_eq(s[1], "");
 }
 
 test_str_split_by3 :: fn () #test {
-	s1 :: str_split_by(",,,", ',');
-	defer array_terminate(&s1);
-	test_eq(s1.len, 4);
-	test_eq(s1[0], "");
-	test_eq(s1[1], "");
-	test_eq(s1[2], "");
-	test_eq(s1[3], "");
+	s :: str_split_by(",,,", ',');
+	defer array_terminate(&s);
+	test_eq(s.len, 4);
+	test_eq(s[0], "");
+	test_eq(s[1], "");
+	test_eq(s[2], "");
+	test_eq(s[3], "");
 }
 
 test_str_split_by4 :: fn () #test {
-	s1 :: str_split_by("abc", ':');
-	defer array_terminate(&s1);
-	test_eq(s1.len, 1);
-	test_eq(s1[0], "abc");
+	s :: str_split_by("abc", ':');
+	defer array_terminate(&s);
+	test_eq(s.len, 1);
+	test_eq(s[0], "abc");
 }
 
 test_str_split_by5 :: fn () #test {
-	s1 :: str_split_by("", ':');
-	defer array_terminate(&s1);
-	test_eq(s1.len, 0);
+	s :: str_split_by("", ':');
+	defer array_terminate(&s);
+	test_eq(s.len, 0);
 }
 
 test_str_split_by6 :: fn () #test {
-	s1 :: str_split_by("d,d", ',');
-	defer array_terminate(&s1);
-	test_eq(s1.len, 2);
-	test_eq(s1[0], "d");
-	test_eq(s1[1], "d");
+	s :: str_split_by("d,d", ',');
+	defer array_terminate(&s);
+	test_eq(s.len, 2);
+	test_eq(s[0], "d");
+	test_eq(s[1], "d");
 }
 
-test_str_erase1 :: fn () #test {
-	s1 :: str_new("");
-	defer str_delete(&s1);
-	test_false(str_erase(&s1, 0));
-	test_false(str_erase(&s1, 1));
-	test_false(str_erase(&s1, -1));
+str_insert_into_empty :: fn () #test {
+	s: string;
+	defer str_terminate(&s);
+
+	test_eq(str_insert(&s, 0, "hello"), 0);
+	test_eq(s.len, 5);
+	test_eq(s, "hello");
 }
 
-test_str_erase2 :: fn () #test {
-	s1 :: str_new("aaa");
-	defer str_delete(&s1);
-	test_true(str_erase(&s1, 2));
-	test_true(str_erase(&s1, 1));
-	test_true(str_erase(&s1, 0));
-	test_eq(s1.len, 0);
+str_insert_in_middle :: fn () #test {
+	s: string;
+	defer str_terminate(&s);
+	str_append(&s, "hworld");
+	test_eq(str_insert(&s, 1, "ello"), 1);
+	test_eq(s, "helloworld");
 }
 
-test_str_erase3 :: fn () #test {
-	s1 :: str_new("abcdef");
-	defer str_delete(&s1);
-	test_true(str_erase(&s1, 5));
-	test_true(str_erase(&s1, 4));
-	test_true(str_erase(&s1, 3));
-	test_eq(s1.len, 3);
-	test_eq(s1, "abc");
+str_insert_non_empty_at_the_end :: fn () #test {
+	s: string;
+	defer str_terminate(&s);
+	str_append(&s, "foo");
+	test_eq(str_insert(&s, 3, "bar"), 3);
+	test_eq(s.len, 6);
+	test_eq(s, "foobar");
 }
 
-test_str_erase4 :: fn () #test {
-	s1 :: str_new("abcdef");
-	defer str_delete(&s1);
-	test_true(str_erase(&s1, 0));
-	test_true(str_erase(&s1, 0));
-	test_true(str_erase(&s1, 0));
-	test_eq(s1.len, 3);
-	test_eq(s1, "def");
-}
-
-test_str_erase5 :: fn () #test {
-	s1 :: str_new("abcdef");
-	defer str_delete(&s1);
-	test_true(str_erase(&s1, 3));
-	test_true(str_erase(&s1, 3));
-	test_true(str_erase(&s1, 3));
-	test_eq(s1.len, 3);
-	test_eq(s1, "abc");
-}
-
-test_str_insert1 :: fn () #test {
-	s1 :: str_new("");
-	defer str_delete(&s1);
-	test_true(str_insert(&s1, 0, "hello"));
-	test_eq(s1.len, 5);
-	test_eq(s1, "hello");
-}
-
-test_str_insert2 :: fn () #test {
-	s1 :: str_new("");
-	defer str_delete(&s1);
-	test_false(str_insert(&s1, 1, "hello"));
-	test_eq(s1.len, 0);
-	test_eq(s1, "");
-}
-
-test_str_insert3 :: fn () #test {
-	s1 :: str_new("foo");
-	defer str_delete(&s1);
-	test_true(str_insert(&s1, 3, "bar"));
-	test_eq(s1.len, 6);
-	test_eq(s1, "foobar");
-}
-
-test_str_insert4 :: fn () #test {
-	s1 :: str_new("foo");
-	defer str_delete(&s1);
-	test_true(str_insert(&s1, 0, "bar"));
-	test_eq(s1.len, 6);
-	test_eq(s1, "barfoo");
-}
-
-test_str_insert5 :: fn () #test {
-	s1 :: str_new("foo");
-	defer str_delete(&s1);
-	test_true(str_insert(&s1, 0, "barbar"));
-	test_eq(s1.len, 9);
-	test_eq(s1, "barbarfoo");
-}
-
-test_str_insert6 :: fn () #test {
-	s1 :: str_new("AGH");
-	defer str_delete(&s1);
-	test_true(str_insert(&s1, 1, "BCDEF"));
-	test_eq(s1.len, 8);
-	test_eq(s1, "ABCDEFGH");
+str_insert_non_empty_at_the_beginning :: fn () #test {
+	s: string;
+	defer str_terminate(&s);
+	str_append(&s, "bar");
+	test_eq(str_insert(&s, 0, "foo"), 0);
+	test_eq(s.len, 6);
+	test_eq(s, "foobar");
 }
 
 test_str_count1 :: fn () #test {
-	s1 :: str_new("");
-	defer str_delete(&s1);
-	test_eq(str_count_of(s1, ' '), 0);
+	s: string;
+	defer str_terminate(&s);
+	test_eq(str_count_of(s, ' '), 0);
 }
 
 test_str_count2 :: fn () #test {
-	s1 :: str_new("abba ab abba abbaa  abbba");
-	defer str_delete(&s1);
-	test_eq(str_count_of(s1, ' '), 5);
+	s: string;
+	str_init(&s, "abba ab abba abbaa  abbba");
+	defer str_terminate(&s);
+	test_eq(str_count_of(s, ' '), 5);
 }
 
 test_str_sub_default_len :: fn () #test {
-	s1 :: str_sub("hello world", 0);
-	test_eq(s1.len, 11);
-	test_eq(s1, "hello world");
+	s :: str_sub("hello world", 0);
+	test_eq(s.len, 11);
+	test_eq(s, "hello world");
 }
 
 test_str_sub_empty :: fn () #test {
-	s1 :: str_sub(str_empty, 0);
-	test_eq(s1.len, 0);
-	test_eq(s1, str_empty);
+	s :: str_sub(str_empty, 0);
+	test_eq(s.len, 0);
+	test_eq(s, str_empty);
 }
 
 test_str_sub_empty2 :: fn () #test {
-	s1 :: str_sub("hello world", 0, 0);
-	test_eq(s1.len, 0);
-	test_eq(s1, str_empty);
+	s :: str_sub("hello world", 0, 0);
+	test_eq(s.len, 0);
+	test_eq(s, str_empty);
 }
 
 test_str_sub_full :: fn () #test {
-	s1 :: str_sub("hello world", 0, 11);
-	test_eq(s1.len, 11);
-	test_eq(s1, "hello world");
+	s :: str_sub("hello world", 0, 11);
+	test_eq(s.len, 11);
+	test_eq(s, "hello world");
 }
 
 test_str_sub_1 :: fn () #test {
-	s1 :: str_sub("hello world", 0, 5);
-	test_eq(s1.len, 5);
-	test_eq(s1, "hello");
+	s :: str_sub("hello world", 0, 5);
+	test_eq(s.len, 5);
+	test_eq(s, "hello");
 }
 
 test_str_sub_2 :: fn () #test {
-	s1 :: str_sub("hello world", 6, 5);
-	test_eq(s1.len, 5);
-	test_eq(s1, "world");
+	s :: str_sub("hello world", 6, 5);
+	test_eq(s.len, 5);
+	test_eq(s, "world");
 }
 
 test_str_sub_3 :: fn () #test {
-	s1 :: str_sub("hello world", 10, 1);
-	test_eq(s1.len, 1);
-	test_eq(s1, "d");
+	s :: str_sub("hello world", 10, 1);
+	test_eq(s.len, 1);
+	test_eq(s, "d");
 }
 
 test_str_sub_4 :: fn () #test {
-	s1 :: str_sub("hello world", 10);
-	test_eq(s1.len, 1);
-	test_eq(s1, "d");
+	s :: str_sub("hello world", 10);
+	test_eq(s.len, 1);
+	test_eq(s, "d");
 }
 
 test_str_sub_5 :: fn () #test {
-	s1 :: str_sub("hello world", 6);
-	test_eq(s1.len, 5);
-	test_eq(s1, "world");
+	s :: str_sub("hello world", 6);
+	test_eq(s.len, 5);
+	test_eq(s, "world");
 }
 
 test_str_sub_6 :: fn () #test {
-	s1 :: str_sub("hello world", 11);
-	test_eq(s1.len, 0);
-	test_eq(s1, str_empty);
-}
-
-test_str_clean_concat_1 :: fn () #test {
-	s :: str_new();
-	defer str_delete(&s);
-	str_clear_concat(&s);
+	s :: str_sub("hello world", 11);
 	test_eq(s.len, 0);
-
-	str_clear_concat(&s, "Hello");
-	test_eq(s, "Hello");
-
-	str_clear_concat(&s, 1, 2, 3);
-	test_eq(s, "123");
-}
-
-test_reserve :: fn () #test {
-	s :: str_new();
-	defer str_delete(&s);
-	str_reserve(&s, 1000);
-	test_eq(s.len, 0);
-	allocated :: str_get_allocated_bytes(s);
-	test_true(allocated > 0);
-
-	loop i := 0; i < 1000; i += 1 {
-		str_append(&s, "1");
-	}
-	test_eq(str_get_allocated_bytes(s), allocated);
-	str_reserve(&s, 1000);
-	test_eq(str_get_allocated_bytes(s), allocated);
-	test_eq(s.len, 1000);
+	test_eq(s, str_empty);
 }
 
 test_tokenize_0 :: fn () #test {
@@ -949,4 +835,3 @@ test_tokenize_3 :: fn () #test {
 	});
 	test_eq(data.token_count, 0);
 }
-*/

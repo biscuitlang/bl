@@ -1,82 +1,106 @@
-/*
-
-TODO
-- overload to_string?
-- erase range?
-
- */
-
 //! # String
 //!
 //! `#import "std/string"`
 //!
-//! Builtin UTF-8 encoded dynamic string container.
+//! Builtin UTF-8 encoded automatically growing string container. Essentially wrapper over dynamic
+//! array with some additional functionality and semantics.
+//!
+//! ### Memory Layout
 //!
 //! ```bl
 //! string :: struct {
-//!     len: s64;
-//!     ptr: *u8;
+//!     // Count of characters in the string.
+//!     len:             s64;
+//!     // Pointer to the first string character.
+//!     ptr:            *u8;
+//!     // Number of bytes allocated to hold string data (grows automatically).
+//!     allocated_elems: usize;
+//!     // Memory allocator being used to allocate string storage.
+//!     allocator:      *Allocator;
 //! }
-//!
-//!
-//! // Compile-time string literal
-//! my_string :: "This is my string!";
-//!
-//!
-//! // Dynamic string allocated on heap.
-//! // New dynamic string can be created from string literal.
-//! my_string :: str_new("This is my string!");
-//! defer str_delete(&my_string);
 //! ```
 //!
-//! !!! note
-//!     String manipulation functions are related only to dynamic strings and cannot be used
-//!     with string literals since those are constants allocated on stack.
+//! ### String vs String View
 //!
-//! ## Preallocation Rules
+//! As you may notice, there is `string` and `string_view` type in the language. Where `string`
+//! represents dynamically allocated sequence of characters, and `string_view` is lightweight
+//! "view" into the `string`. While `string` can be appended, shrinked and modified in general,
+//! the `string_view` is supposed to provide only read/write access to memory managed by dynamic
+//! strings.
 //!
-//! Underlying string buffer is allocated using provided allocator or `application_context.allocator`
-//! by default.
+//! ```bl
+//! string_view :: []u8;
+//! ```
 //!
-//! - In case the string does not hold any previous allocation, at least `STRING_ALLOC_BLOCK_SIZE`
-//!   bytes are preallocated.
-//! - In case the string already holds preallocated buffer and new requested size fits into current
-//!   preallocated block, no allocation is done.
-//! - In case the string already holds preallocated buffer which is not large enought to hold
-//!   requested data size `STRING_GROW_FACTOR` * requested size is preallocated.
+//! As you can see the `string_view` is just a slice of `u8` characters, thus we have only pointer
+//! to the string data and length of the string (Read more about [slice](manual.html#Slice)).
 //!
-//! Note that small additional space is allocated to hold string metadata (capacity and allocator).
+//! You might ask why we need string views:
 //!
-//! ## Zero Termination
+//! - While `string` needs to hold some additional data it's not suitable for passing by value
+//!   into functions, on the other hand `string_view` is just 16 bytes. It's preferred to pass
+//!   `string_view`s by value.
+//! - The `string_view` might help to reduce amount of allocations and copying, consider following
+//!   function doing split of the input string by delimiter:
+//!
+//!   ```bl
+//!   split :: fn (str: string, delim: u8) (left: string, right: string) {...}
+//!   ```
+//!
+//!   When delimiter is found in the input string `str` we have to allocate two new strings for
+//!   the *left* and *right* substring and populate them with data comming from the original string.
+//!   Since *left* and *right* substrings are allocated on the heap, we need to call `str_terminate`
+//!   on each one after use.
+//!
+//!   Same function with `string_view`:
+//!
+//!   ```bl
+//!   split :: fn (str: string_view, delim: u8) (left: string_view, right: string_view) {...}
+//!   ```
+//!
+//!   In this case no allocation and string copying is needed, *left* and *right* substrings
+//!   are just a "view" of the original string memory.
+//!
+//! One important thing about string views is that they are in fact just pointers with length,
+//! thus there is no explicit ownership of "viewed" data. It's not a good idea to store them, unless
+//! you're sure that the "view" lifetime does not exceeds lifetime of the "viewed" string.
+//!
+//! ### String and String View Conversions
+//!
+//! Strings can be implicitly converted to string views, but not other way around. This makes
+//! the string API more flexible, any function taking `string_view` can directly operate on
+//! strings too.
+//!
+//! ### Zero Termination
 //!
 //! BL strings are **NOT** zero terminated. Key point behind this decision is possible inconsistency
-//! where string_view naturally might or might not be zero terminated. Another issues comes from the
-//! rules of inicialization, where zero initialized structures should be valid by default; so in
+//! where `string_view` naturally might or might not be zero terminated. Another issues comes from the
+//! rules of initialization, where *zero initialized* structures should be valid by default; so in
 //! case of strings (allocated on stack and initialized to 0) we cannot guarantee the string buffer
-//! to be zero-terminated since such a string does not hold any allocation (.ptr == null).
+//! to be zero-terminated since such a string does not hold any allocation.
+//!
+//! In case of interaction with C API or any other API requiring zero-terminated strings, use
+//! [strtoc](modules_string.html#strtoc) function to do the conversion.
 
-
-/// NEW!!!
-
-str2_init :: fn {
-	fn (str: *string2, allocator: *Allocator) #inline {
+str_init :: fn {
+	fn (str: *string, allocator: *Allocator) #inline {
 		assert(str, "Passed string is invalid.");
 		array_init(str_to_arr(str), 0, allocator);
 	};
 
-	fn (str: *string2, capacity: s64, allocator: *Allocator = null) #inline {
+	fn (str: *string, capacity: s64, allocator: *Allocator = null) #inline {
 		assert(str, "Passed string is invalid.");
 		array_init(str_to_arr(str), capacity, allocator);
 	};
 
-	fn (str: *string2, text: string_view, allocator: *Allocator = null) #inline {
+	fn (str: *string, text: string_view, allocator: *Allocator = null) #inline {
 		assert(str, "Passed string is invalid.");
 
 		array_init(str_to_arr(str), text.len, allocator);
-		str2_append(str, text);
+		str_append(str, text);
 	};
 
-	fn (str: *string2, cstr: *C.char, allocator: *Allocator = null) #inline {
+	fn (str: *string, cstr: *C.char, allocator: *Allocator = null) #inline {
 		assert(str, "Passed string is invalid.");
 		assert(cstr, "Invalid C string.");
 
@@ -86,28 +110,28 @@ str2_init :: fn {
 		};
 
 		array_init(str_to_arr(str), tmp.len, allocator);
-		str2_append(str, tmp);
+		str_append(str, tmp);
 	};
 }
 
-str2_terminate :: fn (str: *string2) #inline {
+str_terminate :: fn (str: *string) #inline {
 	assert(str, "Passed string is invalid.");
 	array_terminate(str_to_arr(str));
 }
 
-str2_append :: fn {
-	_str2_append_str;
-	_str2_append_any;
+str_append :: fn {
+	_str_append_str;
+	_str_append_any;
 }
 
-_str2_append_str :: fn (str: *string2, other: string_view) s32 #inline {
+_str_append_str :: fn (str: *string, other: string_view) s32 #inline {
 	assert(str, "Passed string is invalid.");
 
 	array_push_all(str_to_arr(str), other);
 	return auto other.len;
 }
 
-_str2_append_any :: fn (str: *string2, v: Any) s32 #inline {
+_str_append_any :: fn (str: *string, v: Any) s32 #inline {
 	assert(str, "Passed string is invalid.");
 
 	cursor_start :: cast(s32) str.len;
@@ -115,48 +139,138 @@ _str2_append_any :: fn (str: *string2, v: Any) s32 #inline {
 	return cursor_end - cursor_start;
 }
 
-str2_reserve :: fn (str: *string2, capacity: s64) #inline {
+str_reserve :: fn (str: *string, capacity: s64) #inline {
 	assert(str, "Passed string is invalid.");
 	array_reserve(str_to_arr(str), capacity);
 }
 
-str2_resize :: fn (str: *string2, len: s64) #inline {
+str_resize :: fn (str: *string, len: s64) #inline {
 	assert(str, "Passed string is invalid.");
 	array_resize(str_to_arr(str), len);
 }
 
-str2_concat :: fn (str: *string2, args: ...) string_view {
+str_concat :: fn (str: *string, args: ...) string_view {
 	assert(str, "Passed string is invalid.");
 	loop i := 0; i < args.len; i += 1 {
-		str2_append(str, args[i]);
+		str_append(str, args[i]);
 	}
 	return @str;
 }
 
-str2_clear_concat :: fn (str: *string2, args: ...) string_view {
+str_clear_concat :: fn (str: *string, args: ...) string_view {
 	assert(str, "Passed string is invalid.");
 	str.len = 0;
 	loop i := 0; i < args.len; i += 1 {
-		str2_append(str, args[i]);
+		str_append(str, args[i]);
 	}
 	return @str;
 }
 
+// @Incomplete 2025-02-12: Does not return bool!
+/// Overloaded function inserting one character or other string at desired position.
+///
+/// **Overloads:**
+/// ```bl
+/// fn (str: *string, index: s32, v: u8) bool #inline
+/// fn (str: *string, index: s32, v: string_view) bool
+/// ```
+///
+/// !!! note
+///     Function does nothing (return `false`) when `v` string is empty.
+str_insert :: fn { _string_insert; _char_insert; };
 
 #scope_private
-#import "std/array"
 
-// Might be public?
-str_to_arr :: fn (str: *string2) *[..]u8 #inline {
-	return auto str;
+_char_insert :: fn (str: *string, before_index: s64, char: u8) s64 #inline {
+	assert(str, "Passed string is invalid.");
+	return array_insert(str_to_arr(str), before_index, char);
+}
+
+_string_insert :: fn (str: *string, before_index: s32, v: string_view) s64 {
+	assert(str, "Passed string is invalid.");
+	return array_insert_all(str_to_arr(str), before_index, v);
 }
 
 #scope_public
 
+str_erase :: fn (str: *string, index: s32) {
+	assert(str, "Passed string is invalid.");
+	array_erase_keep_order(str_to_arr(str), index);
+}
 
-/// NEW!!!
+/// Replace all found occurrences of character `c` in the input string with `with` character and
+/// return count of replacements made. This function cannot be used with constant string literals
+/// as input.
+///
+/// If `with` replacement is 0 character, all `c` occurrences will be erased from the string.
+///
+/// Function return count of replaced characters or zero.
+str_replace_all :: fn (str: *string, c: u8, with := '\0') s32 { // 2024-10-06 Why not to use string_view here?
+	replaced := 0;
+	loop i := 0; i < (@str).len; i += 1 {
+		if (@str)[i] == c {
+			replaced += 1;
+			(@str)[i] = with;
+		}
+	}
+	if with == '\0' {
+		shrink_by(str);
+	}
+	return replaced;
+}
+
+str_to_arr :: fn (str: *string) *[..]u8 #inline {
+	return auto str;
+}
+
+/// Converts ascii input string to lower case and returns count of changed characters.
+str_lower :: fn (str: *string) s32 #inline {
+	assert(str);
+	s :: @str;
+	changed_num: s32;
+	loop i := 0; i < s.len; i += 1 {
+		c :: s[i];
+		s[i] = auto C.tolower(auto c);
+		if c != s[i] { changed_num += 1; }
+	}
+	return changed_num;
+}
+
+/// Converts single character from the `str` at index `index` to lower case. String `str` must be
+/// valid string pointer and `index` must be in range <0, str.len).
+str_lower_single_character :: fn (str: *string, index: s64) #inline {
+	assert(str);
+	assert(index >= 0 && index < str.len);
+	(@str)[index] = auto C.tolower(auto (@str)[index]);
+}
+
+/// Converts ascii input string to upper case and returns count of changed characters.
+str_upper :: fn (str: *string) s32 #inline {
+	assert(str);
+	s :: @str;
+	changed_num: s32;
+	loop i := 0; i < (@str).len; i += 1 {
+		c :: s[i];
+		s[i] = auto C.toupper(auto s[i]);
+		if c != s[i] { changed_num += 1; }
+	}
+	return changed_num;
+}
+
+/// Converts single character from the `str` at index `index` to upper case. String `str` must be
+/// valid string pointer and `index` must be in range <0, str.len).
+str_upper_single_character :: fn (str: *string, index: s64) #inline {
+	assert(str);
+	assert(index >= 0 && index < str.len);
+	(@str)[index] = auto C.toupper(auto (@str)[index]);
+}
 
 
+
+
+//
+// Following API is deprecated.
+//
 
 /// Overloaded function creating new dynamic string instance.
 ///
@@ -177,125 +291,52 @@ str_new :: fn {
 }
 
 #scope_private
-// @Clenup 2025-02-11: We might remove this since, string.{} can be used instead.
+
 new_empty :: fn () string #obsolete "Use default initialization 'string.{}'. [Since 0.13.0]" {
 	return .{};
 }
 
 new_allocator :: fn (allocator: *Allocator) string #obsolete "Use 'str_init' instead. [Since 0.13.0]" {
-	return make_string(string_view.{}, 0, allocator);
+	str: string;
+	str_init(&str, 0, allocator);
+	return str;
 }
 
-new_size :: fn (size: s64, allocator: *Allocator = null) string {
-	assert(size > 0);
-	return make_string(string_view.{}, size, allocator);
+new_size :: fn (size: s64, allocator: *Allocator = null) string #obsolete "Use 'str_init' instead. [Since 0.13.0]" {
+	str: string;
+	str_init(&str, size, allocator);
+	return str;
 }
 
-new_dup :: fn (v: string_view, allocator: *Allocator = null) string {
-	return make_string(v, v.len, allocator);
+new_dup :: fn (v: string_view, allocator: *Allocator = null) string #obsolete "Use 'str_init' instead. [Since 0.13.0]" {
+	str: string;
+	str_init(&str, v, allocator);
+	return str;
 }
 
-new_dup_c_str :: fn (cstr: *u8, allocator: *Allocator = null) string {
-	len :: C.strlen(auto cstr);
-	return make_string(string_view.{
-			len = auto len,
-			ptr = cstr
-		}, auto len, allocator);
+new_dup_c_str :: fn (cstr: *u8, allocator: *Allocator = null) string #obsolete "Use 'str_init' instead. [Since 0.13.0]" {
+	str: string;
+	str_init(&str, cast(*C.char) cstr, allocator);
+	return str;
 }
 
 #scope_public
 
 /// Delete dynamic string.
-str_delete :: fn (v: *string) {
-	if !v.ptr { return; }
-	free_block(v.ptr);
-	v.len = 0;
-	v.ptr = null;
-};
-
-/// Ensure that string's underlying buffer is capable to hold at least `count` of characters. In
-/// case the current preallocated buffer is not large enough new allocation is done according to
-/// string [preallocation rules](#preallocation-rules).
-///
-/// do preallocation if buffer is too small. The reserve does not take in account if the string's
-/// buffer is full or not. The function does nothing if buffer size is enough.
-str_reserve :: fn (v: *string, count: s64) {
-	v.ptr = make_more_room_if_needed(v.ptr, cast(usize)count);
-}
-
-/// Get currently allocated memory used by the string in bytes.
-str_get_allocated_bytes :: fn (v: string) usize #inline {
-	if !v.ptr { return 0; }
-	head :: get_block_head(v.ptr);
-	return head.allocated_size;
-}
-
-// Get currently allocated memory used by the string in bytes.
-str_capacity :: fn (v: string) usize #inline {
-	return str_get_allocated_bytes(v);
+str_delete :: fn (v: *string) #obsolete "Use 'str_terminate' instead'. [Since 0.13.0]" {
+	str_terminate(v);
 }
 
 /// Clear dynamic string but keep allocated storage.
-str_clear :: fn (v: *string) {
-	v.len = 0;
-	set_terminator(v);
-};
-
-/// Append dynamic string with any value. Allocation is done in case there is not enough space
-/// reminding in string. The `v` string is supposed to be allocated on heap.
-///
-/// Returns count of characters appended to the string excluding zero terminator.
-str_append :: fn {
-	_str_append_str;
-	_str_append_any;
+str_clear :: fn (str: *string) #inline #obsolete "Use 'str.len = 0' instead. [Since 0.13.0]" {
+	str.len = 0;
 }
 
-_str_append_str :: fn (v: *string, other: string_view) s32 {
-	new_len :: v.len + other.len;
-	v.ptr = make_more_room_if_needed(v.ptr, auto new_len);
-	memcpy(ptr_shift_bytes(v.ptr, auto v.len), other.ptr, auto other.len);
-	v.len = new_len;
-	set_terminator(v);
-	return auto other.len;
-}
 
-_str_append_any :: fn (v: *string, add: Any) s32 #inline {
-	addition := add;
-	return _print_impl(v, "%", []Any.{ 1, &addition }, auto v.len);
-}
 
-/// Append string with multiple values passed as `args` and return `@v`. New allocation is done in
-/// case there is space no left in currently allocated string's memory to append `args`.
-str_concat :: fn (v: *string, args: ...) string {
-	loop i := 0; i < args.len; i += 1 {
-		str_append(v, args[i]);
-	}
-	return @v;
-}
-
-/// Clear the `v` string and append multiple values passed as `args`. Returned value is dereference
-/// of the original `v` string after new values are appended. New allocation is done in case there
-/// is space no left in currently allocated
-/// string's memory to append `args`.
-///
-/// **hint**: Use this function in case you need create only temporary string i.e. file path.
-///
-/// ```bl
-/// #import "std/string"
-///
-/// VERSION :: "1.0.0";
-///
-/// path := str_new();
-/// defer str_delete(path);
-/// set_cwd(str_clear_concat(&path, "my-dir/project-", VERSION));
-/// ```
-str_clear_concat :: fn (v: *string, args: ...) string {
-	str_clear(v);
-	loop i := 0; i < args.len; i += 1 {
-		str_append(v, args[i]);
-	}
-	return @v;
-}
+//
+// Utility functions
+//
 
 /// Compare `first` and `second` strings in specified range `n` and return `true` if they are the same
 /// otherwise return `false`.
@@ -598,35 +639,6 @@ str_split_by_first :: fn (str: string_view, delimiter: u8, lhs: *string_view, rh
 	return true;
 }
 
-/// Overloaded function inserting one character or other string at desired position.
-///
-/// **Overloads:**
-/// ```bl
-/// fn (str: *string, index: s32, v: u8) bool #inline
-/// fn (str: *string, index: s32, v: string_view) bool
-/// ```
-///
-/// !!! note
-///     Function does nothing (return `false`) when `v` string is empty.
-str_insert :: fn { _string_insert; _char_insert; };
-
-/// Erase one character at `index` position and return true when character was erased. The '`index`
-/// value is checked to fit in string bounds.
-str_erase :: fn (str: *string, index: s32) bool {
-	i := index;
-	if str.len == 0 { return false; }
-	if i >= str.len { return false; }
-	// @Performance: memmove here?
-	i += 1;
-	loop ; i < str.len; i += 1 {
-		(@str)[i-1] = (@str)[i];
-	}
-	str.len -= 1;
-	set_terminator(str);
-
-	return true;
-}
-
 /// Split the `str` input string by delimiter and return new slice containing all found sub-strings.
 /// In case input string is empty, returs empty slice.
 ///
@@ -720,69 +732,6 @@ str_count_of :: fn (str: string_view, c: u8) s32 #inline {
 	return count;
 }
 
-/// Converts ascii input string to lower case and returns count of changed characters.
-str_lower :: fn (str: *string) s32 #inline {
-	assert(str);
-	s :: @str;
-	changed_num: s32;
-	loop i := 0; i < s.len; i += 1 {
-		c :: s[i];
-		s[i] = auto C.tolower(auto c);
-		if c != s[i] { changed_num += 1; }
-	}
-	return changed_num;
-}
-
-/// Converts single character from the `str` at index `index` to lower case. String `str` must be
-/// valid string pointer and `index` must be in range <0, str.len).
-str_lower_single_character :: fn (str: *string, index: s64) #inline {
-	assert(str);
-	assert(index >= 0 && index < str.len);
-	(@str)[index] = auto C.tolower(auto (@str)[index]);
-}
-
-/// Converts ascii input string to upper case and returns count of changed characters.
-str_upper :: fn (str: *string) s32 #inline {
-	assert(str);
-	s :: @str;
-	changed_num: s32;
-	loop i := 0; i < (@str).len; i += 1 {
-		c :: s[i];
-		s[i] = auto C.toupper(auto s[i]);
-		if c != s[i] { changed_num += 1; }
-	}
-	return changed_num;
-}
-
-/// Converts single character from the `str` at index `index` to upper case. String `str` must be
-/// valid string pointer and `index` must be in range <0, str.len).
-str_upper_single_character :: fn (str: *string, index: s64) #inline {
-	assert(str);
-	assert(index >= 0 && index < str.len);
-	(@str)[index] = auto C.toupper(auto (@str)[index]);
-}
-
-/// Replace all found occurrences of character `c` in the input string with `with` character and
-/// return count of replacements made. This function cannot be used with constant string literals
-/// as input.
-///
-/// If `with` replacement is 0 character, all `c` occurrences will be erased from the string.
-///
-/// Function return count of replaced characters or zero.
-str_replace_all :: fn (str: *string, c: u8, with := '\0') s32 { // 2024-10-06 Why not to use string_view here?
-	replaced := 0;
-	loop i := 0; i < (@str).len; i += 1 {
-		if (@str)[i] == c {
-			replaced += 1;
-			(@str)[i] = with;
-		}
-	}
-	if with == '\0' {
-		shrink_by(str);
-	}
-	return replaced;
-}
-
 /// Calculates string `u32` hash.
 str_hash :: fn (str: string_view) u32 {
 	hash : u32 = 5381;
@@ -832,7 +781,7 @@ str_sub :: fn (str: string_view, start: s64, len : s64 = -1) string_view #inline
 
 /// Checks whether string view is zero terminated. Returns `false` In case the string view does not point
 /// to any valid data (`str.ptr == null`).
-str_is_zero_terminated :: fn (str: string_view) bool #inline {
+str_is_zero_terminated :: fn (str: string_view) bool #inline #obsolete "Will be removed, BL strings are no longer zero-terminated. [Since 0.13.0]" {
 	if !str.ptr then return false;
 	extend := str;
 	extend.len += 1;
@@ -857,10 +806,8 @@ strtoc :: fn (str: string_view, _allocator : *Allocator = null) *C.char #inline 
 /// Converts string view into C string representation. This function first checks if the input string
 /// is zero terminated, in case it's not, the temporary allocator is used to create zero terminated
 /// copy which is returned. Otherwise returns pointer to data of original string without any allocations.
-tstrtoc :: fn (str: string_view) *C.char #inline {
-	if str_is_zero_terminated(str) then return auto str.ptr;
-	tmp :: str_new(str, application_context.temporary_allocator);
-	return auto tmp.ptr;
+tstrtoc :: fn (str: string_view) *C.char #inline #obsolete "Use strtoc instead. [Since 0.13.0]" {
+	return strtoc(str, application_context.temporary_allocator);
 }
 
 /// Converts C string into string view. The `len` argument is optional and is used as string length if
@@ -898,106 +845,12 @@ is_digit :: fn (c: u8, base := FmtIntBase.DEC) bool #inline {
 	return false;
 }
 
-/// Size of string block preallocation chunk.
-STRING_ALLOC_BLOCK_SIZE : usize = 32;
-STRING_GROW_FACTOR      : f32   = 1.5f;
-
-
 #scope_private
 #import "std/print"
 #import "std/math"
 #import "std/array"
 
 C :: #import "libc";
-
-make_string :: fn (data: string_view, cap: s64, allocator: *Allocator) string {
-	tmp : string #noinit;
-	tmp.ptr = realloc_block(null, auto cap, allocator);
-	tmp.len = data.len;
-	memcpy(tmp.ptr, data.ptr, auto data.len);
-	set_terminator(&tmp);
-	return tmp;
-}
-
-BlockHead :: struct {
-	allocated_size: usize;
-	allocator: *Allocator;
-}
-
-// Get size needed for allocation.
-get_allocation_size :: fn (size: usize) usize #inline {
-	if size == 0 { return size; }
-	return size + sizeof(BlockHead) + sizeof(u8); // + terminator
-}
-
-// Get address of real allocated memory.
-get_allocation_ptr :: fn (ptr: *u8) *u8 {
-	if !ptr { return ptr; }
-	return cast(*u8) ((cast(usize) ptr) - sizeof(BlockHead));
-}
-
-// Get allocation header.
-get_block_head :: fn (ptr: *u8) *BlockHead #inline {
-	assert(ptr);
-	return cast(*BlockHead) get_allocation_ptr(ptr);
-}
-
-make_more_room_if_needed :: fn (orig_ptr: *u8, size: usize) *u8 {
-	allocated: usize;
-	allocator: *Allocator;
-
-	// Allocated the string in case it has not been allocated yet.
-	if orig_ptr {
-		head :: get_block_head(orig_ptr);
-		allocated = head.allocated_size;
-		allocator = head.allocator;
-	}
-
-	if size > allocated {
-		return realloc_block(orig_ptr, size, allocator);
-	}
-	return orig_ptr;
-}
-
-realloc_block :: fn (ptr: *u8, size: usize, allocator: *Allocator) *u8 {
-	if size == 0 then return ptr;
-
-	extended_needed_size := size;
-	if !ptr {
-		extended_needed_size = max(STRING_ALLOC_BLOCK_SIZE, size);
-	} else {
-		extended_needed_size = auto (STRING_GROW_FACTOR * auto size);
-	}
-
-	assert(extended_needed_size >= size);
-
-	mem, err :: realloc(
-		get_allocation_ptr(ptr),
-		get_allocation_size(extended_needed_size),
-		alignof(u8),
-		allocator
-	);
-
-	if err { panic(err); }
-	tmp := cast(*BlockHead) mem;
-	tmp.allocated_size = extended_needed_size;
-	tmp.allocator      = allocator;
-
-	return cast(*u8) (cast(usize) tmp + sizeof(BlockHead));
-}
-
-free_block :: fn (ptr: *u8) {
-	head :: get_block_head(ptr);
-	allocator :: head.allocator;
-	free(get_allocation_ptr(ptr), allocator);
-}
-
-set_terminator :: fn (v: *string) {
-	if !v.ptr { return; }
-	v.len += 1;
-	(@v)[v.len - 1] = 0;
-	v.len -= 1;
-}
 
 consume_char :: fn (s: *string_view) u8 #inline {
 	c :: (@s)[0];
@@ -1026,31 +879,4 @@ shrink_by :: fn (str: *string, c := '\0') {
 	}
 	tmp.len -= n;
 	@str = tmp;
-}
-
-_char_insert :: fn (str: *string, index: s32, char: u8) bool #inline {
-	return _string_insert(str, index, string_view.{ 1, &char });
-}
-
-_string_insert :: fn (str: *string, index: s32, v: string_view) bool {
-	if !str { panic("Input string is null!"); }
-	if v.len == 0 { return false; }
-	if index > str.len { return false; }
-	if index == str.len { // appending
-		str_append(str, v);
-		return true;
-	}
-
-	orig_len :: str.len;
-	new_len :: str.len + v.len;
-	str.ptr = make_more_room_if_needed(str.ptr, auto new_len);
-	str.len = new_len;
-	loop i := orig_len-1; i >= index; i -= 1 {
-		(@str)[i+v.len] = (@str)[i];
-	}
-	loop i := 0; i < v.len; i += 1 {
-		(@str)[i+index] = v[i];
-	}
-	set_terminator(str);
-	return true;
 }

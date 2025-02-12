@@ -2261,8 +2261,8 @@ struct mir_type *create_type_struct_dynarr(struct context *ctx, enum mir_type_ki
 	struct mir_type *allocated_type = ctx->builtin_types->t_usize;
 	struct mir_type *allocator_type = ctx->builtin_types->t_u8_ptr;
 
-	bool can_use_cache = elem_ptr_type->can_use_cache;
-	str_buf_t  name          = get_tmp_str();
+	bool      can_use_cache = elem_ptr_type->can_use_cache;
+	str_buf_t name          = get_tmp_str();
 
 	switch (kind) {
 	case MIR_TYPE_STRING:
@@ -6506,7 +6506,7 @@ struct result analyze_instr_load(struct context *ctx, struct mir_instr_load *loa
 
 	return_zone(PASS);
 
-INVALID_SRC: {
+INVALID_SRC : {
 	bassert(err_type);
 	str_buf_t type_name = mir_type2str(err_type, /* prefer_name */ true);
 	report_error(INVALID_TYPE, src->node, "Expected value of pointer type, got '" STR_FMT "'.", STR_ARG(type_name));
@@ -7840,7 +7840,6 @@ DONE:
 
 	if (isflag(selected_fn->flags, FLAG_OBSOLETE)) {
 		report_warning(call->base.node, "Function overload is marked as obsolete. " STR_FMT "", STR_ARG(selected_fn->obsolete_message));
-		report_note(selected_fn->decl_node, "Function declared here.");
 	}
 
 	return selected_fn;
@@ -12070,8 +12069,7 @@ static void initialize_builtins(struct assembly *assembly) {
 	bt->t_scope                = create_type_named_scope(&ctx);
 	bt->t_void                 = create_type_void(&ctx);
 	bt->t_u8_ptr               = create_type_ptr(&ctx, bt->t_u8);
-	bt->t_string               = create_type_slice(&ctx, MIR_TYPE_STRING, &builtin_ids[BUILTIN_ID_TYPE_STRING], bt->t_u8_ptr, false);
-	bt->t_string2              = create_type_struct_dynarr(&ctx, MIR_TYPE_STRING, &builtin_ids[BUILTIN_ID_TYPE_STRING2], bt->t_u8_ptr);
+	bt->t_string               = create_type_struct_dynarr(&ctx, MIR_TYPE_STRING, &builtin_ids[BUILTIN_ID_TYPE_STRING], bt->t_u8_ptr);
 	bt->t_string_literal       = create_type_slice(&ctx, MIR_TYPE_SLICE, NULL, bt->t_u8_ptr, true);
 	bt->t_resolve_type_fn      = create_type_fn(&ctx, &(create_type_fn_args_t){.ret_type = bt->t_type});
 	bt->t_resolve_bool_expr_fn = create_type_fn(&ctx, &(create_type_fn_args_t){.ret_type = bt->t_bool});
@@ -12096,7 +12094,6 @@ static void initialize_builtins(struct assembly *assembly) {
 	provide_builtin_type(&ctx, bt->t_f32);
 	provide_builtin_type(&ctx, bt->t_f64);
 	provide_builtin_type(&ctx, bt->t_string);
-	provide_builtin_type(&ctx, bt->t_string2);
 
 	// Add IS_DEBUG immutable into the global scope to provide information about enabled
 	// debug mode.

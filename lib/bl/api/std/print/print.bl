@@ -217,11 +217,6 @@ _print_impl :: fn {
 		__print_impl(buf, format, args, &cursor);
 		return cursor;
 	};
-	fn (buf: *string2, format: string_view, args: []Any, cur := 0) s32 {
-		cursor :: cur;
-		__print_impl(buf, format, args, &cursor);
-		return cursor;
-	};
 }
 
 #scope_private
@@ -603,10 +598,6 @@ print_string :: fn {
 	fn (buf: *string, cur: *s32, str: string_view) #inline { // @Cleanup 2025-02-12
 		if str.ptr == null { return; }
 		(@cur) += _str_append_str(buf, str);
-	};
-	fn (buf: *string2, cur: *s32, str: string_view) #inline {
-		if str.ptr == null { return; }
-		(@cur) += _str2_append_str(buf, str);
 	};
 }
 
