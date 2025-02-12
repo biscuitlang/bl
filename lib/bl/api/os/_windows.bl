@@ -84,6 +84,7 @@ os_get_exec_path :: fn () string {
 	return str_new();
 }
 
+// @Incomplete 2025-02-11: Should take allocator passed to strtoc.
 os_execute :: fn (command: string_view) s32 {
 	return C.system(strtoc(command));
 }
@@ -214,9 +215,11 @@ __os_start :: fn () #entry {
 	command_line_arguments.ptr = args.ptr;
 
 	if !_std_io_initialized { init_std_io(); }
+
+	
+	out :: cast(s32) __assembly_module.main();
 	temporary_release();
 
-	out :: cast(s32) __assembly_module.main();
 	C.free(auto args.ptr);
 	C.exit(out);
 }

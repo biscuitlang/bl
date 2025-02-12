@@ -63,8 +63,15 @@ Static shit
 */
 
 #import "std/print"
+#import "std/string"
 
 main :: fn () s32 {
+	foo: string2;
+	str2_init(&foo);
+
+	str2_append(&foo, "Hello!");
+	print(foo);
+
 	return 0;
 }
 

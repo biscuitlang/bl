@@ -19,7 +19,7 @@ ARRAY_GROW_FACTOR      : f32   = 1.5f;
 
 // Not direcly used internally, when layout of this structure is changed, internal compiler
 // representation must be modified too.
-_Array :: struct {
+_Array :: struct { // @Clanup 2025-02-12: We don't need this anymore!
 	len: s64;
 	ptr: *u8;
 	allocated_elems: usize;
@@ -29,18 +29,19 @@ _Array :: struct {
 /// Sets dynamic array to default state. If array contains already allocated memory `array_terminate`
 /// must be called first.
 ///
-/// Initial capacity can be specified by `n` (count of elements). If `n` is greater than 0, needed
-/// memory is preallocated using specified `allocator`; otherwise no allocation is done.
+/// Initial capacity can be specified by `capacity` (count of elements). If `capacity` is greater
+/// than 0, needed memory is preallocated using specified `allocator`; otherwise no allocation is done.
 ///
 /// It's usually enough to rely on default implicit initialization in case we don't need specify
-/// custom allocator or preallocate storage to specified `n` of entries.
-array_init :: fn (_arr: *[..]?T, n: s64 = 0, allocator: *Allocator = null) #inline {
+/// custom allocator or preallocate storage to specified `capacity` of entries.
+array_init :: fn (_arr: *[..]?T, capacity: s64 = 0, allocator: *Allocator = null) #inline {
+	assert(_arr, "Passed array is invalid.");
 	arr := cast(*_Array) _arr;
 	arr.ptr = null;
 	arr.len = 0;
 	arr.allocated_elems = 0;
 	arr.allocator = allocator;
-	array_reserve(_arr, n);
+	array_reserve(_arr, capacity);
 }
 
 /// Release memory allocated by dynamic array. This function is supposed to be called when dynamic

@@ -16,6 +16,7 @@ struct mir_type *t_bool;
 struct mir_type *t_f32;
 struct mir_type *t_f64;
 struct mir_type *t_string;
+struct mir_type *t_string2;
 struct mir_type *t_void;
 struct mir_type *t_u8_ptr;
 struct mir_type *t_string_literal;

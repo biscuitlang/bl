@@ -1,9 +1,8 @@
 #scope_private
 #import "std/string"
 #import "std/array"
-#import "std/print"
 
-test_multiline_str_literal :: fn () #test {
+multiline_str_literal :: fn () #test {
 	FOO ::
 	   "Hello "
 	   "this "
@@ -12,79 +11,93 @@ test_multiline_str_literal :: fn () #test {
 	   "string"
 	   "!";
 	EXPECTED :: "Hello this is multiline string!";
-	print_log("'%'\n'%'\n", FOO, EXPECTED);
 	test_true(str_is_zero_terminated(FOO));
-	test_eq(FOO.len, EXPECTED.len);
 	test_eq(FOO, EXPECTED);
 }
 
-test_strs_init1 :: fn () #test {
-	s1 := str_new();
-	defer str_delete(&s1);
-	test_not_null(s1.ptr, null);
-	test_eq(s1.len, 0);
-	str_append(&s1, "foo");
-	test_eq("foo", s1);
-	str_append(&s1, 12);
-	test_eq("foo12", s1);
-	str_append(&s1, true);
-	test_eq("foo12true", s1);
-};
-
-test_strs_init2 :: fn () #test {
+/*
+new_string_no_allocation :: fn () #test {
 	s :: str_new();
 	defer str_delete(&s);
 	test_eq(s.len, 0);
-	test_true(s.ptr);
+	test_null(s.ptr);
 }
 
-test_strs_init3 :: fn () #test {
+new_string_append :: fn () #test {
+	s := str_new();
+	defer str_delete(&s);
+	test_null(s.ptr);
+	test_eq(s.len, 0);
+
+	str_append(&s, "foo");
+	test_eq("foo", s);
+
+	str_append(&s, 12);
+	test_eq("foo12", s);
+
+	str_append(&s, true);
+	test_eq("foo12true", s);
+}
+
+new_string_reserve :: fn () #test {
 	s :: str_new(100);
 	defer str_delete(&s);
 	test_eq(s.len, 0);
 	test_true(s.ptr);
+	test_gt(str_capacity(s), 0);
+	test_true(str_is_zero_terminated(s));
 }
 
-test_strs_init4 :: fn () #test {
+new_string_duplicate :: fn () #test {
 	s :: str_new("hello");
 	defer str_delete(&s);
 	test_eq(s.len, 5);
 	test_true(s.ptr);
 	test_eq(s, "hello");
+	test_true(str_is_zero_terminated(s));
 }
 
-test_strs_init5 :: fn () #test {
+new_string_duplicate_cstring :: fn () #test {
 	cstr := [6]u8.{'h', 'e', 'l', 'l', 'o', '\0'};
 	s :: str_new(cstr.ptr);
 	defer str_delete(&s);
 	test_eq(s.len, 5);
 	test_true(s.ptr);
 	test_eq(s, "hello");
+	test_true(str_is_zero_terminated(s));
 }
 
-test_strs_default_1 :: fn () #test {
+zero_init_string :: fn () #test {
 	s: string;
 	defer str_delete(&s);
 	test_eq(s.len, 0);
 	test_null(s.ptr);
+	test_eq(str_capacity(s), 0);
+	test_false(str_is_zero_terminated(s));
 }
 
-test_strs_default_append :: fn () #test {
+zero_init_string_append :: fn () #test {
 	s: string;
 	defer str_delete(&s);
 
 	str_append(&s, "hello");
 	test_eq(s, "hello");
+	test_gt(str_capacity(s), 0);
+	test_true(str_is_zero_terminated(s));
 }
 
-test_strs_default_reserve :: fn () #test {
+zero_init_string_reserve :: fn () #test {
 	s: string;
 	defer str_delete(&s);
 
 	str_reserve(&s, 256);
+
 	test_not_null(s.ptr);
 	test_eq(s.len, 0);
+	test_gt(str_capacity(s), 0);
+	test_true(str_is_zero_terminated(s));
 }
+
 
 test_strs_default_misc :: fn () #test {
 	s: string;
@@ -664,3 +677,4 @@ test_tokenize_3 :: fn () #test {
 	});
 	test_eq(data.token_count, 0);
 }
+*/

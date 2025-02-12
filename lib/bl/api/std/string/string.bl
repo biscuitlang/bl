@@ -29,25 +29,80 @@ TODO
 //! defer str_delete(&my_string);
 //! ```
 //!
-//! BL strings are zero terminated except of sub-string view function (terminator cannot be added
-//! because we cannot modify original string).
-//!
 //! !!! note
 //!     String manipulation functions are related only to dynamic strings and cannot be used
 //!     with string literals since those are constants allocated on stack.
+//!
+//! ## Preallocation Rules
+//!
+//! Underlying string buffer is allocated using provided allocator or `application_context.allocator`
+//! by default.
+//!
+//! - In case the string does not hold any previous allocation, at least `STRING_ALLOC_BLOCK_SIZE`
+//!   bytes are preallocated.
+//! - In case the string already holds preallocated buffer and new requested size fits into current
+//!   preallocated block, no allocation is done.
+//! - In case the string already holds preallocated buffer which is not large enought to hold
+//!   requested data size `STRING_GROW_FACTOR` * requested size is preallocated.
+//!
+//! Note that small additional space is allocated to hold string metadata (capacity and allocator).
+//!
+//! ## Zero Termination
+//!
+//! BL strings are **NOT** zero terminated. Key point behind this decision is possible inconsistency
+//! where string_view naturally might or might not be zero terminated. Another issues comes from the
+//! rules of inicialization, where zero initialized structures should be valid by default; so in
+//! case of strings (allocated on stack and initialized to 0) we cannot guarantee the string buffer
+//! to be zero-terminated since such a string does not hold any allocation (.ptr == null).
 
-/// Overloaded function creating new dynamic string instance. Created string is guaranteed to be
-/// zero terminated.
+
+/// NEW!!!
+
+str2_init :: fn (str: *string2, capacity: s64 = 0, allocator: *Allocator = null) #inline {
+	assert(str, "Passed string is invalid.");
+	array_init(str_to_arr(str), capacity, allocator);
+}
+
+str2_terminate :: fn (str: *string2) #inline {
+	assert(str, "Passed string is invalid.");
+	array_terminate(str_to_arr(str));
+}
+
+str2_append :: fn (str: *string2, text: string_view) #inline {
+	assert(str, "Passed string is invalid.");
+	array_push_all(str_to_arr(str), text);
+}
+
+#scope_private
+#import "std/array"
+
+str_to_arr :: fn (str: *string2) *[..]u8 #inline {
+	return auto str;
+}
+
+#scope_public
+
+
+/// NEW!!!
+
+
+
+/// Overloaded function creating new dynamic string instance.
 ///
 /// **Overloads:**
 /// ```bl
-/// fn (allocator: *Allocator = null) string
+/// fn () string;
+/// fn (allocator: *Allocator) string
 /// fn (size: s64, allocator: *Allocator = null) string
 /// fn (v: string_view, allocator: *Allocator = null) string
 /// fn (cstr: *u8, allocator: *Allocator = null) string
 /// ```
 str_new :: fn {
-	fn (allocator: *Allocator = null) string {
+	// @Clenup 2025-02-11: We might remove this since, string.{} can be used instead.
+	fn () string {
+		return .{};
+	};
+	fn (allocator: *Allocator) string {
 		return make_string(string_view.{}, 0, allocator);
 	};
 	fn (size: s64, allocator: *Allocator = null) string {
@@ -74,7 +129,10 @@ str_delete :: fn (v: *string) {
 	v.ptr = null;
 };
 
-/// Ensure that string's underlying buffer is capable to hold `count` of characters and eventually
+/// Ensure that string's underlying buffer is capable to hold at least `count` of characters. In
+/// case the current preallocated buffer is not large enough new allocation is done according to
+/// string [preallocation rules](#preallocation-rules).
+///
 /// do preallocation if buffer is too small. The reserve does not take in account if the string's
 /// buffer is full or not. The function does nothing if buffer size is enough.
 str_reserve :: fn (v: *string, count: s64) {
@@ -86,6 +144,11 @@ str_get_allocated_bytes :: fn (v: string) usize #inline {
 	if !v.ptr { return 0; }
 	head :: get_block_head(v.ptr);
 	return head.allocated_size;
+}
+
+// Get currently allocated memory used by the string in bytes.
+str_capacity :: fn (v: string) usize #inline {
+	return str_get_allocated_bytes(v);
 }
 
 /// Clear dynamic string but keep allocated storage.
@@ -683,20 +746,28 @@ str_sub :: fn (str: string_view, start: s64, len : s64 = -1) string_view #inline
 	return string_view.{ l, &s[start] };
 }
 
-/// Checks whether string is zero terminated.
+/// Checks whether string view is zero terminated. Returns `false` In case the string view does not point
+/// to any valid data (`str.ptr == null`).
 str_is_zero_terminated :: fn (str: string_view) bool #inline {
-	// THIS MIGHT NOT BE SAFE? What about empty string view?
+	if !str.ptr then return false;
 	extend := str;
 	extend.len += 1;
 	return extend[extend.len-1] == '\0';
 }
 
-// @Incomplete 2025-01-30: We might prefer using tstrtoc and remove this one?
-/// Converts string view into C string representation. The original string `str` must be zero-terminated
-/// (checked by assert).
-strtoc :: fn (str: string_view) *C.char #inline {
-	assert(str_is_zero_terminated(str));
-	return auto str.ptr;
+/// Converts BL string to C zero-terminated string. This function internally allocates memory in order to
+/// put the zero terminator at the end of the string array. In case the `_allocator` is not specified,
+/// `application_context.temporary_allocator` is used.
+///
+/// Empty strings are valid input and are converted to C string as "\0".
+strtoc :: fn (str: string_view, _allocator : *Allocator = null) *C.char #inline {
+	allocator :: if !_allocator then application_context.temporary_allocator else _allocator;
+	mem, err :: alloc(auto str.len + 1, alignof(C.char), allocator);
+	if err then panic(err);
+	cstr :: []C.char.{ str.len + 1, auto mem };
+	memcpy(auto cstr.ptr, str.ptr, auto str.len);
+	cstr[cstr.len - 1] = 0;
+	return cstr.ptr;
 }
 
 /// Converts string view into C string representation. This function first checks if the input string
@@ -743,6 +814,10 @@ is_digit :: fn (c: u8, base := FmtIntBase.DEC) bool #inline {
 	return false;
 }
 
+/// Size of string block preallocation chunk.
+STRING_ALLOC_BLOCK_SIZE : usize = 32;
+STRING_GROW_FACTOR      : f32   = 1.5f;
+
 
 #scope_private
 #import "std/print"
@@ -759,8 +834,6 @@ make_string :: fn (data: string_view, cap: s64, allocator: *Allocator) string {
 	set_terminator(&tmp);
 	return tmp;
 }
-
-STRING_BLOCK_SIZE :: 32 - sizeof(BlockHead);
 
 BlockHead :: struct {
 	allocated_size: usize;
@@ -789,7 +862,7 @@ make_more_room_if_needed :: fn (orig_ptr: *u8, size: usize) *u8 {
 	allocated: usize;
 	allocator: *Allocator;
 
-	// Allocated the string in case it hasn not been allocated yet.
+	// Allocated the string in case it has not been allocated yet.
 	if orig_ptr {
 		head :: get_block_head(orig_ptr);
 		allocated = head.allocated_size;
@@ -803,19 +876,27 @@ make_more_room_if_needed :: fn (orig_ptr: *u8, size: usize) *u8 {
 }
 
 realloc_block :: fn (ptr: *u8, size: usize, allocator: *Allocator) *u8 {
-	d             :: size / STRING_BLOCK_SIZE + 1;
-	extended_size :: d * STRING_BLOCK_SIZE;
+	if size == 0 then return ptr;
+
+	extended_needed_size := size;
+	if !ptr {
+		extended_needed_size = max(STRING_ALLOC_BLOCK_SIZE, size);
+	} else {
+		extended_needed_size = auto (STRING_GROW_FACTOR * auto size);
+	}
+
+	assert(extended_needed_size >= size);
 
 	mem, err :: realloc(
 		get_allocation_ptr(ptr),
-		get_allocation_size(extended_size),
+		get_allocation_size(extended_needed_size),
 		alignof(u8),
 		allocator
 	);
 
 	if err { panic(err); }
 	tmp := cast(*BlockHead) mem;
-	tmp.allocated_size = extended_size;
+	tmp.allocated_size = extended_needed_size;
 	tmp.allocator      = allocator;
 
 	return cast(*u8) (cast(usize) tmp + sizeof(BlockHead));

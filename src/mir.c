@@ -298,7 +298,7 @@ typedef struct
 
 static struct mir_type *create_type_enum(struct context *ctx, create_type_enum_args_t *args);
 static struct mir_type *create_type_slice(struct context *ctx, enum mir_type_kind kind, struct id *user_id, struct mir_type *elem_ptr_type, bool is_string_literal);
-static struct mir_type *create_type_struct_dynarr(struct context *ctx, struct id *user_id, struct mir_type *elem_ptr_type);
+static struct mir_type *create_type_struct_dynarr(struct context *ctx, enum mir_type_kind kind, struct id *user_id, struct mir_type *elem_ptr_type);
 
 static void type_init_llvm_int(struct context *ctx, struct mir_type *type);
 static void type_init_llvm_real(struct context *ctx, struct mir_type *type);
@@ -2102,7 +2102,7 @@ struct mir_type *create_type_struct(struct context *ctx, create_type_struct_args
 			lock_type_cache(ctx);
 			result = lookup_type(ctx, hash, str_buf_view(name));
 			if (result) {
-				bassert(result->kind == MIR_TYPE_STRING);
+				bassert(result->kind == MIR_TYPE_STRING); // @Cleanup 2025-02-12
 				unlock_type_cache(ctx);
 				goto DONE;
 			}
@@ -2252,7 +2252,7 @@ DONE:
 	return result;
 }
 
-struct mir_type *create_type_struct_dynarr(struct context *ctx, struct id *user_id, struct mir_type *elem_ptr_type) {
+struct mir_type *create_type_struct_dynarr(struct context *ctx, enum mir_type_kind kind, struct id *user_id, struct mir_type *elem_ptr_type) {
 	bassert(mir_is_pointer_type(elem_ptr_type));
 
 	struct mir_type *result;
@@ -2261,17 +2261,27 @@ struct mir_type *create_type_struct_dynarr(struct context *ctx, struct id *user_
 	struct mir_type *allocated_type = ctx->builtin_types->t_usize;
 	struct mir_type *allocator_type = ctx->builtin_types->t_u8_ptr;
 
-	const bool can_use_cache = elem_ptr_type->can_use_cache;
+	bool can_use_cache = elem_ptr_type->can_use_cache;
 	str_buf_t  name          = get_tmp_str();
 
-	str_buf_append_fmt(&name, "da.{{{str},{str},{str},{str}}}", len_type->id.str, elem_ptr_type->id.str, allocated_type->id.str, allocator_type->id.str);
+	switch (kind) {
+	case MIR_TYPE_STRING:
+		can_use_cache = false;
+		str_buf_append(&name, user_id->str);
+		break;
+	case MIR_TYPE_DYNARR:
+		str_buf_append_fmt(&name, "da.{{{str},{str},{str},{str}}}", len_type->id.str, elem_ptr_type->id.str, allocated_type->id.str, allocator_type->id.str);
+		break;
+	default:
+		babort("Unexpected type kind.");
+	}
 
 	const hash_t hash = strhash(name);
 	if (can_use_cache) {
 		lock_type_cache(ctx);
 		result = lookup_type(ctx, hash, str_buf_view(name));
 		if (result) {
-			bassert(result->kind == MIR_TYPE_DYNARR);
+			bassert(result->kind == kind);
 			unlock_type_cache(ctx);
 			goto DONE;
 		}
@@ -2316,7 +2326,7 @@ struct mir_type *create_type_struct_dynarr(struct context *ctx, struct id *user_
 
 	result = create_type_struct(ctx,
 	                            &(create_type_struct_args_t){
-	                                .kind        = MIR_TYPE_DYNARR,
+	                                .kind        = kind,
 	                                .user_id     = user_id,
 	                                .id          = &id,
 	                                .scope       = body_scope,
@@ -7035,7 +7045,7 @@ struct result analyze_instr_type_dynarr(struct context *ctx, struct mir_instr_ty
 
 	elem_type = create_type_ptr(ctx, elem_type);
 
-	MIR_CEV_WRITE_AS(struct mir_type *, &type_dynarr->base.value, create_type_struct_dynarr(ctx, user_id, elem_type));
+	MIR_CEV_WRITE_AS(struct mir_type *, &type_dynarr->base.value, create_type_struct_dynarr(ctx, MIR_TYPE_DYNARR, user_id, elem_type));
 
 	return_zone(PASS);
 }
@@ -12053,6 +12063,7 @@ static void initialize_builtins(struct assembly *assembly) {
 	bt->t_void                 = create_type_void(&ctx);
 	bt->t_u8_ptr               = create_type_ptr(&ctx, bt->t_u8);
 	bt->t_string               = create_type_slice(&ctx, MIR_TYPE_STRING, &builtin_ids[BUILTIN_ID_TYPE_STRING], bt->t_u8_ptr, false);
+	bt->t_string2              = create_type_struct_dynarr(&ctx, MIR_TYPE_STRING, &builtin_ids[BUILTIN_ID_TYPE_STRING2], bt->t_u8_ptr);
 	bt->t_string_literal       = create_type_slice(&ctx, MIR_TYPE_SLICE, NULL, bt->t_u8_ptr, true);
 	bt->t_resolve_type_fn      = create_type_fn(&ctx, &(create_type_fn_args_t){.ret_type = bt->t_type});
 	bt->t_resolve_bool_expr_fn = create_type_fn(&ctx, &(create_type_fn_args_t){.ret_type = bt->t_bool});
@@ -12077,6 +12088,7 @@ static void initialize_builtins(struct assembly *assembly) {
 	provide_builtin_type(&ctx, bt->t_f32);
 	provide_builtin_type(&ctx, bt->t_f64);
 	provide_builtin_type(&ctx, bt->t_string);
+	provide_builtin_type(&ctx, bt->t_string2);
 
 	// Add IS_DEBUG immutable into the global scope to provide information about enabled
 	// debug mode.
