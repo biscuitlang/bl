@@ -5840,8 +5840,10 @@ struct result analyze_instr_decl_ref(struct context *ctx, struct mir_instr_decl_
 		// which are used.
 		++fn->ref_count;
 
+		const bool is_in_group = ref->scope->kind == SCOPE_FN_GROUP;
+
 		// Report if the referenced function is obsolete.
-		if (isflag(fn->flags, FLAG_OBSOLETE)) {
+		if (isflag(fn->flags, FLAG_OBSOLETE) && !is_in_group) {
 			report_warning(ref->base.node, "Function is marked as obsolete. " STR_FMT "", STR_ARG(fn->obsolete_message));
 		}
 		break;
@@ -7835,6 +7837,12 @@ static struct mir_fn *group_select_overload(struct context *ctx, struct mir_inst
 DONE:
 	sarrfree(&list);
 	bassert(selected_fn);
+
+	if (isflag(selected_fn->flags, FLAG_OBSOLETE)) {
+		report_warning(call->base.node, "Function overload is marked as obsolete. " STR_FMT "", STR_ARG(selected_fn->obsolete_message));
+		report_note(selected_fn->decl_node, "Function declared here.");
+	}
+
 	return selected_fn;
 }
 
