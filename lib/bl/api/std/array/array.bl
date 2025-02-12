@@ -133,9 +133,9 @@ array_reserve :: fn (_arr: *[..]?T, n: s64) #inline {
 	_array_ensure_space(arr, sizeof(T), auto n, alignof(T));
 }
 
-array_resize :: fn (_arr: *[..]?T, n: s64) #inline {
-	array_reserve(_arr, n);
-	_arr.len = n;
+array_resize :: fn (_arr: *[..]?T, len: s64) #inline {
+	array_reserve(_arr, len);
+	_arr.len = len;
 }
 
 /// Erase element on index `i`. Call to this function can cause reordering of an dynamic array.

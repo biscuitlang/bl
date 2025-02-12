@@ -15,6 +15,278 @@ multiline_str_literal :: fn () #test {
 	test_eq(FOO, EXPECTED);
 }
 
+str_init_empty :: fn () #test {
+	s: string2;
+	test_eq(s.len, 0);
+	test_eq(s.allocated_elems, 0);
+	test_null(s.ptr);
+	test_null(s.allocator);
+}
+
+str_terminate_empty :: fn () #test {
+	s: string2;
+	str2_terminate(&s);
+}
+
+str_init_with_allocator :: fn () #test {
+	s: string2;
+	str2_init(&s, application_context.allocator);
+
+	test_eq(s.len, 0);
+	test_eq(s.allocated_elems, 0);
+	test_null(s.ptr);
+	test_eq(s.allocator, auto application_context.allocator);
+}
+
+str_init_with_reserve :: fn () #test {
+	s: string2;
+	str2_init(&s, 256);
+	defer str2_terminate(&s);
+
+	test_eq(s.len, 0);
+	test_eq(s.allocated_elems, 256);
+	test_not_null(s.ptr);
+	test_null(s.allocator);
+}
+
+str_init_with_string :: fn () #test {
+	s: string2;
+	str2_init(&s, "Hello");
+	defer str2_terminate(&s);
+
+	test_eq(s, "Hello");
+	test_eq(s.allocated_elems, ARRAY_ALLOC_BLOCK_SIZE);
+	test_not_null(s.ptr);
+	test_null(s.allocator);
+}
+
+str_init_with_cstring :: fn () #test {
+	cstr :: [6]u8.{ 'H', 'e', 'l', 'l', 'o', 0 };
+
+	s: string2;
+	str2_init(&s, cast(*s8) cstr.ptr);
+	defer str2_terminate(&s);
+
+	test_eq(s, "Hello");
+	test_eq(s.allocated_elems, ARRAY_ALLOC_BLOCK_SIZE);
+	test_not_null(s.ptr);
+	test_null(s.allocator);
+}
+
+str_append_str :: fn () #test {
+	s: string2;
+	defer str2_terminate(&s);
+
+	n := str2_append(&s, "Hello");
+	test_eq(n, 5);
+	test_eq(s, "Hello");
+	test_eq(s.allocated_elems, ARRAY_ALLOC_BLOCK_SIZE);
+	test_null(s.allocator);
+
+	n = str2_append(&s, "World");
+	test_eq(n, 5);
+	test_eq(s, "HelloWorld");
+	test_eq(s.allocated_elems, ARRAY_ALLOC_BLOCK_SIZE);
+	test_null(s.allocator);
+}
+
+str_append_any :: fn () #test {
+	s: string2;
+	defer str2_terminate(&s);
+
+	n := str2_append(&s, 666);
+	test_eq(n, 3);
+	test_eq(s, "666");
+	test_eq(s.allocated_elems, ARRAY_ALLOC_BLOCK_SIZE);
+	test_null(s.allocator);
+
+	n = str2_append(&s, 999);
+	test_eq(n, 3);
+	test_eq(s, "666999");
+	test_eq(s.allocated_elems, ARRAY_ALLOC_BLOCK_SIZE);
+	test_null(s.allocator);
+}
+
+str_reserve_zero :: fn () #test {
+	s: string2;
+	str2_reserve(&s, 0);
+	test_eq(s.allocated_elems, 0);
+	test_eq(s.len, 0);
+	test_null(s.ptr);
+	test_null(s.allocator);
+}
+
+str_reserve_less_then_block :: fn () #test {
+	s: string2;
+	defer str2_terminate(&s);
+
+	str2_reserve(&s, 8);
+	test_eq(s.allocated_elems, ARRAY_ALLOC_BLOCK_SIZE);
+	test_eq(s.len, 0);
+	test_not_null(s.ptr);
+	test_null(s.allocator);
+}
+
+str_reserve_bigger :: fn () #test {
+	s: string2;
+	defer str2_terminate(&s);
+
+	str2_reserve(&s, 1024);
+	test_eq(s.allocated_elems, 1024);
+	test_eq(s.len, 0);
+	test_not_null(s.ptr);
+	test_null(s.allocator);
+}
+
+str_reserve_two_times :: fn () #test {
+	s: string2;
+	defer str2_terminate(&s);
+
+	str2_reserve(&s, 1024);
+	test_eq(s.allocated_elems, 1024);
+	test_eq(s.len, 0);
+	test_not_null(s.ptr);
+	test_null(s.allocator);
+
+	str2_reserve(&s, 8);
+	test_eq(s.allocated_elems, 1024);
+	test_eq(s.len, 0);
+	test_not_null(s.ptr);
+	test_null(s.allocator);
+}
+
+str_append_after_reserve :: fn () #test {
+	s: string2;
+	defer str2_terminate(&s);
+
+	str2_reserve(&s, 1024);
+	test_eq(s.allocated_elems, 1024);
+	test_eq(s.len, 0);
+	test_not_null(s.ptr);
+	test_null(s.allocator);
+
+	str2_append(&s, "Hello");
+	test_eq(s.allocated_elems, 1024);
+	test_eq(s.len, 5);
+	test_not_null(s.ptr);
+	test_null(s.allocator);
+}
+
+str_reserve_after_append :: fn () #test {
+	s: string2;
+	defer str2_terminate(&s);
+
+	str2_append(&s, "Hello");
+	test_eq(s.allocated_elems, ARRAY_ALLOC_BLOCK_SIZE);
+	test_eq(s, "Hello");
+	test_not_null(s.ptr);
+	test_null(s.allocator);
+
+	str2_reserve(&s, 1024);
+	test_gt(s.allocated_elems, 1024);
+	test_not_null(s.ptr);
+	test_null(s.allocator);
+
+	test_eq(s, "Hello");
+}
+
+str_resize_zero :: fn () #test {
+	s: string2;
+	defer str2_terminate(&s);
+
+	str2_resize(&s, 0);
+	test_eq(s.allocated_elems, 0);
+	test_eq(s.len, 0);
+	test_null(s.ptr);
+	test_null(s.allocator);
+}
+
+str_resize_grow :: fn () #test {
+	s: string2;
+	defer str2_terminate(&s);
+
+	str2_resize(&s, 64);
+	test_eq(s.allocated_elems, 64);
+	test_eq(s.len, 64);
+	test_not_null(s.ptr);
+	test_null(s.allocator);
+}
+
+str_resize_grow_keep_content :: fn () #test {
+	s: string2;
+	defer str2_terminate(&s);
+
+	str2_append(&s, "Hello");
+
+	str2_resize(&s, 64);
+	test_eq(s.len, 64);
+	test_not_null(s.ptr);
+	test_null(s.allocator);
+
+	test_eq(string_view.{ 5, s.ptr }, "Hello");
+}
+
+str_resize_shrink_keep_content :: fn () #test {
+	s: string2;
+	defer str2_terminate(&s);
+
+	str2_append(&s, "HelloWorld");
+
+	prev_ptr :: s.ptr;
+
+	str2_resize(&s, 5);
+	test_eq(s.len, 5);
+	test_eq(s.ptr, prev_ptr);
+	test_null(s.allocator);
+
+	test_eq(s, "Hello");
+}
+
+str_concat_empty :: fn () #test {
+	s: string2;
+	defer str2_terminate(&s);
+
+	str2_concat(&s);
+	test_eq(s.allocated_elems, 0);
+	test_eq(s.len, 0);
+	test_null(s.ptr);
+	test_null(s.allocator);
+}
+
+str_concat_mixed :: fn () #test {
+	s: string2;
+	defer str2_terminate(&s);
+
+	str2_concat(&s, "Hello", 666);
+	test_gt(s.allocated_elems, 0);
+	test_eq(s, "Hello666");
+	test_null(s.allocator);
+}
+
+str_concat_append :: fn () #test {
+	s: string2;
+	defer str2_terminate(&s);
+
+	str2_concat(&s, "Hello", 666);
+	test_eq(s, "Hello666");
+
+	str2_concat(&s, "World", 999);
+	test_eq(s, "Hello666World999");
+}
+
+str_concat_override :: fn () #test {
+	s: string2;
+	defer str2_terminate(&s);
+
+	str2_clear_concat(&s, "Hello", 666);
+	test_eq(s, "Hello666");
+
+	str2_clear_concat(&s, "World", 999);
+	test_eq(s, "World999");
+}
+
+
+
 /*
 new_string_no_allocation :: fn () #test {
 	s :: str_new();

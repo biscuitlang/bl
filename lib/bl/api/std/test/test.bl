@@ -366,6 +366,7 @@ worker :: fn (_: *u8) s32 {
 		_current.passed = true;
 		print("[ % |      ] % (% ms)\n", colorize("PASS", 32), _current.name, _current.runtime_ms);
 	}
+
 	return 0;
 }
 

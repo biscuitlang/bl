@@ -291,7 +291,7 @@ reinterpret_write_any :: fn (dest: Any, value: ?T) usize #inline {
 }
 
 /// Can be used as replacement for C ternary operator `expr ? a : b`.
-ternary :: fn (expr: bool, a: ?T, b: T) T #inline #obsolete "Use language builtin 'if expr then a else b' instead" {
+ternary :: fn (expr: bool, a: ?T, b: T) T #inline #obsolete "Use language builtin 'if expr then a else b' instead. [Since 0.13.0]" {
 	if expr { return a; }
 	return b;
 };

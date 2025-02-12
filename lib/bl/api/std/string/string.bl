@@ -58,9 +58,36 @@ TODO
 
 /// NEW!!!
 
-str2_init :: fn (str: *string2, capacity: s64 = 0, allocator: *Allocator = null) #inline {
-	assert(str, "Passed string is invalid.");
-	array_init(str_to_arr(str), capacity, allocator);
+str2_init :: fn {
+	fn (str: *string2, allocator: *Allocator) #inline {
+		assert(str, "Passed string is invalid.");
+		array_init(str_to_arr(str), 0, allocator);
+	};
+
+	fn (str: *string2, capacity: s64, allocator: *Allocator = null) #inline {
+		assert(str, "Passed string is invalid.");
+		array_init(str_to_arr(str), capacity, allocator);
+	};
+
+	fn (str: *string2, text: string_view, allocator: *Allocator = null) #inline {
+		assert(str, "Passed string is invalid.");
+
+		array_init(str_to_arr(str), text.len, allocator);
+		str2_append(str, text);
+	};
+
+	fn (str: *string2, cstr: *C.char, allocator: *Allocator = null) #inline {
+		assert(str, "Passed string is invalid.");
+		assert(cstr, "Invalid C string.");
+
+		tmp :: string_view.{
+			len = auto C.strlen(cstr),
+			ptr = auto cstr,
+		};
+
+		array_init(str_to_arr(str), tmp.len, allocator);
+		str2_append(str, tmp);
+	};
 }
 
 str2_terminate :: fn (str: *string2) #inline {
@@ -68,14 +95,58 @@ str2_terminate :: fn (str: *string2) #inline {
 	array_terminate(str_to_arr(str));
 }
 
-str2_append :: fn (str: *string2, text: string_view) #inline {
-	assert(str, "Passed string is invalid.");
-	array_push_all(str_to_arr(str), text);
+str2_append :: fn {
+	_str2_append_str;
+	_str2_append_any;
 }
+
+_str2_append_str :: fn (str: *string2, other: string_view) s32 #inline {
+	assert(str, "Passed string is invalid.");
+
+	array_push_all(str_to_arr(str), other);
+	return auto other.len;
+}
+
+_str2_append_any :: fn (str: *string2, v: Any) s32 #inline {
+	assert(str, "Passed string is invalid.");
+
+	cursor_start :: cast(s32) str.len;
+	cursor_end   :: _print_impl(str, "%", []Any.{ 1, &v }, cursor_start);
+	return cursor_end - cursor_start;
+}
+
+str2_reserve :: fn (str: *string2, capacity: s64) #inline {
+	assert(str, "Passed string is invalid.");
+	array_reserve(str_to_arr(str), capacity);
+}
+
+str2_resize :: fn (str: *string2, len: s64) #inline {
+	assert(str, "Passed string is invalid.");
+	array_resize(str_to_arr(str), len);
+}
+
+str2_concat :: fn (str: *string2, args: ...) string_view {
+	assert(str, "Passed string is invalid.");
+	loop i := 0; i < args.len; i += 1 {
+		str2_append(str, args[i]);
+	}
+	return @str;
+}
+
+str2_clear_concat :: fn (str: *string2, args: ...) string_view {
+	assert(str, "Passed string is invalid.");
+	str.len = 0;
+	loop i := 0; i < args.len; i += 1 {
+		str2_append(str, args[i]);
+	}
+	return @str;
+}
+
 
 #scope_private
 #import "std/array"
 
+// Might be public?
 str_to_arr :: fn (str: *string2) *[..]u8 #inline {
 	return auto str;
 }
@@ -98,28 +169,41 @@ str_to_arr :: fn (str: *string2) *[..]u8 #inline {
 /// fn (cstr: *u8, allocator: *Allocator = null) string
 /// ```
 str_new :: fn {
-	// @Clenup 2025-02-11: We might remove this since, string.{} can be used instead.
-	fn () string {
-		return .{};
-	};
-	fn (allocator: *Allocator) string {
-		return make_string(string_view.{}, 0, allocator);
-	};
-	fn (size: s64, allocator: *Allocator = null) string {
-		assert(size > 0);
-		return make_string(string_view.{}, size, allocator);
-	};
-	fn (v: string_view, allocator: *Allocator = null) string {
-		return make_string(v, v.len, allocator);
-	};
-	fn (cstr: *u8, allocator: *Allocator = null) string {
-		len :: C.strlen(auto cstr);
-		return make_string(string_view.{
+	new_empty;
+	new_allocator;
+	new_size;
+	new_dup;
+	new_dup_c_str;
+}
+
+#scope_private
+// @Clenup 2025-02-11: We might remove this since, string.{} can be used instead.
+new_empty :: fn () string #obsolete "Use default initialization 'string.{}'. [Since 0.13.0]" {
+	return .{};
+}
+
+new_allocator :: fn (allocator: *Allocator) string #obsolete "Use 'str_init' instead. [Since 0.13.0]" {
+	return make_string(string_view.{}, 0, allocator);
+}
+
+new_size :: fn (size: s64, allocator: *Allocator = null) string {
+	assert(size > 0);
+	return make_string(string_view.{}, size, allocator);
+}
+
+new_dup :: fn (v: string_view, allocator: *Allocator = null) string {
+	return make_string(v, v.len, allocator);
+}
+
+new_dup_c_str :: fn (cstr: *u8, allocator: *Allocator = null) string {
+	len :: C.strlen(auto cstr);
+	return make_string(string_view.{
 			len = auto len,
 			ptr = cstr
 		}, auto len, allocator);
-	};
 }
+
+#scope_public
 
 /// Delete dynamic string.
 str_delete :: fn (v: *string) {
