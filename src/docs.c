@@ -122,6 +122,18 @@ void doc_decl_entity(struct context *ctx, struct ast *decl) {
 	str_buf_t name_tmp = get_tmp_str();
 	H1(ctx->stream, str_to_c(&name_tmp, name));
 	put_tmp_str(name_tmp);
+
+	if (value && value->kind == AST_EXPR_LIT_FN && isflag(decl->data.decl.flags, FLAG_OBSOLETE)) {
+		fprintf(ctx->stream, "!!! warning\n");
+		struct ast *msg = value->data.expr_fn.obsolete_warning_message;
+		if (msg) {
+			bassert(msg->kind == AST_EXPR_LIT_STRING);
+			fprintf(ctx->stream, "\tFunction is marked as obsolete. " STR_FMT "\n", STR_ARG(msg->data.expr_string.val));
+		} else {
+			fprintf(ctx->stream, "\tFunction is marked as obsolete.\n");
+		}
+	}
+
 	CODE_BLOCK_BEGIN(ctx->stream);
 	fprintf(ctx->stream, STR_FMT " :", STR_ARG(name));
 	if (type) {
