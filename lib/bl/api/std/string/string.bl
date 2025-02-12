@@ -82,6 +82,12 @@
 //! In case of interaction with C API or any other API requiring zero-terminated strings, use
 //! [strtoc](modules_string.html#strtoc) function to do the conversion.
 
+/// Set of functions for string initialization.
+///
+/// Note that no memory is preallocated unless required capacity is greater than zero or string is
+/// initialized with some data.
+///
+/// By default, *zero-initialized* string is valid.
 str_init :: fn {
 	fn (str: *string, allocator: *Allocator) #inline {
 		assert(str, "Passed string is invalid.");
@@ -114,11 +120,29 @@ str_init :: fn {
 	};
 }
 
+/// Release all memory allocated by string using internally stored allocator if any, and
+/// resets the string to default state.
 str_terminate :: fn (str: *string) #inline {
 	assert(str, "Passed string is invalid.");
 	array_terminate(str_to_arr(str));
 }
 
+/// Append string with a new data. Underlying preallocated memory block might grow in case there
+/// is not enough space to hold appended string (See [Preallocation Rules](modules_array.html#Preallocation-Rules)).
+///
+/// It's possible to append values convertible to `Any` type:
+///
+/// ```bl
+/// str: string;
+///
+/// str_append(&str, "Hello");
+/// str_append(&str, 10);
+/// str_append(&str, s32);
+/// ```
+///
+/// Does nothing in case the input string is empty.
+///
+/// Returns number of bytes appended to the string.
 str_append :: fn {
 	_str_append_str;
 	_str_append_any;
@@ -139,16 +163,39 @@ _str_append_any :: fn (str: *string, v: Any) s32 #inline {
 	return cursor_end - cursor_start;
 }
 
+/// Reserve at least required `capacity` bytes in the string, new allocation is done in case te
+/// underlying buffer is not large enough.
+///
+/// Function does nothing in case required `capacity` is zero, and issues panic in case required
+/// `capacity` is negative.
+///
+/// The capacity specifies total size in bytes required to be available for later use.
+///
+/// Already existing string content is preserved.
+///
+/// String length is not changed.
 str_reserve :: fn (str: *string, capacity: s64) #inline {
 	assert(str, "Passed string is invalid.");
 	array_reserve(str_to_arr(str), capacity);
 }
 
+/// Resize string to required `len`. Behaviour of this function is similar to `str_reserve` except
+/// the string length is changed.
+///
+/// Buffer reallocation occours in case the current allocated buffer it's not capable to handle
+/// requested length.
+///
+/// Setting the length to smaller values then length of current string content will shrink the
+/// string content, minimal possible length value is zero; setting negative value will cause
+/// panic. On the other hand, when string content is smaller then required length, the string is
+/// extended, but newly occupied buffer range remains uninitialized.
 str_resize :: fn (str: *string, len: s64) #inline {
 	assert(str, "Passed string is invalid.");
 	array_resize(str_to_arr(str), len);
 }
 
+/// Append string with multiple values passed as `args` and returns `str`. New allocation is done in case
+/// there is not enough space left in currently allocated string buffer to hold append args.
 str_concat :: fn (str: *string, args: ...) string_view {
 	assert(str, "Passed string is invalid.");
 	loop i := 0; i < args.len; i += 1 {
@@ -157,6 +204,9 @@ str_concat :: fn (str: *string, args: ...) string_view {
 	return @str;
 }
 
+/// Clears and append string with multiple values passed as `args` and returns `str`. New allocation
+/// is done in case there is not enough space left in currently allocated string buffer to hold append
+/// args.
 str_clear_concat :: fn (str: *string, args: ...) string_view {
 	assert(str, "Passed string is invalid.");
 	str.len = 0;
@@ -166,17 +216,20 @@ str_clear_concat :: fn (str: *string, args: ...) string_view {
 	return @str;
 }
 
-// @Incomplete 2025-02-12: Does not return bool!
-/// Overloaded function inserting one character or other string at desired position.
+/// Inserts single character or whole string at desired position. The position is defined as
+/// `before_index` pointing to the character in the input string before which the new content
+/// will be inserted, or simply defining position of the fist character of the  inserted string
+/// in the original string after the modification is done.
 ///
-/// **Overloads:**
+/// Valid range for the `before_index` is `<0, str.len>`, values out of the range cause panic.
+///
 /// ```bl
-/// fn (str: *string, index: s32, v: u8) bool #inline
-/// fn (str: *string, index: s32, v: string_view) bool
+/// @@@examples/str_insert.bl
 /// ```
 ///
-/// !!! note
-///     Function does nothing (return `false`) when `v` string is empty.
+/// Function does nothing in case empty string is inserted.
+///
+/// Returns index of the first character of inserted string.
 str_insert :: fn { _string_insert; _char_insert; };
 
 #scope_private
@@ -186,7 +239,7 @@ _char_insert :: fn (str: *string, before_index: s64, char: u8) s64 #inline {
 	return array_insert(str_to_arr(str), before_index, char);
 }
 
-_string_insert :: fn (str: *string, before_index: s32, v: string_view) s64 {
+_string_insert :: fn (str: *string, before_index: s64, v: string_view) s64 {
 	assert(str, "Passed string is invalid.");
 	return array_insert_all(str_to_arr(str), before_index, v);
 }

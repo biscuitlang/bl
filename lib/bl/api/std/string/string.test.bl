@@ -128,13 +128,13 @@ str_reserve_less_then_block :: fn () #test {
 	test_null(s.allocator);
 }
 
-str_reserve_bigger :: fn () #test {
+str_init_with_reserve :: fn () #test {
 	s: string;
+	str_init(&s, 256);
 	defer str_terminate(&s);
 
-	str_reserve(&s, 1024);
-	test_eq(s.allocated_elems, 1024);
 	test_eq(s.len, 0);
+	test_eq(s.allocated_elems, 256);
 	test_not_null(s.ptr);
 	test_null(s.allocator);
 }

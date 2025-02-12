@@ -150,8 +150,8 @@ array_pop_first :: fn (_arr: *[..]?T, out: *T = null) bool #inline {
 /// In case `n` is 0 function immediately returns without any allocations.
 array_reserve :: fn (_arr: *[..]?T, n: s64) #inline {
 	arr := cast(*_Array) _arr;
-	if n == 0 { return; }
-	if n < 0 { panic("Invalid array capacity!"); }
+	if n == 0 then return;
+	if n < 0  then panic("Invalid array capacity!");
 	_array_ensure_space(arr, sizeof(T), auto n, alignof(T));
 }
 
