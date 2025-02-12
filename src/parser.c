@@ -1610,8 +1610,10 @@ struct ast *parse_expr_lit_fn_group(struct context *ctx) {
 	if (!tokens_is_seq(ctx->tokens, 2, SYM_FN, SYM_LBLOCK)) return_zone(NULL);
 	struct token *tok_group = tokens_consume(ctx->tokens); // eat fn
 	struct token *tok_begin = tokens_consume(ctx->tokens); // eat {
-	struct ast   *group =
-	    ast_create_node(ctx->ast_arena, AST_EXPR_LIT_FN_GROUP, tok_group, scope_get(ctx));
+	struct ast   *group     = ast_create_node(ctx->ast_arena, AST_EXPR_LIT_FN_GROUP, tok_group, scope_get(ctx));
+
+	struct scope *scope = scope_create(ctx->scope_thread_local, SCOPE_FN_GROUP, scope_get(ctx), &tok_begin->location);
+	scope_push(ctx, scope);
 
 	ast_nodes_t *variants              = arena_alloc(ctx->sarr_arena);
 	group->data.expr_fn_group.variants = variants;
@@ -1622,6 +1624,9 @@ NEXT:
 		parse_semicolon_rq(ctx);
 		goto NEXT;
 	}
+
+	scope_pop(ctx);
+
 	struct token *tok = tokens_consume_if(ctx->tokens, SYM_RBLOCK);
 	if (!tok) {
 		tok = tokens_peek_prev(ctx->tokens);
