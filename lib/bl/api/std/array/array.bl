@@ -71,6 +71,7 @@ array_init :: fn (_arr: *[..]?T, capacity: s64 = 0, allocator: *Allocator = null
 /// array is no longer needed. Passed dynamic array is reset to default state.
 /// Calling `array_terminate` on already terminated or non-initialized array is allowed.
 array_terminate :: fn (_arr: *[..]?T) #inline {
+	assert(_arr, "Passed array is invalid.");
 	arr := cast(*_Array) _arr;
 	free(arr.ptr, arr.allocator);
 	arr.ptr = null;
@@ -89,6 +90,7 @@ array_push :: fn { impl_push_empty; impl_push; }
 
 #scope_private
 impl_push :: fn (arr: *[..]?T, v: T) *T #inline {
+	assert(arr, "Passed array is invalid.");
 	data      :: v;
 	elem_size :: sizeof(T);
 	dest      :: impl_push_empty(arr);
@@ -97,6 +99,7 @@ impl_push :: fn (arr: *[..]?T, v: T) *T #inline {
 }
 
 impl_push_empty :: fn (arr: *[..]?T) *T {
+	assert(arr, "Passed array is invalid.");
 	elem_size :: sizeof(T);
 	arr.len += 1;
 	_array_ensure_space(auto arr, elem_size, auto arr.len, alignof(T));
@@ -109,6 +112,7 @@ impl_push_empty :: fn (arr: *[..]?T) *T {
 ///
 /// Does nothing in case the input `data` is empty.
 array_push_all :: fn (_arr: *[..]?T, data: []T) {
+	assert(_arr, "Passed array is invalid.");
 	arr := cast(*_Array) _arr;
 	if data.len < 1 then return;
 	elem_size :: sizeof(T);
@@ -121,6 +125,7 @@ array_push_all :: fn (_arr: *[..]?T, data: []T) {
 /// Duplicate the last array element into `out` argument (if not null) and reduce the array length by
 /// one. Returns `true` in case the element was erased.
 array_pop :: fn (_arr: *[..]?T, out: *T = null) bool #inline {
+	assert(_arr, "Passed array is invalid.");
 	arr := cast(*_Array) _arr;
 	// Eventually assert?
 	if arr.len == 0 { return false; }
@@ -135,6 +140,7 @@ array_pop :: fn (_arr: *[..]?T, out: *T = null) bool #inline {
 /// Duplicate first array element into `out` location (if not null) and shift all other elements by
 /// one slot left (the ordeing is kept). Returns `true` in case the element was erased.
 array_pop_first :: fn (_arr: *[..]?T, out: *T = null) bool #inline {
+	assert(_arr, "Passed array is invalid.");
 	arr := cast(*_Array) _arr;
 	// Eventually assert?
 	if arr.len == 0 { return false; }
@@ -151,13 +157,25 @@ array_pop_first :: fn (_arr: *[..]?T, out: *T = null) bool #inline {
 ///
 /// In case `n` is 0 function immediately returns without any allocations.
 array_reserve :: fn (_arr: *[..]?T, n: s64) #inline {
+	assert(_arr, "Passed array is invalid.");
 	arr := cast(*_Array) _arr;
 	if n == 0 then return;
 	if n < 0  then panic("Invalid array capacity!");
 	_array_ensure_space(arr, sizeof(T), auto n, alignof(T));
 }
 
+/// Resize array to required `len`. Behaviour of this function is similar to `array_reserve` except
+/// the array length is changed.
+///
+/// Buffer reallocation occours in case the current allocated buffer it not capable to handle
+/// requested length.
+///
+/// Setting the length to smaller values then length of current array content will shrink the
+/// array content, minimal possible length value is zero; setting negative value will cause
+/// panic. On the other hand, when array content is smaller then required length, the array is
+/// extended, but newly occupied buffer range remains uninitialized.
 array_resize :: fn (_arr: *[..]?T, len: s64) #inline {
+	assert(_arr, "Passed array is invalid.");
 	array_reserve(_arr, len);
 	_arr.len = len;
 }

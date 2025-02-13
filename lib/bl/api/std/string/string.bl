@@ -182,7 +182,7 @@ str_reserve :: fn (str: *string, capacity: s64) #inline {
 /// Resize string to required `len`. Behaviour of this function is similar to `str_reserve` except
 /// the string length is changed.
 ///
-/// Buffer reallocation occours in case the current allocated buffer it's not capable to handle
+/// Buffer reallocation occours in case the current allocated buffer it not capable to handle
 /// requested length.
 ///
 /// Setting the length to smaller values then length of current string content will shrink the
