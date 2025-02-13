@@ -246,6 +246,8 @@ _string_insert :: fn (str: *string, before_index: s64, v: string_view) s64 {
 
 #scope_public
 
+/// Erase character at `index` position in the string. Provided index must be in range <0, str.len) otherwise
+/// panic is issued.
 str_erase :: fn (str: *string, index: s32) {
 	assert(str, "Passed string is invalid.");
 	array_erase_keep_order(str_to_arr(str), index);
@@ -270,10 +272,6 @@ str_replace_all :: fn (str: *string, c: u8, with := '\0') s32 { // 2024-10-06 Wh
 		shrink_by(str);
 	}
 	return replaced;
-}
-
-str_to_arr :: fn (str: *string) *[..]u8 #inline {
-	return auto str;
 }
 
 /// Converts ascii input string to lower case and returns count of changed characters.
@@ -559,9 +557,6 @@ strtof64 :: fn (str: string_view, count := -1) (f64, Error) {
 /// Token destination pointers `lhs` and `rhs` are optional. The `di` output variable is set to
 /// index of the split position when it's not `null`.
 ///
-/// !!! warning
-///     `lhs` and `rhs` sub strings are not guaranteed to be zero terminated.
-///
 /// ### Example
 ///
 /// ```bl
@@ -609,9 +604,6 @@ str_split_by_last :: fn (str: string_view, delimiter: u8, lhs: *string_view, rhs
 ///
 /// Token destination pointers `lhs` and `rhs` are optional.
 ///
-/// !!! warning
-///     `lhs` and `rhs` sub strings are not guaranteed to be zero terminated.
-///
 /// ### Example
 ///
 /// ```bl
@@ -647,9 +639,6 @@ str_split_at_index :: fn (str: string_view, index: s32, lhs: *string_view = null
 /// original `str` string, `rhs` value is unchanged.
 ///
 /// Token destination pointers `lhs` and `rhs` are optional.
-///
-/// !!! warning
-///     `lhs` and `rhs` sub strings are not guaranteed to be zero terminated.
 ///
 /// ### Example
 ///
@@ -692,14 +681,11 @@ str_split_by_first :: fn (str: string_view, delimiter: u8, lhs: *string_view, rh
 	return true;
 }
 
-/// Split the `str` input string by delimiter and return new slice containing all found sub-strings.
-/// In case input string is empty, returs empty slice.
+/// Split the `str` input string by delimiter and return new array allocated using `allocator` containing
+/// all found sub-strings. In case input string is empty, returs empty slice.
 ///
 /// !!! warning
 ///     String array should be terminated by `array_terminate` call.
-///
-/// !!! warning
-///     Slice elements are not guaranteed to be zero terminated.
 str_split_by :: fn (str: string_view, delimiter: u8, allocator: *Allocator = null) [..]string_view {
 	ret: [..]string_view;
 	array_init(&ret, 0, allocator);
@@ -776,7 +762,7 @@ str_tokenize :: fn {
 	};
 }
 
-/// Counts desired character occurrence in the input string.
+/// Returns number of `c` characters in the string.
 str_count_of :: fn (str: string_view, c: u8) s32 #inline {
 	count := 0;
 	loop i := 0; i < str.len; i += 1 {
@@ -797,17 +783,23 @@ str_hash :: fn (str: string_view) u32 {
 
 /// Helper inline function returning `true` when string is null. In such case string `len` could be
 /// any value.
-str_is_null  :: fn (s: string_view) bool #inline { return s.ptr == null; }
+str_is_null  :: fn (str: string_view) bool #inline #obsolete "Use 'str.ptr != null' instead. [Since 0.13.0]" {
+	return str.ptr == null;
+}
 
 /// Helper inline function returning `true` when string is empty. In such case string `ptr` could
 /// be any pointer.
-str_is_empty :: fn (s: string_view) bool #inline { return s.len == 0; }
+str_is_empty :: fn (str: string_view) bool #inline #obsolete "Use 'str.len != 0' instead. [Since 0.13.0]" {
+	return str.len == 0;
+}
 
 str_empty :: string.{};
 str_view_empty :: string_view.{};
 
 /// Helper inline function returning `true` when string is empty and null.
-str_is_null_or_empty :: fn (s: string_view) bool #inline { return s.ptr == null || s.len == 0; }
+str_is_null_or_empty :: fn (s: string_view) bool #inline #obsolete "Use 'str.len != 0 || str.ptr' instead. [Since 0.13.0]" {
+	return s.ptr == null || s.len == 0;
+}
 
 
 /// Creates substring from passed string starting at `start` index of input string and ending at
@@ -842,7 +834,7 @@ str_is_zero_terminated :: fn (str: string_view) bool #inline #obsolete "Will be 
 }
 
 /// Converts BL string to C zero-terminated string. This function internally allocates memory in order to
-/// put the zero terminator at the end of the string array. In case the `_allocator` is not specified,
+/// put the zero terminator at the end of the string duplicate. In case the `_allocator` is not specified,
 /// `application_context.temporary_allocator` is used.
 ///
 /// Empty strings are valid input and are converted to C string as "\0".
@@ -859,12 +851,12 @@ strtoc :: fn (str: string_view, _allocator : *Allocator = null) *C.char #inline 
 /// Converts string view into C string representation. This function first checks if the input string
 /// is zero terminated, in case it's not, the temporary allocator is used to create zero terminated
 /// copy which is returned. Otherwise returns pointer to data of original string without any allocations.
-tstrtoc :: fn (str: string_view) *C.char #inline #obsolete "Use strtoc instead. [Since 0.13.0]" {
+tstrtoc :: fn (str: string_view) *C.char #inline #obsolete "Use 'strtoc' instead. [Since 0.13.0]" {
 	return strtoc(str, application_context.temporary_allocator);
 }
 
 /// Converts C string into string view. The `len` argument is optional and is used as string length if
-/// it's greater than -1, otherwise the strlen is used.
+/// it's greater than -1, otherwise the `C.strlen` is used.
 ///
 /// Empty string view is returned when the input C string is null.
 ctostr :: fn (cstr: *C.char, len : s64 = -1) string_view #inline {
@@ -904,6 +896,10 @@ is_digit :: fn (c: u8, base := FmtIntBase.DEC) bool #inline {
 #import "std/array"
 
 C :: #import "libc";
+
+str_to_arr :: fn (str: *string) *[..]u8 #inline {
+	return auto str;
+}
 
 consume_char :: fn (s: *string_view) u8 #inline {
 	c :: (@s)[0];
