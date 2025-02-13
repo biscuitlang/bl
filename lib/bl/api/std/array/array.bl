@@ -184,6 +184,7 @@ array_resize :: fn (_arr: *[..]?T, len: s64) #inline {
 /// Allocated memory is kept even if we erase entire dynamic array. Function invoke panic in case
 /// of index being out of array valid range <0, arr.len).
 array_erase :: fn (_arr: *[..]?T, i: s64) {
+	assert(_arr, "Passed array is invalid.");
 	arr := cast(*_Array) _arr;
 	if i >= arr.len || i < 0 {
 		panic("Array index out of range, index is % but array size is %.", i, arr.len);
@@ -206,6 +207,7 @@ array_erase :: fn (_arr: *[..]?T, i: s64) {
 /// Erase element on index `i` and move all following elements left unsing memmove. This might be slow in
 /// case the array is large. Function invoke panic in case of index being out of array valid range <0, arr.len).
 array_erase_keep_order :: fn (_arr: *[..]?T, i: s64) {
+	assert(_arr, "Passed array is invalid.");
 	arr := cast(*_Array) _arr;
 	if i >= arr.len || i < 0 {
 		panic("Array index out of range, index is % but array size is %.", i, arr.len);
@@ -224,6 +226,7 @@ array_erase_keep_order :: fn (_arr: *[..]?T, i: s64) {
 /// Erase element of the value `v` and return `true` in case element was erased. Note this might be expensive
 /// since all elements in array might be visited in the worst case.
 array_erase_value :: fn (arr: *[..]?T, v: T) bool {
+	assert(arr, "Passed array is invalid.");
 	loop i := 0; i < arr.len; i += 1 {
 		if (@arr)[i] == v {
 			array_erase(arr, i);
@@ -295,16 +298,18 @@ array_insert_all :: fn (_arr: *[..]?T, before_index: s64, values: []T) s64 {
 	return before_index;
 }
 
-// @Cleanup: We tend to use directly arr.len = 0 in our code base, so we can remove this function eventually...
 /// Erase all elements in dynamic array but keep allocated memory.
 array_clear :: fn (_arr: *[..]?T) #inline #obsolete "Use 'arr.len = 0' instead. [Since 0.13.0]" {
+	assert(_arr, "Passed array is invalid.");
 	arr := cast(*_Array) _arr;
 	arr.len = 0;
 }
 
+/// Returns total number of allocated bytes used by the array.
 array_allocated_bytes :: fn (_arr: *[..]?T) usize #inline {
+	assert(_arr, "Passed array is invalid.");
 	arr :: cast(*_Array) _arr;
-	return arr.allocated_elems;
+	return arr.allocated_elems * sizeof(T);
 }
 
 // Mostly implementation private stuff, this is not private because it might be useful in some rare cases.
