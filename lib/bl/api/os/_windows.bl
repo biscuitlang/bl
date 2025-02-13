@@ -73,20 +73,20 @@ os_ftick_ms :: fn () f64 #inline {
 	return (cast(f64) t / cast(f64) f) * 1000.;
 };
 
+// @Incomplete 2025-02-13: Handle errors?
 os_get_exec_path :: fn () string {
-	buf : [OS_PATH_MAX]u8 #noinit;
-	if GetModuleFileNameA(null, auto buf.ptr, auto buf.len) > 0 {
-		result :: str_new(buf.ptr);
-		str_replace_all(&result, '\\', '/');
-		return result;
-	}
+	result: string;
+	buf : [OS_PATH_MAX]C.char #noinit;
+	len :: GetModuleFileNameA(null, buf.ptr, auto buf.len);
+	if len == 0 then return result;
 
-	return str_new();
+	str_append(&result, ctostr(buf.ptr, auto len));
+	str_replace_all(&result, '\\', '/');
+	return result;
 }
 
-// @Incomplete 2025-02-11: Should take allocator passed to strtoc.
-os_execute :: fn (command: string_view) s32 {
-	return C.system(strtoc(command));
+os_execute :: fn (command: string_view, _allocator : *Allocator = null) s32 #inline {
+	return C.system(strtoc(command, _allocator));
 }
 
 os_get_last_error :: fn () (s32, string_view) #inline {
@@ -111,13 +111,19 @@ os_get_last_error2 :: fn () Error #inline {
 	return error(ec, estr);
 }
 
-os_get_backtrace :: fn (skip_frames := 0, max_frame_count := 64) []CodeLocation {
+os_get_backtrace :: fn (skip_frames := 0, max_frame_count := 64, _allocator : *Allocator = null) []CodeLocation {
+	allocator :: if _allocator then _allocator else application_context.temporary_allocator;
+
 	trace: [..]CodeLocation;
-	if max_frame_count < 1 { return trace; }
-	allocator :: application_context.temporary_allocator; // In case we change allocator we should call free!
+	if IS_COMPTIME_RUN {
+		print_warn("The os_get_backtrace is not available in VM execution mode.");
+		return trace;
+	}
+	if max_frame_count < 1 then return trace;
+
 	stack: []C.void_ptr;
 	err_slice_alloc :: alloc_slice(&stack, max_frame_count, false, allocator);
-	if err_slice_alloc { panic(err_slice_alloc); }
+	if err_slice_alloc then panic(err_slice_alloc);
 
 	process :: GetCurrentProcess();
 	SymSetOptions(SYMOPT_LOAD_LINES);
@@ -137,10 +143,15 @@ os_get_backtrace :: fn (skip_frames := 0, max_frame_count := 64) []CodeLocation 
 	loop i := skip_frames_without_current; i < available_frame_count; i += 1 {
 		SymFromAddr(process, auto (stack[i]), null, symbol);
 		SymGetLineFromAddr64(process, auto (stack[i]), &displacementLine, &line);
+
+		file, function: string;
+		str_init(&file, ctostr(line.FileName), allocator);
+		str_init(&function, ctostr(auto symbol.Name.ptr), allocator);
+
 		frame := array_push(&trace);
-		frame.file = str_new(ctostr(line.FileName), allocator);
 		frame.line = auto line.LineNumber;
-		frame.function = str_new(ctostr(auto symbol.Name.ptr), allocator);
+		frame.file = file;
+		frame.function = function;
 	}
 	return trace;
 }
@@ -216,7 +227,7 @@ __os_start :: fn () #entry {
 
 	if !_std_io_initialized { init_std_io(); }
 
-	
+
 	out :: cast(s32) __assembly_module.main();
 	temporary_release();
 

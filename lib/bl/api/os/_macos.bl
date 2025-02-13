@@ -83,8 +83,8 @@ os_get_exec_path :: fn () string {
 	return str_new(buf.ptr);
 }
 
-os_execute :: fn (command: string_view) s32 {
-	return C.WEXITSTATUS(C.system(strtoc(command)));
+os_execute :: fn (command: string_view, _allocator : *Allocator = null) s32 {
+	return C.WEXITSTATUS(C.system(strtoc(command, allocator)));
 }
 
 os_get_last_error :: fn () (s32, string_view) #inline {
@@ -101,7 +101,7 @@ os_get_last_error2 :: fn () Error #inline {
 	return error(ec, str);
 }
 
-os_get_backtrace :: fn (skip_frames := 0 #maybe_unused, max_frame_count := 64 #maybe_unused) []CodeLocation {
+os_get_backtrace :: fn (skip_frames := 0 #maybe_unused, max_frame_count := 64 #maybe_unused, _allocator : *Allocator = null #maybe_unused) []CodeLocation {
 	// @Incomplete <2022-08-21 Sun>: Here we tried to use 'backtrace' from the C library, but is seems not
 	// working correctly. Documentation claims that '-rdynamic' linker flag must be used, but still, the
 	// resulting array does not contain any captured frames.
