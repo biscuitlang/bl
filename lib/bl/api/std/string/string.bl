@@ -128,7 +128,7 @@ str_terminate :: fn (str: *string) #inline {
 }
 
 /// Append string with a new data. Underlying preallocated memory block might grow in case there
-/// is not enough space to hold appended string (See [Preallocation Rules](modules_array.html#Preallocation-Rules)).
+/// is not enough space (See [Preallocation Rules](modules_array.html#Preallocation-Rules)).
 ///
 /// It's possible to append values convertible to `Any` type:
 ///
@@ -218,7 +218,7 @@ str_clear_concat :: fn (str: *string, args: ...) string_view {
 
 /// Inserts single character or whole string at desired position. The position is defined as
 /// `before_index` pointing to the character in the input string before which the new content
-/// will be inserted, or simply defining position of the fist character of the  inserted string
+/// will be inserted, or simply defining position of the first character of the  inserted string
 /// in the original string after the modification is done.
 ///
 /// Valid range for the `before_index` is `<0, str.len>`, values out of the range cause panic.

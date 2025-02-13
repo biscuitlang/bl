@@ -277,6 +277,52 @@ test_insert_mid :: fn () #test {
 	}
 }
 
+array_insert_all_empty :: fn () #test {
+	arr: [..]s32;
+	defer array_terminate(&arr);
+
+	test_eq(array_insert_all(&arr, 0, .{}), 0);
+	test_eq(arr.len, 0);
+}
+
+array_insert_all_beginning :: fn () #test {
+	arr: [..]s32;
+	defer array_terminate(&arr);
+
+	test_eq(array_insert_all(&arr, 0, [_]s32.{ 0, 1, 2 }), 0);
+	test_eq(arr.len, 3);
+
+	loop i := 0; i < arr.len; i += 1 {
+		test_eq(arr[i], i);
+	}
+}
+
+array_insert_all_beginning_into_non_empty :: fn () #test {
+	arr: [..]s32;
+	defer array_terminate(&arr);
+
+	array_push(&arr, 3);
+	array_push(&arr, 4);
+
+	test_eq(array_insert_all(&arr, 0, [_]s32.{ 0, 1, 2 }), 0);
+	loop i := 0; i < arr.len; i += 1 {
+		test_eq(arr[i], i);
+	}
+}
+
+array_insert_all_ending_into_non_empty :: fn () #test {
+	arr: [..]s32;
+	defer array_terminate(&arr);
+
+	array_push(&arr, 0);
+	array_push(&arr, 1);
+
+	test_eq(array_insert_all(&arr, arr.len, [_]s32.{ 2, 3, 4 }), 2);
+	loop i := 0; i < arr.len; i += 1 {
+		test_eq(arr[i], i);
+	}
+}
+
 len_printing :: fn () #test {
 	arr: [10]s32;
 	print_log("%", arr.len);

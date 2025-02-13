@@ -34,6 +34,8 @@
 //!   preallocated block, no allocation is done.
 //! - In case the array already holds preallocated buffer which is not large enought to hold
 //!   requested data size `ARRAY_GROW_FACTOR * requested size` is preallocated.
+//! - Failing allocation issues panic in current implementation, this might change in future, where
+//!   panic might be replaced by proper error handling.
 
 ARRAY_ALLOC_BLOCK_SIZE : usize = 32;
 ARRAY_GROW_FACTOR      : f32   = 1.5f;
@@ -102,10 +104,10 @@ impl_push_empty :: fn (arr: *[..]?T) *T {
 }
 #scope_public
 
-/// Append all `data` at the dynamic array end. New heap allocation is done here only in cases when
-/// there is not enough memory allocated to store all values.
-/// Does nothing when `data.len < 1`.
-// @Incomplete 2025-02-12: Document what empty values does???
+/// Append array with a new `data`. Underlying preallocated memory block might grow in case there
+/// is not enough space (See [Preallocation Rules](modules_array.html#Preallocation-Rules)).
+///
+/// Does nothing in case the input `data` is empty.
 array_push_all :: fn (_arr: *[..]?T, data: []T) {
 	arr := cast(*_Array) _arr;
 	if data.len < 1 then return;
@@ -160,9 +162,9 @@ array_resize :: fn (_arr: *[..]?T, len: s64) #inline {
 	_arr.len = len;
 }
 
-/// Erase element on index `i`. Call to this function can cause reordering of an dynamic array.
+/// Erase element on index `i`. Call to this function may cause reordering of an dynamic array.
 /// Allocated memory is kept even if we erase entire dynamic array. Function invoke panic in case
-/// of index overflow. @Incomplete 2025-02-12: Info about range-check?
+/// of index being out of array valid range <0, arr.len).
 array_erase :: fn (_arr: *[..]?T, i: s64) {
 	arr := cast(*_Array) _arr;
 	if i >= arr.len || i < 0 {
@@ -183,8 +185,8 @@ array_erase :: fn (_arr: *[..]?T, i: s64) {
 	arr.len -= 1;
 }
 
-/// Erase element on index `i` and move all following elements left. This might be slow in case the array is
-/// large. @Incomplete 2025-02-12: Info about range-check?
+/// Erase element on index `i` and move all following elements left unsing memmove. This might be slow in
+/// case the array is large. Function invoke panic in case of index being out of array valid range <0, arr.len).
 array_erase_keep_order :: fn (_arr: *[..]?T, i: s64) {
 	arr := cast(*_Array) _arr;
 	if i >= arr.len || i < 0 {
@@ -213,7 +215,6 @@ array_erase_value :: fn (arr: *[..]?T, v: T) bool {
 	return false;
 }
 
-// @Incomplete 2025-02-12: Panic instead of assert on invalid range. Document this!
 /// Insert a new element into the array before position `before_index` and return index of the new
 /// inserted element. All elements after the new one are moved in the memory by one slot.
 ///
@@ -222,12 +223,24 @@ array_erase_value :: fn (arr: *[..]?T, v: T) bool {
 /// `array_push`.
 ///
 /// Order of already existing elements is preserved.
+///
+/// Panic is issued in case the `before_index` is out of range <0, arr.len>.
+///
+/// Returns index of newly inserted element.
 array_insert :: fn (_arr: *[..]?T, before_index: s64, value: T) s64 {
 	return array_insert_all(_arr, before_index, []T.{ 1, &value });
 }
 
-// @Incomplete 2025-02-12: Document! + what empty values does??? What is returned???
-// @Incomplete 2025-02-12: Missing tests!
+/// Inserts `values` at desired position. The position is defined as `before_index` pointing to the
+/// element in the input array before which the new content will be inserted, or simply defining
+/// position of the first element of the inserted values in the original array after the modification
+/// is done.
+///
+/// Valid range for the `before_index` is `<0, arr.len>`, values out of the range cause panic.
+///
+/// Function does nothing in case `values` slice is empty.
+///
+/// Returns index of the first element of inserted values.
 array_insert_all :: fn (_arr: *[..]?T, before_index: s64, values: []T) s64 {
 	assert(_arr, "Passed array is invalid.");
 	arr := cast(*_Array) _arr;
