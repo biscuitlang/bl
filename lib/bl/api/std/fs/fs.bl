@@ -156,8 +156,7 @@ create_all_dir :: fn (dirpath: string_view) Error {
 	};
 
 	data: Data;
-	data.path = str_new();
-	defer str_delete(&data.path);
+	defer str_terminate(&data.path);
 	// Handle unix root.
 	assert(dirpath.len > 0);
 	if dirpath[0] == '/' { str_append(&data.path, "/"); }
@@ -356,8 +355,8 @@ path_splitext :: fn (filepath: string_view) (head: string_view, ext: string_view
 	return head, ext;
 }
 
-// @Incomplete: use temporary allocator
-/// Try to obtain current working directory, result must be released by `str_delete`. Path does
+// @Incomplete 2025-02-13: use temporary allocator
+/// Try to obtain current working directory, result must be released by `str_terminate`. Path does
 /// not contain last path separator.
 get_cwd :: fn () string #inline {
 	return _get_cwd();
@@ -368,15 +367,15 @@ set_cwd :: fn (path: string_view) Error #inline {
 	return _set_cwd(path);
 }
 
-// @Incomplete: use temporary allocator
-/// Try to obtain system home directory, result must be released by `str_delete`. Path does not
+// @Incomplete 2025-02-13: use temporary allocator
+/// Try to obtain system home directory, result must be released by `str_terminate`. Path does not
 /// contain last path separator.
 get_home :: fn () string #inline {
 	return _get_home();
 }
 
-// @Incomplete: use temporary allocator
-/// Try to obtain system temporary directory, result must be released by `str_delete`. Path does
+// @Incomplete 2025-02-13: use temporary allocator
+/// Try to obtain system temporary directory, result must be released by `str_terminate`. Path does
 /// not contain last path separator.
 get_tmp :: fn () string #inline {
 	return _get_tmp();

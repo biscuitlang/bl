@@ -102,8 +102,6 @@ compiler_default_args: string_view;
 main_file: string_view;
 
 main :: fn () s32 {
-	defer temporary_release();
-
 	working_directory = get_working_directory();
 	compiler = get_compiler_path();
 	compiler_default_args = "--full-path --no-finished-report";
@@ -375,9 +373,9 @@ list_dir :: fn (paths: *[..]string_view, dir: string_view) {
 get_working_directory :: fn () string_view {
 	lhs: string_view;
 	if str_split_by_last(#file, '/', &lhs, null) {
-		return str_new(lhs, &default_temporary_allocator);
+		return tprint(lhs);
 	} else {
-		return str_new(&default_temporary_allocator);
+		return "";
 	}
 }
 
@@ -410,11 +408,12 @@ get_exe_name :: fn () string_view #comptime {
 }
 
 get_expected_error :: fn (filepath: string_view) (is_present: bool, error: s32) {
+	// @Incomplete 2025-02-13: Use read_entire_file?
 	stream, err_open :: open_file(filepath, OpenFileMode.READ);
 	defer close_file(&stream);
 	if err_open { print_err("%", err_open); return false, 0; }
-	content := str_new();
-	defer str_delete(&content);
+	content: string;
+	defer str_terminate(&content);
 	_, err_read :: read_string(&stream, &content);
 	if err_read { print_err("%", err_read); return false, 0; }
 

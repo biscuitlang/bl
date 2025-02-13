@@ -74,6 +74,36 @@ str_init_with_cstring :: fn () #test {
 	test_null(s.allocator);
 }
 
+str_make_with_allocator :: fn () #test {
+	s :: str_make(application_context.allocator);
+	test_eq(s.len, 0);
+	test_null(s.ptr);
+	test_eq(s.allocated_elems, 0);
+	test_eq(s.allocator, auto application_context.allocator);
+}
+
+str_make_with_content :: fn () #test {
+	s :: str_make("Hello");
+	defer str_terminate(&s);
+	test_eq(s.len, 5);
+	test_eq(s, "Hello");
+}
+
+str_make_with_preallocation :: fn () #test {
+	s :: str_make(256);
+	defer str_terminate(&s);
+	test_eq(s.len, 0);
+	test_eq(s.allocated_elems, 256);
+}
+
+str_make_with_cstr :: fn () #test {
+	cstr :: [6]u8.{ 'H', 'e', 'l', 'l', 'o', 0 };
+
+	s :: str_make(cast(*s8) cstr.ptr);
+	defer str_terminate(&s);
+	test_eq(s, "Hello");
+}
+
 str_append_str :: fn () #test {
 	s: string;
 	defer str_terminate(&s);
@@ -124,17 +154,6 @@ str_reserve_less_then_block :: fn () #test {
 	str_reserve(&s, 8);
 	test_eq(s.allocated_elems, ARRAY_ALLOC_BLOCK_SIZE);
 	test_eq(s.len, 0);
-	test_not_null(s.ptr);
-	test_null(s.allocator);
-}
-
-str_init_with_reserve :: fn () #test {
-	s: string;
-	str_init(&s, 256);
-	defer str_terminate(&s);
-
-	test_eq(s.len, 0);
-	test_eq(s.allocated_elems, 256);
 	test_not_null(s.ptr);
 	test_null(s.allocator);
 }

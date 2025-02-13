@@ -385,6 +385,7 @@ abort_handler :: fn () {
 	_current.runtime_ms = os_ftick_ms() - _start_time;
 	_current.passed = false;
 	print("[      | % ] % (% ms)\n", colorize("FAIL", 31), _current.name, _current.runtime_ms);
+	temporary_release();
 	thread_exit(1);
 	__os_abort_default();
 }
@@ -398,8 +399,11 @@ worker :: fn (_: *u8) s32 {
 		_current.runtime_ms = os_ftick_ms() - _start_time;
 		_current.passed = true;
 		print("[ % |      ] % (% ms)\n", colorize("PASS", 32), _current.name, _current.runtime_ms);
+
+		temporary_reset();
 	}
 
+	temporary_release();
 	return 0;
 }
 

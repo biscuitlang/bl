@@ -6,10 +6,6 @@
 #import "std/math"
 
 make_test_files :: fn (root_name: string_view) string {
-	make_file :: fn (filepath: string_view) {
-		create_file(filepath);
-	};
-
 	root :: get_cwd();
 	str_concat(&root, "/", root_name);
 
@@ -25,21 +21,21 @@ make_test_files :: fn (root_name: string_view) string {
 	create_all_dir(str_clear_concat(&tmp, root, "/A/A"));
 	create_all_dir(str_clear_concat(&tmp, root, "/A/B"));
 
-	make_file(str_clear_concat(&tmp, root, "/a.txt"));
-	make_file(str_clear_concat(&tmp, root, "/b.jpg"));
-	make_file(str_clear_concat(&tmp, root, "/c.txt"));
-	make_file(str_clear_concat(&tmp, root, "/A/a.txt"));
-	make_file(str_clear_concat(&tmp, root, "/A/b.jpg"));
-	make_file(str_clear_concat(&tmp, root, "/A/c.txt"));
-	make_file(str_clear_concat(&tmp, root, "/B/a.txt"));
-	make_file(str_clear_concat(&tmp, root, "/B/b.jpg"));
-	make_file(str_clear_concat(&tmp, root, "/B/c.txt"));
-	make_file(str_clear_concat(&tmp, root, "/C/a.txt"));
-	make_file(str_clear_concat(&tmp, root, "/C/b.jpg"));
-	make_file(str_clear_concat(&tmp, root, "/C/c.txt"));
-	make_file(str_clear_concat(&tmp, root, "/A/A/a.txt"));
-	make_file(str_clear_concat(&tmp, root, "/A/B/b.jpg"));
-	make_file(str_clear_concat(&tmp, root, "/A/B/c.txt"));
+	create_file(str_clear_concat(&tmp, root, "/a.txt"));
+	create_file(str_clear_concat(&tmp, root, "/b.jpg"));
+	create_file(str_clear_concat(&tmp, root, "/c.txt"));
+	create_file(str_clear_concat(&tmp, root, "/A/a.txt"));
+	create_file(str_clear_concat(&tmp, root, "/A/b.jpg"));
+	create_file(str_clear_concat(&tmp, root, "/A/c.txt"));
+	create_file(str_clear_concat(&tmp, root, "/B/a.txt"));
+	create_file(str_clear_concat(&tmp, root, "/B/b.jpg"));
+	create_file(str_clear_concat(&tmp, root, "/B/c.txt"));
+	create_file(str_clear_concat(&tmp, root, "/C/a.txt"));
+	create_file(str_clear_concat(&tmp, root, "/C/b.jpg"));
+	create_file(str_clear_concat(&tmp, root, "/C/c.txt"));
+	create_file(str_clear_concat(&tmp, root, "/A/A/a.txt"));
+	create_file(str_clear_concat(&tmp, root, "/A/B/b.jpg"));
+	create_file(str_clear_concat(&tmp, root, "/A/B/c.txt"));
 	return root;
 }
 

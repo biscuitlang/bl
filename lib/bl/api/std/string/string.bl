@@ -120,6 +120,20 @@ str_init :: fn {
 	};
 }
 
+str_make :: fn {
+	fn (allocator : *Allocator) string #inline {
+		result: string #noinit;
+		str_init(&result, allocator);
+		return result;
+	};
+
+	fn (v: ?T, allocator : *Allocator = null) string #inline {
+		result: string #noinit;
+		str_init(&result, v, allocator);
+		return result;
+	};
+}
+
 /// Release all memory allocated by string using internally stored allocator if any, and
 /// resets the string to default state.
 str_terminate :: fn (str: *string) #inline {

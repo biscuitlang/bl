@@ -103,9 +103,9 @@ bprint :: fn (buf: []u8, format: string_view, args: ...) s32 {
 ///     There is no need to explicitly release memory used by temporary string.
 ///
 /// See also [print](#print).
-// @Incomplete 2025-02-13 return string_view?
-tprint :: fn (format: string_view, args: ...) string #inline {
-	buf := str_new(format.len, application_context.temporary_allocator);
+tprint :: fn (format: string_view, args: ...) string_view #inline {
+	buf: string;
+	str_init(&buf, format.len, application_context.temporary_allocator);
 	_print_impl(&buf, format, args);
 	return buf;
 };
@@ -118,7 +118,8 @@ tprint :: fn (format: string_view, args: ...) string #inline {
 /// See also [print](#print).
 // @Incomplete 2025-02-13 return string by value + what allocator is used?
 sprint :: fn (format: string_view, args: ...) string {
-	buf := str_new(format.len);
+	buf: string;
+	str_init(&buf, format.len);
 	_print_impl(&buf, format, args);
 	return buf;
 }

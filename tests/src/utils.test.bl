@@ -199,3 +199,10 @@ utf32_to_utf8_test_1 :: fn () #test {
 	test_ok(err);
 	test_eq(buf, "Příliš žluťoučký kůň úpěl ďábelské ódy.");
 }
+
+env_test :: fn () #test {
+	env_set("__BL_TEST__", "123");
+	var :: env_get("__BL_TEST__");
+	defer str_terminate(&var);
+	test_eq(var, "123");
+}
