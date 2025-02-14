@@ -192,7 +192,8 @@ Meta :: struct {
 	line: s32;
 }
 
-handler :: fn (dbgalloc: *DebugAllocator, operation: AllocOp, ptr: *u8, size: usize, alignment: usize, file: string_view, line: s32) (mem: *u8, err: Error) {
+handler :: fn (dbgalloc: *DebugAllocator, operation: AllocOp, ptr: *u8, _size: usize, alignment: usize, file: string_view, line: s32) (mem: *u8, err: Error) {
+	size :: _size * 2;
 	using AllocOp;
 	switch operation {
 		ALLOCATE {

@@ -2,7 +2,7 @@ SEEK_SET : fd_t : 0;
 SEEK_CUR : fd_t : 1;
 SEEK_END : fd_t : 2;
 
-FIONREAD :: 0x4004667F;
+FIONREAD :: 0x4004667f;
 
 POLLIN   : short : 0x0001;
 POLLPRI  : short : 0x0002;
@@ -380,10 +380,6 @@ access :: fn (path: *char, mode: int) int #extern "access";
 
 kill :: fn (pid: pid_t, sig: s32) s32 #inline {
 	return auto syscall(SYS_kill, auto pid, auto sig);
-}
-
-ioctl :: fn (fd: fd_t, request: s32, arg: s64) s32 #inline {
-	return auto syscall(SYS_ioctl, fd, request, arg);
 }
 
 fcntl :: fn (fd: fd_t, request: int, flags: int = 0) int #extern "__fcntl";
