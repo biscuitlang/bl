@@ -758,8 +758,8 @@ gl_init :: fn (custom_instance: *_Gl = null) {
 
 	gl = custom_instance;
 	if !gl { gl = &instance_impl; }
-	tmp := str_new();
-	defer str_delete(&tmp);
+	tmp: string;
+	defer str_terminate(&tmp);
 
 	info :: cast(*TypeInfoStruct) typeinfo(_Gl);
 	loop i := 0; i < info.members.len; i += 1 {

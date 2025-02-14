@@ -195,7 +195,7 @@ ICON_DELETE       : u32 : 0xF1F8;
 
 // Converts the unicode icone ID to utf8 string in the compile time.
 icon_utf8 :: fn (unicode: u32) string_view #inline #comptime {
-	tmp :: str_new();
+	tmp: string;
 	err :: utf32_to_utf8_single_char(unicode, &tmp);
 	if err { panic(err); }
 	return tmp;

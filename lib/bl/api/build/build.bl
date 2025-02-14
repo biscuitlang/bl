@@ -314,13 +314,13 @@ AssertMode :: enum s32 {
 /// ```
 add_executable :: fn (name: string_view) *Target {
 	if name.len == 0 { panic("Invalid executable name!"); }
-	return __add_target(tstrtoc(name), cast(s32) TargetKind.EXECUTABLE);
+	return __add_target(strtoc(name), cast(s32) TargetKind.EXECUTABLE);
 }
 
 /// Add new shared library target target into the current compilation queue.
 add_library :: fn (name: string_view) *Target {
 	if name.len == 0 { panic("Invalid library name!"); }
-	return __add_target(tstrtoc(name), cast(s32) TargetKind.SHARED_LIBRARY);
+	return __add_target(strtoc(name), cast(s32) TargetKind.SHARED_LIBRARY);
 }
 
 /// Add new source file into the `target`. Function does nothing when `filepath` is already present
@@ -328,7 +328,7 @@ add_library :: fn (name: string_view) *Target {
 add_unit :: fn (target: *Target, filepath: string_view) {
 	if !target { panic("Invalid target!"); }
 	if filepath.len == 0 { panic("Invalid unit path!"); }
-	__add_unit(target, tstrtoc(filepath));
+	__add_unit(target, strtoc(filepath));
 }
 
 /// Start compilation of the `target` assembly and return `ok` or `error` in case compilation failed.
@@ -352,7 +352,7 @@ add_lib_path :: fn (target: *Target, path: string_view) {
 	if !target { panic("Invalid target!"); }
 	if path.len == 0 { panic("Invalid library path!"); }
 
-	__add_lib_path(target, tstrtoc(path));
+	__add_lib_path(target, strtoc(path));
 }
 
 /// Link dynamic library. Only name is required (without extension and prefix). Compiler will lookup
@@ -391,7 +391,7 @@ link_library :: fn (target: *Target, name: string_view) {
 	if !target { panic("Invalid target!"); }
 	if name.len == 0 { panic("Invalid library name!"); }
 
-	__link_library(target, tstrtoc(name));
+	__link_library(target, strtoc(name));
 }
 
 /// Link static library. Only name is required (without extension and prefix). Compiler will lookup
@@ -442,7 +442,7 @@ add_framework_path :: fn (target: *Target, path: string_view) {
 append_linker_options :: fn (target: *Target, option: string_view) {
 	if !target { panic("Invalid target!"); }
 	if option.len == 0 { return; }
-	__append_linker_options(target, tstrtoc(option));
+	__append_linker_options(target, strtoc(option));
 }
 
 /// Set build output directory. This is directory where all output files will be written. For
@@ -454,8 +454,8 @@ append_linker_options :: fn (target: *Target, option: string_view) {
 /// Specified directory will be used also for build temporary files.
 set_output_dir :: fn (target: *Target, dir: string_view) {
 	if !target { panic("Invalid target!"); }
-	if str_is_empty(dir) { return; }
-	__set_output_dir(target, tstrtoc(dir));
+	if dir.len < 1 then return;
+	__set_output_dir(target, strtoc(dir));
 }
 
 /// Get output directory specified by [set_output_dir](#set_output_dir) or empty string.
@@ -471,8 +471,8 @@ get_output_dir :: fn (target: *Target) string_view {
 /// will be used.
 set_module_dir :: fn (target: *Target, dir: string_view) {
 	if !target { panic("Invalid target!"); }
-	if str_is_empty(dir) { return; }
-	__set_module_dir(target, tstrtoc(dir));
+	if dir.len < 1 then return;
+	__set_module_dir(target, strtoc(dir));
 }
 
 /// Get module directory specified by [set_module_dir](#set_module_dir) or default one.

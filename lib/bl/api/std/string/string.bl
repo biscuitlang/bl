@@ -121,16 +121,28 @@ str_init :: fn {
 }
 
 str_make :: fn {
-	fn (allocator : *Allocator) string #inline {
-		result: string #noinit;
-		str_init(&result, allocator);
-		return result;
+	fn (allocator: *Allocator) string #inline {
+		str: string;
+		str_init(&str, 0, allocator);
+		return str;
 	};
 
-	fn (v: ?T, allocator : *Allocator = null) string #inline {
-		result: string #noinit;
-		str_init(&result, v, allocator);
-		return result;
+	fn (size: s64, allocator: *Allocator = null) string #inline {
+		str: string;
+		str_init(&str, size, allocator);
+		return str;
+	};
+
+	fn (v: string_view, allocator: *Allocator = null) string #inline {
+		str: string;
+		str_init(&str, v, allocator);
+		return str;
+	};
+
+	fn (cstr: *C.char, allocator: *Allocator = null) string #inline {
+		str: string;
+		str_init(&str, cast(*C.char) cstr, allocator);
+		return str;
 	};
 }
 

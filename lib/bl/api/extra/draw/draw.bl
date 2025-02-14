@@ -1095,9 +1095,9 @@ link :: fn (vs: u32, fs: u32) u32 {
 	if is_linked != GL_TRUE {
 		max_length := 0;
 		gl.GetProgramiv(program, GL_INFO_LOG_LENGTH, &max_length);
-		info := str_new(max_length);
+		info := str_make(max_length);
 		info.len = max_length;
-		defer str_delete(&info);
+		defer str_terminate(&info);
 		gl.GetProgramInfoLog(program, max_length, &max_length, info.ptr);
 		print_err("Shader linker error: \n%\n", info);
 		gl.DeleteProgram(program);
@@ -1125,9 +1125,9 @@ compile_unit :: fn (kind: u32, source: string_view) u32 {
 	if is_compiled != GL_TRUE {
 		max_length := 0;
 		gl.GetShaderiv(shader, GL_INFO_LOG_LENGTH, &max_length);
-		info := str_new(max_length);
+		info := str_make(max_length);
 		info.len = max_length;
-		defer str_delete(&info);
+		defer str_terminate(&info);
 		gl.GetShaderInfoLog(shader, max_length, &max_length, info.ptr);
 		print_err(info);
 
