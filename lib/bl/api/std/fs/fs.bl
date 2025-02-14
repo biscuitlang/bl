@@ -375,6 +375,8 @@ get_home :: fn () string #inline {
 }
 
 // @Incomplete 2025-02-13: use temporary allocator
+// @Incomplete 2025-02-13: Inconsisten behaviour across platforms (fail vs empty value). Verify this
+//                         also for other similar functions.
 /// Try to obtain system temporary directory, result must be released by `str_terminate`. Path does
 /// not contain last path separator.
 get_tmp :: fn () string #inline {

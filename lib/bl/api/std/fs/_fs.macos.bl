@@ -11,7 +11,7 @@ _exist :: fn (filepath: string_view) bool #inline {
 }
 
 _open :: fn (filepath: string_view, mode: OpenFileMode) (_File, Error) {
-	if str_is_empty(filepath) { return 0, error(ERR_INVALID_HANDLE, "File path is empty!"); }
+	if filepath.len < 1 { return 0, error(ERR_INVALID_HANDLE, "File path is empty!"); }
 	flags :: modes_to_flags(mode);
 	mode_flags : C.mode_t : 0x1A4; // 0644
 	handle :: C.open(strtoc(filepath), flags, 0);
@@ -28,7 +28,7 @@ _open :: fn (filepath: string_view, mode: OpenFileMode) (_File, Error) {
 }
 
 _remove :: fn (filepath: string_view) Error #inline {
-	if str_is_empty(filepath) { return error(ERR_INVALID_HANDLE, "File path is empty!"); }
+	if filepath.len < 1 { return error(ERR_INVALID_HANDLE, "File path is empty!"); }
 	if C.unlink(strtoc(filepath)) != 0 {
 		ec, estr :: os_get_last_error();
 		return error(ec, "Cannot remove file '%': %.", filepath, estr);
@@ -53,8 +53,8 @@ _get_uid_by_name :: fn (filepath: string_view) (u64, Error) {
 }
 
 _copy :: fn (src: string_view, dest: string_view, override: bool) Error {
-	if str_is_empty(src) { return error(ERR_INVALID_HANDLE, "File path is empty!"); }
-	if str_is_empty(dest) { return error(ERR_INVALID_HANDLE, "File path is empty!"); }
+	if src.len  < 1 then return error(ERR_INVALID_HANDLE, "Source file path is empty!");
+	if dest.len < 1 then return error(ERR_INVALID_HANDLE, "Destination file path is empty!");
 	if _exist(dest) && !override { return error(ERR_ALREADY_EXIST, "Destination already exist '%'", dest); }
 
 	src_stream, err_src :: open_file(src, OpenFileMode.READ);
@@ -82,7 +82,7 @@ _close :: fn (handle: _File) #inline {
 }
 
 _create_dir :: fn (dirpath: string_view) Error {
-	if str_is_empty(dirpath) { return error(ERR_INVALID_HANDLE, "Cannot create directory, dirpath is empty."); }
+	if dirpath.len < 1 { return error(ERR_INVALID_HANDLE, "Cannot create directory, dirpath is empty."); }
 	mode : C.mode_t : 0x1ED; // 0755
 	if C.mkdir(strtoc(dirpath), mode) != 0 {
 		ec, estr :: os_get_last_error();
@@ -92,7 +92,7 @@ _create_dir :: fn (dirpath: string_view) Error {
 }
 
 _remove_dir :: fn (dirpath: string_view) Error {
-	if str_is_empty(dirpath) { return error(ERR_INVALID_HANDLE, "Cannot remove directory, dirpath is empty."); }
+	if dirpath.len < 1 { return error(ERR_INVALID_HANDLE, "Cannot remove directory, dirpath is empty."); }
 	if C.rmdir(auto dirpath.ptr)!= 0 {
 		ec, estr :: os_get_last_error();
 		return error(ec, "Cannot remove directory '%': %.", dirpath, estr);
@@ -101,8 +101,8 @@ _remove_dir :: fn (dirpath: string_view) Error {
 }
 
 _visit_files :: fn (dirpath: string_view, is_recursive: bool, leaf_first: bool, visitor: *fn(info: *FileVisitInfo, ctx: *u8) Error, ctx: *u8 = null) Error #inline {
-	directory := str_new(dirpath);
-	defer str_delete(&directory);
+	directory := str_make(dirpath);
+	defer str_terminate(&directory);
 	err :: _normalize(&directory);
 	if err { return err; }
 
@@ -113,8 +113,9 @@ _visit_files :: fn (dirpath: string_view, is_recursive: bool, leaf_first: bool, 
 	}
 	defer C.closedir(dir);
 
-	filepath :: str_new();
-	defer str_delete(&filepath);
+	filepath: string;
+	defer str_terminate(&filepath);
+
 	loop {
 		stat :: C.readdir(dir);
 		if stat == null { break; }
@@ -145,7 +146,7 @@ _visit_files :: fn (dirpath: string_view, is_recursive: bool, leaf_first: bool, 
 }
 
 _is_directory :: fn (path: string_view) (bool, Error) #inline {
-	if str_is_empty(path) { return false, error(ERR_INVALID_HANDLE, "Path is empty."); }
+	if path.len < 1 { return false, error(ERR_INVALID_HANDLE, "Path is empty."); }
 	stat: C.stat_t #noinit;
 	if C.stat(strtoc(path), &stat) != 0 {
 		ec, estr :: os_get_last_error();
@@ -164,15 +165,16 @@ _validate_filename :: fn (name: string_view) bool {
 }
 
 _get_cwd :: fn () string #inline {
+	result: string;
 	buf: [OS_PATH_MAX]u8;
-	if !C.getcwd(auto buf.ptr, auto buf.len) { return str_new(); }
-	path :: str_new(buf.ptr);
-	remove_last_separator(&path);
-	return path;
+	if !C.getcwd(auto buf.ptr, auto buf.len) { return result; }
+	str_init(&result, cast(*C.char) buf.ptr);
+	remove_last_separator(&result);
+	return result;
 }
 
 _set_cwd :: fn (path: string_view) Error #inline {
-	if str_is_empty(path) { return error(ERR_INVALID_HANDLE, "Path is empty!"); }
+	if path.len < 1 then return error(ERR_INVALID_HANDLE, "Path is empty!");
 	if C.chdir(strtoc(path)) != 0 {
 		ec, estr :: os_get_last_error();
 		return error(ec, "Cannot set current directory to '%': %.", path, estr);
@@ -181,32 +183,34 @@ _set_cwd :: fn (path: string_view) Error #inline {
 }
 
 _get_home :: fn () string #inline {
+	result: string;
 	tmp :: "HOME";
 	cdir :: cast(*u8) C.getenv(auto tmp.ptr);
-	if !cdir { return str_new(); }
-	path :: str_new(cdir);
-	remove_last_separator(&path);
-	return path;
+	if !cdir then return result;
+	str_init(&result, cast(*C.char) cdir);
+	remove_last_separator(&result);
+	return result;
 }
 
 _get_tmp :: fn () string #inline {
+	result: string;
 	tmp :: "TMPDIR";
 	cdir :: cast(*u8) C.getenv(auto tmp.ptr);
-	if !cdir { return str_new("/tmp"); }
-	path :: str_new(cdir);
-	remove_last_separator(&path);
-	return path;
+	if !cdir then return result;
+	str_init(&result, cast(*C.char) cdir);
+	remove_last_separator(&result);
+	return result;
 }
 
 _normalize :: fn (filepath: *string) Error {
 	if !filepath { return error(ERR_INVALID_HANDLE, "File path is null!"); }
-	if str_is_empty(@filepath) { return error(ERR_INVALID_HANDLE, "File path is empty!"); }
+	if filepath.len < 0 { return error(ERR_INVALID_HANDLE, "File path is empty!"); }
 	buf : [OS_PATH_MAX]u8;
 	in_buf : [OS_PATH_MAX]u8;
 
 	if !is_path_absolute(@filepath) {
 		cwd :: get_cwd();
-		defer str_delete(&cwd);
+		defer str_terminate(&cwd);
 		bprint(in_buf, "%/%", cwd, @filepath);
 	} else {
 		bprint(in_buf, "%", @filepath);
@@ -215,7 +219,7 @@ _normalize :: fn (filepath: *string) Error {
 		ec, estr :: os_get_last_error();
 		return error(ec, "Cannot normalize '%': %.", @filepath, estr);
 	}
-	str_clear(filepath);
+	filepath.len = 0;
 	str_append(filepath, ctostr(auto buf.ptr));
 	return OK;
 }
@@ -279,9 +283,8 @@ modes_to_flags :: fn (modes: OpenFileMode) s32 #inline {
 }
 
 remove_last_separator :: fn (path: *string) {
-	if str_is_empty(@path) { return; }
+	if path.len < 1 { return; }
 	if (@path)[path.len-1] == '/' {
-		(@path)[path.len-1] = '\0';
 		path.len -= 1;
 	}
 }

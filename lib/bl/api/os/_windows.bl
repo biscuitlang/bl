@@ -85,8 +85,8 @@ os_get_exec_path :: fn () string {
 	return result;
 }
 
-os_execute :: fn (command: string_view, _allocator : *Allocator = null) s32 #inline {
-	return C.system(strtoc(command, _allocator));
+os_execute :: fn (command: string_view, allocator : *Allocator = null) s32 #inline {
+	return C.system(strtoc(command, allocator));
 }
 
 os_get_last_error :: fn () (s32, string_view) #inline {

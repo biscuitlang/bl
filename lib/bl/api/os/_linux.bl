@@ -69,8 +69,8 @@ os_ftick_ms :: fn () f64 #inline {
 	return (s*1000.) + (n/1000000.);
 }
 
-os_execute :: fn (command: string_view, _allocator : *Allocator = null) s32 {
-	return C.WEXITSTATUS(C.system(strtoc(command, _allocator)));
+os_execute :: fn (command: string_view, allocator : *Allocator = null) s32 {
+	return C.WEXITSTATUS(C.system(strtoc(command, allocator)));
 }
 
 os_get_last_error :: fn () (s32, string_view) #inline {

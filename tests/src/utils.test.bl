@@ -157,8 +157,8 @@ utf8_to_utf32_test_1 :: fn () #test {
 }
 
 utf32_to_utf8_single_char_1 :: fn () #test {
-	buf := str_new();
-	defer str_delete(&buf);
+	buf: string;
+	defer str_terminate(&buf);
 
 	err :: utf32_to_utf8_single_char(0x00000061, &buf);
 	test_ok(err);
@@ -166,8 +166,8 @@ utf32_to_utf8_single_char_1 :: fn () #test {
 }
 
 utf32_to_utf8_single_char_2 :: fn () #test {
-	buf := str_new();
-	defer str_delete(&buf);
+	buf: string;
+	defer str_terminate(&buf);
 
 	err :: utf32_to_utf8_single_char(0x000000f3, &buf);
 	test_ok(err);
@@ -175,8 +175,8 @@ utf32_to_utf8_single_char_2 :: fn () #test {
 }
 
 utf32_to_utf8_single_char_3 :: fn () #test {
-	buf := str_new();
-	defer str_delete(&buf);
+	buf: string;
+	defer str_terminate(&buf);
 
 	err :: utf32_to_utf8_single_char(0x0000306f, &buf);
 	test_ok(err);
@@ -193,7 +193,7 @@ utf32_to_utf8_test_1 :: fn () #test {
 		0x000000f3, 0x00000064, 0x00000079, 0x0000002e };
 
 	buf := str_new();
-	defer str_delete(&buf);
+	defer str_terminate(&buf);
 
 	err :: utf32_to_utf8(UTF32_CHARS, &buf);
 	test_ok(err);

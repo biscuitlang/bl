@@ -77,15 +77,19 @@ os_ftick_ms :: fn () f64 #inline {
 
 // @Incomplete 2025-02-13: Should take allocator and return string_view. TMP alloc by default?
 os_get_exec_path :: fn () string {
-	// @Incomplete 2025-02-13: This does not resolve symlinks correctly.
-	buf : [OS_PATH_MAX]u8 #noinit;
-	buf_len := cast(u32) buf.len;
-	if NSGetExecutablePath(auto buf.ptr, &buf_len) == -1 { return str_new(); }
-
-	return str_new(buf.ptr);
+	result: string;
+	// Resolve buffer size first.
+	required_buffer_size: u32;
+	NSGetExecutablePath(null, &required_buffer_size);
+	if required_buffer_size < 1 then return result;
+	str_resize(&result, auto required_buffer_size);
+	if NSGetExecutablePath(auto result.ptr, auto &result.len) == -1 then return result;
+	// Shring zero terminator.
+	result.len -= 1;
+	return result;
 }
 
-os_execute :: fn (command: string_view, _allocator : *Allocator = null) s32 {
+os_execute :: fn (command: string_view, allocator : *Allocator = null) s32 {
 	return C.WEXITSTATUS(C.system(strtoc(command, allocator)));
 }
 

@@ -64,10 +64,9 @@ Static shit
 */
 
 #import "std/print"
-#import "std/fs"
 
 main :: fn () s32 {
-	print("'%'\n", get_home());
+	print("'%'\n", os_get_exec_path());
 	return 0;
 }
 
