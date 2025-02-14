@@ -192,11 +192,12 @@ _get_home :: fn () string #inline {
 	return result;
 }
 
+// @Incomplete 2025-02-14: Defaults to '/tmp', I'm not sure if this is correct on macos.
 _get_tmp :: fn () string #inline {
-	result: string;
 	tmp :: "TMPDIR";
 	cdir :: cast(*u8) C.getenv(auto tmp.ptr);
-	if !cdir then return result;
+	if !cdir { return str_make("/tmp"); }
+	result: string;
 	str_init(&result, cast(*C.char) cdir);
 	remove_last_separator(&result);
 	return result;

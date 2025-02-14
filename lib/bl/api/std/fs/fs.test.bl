@@ -483,7 +483,7 @@ visitor :: fn (info: *FileVisitInfo, data: *VisitData) Error {
 	test_neq(info.filename, "..");
 	if info.is_directory {
 		data.directory_count += 1;
-	} else if str_is_empty(data.include_ext) {
+	} else if data.include_ext.len == 0 {
 		data.file_count += 1;
 	} else {
 		_, ext :: path_splitext(info.filename);

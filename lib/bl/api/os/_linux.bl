@@ -88,13 +88,13 @@ os_get_last_error2 :: fn () Error #inline {
 }
 
 os_get_exec_path :: fn () string {
-	buf : [OS_PATH_MAX]u8;
+	buf : [OS_PATH_MAX]C.char;
 	buf_len := cast(C.size_t) buf.len;
 	link :: "/proc/self/exe";
-	if C.readlink(auto link.ptr, auto buf.ptr, buf_len) == -1 {
-		return str_new();
+	if C.readlink(auto link.ptr, buf.ptr, buf_len) == -1 {
+		return .{};
 	}
-	return str_new(buf.ptr);
+	return str_make(buf.ptr);
 }
 
 os_get_backtrace :: fn (skip_frames := 0 #maybe_unused, max_frame_count := 64 #maybe_unused, _allocator : *Allocator = null #maybe_unused) []CodeLocation {

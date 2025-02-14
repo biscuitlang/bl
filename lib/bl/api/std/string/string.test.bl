@@ -12,7 +12,6 @@ multiline_str_literal :: fn () #test {
 	   "string"
 	   "!";
 	EXPECTED :: "Hello this is multiline string!";
-	test_true(str_is_zero_terminated(FOO));
 	test_eq(FOO, EXPECTED);
 }
 

@@ -100,11 +100,6 @@ master
 std/sync:
 - Mutex now can be explicitly initialized as recursive or non-recursive.
 
-std/string
-- Add tstrtoc function which automatically checks if passed string can be directly converted
-  to C string (checks zero terminator). In case the string is not zero-terminated,
-  implicit zero-terminated copy is created using temporary allocator.
-
 std/fs
 - Fix invalid file descriptor reported by `copy` function on linux and mac.
 

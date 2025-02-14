@@ -2007,7 +2007,7 @@ Another good example is the following:
 @@@examples/open_file.bl
 ```
 
-Where the *defer* is used to `close_file` and `str_delete`; we can nicely couple the resource *allocation* and *deallocation* together and also handle possible errors in more elegant way. In this case, the `close_file` will be called in case of any error, while opening a file, after `return 1;` or after the last `return 0;` automatically.
+Where the *defer* is used to `close_file` and `str_terminate`; we can nicely couple the resource *allocation* and *deallocation* together and also handle possible errors in more elegant way. In this case, the `close_file` will be called in case of any error, while opening a file, after `return 1;` or after the last `return 0;` automatically.
 
 
 # Code Structure

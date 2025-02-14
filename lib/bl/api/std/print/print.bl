@@ -113,7 +113,7 @@ tprint :: fn (format: string_view, args: ...) string_view #inline {
 /// Write formatted input to the new heap-allocated string.
 ///
 /// !!! note
-///     Use `str_delete` to free memory used by string.
+///     Use `str_terminate` to free memory used by string.
 ///
 /// See also [print](#print).
 // @Incomplete 2025-02-13 return string by value + what allocator is used?

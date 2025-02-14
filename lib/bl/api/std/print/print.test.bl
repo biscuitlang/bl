@@ -318,7 +318,7 @@ print_enum_1 :: fn () #test {
 	test_eq(e, "F.E");
 
 	f :: sprint("%", F.F);
-	defer str_terminatevm(&f);
+	defer str_terminate(&f);
 	test_eq(f, "F.B | F.C | F.E");
 }
 
