@@ -218,8 +218,8 @@ dynamic_strings :: fn () {
 	// default API in 'std' namespace.
 
 	// Allocate new dynamic string.
-	str :: str_new("Hello");
-	defer str_delete(&str);
+	str :: str_make("Hello");
+	defer str_terminate(&str);
 
 	// Append the string.
 	str_append(&str, " World!");

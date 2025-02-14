@@ -214,8 +214,8 @@ string_arg :: fn () #test {
 	init(&parser);
 	defer terminate(&parser);
 
-	str := str_new();
-	defer str_delete(&str);
+	str: string;
+	defer str_terminate(&str);
 	add(&parser, &str, "--str", "-s", "Test string.");
 
 	{ // OK

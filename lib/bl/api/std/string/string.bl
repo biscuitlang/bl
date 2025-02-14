@@ -361,25 +361,25 @@ new_empty :: fn () string #obsolete "Use default initialization 'string.{}'. [Si
 	return .{};
 }
 
-new_allocator :: fn (allocator: *Allocator) string #obsolete "Use 'str_init' instead. [Since 0.13.0]" {
+new_allocator :: fn (allocator: *Allocator) string #obsolete "Use 'str_init' or 'str_make' instead. [Since 0.13.0]" {
 	str: string;
 	str_init(&str, 0, allocator);
 	return str;
 }
 
-new_size :: fn (size: s64, allocator: *Allocator = null) string #obsolete "Use 'str_init' instead. [Since 0.13.0]" {
+new_size :: fn (size: s64, allocator: *Allocator = null) string #obsolete "Use 'str_init' or 'str_make' instead. [Since 0.13.0]" {
 	str: string;
 	str_init(&str, size, allocator);
 	return str;
 }
 
-new_dup :: fn (v: string_view, allocator: *Allocator = null) string #obsolete "Use 'str_init' instead. [Since 0.13.0]" {
+new_dup :: fn (v: string_view, allocator: *Allocator = null) string #obsolete "Use 'str_init' or 'str_make' instead. [Since 0.13.0]" {
 	str: string;
 	str_init(&str, v, allocator);
 	return str;
 }
 
-new_dup_c_str :: fn (cstr: *u8, allocator: *Allocator = null) string #obsolete "Use 'str_init' instead. [Since 0.13.0]" {
+new_dup_c_str :: fn (cstr: *u8, allocator: *Allocator = null) string #obsolete "Use 'str_init' or 'str_make' instead. [Since 0.13.0]" {
 	str: string;
 	str_init(&str, cast(*C.char) cstr, allocator);
 	return str;

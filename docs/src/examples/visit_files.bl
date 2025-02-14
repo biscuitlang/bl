@@ -8,7 +8,7 @@ main :: fn () s32 {
 		if info.is_directory { return OK; }
 		_, ext :: path_splitext(info.filename);
 		if str_match(ext, ".bl") {
-			array_push(list, str_new(info.filepath));
+			array_push(list, str_make(info.filepath));
 		}
 		return OK;
 	};
@@ -16,13 +16,13 @@ main :: fn () s32 {
 	list: [..]string;
 	defer array_terminate(&list);
 	cwd :: get_cwd();
-	defer str_delete(&cwd);
+	defer str_terminate(&cwd);
 	err :: visit_files(cwd, VisitOpt.{ recursive = true }, &list, &visitor);
 	if err { panic(err); }
 
 	loop i := 0; i < list.len; i += 1 {
 		print_log("FILE: %\n", list[i]);
-		str_delete(&list[i]);
+		str_terminate(&list[i]);
 	}
 
 	return 0;

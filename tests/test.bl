@@ -64,44 +64,102 @@ Static shit
 */
 
 #import "std/print"
+#import "std/fs"
 
 main :: fn () s32 {
-	foo :: os_get_exec_path();
-	print("'%'\n", foo);
-
-	locs :: os_get_backtrace();
-	loop i := 0; i < locs.len; i += 1 {
-		print("%\n", locs[i]);
-	}
+	print("'%'\n", get_home());
 	return 0;
 }
 
 
-// Ideas about capture the rest...
 /*
-my_function :: fn () (v: string_view, num: s32, err: Error) {
+// Ideas about capture the rest...
+
+my_function :: fn () (string_view, s32, Error) {
 }
 
 {
-	my_function() -> (v, num, err) {
+	my_function() | (v, num, err) {
 		if num > 10 {
 			print("%\n", v);
 		}
 	};
 
-	v = my_function() -> (num, err) {
+	v = my_function() | (num, err) {
 	};
 
-	v, num = my_function() -> (err) {
+	v, num = my_function() | (err) {
+		if err then panic(err);
+	};
+
+
+	v, num :: my_function() !{
 		panic(err);
 	};
+
+	v, num :: my_function() !(err) {
+		panic(err);
+	};
+
+	// v, num :: my_function() !panic(err);
+
+	v, num :: my_function()!;
+
+	v, num :: my_function(); // Error ignored.
 }
 
+create_all_dir :: fn (dirpath: string_view) Error {
+	if dirpath.len < 1 then return error(ERR_INVALID_HANDLE, "Directory path is empty!");
+	is_valid :: is_existing_directory(dirpath) | (err) {
+		if err return err;
+	};
+	if is_valid { return OK;  }
+}
+
+create_all_dir :: fn (dirpath: string_view) Error {
+	if dirpath.len < 1 then return error(ERR_INVALID_HANDLE, "Directory path is empty!");
+	is_valid :: is_existing_directory(dirpath) !{
+		return err;
+	};
+
+	if is_valid { return OK;  }
+}
+*/
+
+/*
 {
 	add_callback(&fn (n: s32) [foo, bar] s32 {
-
 		});
 
+	add_callback(&fn (n: s32, x: s32 | foo, bar) s32 {
+		});
+	add_callback(&fn (| foo, bar) s32 {
+		});
+
+}
+*/
+
+/*
+main :: fn () s32 {
+	stream :: open_file(#file) | (err) {
+		if err {
+			print_err(err);
+			return 1;
+		}
+	};
+
+	defer close_file(&stream);
+
+
+	write_entire_file(#file, data) | (err) {
+		if err then panic();
+	};
+
+	write_entire_file(#file, data) | (err: string) {
+		if err then panic();
+	};
+
+	return 0;
 }
 */
 
