@@ -2549,9 +2549,6 @@ NEXT:
 			}
 			// setup global scope flag for declaration
 			tmp->data.decl_entity.is_global = true; // @Incomplete 2024-12-12 Use decl flags here too?
-			if (scope_is_subtree_of_kind(scope_get(ctx), SCOPE_PRIVATE)) {
-				tmp->data.decl.flags |= FLAG_PRIVATE;
-			}
 		}
 
 		arrput(ublock->data.ublock.nodes, tmp);

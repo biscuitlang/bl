@@ -174,10 +174,13 @@ array_reserve :: fn (_arr: *[..]?T, n: s64) #inline {
 /// array content, minimal possible length value is zero; setting negative value will cause
 /// panic. On the other hand, when array content is smaller then required length, the array is
 /// extended, but newly occupied buffer range remains uninitialized.
-array_resize :: fn (_arr: *[..]?T, len: s64) #inline {
+///
+/// Returns original length.
+array_resize :: fn (_arr: *[..]?T, len: s64) s64 #inline {
 	assert(_arr, "Passed array is invalid.");
 	array_reserve(_arr, len);
-	_arr.len = len;
+	swap(&_arr.len, &len);
+	return len;
 }
 
 /// Erase element on index `i`. Call to this function may cause reordering of an dynamic array.
@@ -299,7 +302,7 @@ array_insert_all :: fn (_arr: *[..]?T, before_index: s64, values: []T) s64 {
 }
 
 /// Erase all elements in dynamic array but keep allocated memory.
-array_clear :: fn (_arr: *[..]?T) #inline #obsolete "Use 'arr.len = 0' instead. [Since 0.13.0]" {
+array_clear :: fn (_arr: *[..]?T) #inline #obsolete "Since 0.13.0; Use 'arr.len = 0' instead." {
 	assert(_arr, "Passed array is invalid.");
 	arr := cast(*_Array) _arr;
 	arr.len = 0;

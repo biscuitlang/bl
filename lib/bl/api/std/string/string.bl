@@ -88,6 +88,9 @@
 /// initialized with some data.
 ///
 /// By default, *zero-initialized* string is valid.
+///
+/// In case no allocator is specified, string will use current `application_context.allocator` by
+/// default.
 str_init :: fn {
 	fn (str: *string, allocator: *Allocator) #inline {
 		assert(str, "Passed string is invalid.");
@@ -120,6 +123,7 @@ str_init :: fn {
 	};
 }
 
+/// Just wrapper arounf [str_init](modules_string.html#str_init).
 str_make :: fn {
 	fn (allocator: *Allocator) string #inline {
 		str: string;
@@ -215,9 +219,11 @@ str_reserve :: fn (str: *string, capacity: s64) #inline {
 /// string content, minimal possible length value is zero; setting negative value will cause
 /// panic. On the other hand, when string content is smaller then required length, the string is
 /// extended, but newly occupied buffer range remains uninitialized.
-str_resize :: fn (str: *string, len: s64) #inline {
+///
+/// Returns original length.
+str_resize :: fn (str: *string, len: s64) s64 #inline {
 	assert(str, "Passed string is invalid.");
-	array_resize(str_to_arr(str), len);
+	return array_resize(str_to_arr(str), len);
 }
 
 /// Append string with multiple values passed as `args` and returns `str`. New allocation is done in case
@@ -369,29 +375,29 @@ str_new :: fn {
 
 #scope_private
 
-new_empty :: fn () string #obsolete "Use default initialization 'string.{}'. [Since 0.13.0]" {
+new_empty :: fn () string #obsolete "Since 0.13.0; Use default initialization 'string.{}'." {
 	return .{};
 }
 
-new_allocator :: fn (allocator: *Allocator) string #obsolete "Use 'str_init' or 'str_make' instead. [Since 0.13.0]" {
+new_allocator :: fn (allocator: *Allocator) string #obsolete "Since 0.13.0; Use 'str_init' or 'str_make' instead." {
 	str: string;
 	str_init(&str, 0, allocator);
 	return str;
 }
 
-new_size :: fn (size: s64, allocator: *Allocator = null) string #obsolete "Use 'str_init' or 'str_make' instead. [Since 0.13.0]" {
+new_size :: fn (size: s64, allocator: *Allocator = null) string #obsolete "Since 0.13.0; Use 'str_init' or 'str_make' instead." {
 	str: string;
 	str_init(&str, size, allocator);
 	return str;
 }
 
-new_dup :: fn (v: string_view, allocator: *Allocator = null) string #obsolete "Use 'str_init' or 'str_make' instead. [Since 0.13.0]" {
+new_dup :: fn (v: string_view, allocator: *Allocator = null) string #obsolete "Since 0.13.0; Use 'str_init' or 'str_make' instead." {
 	str: string;
 	str_init(&str, v, allocator);
 	return str;
 }
 
-new_dup_c_str :: fn (cstr: *u8, allocator: *Allocator = null) string #obsolete "Use 'str_init' or 'str_make' instead. [Since 0.13.0]" {
+new_dup_c_str :: fn (cstr: *u8, allocator: *Allocator = null) string #obsolete "Since 0.13.0; Use 'str_init' or 'str_make' instead." {
 	str: string;
 	str_init(&str, cast(*C.char) cstr, allocator);
 	return str;
@@ -400,12 +406,12 @@ new_dup_c_str :: fn (cstr: *u8, allocator: *Allocator = null) string #obsolete "
 #scope_public
 
 /// Delete dynamic string.
-str_delete :: fn (v: *string) #obsolete "Use 'str_terminate' instead'. [Since 0.13.0]" {
+str_delete :: fn (v: *string) #obsolete "Since 0.13.0; Use 'str_terminate' instead'." {
 	str_terminate(v);
 }
 
 /// Clear dynamic string but keep allocated storage.
-str_clear :: fn (str: *string) #inline #obsolete "Use 'str.len = 0' instead. [Since 0.13.0]" {
+str_clear :: fn (str: *string) #inline #obsolete "Since 0.13.0; Use 'str.len = 0' instead." {
 	str.len = 0;
 }
 
@@ -809,13 +815,13 @@ str_hash :: fn (str: string_view) u32 {
 
 /// Helper inline function returning `true` when string is null. In such case string `len` could be
 /// any value.
-str_is_null  :: fn (str: string_view) bool #inline #obsolete "Use 'str.ptr != null' instead. [Since 0.13.0]" {
+str_is_null  :: fn (str: string_view) bool #inline #obsolete "Since 0.13.0; Use 'str.ptr == null' instead." {
 	return str.ptr == null;
 }
 
 /// Helper inline function returning `true` when string is empty. In such case string `ptr` could
 /// be any pointer.
-str_is_empty :: fn (str: string_view) bool #inline #obsolete "Use 'str.len != 0' instead. [Since 0.13.0]" {
+str_is_empty :: fn (str: string_view) bool #inline #obsolete "Since 0.13.0; Use 'str.len < 1' instead." {
 	return str.len == 0;
 }
 
@@ -823,7 +829,7 @@ str_empty :: string.{};
 str_view_empty :: string_view.{};
 
 /// Helper inline function returning `true` when string is empty and null.
-str_is_null_or_empty :: fn (s: string_view) bool #inline #obsolete "Use 'str.len != 0 || str.ptr' instead. [Since 0.13.0]" {
+str_is_null_or_empty :: fn (s: string_view) bool #inline #obsolete "Since 0.13.0; Use 'str.len < 1 || str.ptr' instead." {
 	return s.ptr == null || s.len == 0;
 }
 
@@ -852,7 +858,7 @@ str_sub :: fn (str: string_view, start: s64, len : s64 = -1) string_view #inline
 
 /// Checks whether string view is zero terminated. Returns `false` In case the string view does not point
 /// to any valid data (`str.ptr == null`).
-str_is_zero_terminated :: fn (str: string_view) bool #inline #obsolete "Will be removed, BL strings are no longer zero-terminated. [Since 0.13.0]" {
+str_is_zero_terminated :: fn (str: string_view) bool #inline #obsolete "Since 0.13.0; Will be removed, BL strings are no longer zero-terminated." {
 	if !str.ptr then return false;
 	extend := str;
 	extend.len += 1;
@@ -877,7 +883,7 @@ strtoc :: fn (str: string_view, _allocator : *Allocator = null) *C.char #inline 
 /// Converts string view into C string representation. This function first checks if the input string
 /// is zero terminated, in case it's not, the temporary allocator is used to create zero terminated
 /// copy which is returned. Otherwise returns pointer to data of original string without any allocations.
-tstrtoc :: fn (str: string_view) *C.char #inline #obsolete "Use 'strtoc' instead. [Since 0.13.0]" {
+tstrtoc :: fn (str: string_view) *C.char #inline #obsolete "Since 0.13.0; Use 'strtoc' instead." {
 	return strtoc(str, application_context.temporary_allocator);
 }
 

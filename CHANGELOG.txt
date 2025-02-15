@@ -100,18 +100,22 @@ master
 std/sync:
 - Mutex now can be explicitly initialized as recursive or non-recursive.
 
-std/fs
+std/fs:
 - Fix invalid file descriptor reported by `copy` function on linux and mac.
 
-std/test
+std/test:
 - test_run now output ANSI colored reports in case 'ansi_color' argument passed to the
   function is 'true'.
 
-build.bl
+build.bl:
 - Add link_static_library. This function just formats name of static library based on current
   platform and use append_linker_options to adjust linker arguments.
 - Add link_framework. For linking of macOS frameworks.
 - Add add_framework_path. For adding search path for macOS framewors.
+
+str/string:
+
+	Big string revamp; BL strings are no longer zero termated.
 
 [Documentation]
 - Improved "Libraries" section in documentation.
@@ -120,6 +124,20 @@ build.bl
   github.
 - Fix syntax highlight issues caused by multiline comments in generated documentation.
 - Fix warnings in examples.
+
+[Deprecated]
+
+`array_clear`          - Use `arr.len = 0` instead.
+`pool_release`         - Use release_allocator instead.
+`pool_reset`           - Use reset_allocator instead.
+`str_clear`            - Use `str.len = 0` instead.
+`str_delete`           - Use `str_terminate` instead'.
+`str_is_empty`         - Use `str.len < 1` instead.
+`str_is_null_or_empty` - Use `str.len < 1 || str.ptr` instead.
+`str_is_null`          - Use `str.ptr == null` instead.
+`str_new`              - Use `str_make` or `str_init` instead.
+`ternary`              - Use language builtin `if expr then a else b`.
+`tstrtoc`              - Use `strtoc` instead.
 
 0.12.0
 ---------------------------------------------------------------------------------------

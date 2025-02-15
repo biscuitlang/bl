@@ -269,7 +269,7 @@ typedef struct
 static struct mir_type *create_type_struct(struct context *ctx, create_type_struct_args_t *args);
 
 // Create incomplete struct type placeholder to be filled later.
-static struct mir_type *create_type_struct_incomplete(struct context *ctx, struct id *user_id, bool is_union, bool has_base);
+static struct mir_type *create_type_struct_incomplete(struct context *ctx, struct id *user_id, bool is_union);
 
 typedef struct
 {
@@ -2053,8 +2053,7 @@ static void generate_struct_signature(str_buf_t *name, create_type_struct_args_t
 	str_buf_append(name, cstr("}"));
 }
 
-struct mir_type *create_type_struct_incomplete(struct context *ctx, struct id *user_id, bool is_union, bool has_base) {
-	(void)has_base; // @Cleanup?
+struct mir_type *create_type_struct_incomplete(struct context *ctx, struct id *user_id, bool is_union) {
 	bassert(user_id);
 	str_buf_t name = get_tmp_str();
 	generate_struct_signature(&name,
@@ -2090,34 +2089,36 @@ struct mir_type *create_type_struct(struct context *ctx, create_type_struct_args
 	struct id        id;
 	struct mir_type *result;
 
-	str_buf_t name          = get_tmp_str();
-	bool      can_use_cache = false;
+	str_buf_t name = get_tmp_str();
+
+	// 2025-02-15: Struct type caching:
+	//             We do not use cache for anonymous structs here because even if we might end up with more
+	//             of them having the same layout, they might have different metadata (tags) which are not
+	//             exposed into signature. On the other hand user named structs are defined once and then
+	//             referenced every time, so there is no need to cache them and lookup them (they are created
+	//             just once).
+	//
+	//             Note that we still have to decide if result->can_use_cache is set or not, consider pointer
+	//             to structs; in order to cache repeating p.foo the pointee type must have caching allowed!
+	bool can_use_cache = false;
 
 	if (!args->id) {
 		generate_struct_signature(&name, args);
-		can_use_cache     = args->user_id;
-		const hash_t hash = strhash(name);
-
-		if (can_use_cache) {
-			lock_type_cache(ctx);
-			result = lookup_type(ctx, hash, str_buf_view(name));
-			if (result) {
-				bassert(result->kind == MIR_TYPE_STRING); // @Cleanup 2025-02-12
-				unlock_type_cache(ctx);
-				goto DONE;
-			}
-		}
-
-		id.hash = hash;
-		id.str  = scdup2(ctx->string_cache, name);
+		can_use_cache = args->user_id; // Allow for user named structs.
+		id.hash       = strhash(name);
+		id.str        = scdup2(ctx->string_cache, name);
 
 	} else {
+		// 2025-02-15: In case we already have ID, this function was probably called from create_type_slice
+		//             or similar function where ID was precomputed; so we don't need to generate it again here.
 		id = *args->id;
 	}
 
 	result = create_type(ctx, args->kind, args->user_id);
 
-	result->id                                 = id;
+	result->id            = id;
+	result->can_use_cache = can_use_cache;
+
 	result->data.strct.members                 = args->members;
 	result->data.strct.scope                   = args->scope;
 	result->data.strct.scope_layer             = args->scope_layer;
@@ -2129,13 +2130,6 @@ struct mir_type *create_type_struct(struct context *ctx, create_type_struct_args
 
 	type_init_llvm_struct(ctx, result);
 
-	if (can_use_cache) {
-		insert_type_into_cache(ctx, result, str_buf_view(name));
-		result->can_use_cache = true;
-		unlock_type_cache(ctx);
-	}
-
-DONE:
 	put_tmp_str(name);
 	return result;
 }
@@ -2181,10 +2175,6 @@ struct mir_type *create_type_slice(struct context *ctx, enum mir_type_kind kind,
 	bool      can_use_cache = elem_ptr_type->can_use_cache;
 
 	switch (kind) {
-	case MIR_TYPE_STRING:
-		bassert(user_id);
-		str_buf_append(&name, user_id->str);
-		break;
 	case MIR_TYPE_SLICE:
 	case MIR_TYPE_VARGS: {
 		const str_t prefix    = kind == MIR_TYPE_SLICE ? cstr("sl") : cstr("sv");
@@ -2266,6 +2256,7 @@ struct mir_type *create_type_struct_dynarr(struct context *ctx, enum mir_type_ki
 
 	switch (kind) {
 	case MIR_TYPE_STRING:
+		// 2025-02-15: String is just dynamic array with special semantics.
 		can_use_cache = false;
 		str_buf_append(&name, user_id->str);
 		break;
@@ -6506,7 +6497,7 @@ struct result analyze_instr_load(struct context *ctx, struct mir_instr_load *loa
 
 	return_zone(PASS);
 
-INVALID_SRC : {
+INVALID_SRC: {
 	bassert(err_type);
 	str_buf_t type_name = mir_type2str(err_type, /* prefer_name */ true);
 	report_error(INVALID_TYPE, src->node, "Expected value of pointer type, got '" STR_FMT "'.", STR_ARG(type_name));
@@ -10939,10 +10930,9 @@ static void ast_decl_var_global_or_struct(struct context *ctx, struct ast *ast_g
 
 		struct ast *struct_type_value = ast_value->data.expr_type.type;
 		bassert(struct_type_value->kind == AST_TYPE_STRUCT);
-		const bool has_base_type = struct_type_value->data.type_strct.base_type;
 
 		// Set to const type fwd decl
-		struct mir_type *fwd_decl_type = create_type_struct_incomplete(ctx, ctx->ast.current_entity_id, false, has_base_type);
+		struct mir_type *fwd_decl_type = create_type_struct_incomplete(ctx, ctx->ast.current_entity_id, false);
 
 		value = create_instr_const_type(ctx, ast_value, fwd_decl_type);
 		analyze_instr_rq(ctx, value);

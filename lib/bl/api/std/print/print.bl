@@ -206,7 +206,7 @@ _print_impl :: fn {
 		__print_impl(&buffer, format, args, &cursor);
 		return cursor;
 	};
-	fn (buf: *string, format: string_view, args: []Any, cur := 0) s32 { // @Cleanup 2025-02-12
+	fn (buf: *string, format: string_view, args: []Any, cur := 0) s32 {
 		cursor :: cur;
 		__print_impl(buf, format, args, &cursor);
 		return cursor;
@@ -589,7 +589,7 @@ print_string :: fn {
 		memcpy(ptr_shift_bytes(buf.ptr, @cur), str.ptr, auto written);
 		(@cur) += written;
 	};
-	fn (buf: *string, cur: *s32, str: string_view) #inline { // @Cleanup 2025-02-12
+	fn (buf: *string, cur: *s32, str: string_view) #inline {
 		if str.ptr == null { return; }
 		(@cur) += _str_append_str(buf, str);
 	};

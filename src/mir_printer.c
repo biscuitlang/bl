@@ -81,7 +81,6 @@ static inline void print_flags(struct context *ctx, u32 flags) {
 	if (isflag(flags, FLAG_TEST_FN)) fprintf(ctx->stream, " #test");
 	if (isflag(flags, FLAG_INLINE)) fprintf(ctx->stream, " #inline");
 	if (isflag(flags, FLAG_NO_INLINE)) fprintf(ctx->stream, " #noinline");
-	if (isflag(flags, FLAG_PRIVATE)) fprintf(ctx->stream, " #private");
 
 	fprintf(ctx->stream, " ");
 }

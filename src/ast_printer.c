@@ -64,7 +64,6 @@ static inline void print_flags(u32 flags, FILE *stream) {
 	if (isflag(flags, FLAG_EXTERN)) fprintf(stream, " #extern");
 	if (isflag(flags, FLAG_TEST_FN)) fprintf(stream, " #test");
 	if (isflag(flags, FLAG_COMPILER)) fprintf(stream, " #compiler");
-	if (isflag(flags, FLAG_PRIVATE)) fprintf(stream, " #private");
 }
 
 static void print_node(struct ast *node, s32 pad, FILE *stream);

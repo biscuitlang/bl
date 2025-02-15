@@ -471,17 +471,20 @@ array_to_slice :: fn () #test {
 };
 ```
 
-## String Type
+## String View Type
 
-String type in Biscuit aka `string_view` is a slice containing a pointer to string data and string length. String literals are always zero-terminated. The `string_view` represents a string of fixed length. In case you want a dynamically allocated string use `string` type and its associated methods. Values of `string` can be implicitly converted to `string_view`.
+String type in Biscuit aka `string_view` is a slice containing a pointer to string data and string length. The `string_view` represents a string of fixed length. In case you want a dynamically allocated string use [string](modules_string.html) type and its associated methods. Values of `string` can be implicitly converted to `string_view`.
 
 ```bl
 string_type :: fn () #test {
     msg : string_view = "Hello world\n";
     msg.len; // character count of the string
     msg.ptr; // pointer to the string content
-};
+}
 ```
+
+!!! note
+	See more about strings [here](modules_string.html).
 
 ## Slice
 
@@ -493,7 +496,7 @@ Slice layout:
 Slice :: struct {
     len: s64;
     ptr: *T
-};
+}
 ```
 
 ```bl
@@ -503,7 +506,7 @@ array_slice :: fn () #test {
     loop i := 0; i < slice.len; i += 1 {
         print("%\n", slice[i]);
     }
-};
+}
 ```
 
 !!! note

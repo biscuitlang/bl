@@ -65,12 +65,12 @@ pool_make :: fn (allocator: *Allocator = null, block_size := POOL_DEFAULT_SIZE) 
 }
 
 /// Release all allocated memory used by `pool` (allocated in `pool.allocator`).
-pool_release :: fn (pool: *PoolAllocator) #obsolete "Use release_allocator instead. [Since 0.13.0]" {
+pool_release :: fn (pool: *PoolAllocator) #obsolete "Since 0.13.0; Use release_allocator instead." {
 	release(pool);
 }
 
 /// Invalidate all allocations but keep preallocated memory block for later use.
-pool_reset :: fn (pool: *PoolAllocator) #inline #obsolete "Use reset_allocator instead. [Since 0.13.0]" {
+pool_reset :: fn (pool: *PoolAllocator) #inline #obsolete "Since 0.13.0; Use reset_allocator instead." {
 	reset(pool);
 }
 
