@@ -10928,10 +10928,6 @@ static void ast_decl_var_global_or_struct(struct context *ctx, struct ast *ast_g
 			report_error(INVALID_NAME, ast_next_name, " cannot be multi-declared.");
 		}
 
-		struct ast *struct_type_value = ast_value->data.expr_type.type;
-		bassert(struct_type_value->kind == AST_TYPE_STRUCT);
-		const bool has_base_type = struct_type_value->data.type_strct.base_type_expr;
-
 		// Set to const type fwd decl
 		struct mir_type *fwd_decl_type = create_type_struct_incomplete(ctx, ctx->ast.current_entity_id, false);
 
