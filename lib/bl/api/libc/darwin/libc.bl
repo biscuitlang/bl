@@ -2,7 +2,7 @@ SEEK_SET : fd_t : 0;
 SEEK_CUR : fd_t : 1;
 SEEK_END : fd_t : 2;
 
-FIONREAD :: 0x4004667f;
+FIONREAD : ulong : 0x4004667f;
 
 POLLIN   : short : 0x0001;
 POLLPRI  : short : 0x0002;
@@ -377,11 +377,8 @@ execv :: fn (file: *char, args: **char) int #extern "execv";
 execvp :: fn (file: *char, args: **char) int #extern "execvp";
 poll :: fn (fds: *pollfd, nfds: nfds_t, timeout: int) int #extern "poll";
 access :: fn (path: *char, mode: int) int #extern "access";
-
-kill :: fn (pid: pid_t, sig: s32) s32 #inline {
-	return auto syscall(SYS_kill, auto pid, auto sig);
-}
-
+kill :: fn (pid: pid_t, sig: int) int #extern "__kill";
+ioctl :: fn (fd: int, op: ulong, arg: ulong) int #extern "__ioctl";
 fcntl :: fn (fd: fd_t, request: int, flags: int = 0) int #extern "__fcntl";
 time :: fn (tloc: *time_t) time_t #extern "time";
 localtime :: fn (timep: *time_t) *tm #extern "localtime";
@@ -396,4 +393,3 @@ WEXITSTATUS :: fn (x: s32) s32 #inline {
 }
 
 #scope_private
-#import "os/posix/syscall"
