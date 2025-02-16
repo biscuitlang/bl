@@ -704,7 +704,7 @@ fs_read_write_entire_file :: fn () #test {
 
 	content, read_err :: read_entire_file(filepath);
 	test_ok(read_err);
-	defer array_terminate(&content);
+	defer free_slice(&content);
 
 	test_eq(CONTENT, content);
 }

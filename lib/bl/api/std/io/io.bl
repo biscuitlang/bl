@@ -83,6 +83,9 @@ write_value :: fn (stream: *Stream, v: *?T) Error #inline {
 // Reading
 // =================================================================================================
 
+// @Incomplete 2025-02-16: Cleanup all of these, why we need static buffers in cases where read size
+//                         is already known!!!
+
 /// Read `bytes_to_read` count of bytes from the stream into `dest` memory. Returns count of actually
 /// read bytes or an error.
 read :: fn (stream: *Stream, dest: *u8, bytes_to_read: s64) (s64, Error) #inline {
@@ -218,6 +221,27 @@ copy_stream :: fn (dest: *Stream, src: *Stream, buffer_size := 512 #comptime) Er
 		}
 	}
 	return state;
+}
+
+/// @Incomplete 2025-02-16: Missing documentation.
+get_stream_size :: fn (stream: *Stream) (s64, Error) {
+	using StreamLocator;
+
+	/// @Incomplete 2025-02-16: This is where new error handling might help to reduce the errX noise.
+	prev_location, err1  :: seek(stream, CURRENT);
+	if err1 then return 0, err1;
+	defer seek(stream, CURRENT, prev_location);
+
+	_, err2 :: seek(stream, BEGIN);
+	if err2 then return 0, err2;
+
+	size, err3 :: seek(stream, END);
+	if err3 then return 0, err3;
+
+	_, err4 :: seek(stream, BEGIN);
+	if err4 then return 0, err4;
+
+	return size, OK;
 }
 
 #scope_private

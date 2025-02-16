@@ -120,7 +120,13 @@ __os_debug_break :: fn () #inline #compiler {
 }
 
 __os_is_debugger_present :: fn () bool {
-	// @Incomplete 2025-02-16
+	using ptrace;
+	using PtraceRequest;
+	if ptrace(PTRACE_TRACEME, 0, 0, 0) == -1 {
+		ec :: os_get_last_error();
+		if ec == C.EPERM then return true;
+	}
+	ptrace(PTRACE_DETACH, 0, 0, 0);
 	return false;
 }
 
@@ -166,8 +172,9 @@ __os_start :: fn (argc: s64, argv: **u8, _: **u8) s32 #entry {
 #scope_private
 #import "std/string"
 
-C  :: #import "libc";
-io :: #import "std/io";
+C      :: #import "libc";
+io     :: #import "std/io";
+ptrace :: #import "os/linux/sys/ptrace";
 
 STD_IN_STREAM_VTABLE :: io.StreamVTable.{
 	read = auto &std_io_read
