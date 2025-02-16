@@ -114,8 +114,9 @@ build.bl:
 - Add add_framework_path. For adding search path for macOS framewors.
 
 str/string:
-
-	Big string revamp; BL strings are no longer zero termated.
+	Strings are no longer zero termated. The string type is now only wrapper over dynamic
+	array with special semantics. In case zero-termination is required `strtoc` function is
+	supposed to be used to do the coversion.
 
 [Documentation]
 - Improved "Libraries" section in documentation.
