@@ -50,7 +50,7 @@ enum ast_kind {
 enum ast_flags {
 	FLAG_EXTERN = 1 << 0, // methods marked as extern
 	// 1 << 1, free
-	FLAG_COMPILER     = 1 << 2,  // compiler internal
+	FLAG_COMPILER = 1 << 2, // compiler internal
 	// 1 << 3, free
 	FLAG_INLINE       = 1 << 4,  // inline function
 	FLAG_NO_INLINE    = 1 << 5,  // no inline function

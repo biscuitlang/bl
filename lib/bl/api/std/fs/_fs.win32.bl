@@ -288,7 +288,7 @@ modes_to_flags :: fn (modes: OpenFileMode) (access: u32, create: u32) #inline {
 }
 
 remove_last_separator :: fn (path: *string) #inline {
-	if path.len == 0 then return;
+	if path.len < 1 then return;
 	if (@path)[path.len-1] == '/' {
 		path.len -= 1;
 	}

@@ -351,317 +351,317 @@ int main(s32 argc, char *argv[]) {
 #define ID_DUMP_SCOPES_INJECTION 10
 
 	struct getarg_opt optlist[] = {
-		{
-		    .name = "-init",
-		    .help = "Creates a new project in current folder. Use as '-init [project-name]'.",
-		    .id   = ID_INIT_PROJECT,
-		},
-		{
-		    .name = "-build",
-		    .help = "Invoke project build pipeline. All following arguments are forwarded into the "
-		            "build script and ignored by compiler itself. Use as '-build [arguments]'.",
-		    .id   = ID_BUILD,
-		},
-		{
-		    .name = "-run",
-		    .help =
-		        "Execute BL program using interpreter and exit. The compiler expects <source-file> "
-		        "after '-run' flag, the file name and all following command line arguments are "
-		        "passed into the executed program and ignored by compiler itself. Use as '-run "
-		        "<source-file> [arguments]'.",
-		    .id = ID_RUN,
-		},
-		{
-		    .name = "-silent-run",
-		    .help =
-		        "Execute BL program using interpreter and exit. The compiler expects <source-file> "
-		        "after '-silent-run' flag, the file name and all following command line arguments "
-		        "are passed into the executed program and ignored by compiler itself. Use as "
-		        "'-silent-run <source-file> [arguments]'. This flag also suppress all compiler "
-		        "console outputs. Basically it combines '-run' and '--silent' into a single flag. "
-		        "This can be useful in case the compiler is called implicitly from UNIX shebang.",
-		    .id = ID_SILENT_RUN,
-		},
-		{
-		    .name = "-doc",
-		    .help = "Generate documentation and exit.",
-		    .id   = ID_DOC,
-		},
-		{
-		    .name       = "--version",
-		    .help       = "Print compiler version and exit.",
-		    .property.b = &opt.app.print_version,
-		},
-		{
-		    .kind       = STRING,
-		    .name       = "--doc-out-dir",
-		    .help       = "Set documentation output directory. (Use 'out' in current working directory "
-		                  "by default.)",
-		    .property.s = &opt.builder.doc_out_dir,
-		},
-		{
-		    .kind       = STRING,
-		    .name       = "--output",
-		    .help       = "Specify name of the output binary.",
-		    .property.s = &opt.target->name,
-		},
-		{
-		    .kind       = STRING,
-		    .name       = "--work-dir",
-		    .help       = "Set current working directory. Compiler use by default the current working "
-		                  "directory to output all files.",
-		    .property.s = &user_working_directory,
-		},
-		{
-		    .kind       = STRING,
-		    .name       = "--override-config",
-		    .help       = "Set custom path to the 'bl.yaml' configuration file.",
-		    .property.s = &user_conf_filepath,
-		},
-		{
-		    .name = "-shared",
-		    .help = "Compile shared library.",
-		    .id   = ID_SHARED,
-		},
-		{
-		    .name       = "--help",
-		    .property.b = &opt.app.print_help,
-		    .help       = "Print usage information and exit.",
-		},
-		{
-		    .name       = "--about",
-		    .property.b = &opt.app.print_about,
-		    .help       = "Print compiler info and exit",
-		},
-		{
-		    .name       = "--where-is-api",
-		    .property.b = &opt.app.where_is_api,
-		    .help       = "Print path to API folder and exit.",
-		},
-		{
-		    .name       = "--where-is-config",
-		    .property.b = &opt.app.where_is_config,
-		    .help       = "Print path to default 'bl.yaml' configuration file and exit.",
-		},
-		{
-		    .name       = "--target-host",
-		    .property.b = &opt.app.print_host_triple,
-		    .help       = "Print current host target triple and exit.",
-		},
-		{
-		    .name       = "--target-supported",
-		    .property.b = &opt.app.print_supported,
-		    .help       = "Print all supported targets and exit. (Cross compilation is not allowed yet!)",
-		},
-		{
-		    .name       = "--target-experimental",
-		    .property.b = &opt.builder.enable_experimental_targets,
-		    .help       = "Enable experimental compilation targets.",
-		},
-		{
-		    .name       = "--configure",
-		    .property.b = &opt.app.configure,
-		    .help       = "Generate configuration file and exit.",
-		},
-		{
-		    .name       = "--verbose",
-		    .property.b = &opt.builder.verbose,
-		    .help       = "Enable verbose mode.",
-		},
-		{
-		    .name       = "--silent",
-		    .property.b = &opt.builder.silent,
-		    .help       = "Disable compiler console logging.",
-		},
-		{
-		    .name       = "--no-finished-report",
-		    .property.b = &no_finish_msg,
-		    .help       = "Disable printing of final compilation time report.",
-		},
-		{
-		    .name       = "--no-color",
-		    .property.b = &opt.builder.no_color,
-		    .help       = "Disable colored output.",
-		},
+	    {
+	        .name = "-init",
+	        .help = "Creates a new project in current folder. Use as '-init [project-name]'.",
+	        .id   = ID_INIT_PROJECT,
+	    },
+	    {
+	        .name = "-build",
+	        .help = "Invoke project build pipeline. All following arguments are forwarded into the "
+	                "build script and ignored by compiler itself. Use as '-build [arguments]'.",
+	        .id   = ID_BUILD,
+	    },
+	    {
+	        .name = "-run",
+	        .help =
+	            "Execute BL program using interpreter and exit. The compiler expects <source-file> "
+	            "after '-run' flag, the file name and all following command line arguments are "
+	            "passed into the executed program and ignored by compiler itself. Use as '-run "
+	            "<source-file> [arguments]'.",
+	        .id = ID_RUN,
+	    },
+	    {
+	        .name = "-silent-run",
+	        .help =
+	            "Execute BL program using interpreter and exit. The compiler expects <source-file> "
+	            "after '-silent-run' flag, the file name and all following command line arguments "
+	            "are passed into the executed program and ignored by compiler itself. Use as "
+	            "'-silent-run <source-file> [arguments]'. This flag also suppress all compiler "
+	            "console outputs. Basically it combines '-run' and '--silent' into a single flag. "
+	            "This can be useful in case the compiler is called implicitly from UNIX shebang.",
+	        .id = ID_SILENT_RUN,
+	    },
+	    {
+	        .name = "-doc",
+	        .help = "Generate documentation and exit.",
+	        .id   = ID_DOC,
+	    },
+	    {
+	        .name       = "--version",
+	        .help       = "Print compiler version and exit.",
+	        .property.b = &opt.app.print_version,
+	    },
+	    {
+	        .kind       = STRING,
+	        .name       = "--doc-out-dir",
+	        .help       = "Set documentation output directory. (Use 'out' in current working directory "
+	                      "by default.)",
+	        .property.s = &opt.builder.doc_out_dir,
+	    },
+	    {
+	        .kind       = STRING,
+	        .name       = "--output",
+	        .help       = "Specify name of the output binary.",
+	        .property.s = &opt.target->name,
+	    },
+	    {
+	        .kind       = STRING,
+	        .name       = "--work-dir",
+	        .help       = "Set current working directory. Compiler use by default the current working "
+	                      "directory to output all files.",
+	        .property.s = &user_working_directory,
+	    },
+	    {
+	        .kind       = STRING,
+	        .name       = "--override-config",
+	        .help       = "Set custom path to the 'bl.yaml' configuration file.",
+	        .property.s = &user_conf_filepath,
+	    },
+	    {
+	        .name = "-shared",
+	        .help = "Compile shared library.",
+	        .id   = ID_SHARED,
+	    },
+	    {
+	        .name       = "--help",
+	        .property.b = &opt.app.print_help,
+	        .help       = "Print usage information and exit.",
+	    },
+	    {
+	        .name       = "--about",
+	        .property.b = &opt.app.print_about,
+	        .help       = "Print compiler info and exit",
+	    },
+	    {
+	        .name       = "--where-is-api",
+	        .property.b = &opt.app.where_is_api,
+	        .help       = "Print path to API folder and exit.",
+	    },
+	    {
+	        .name       = "--where-is-config",
+	        .property.b = &opt.app.where_is_config,
+	        .help       = "Print path to default 'bl.yaml' configuration file and exit.",
+	    },
+	    {
+	        .name       = "--target-host",
+	        .property.b = &opt.app.print_host_triple,
+	        .help       = "Print current host target triple and exit.",
+	    },
+	    {
+	        .name       = "--target-supported",
+	        .property.b = &opt.app.print_supported,
+	        .help       = "Print all supported targets and exit. (Cross compilation is not allowed yet!)",
+	    },
+	    {
+	        .name       = "--target-experimental",
+	        .property.b = &opt.builder.enable_experimental_targets,
+	        .help       = "Enable experimental compilation targets.",
+	    },
+	    {
+	        .name       = "--configure",
+	        .property.b = &opt.app.configure,
+	        .help       = "Generate configuration file and exit.",
+	    },
+	    {
+	        .name       = "--verbose",
+	        .property.b = &opt.builder.verbose,
+	        .help       = "Enable verbose mode.",
+	    },
+	    {
+	        .name       = "--silent",
+	        .property.b = &opt.builder.silent,
+	        .help       = "Disable compiler console logging.",
+	    },
+	    {
+	        .name       = "--no-finished-report",
+	        .property.b = &no_finish_msg,
+	        .help       = "Disable printing of final compilation time report.",
+	    },
+	    {
+	        .name       = "--no-color",
+	        .property.b = &opt.builder.no_color,
+	        .help       = "Disable colored output.",
+	    },
 #if BL_PLATFORM_WIN
-		{
-		    .name       = "--legacy-colors",
-		    .property.b = &opt.builder.legacy_colors,
-		    .help       = "Force old output message coloring for older Windows terminals without support of ANSI color codes.",
-		},
+	    {
+	        .name       = "--legacy-colors",
+	        .property.b = &opt.builder.legacy_colors,
+	        .help       = "Force old output message coloring for older Windows terminals without support of ANSI color codes.",
+	    },
 #endif
-		{
-		    .name       = "--no-jobs",
-		    .property.b = &opt.builder.no_jobs,
-		    .help       = "Enable single-thread mode. This is mainly useful for compiler debugging.",
-		},
-		{
-		    .name       = "--no-warning",
-		    .property.b = &opt.builder.no_warning,
-		    .help       = "Ignore all warnings.",
-		},
-		{
-		    .name       = "--full-path",
-		    .property.b = &opt.builder.full_path_reports,
-		    .help       = "Report full file paths.",
-		},
-		{
-		    .name       = "--no-usage-check",
-		    .property.b = &opt.builder.no_usage_check,
-		    .help       = "Disable checking of unused symbols.",
-		},
-		{
-		    .name       = "--stats",
-		    .property.b = &opt.builder.stats,
-		    .help       = "Print compilation statistics.",
-		},
-		{
-		    .name       = "--lex-dump",
-		    .property.b = &opt.target->print_tokens,
-		    .help       = "Print tokens.",
-		},
-		{
-		    .name       = "--ast-dump",
-		    .property.b = &opt.target->print_ast,
-		    .help       = "Print AST.",
-		},
-		{
-		    .name = "--scope-dump-parenting",
-		    .help = "Print scope parenting structure in dot Graphviz format.",
-		    .id   = ID_DUMP_SCOPES_PARENTING,
-		},
-		{
-		    .name = "--scope-dump-injection",
-		    .help = "Print scope injection structure in dot Graphviz format.",
-		    .id   = ID_DUMP_SCOPES_INJECTION,
-		},
-		{
-		    .name       = "--emit-llvm",
-		    .property.b = &opt.target->emit_llvm,
-		    .help       = "Write LLVM-IR to file.",
-		},
-		{
-		    .name       = "--emit-asm",
-		    .property.b = &opt.target->emit_asm,
-		    .help       = "Write assembly to file.",
-		},
-		{
-		    .name       = "--emit-mir",
-		    .property.b = &opt.target->emit_mir,
-		    .help       = "Write MIR to file.",
-		},
-		{
-		    .name       = "--di",
-		    .kind       = ENUM,
-		    .property.n = (s32 *)&opt.target->di,
-		    .variants   = "dwarf|codeview",
-		    .help       = "Set debug info format.",
-		},
-		{
-		    .name       = "-opt",
-		    .kind       = ENUM,
-		    .property.n = (s32 *)&opt.target->opt,
-		    .variants   = "debug|release-fast|release-small|release-with-debug-info",
-		    .help       = "Specify binary optimization mode (use 'debug' by default).",
-		},
-		{
-		    .name = "-release",
-		    .kind = FLAG,
-		    .help = "Specify binary optimization mode to release. (same as '-opt=release-fast')",
-		    .id   = ID_RELEASE,
-		},
-		{
-		    .name       = "--assert",
-		    .kind       = ENUM,
-		    .property.n = (s32 *)&opt.target->assert_mode,
-		    .variants   = "default|on|off",
-		    .help =
-		        "Set assert mode ('default' option sets assert 'on' in debug and 'off' in release "
-		        "mode).",
-		},
-		{
-		    .name       = "--reg-split",
-		    .kind       = ENUM,
-		    .property.n = (s32 *)&opt.target->reg_split,
-		    .variants   = "off|on",
-		    .help       = "Enable/disable splitting of structures passed into the function by value into "
-		                  "registers. This feature is supposed to be enabled on System V ABI compatible systems.",
-		},
-		{
-		    .name       = "--verify-llvm",
-		    .property.b = &opt.target->verify_llvm,
-		    .help       = "Verify LLVM IR after generation.",
-		},
-		{
-		    .name       = "--run-tests",
-		    .property.b = &opt.target->run_tests,
-		    .help       = "Execute all unit tests in compile time.",
-		},
-		{
-		    .name       = "--tests-minimal-output",
-		    .property.b = &opt.target->tests_minimal_output,
-		    .help       = "Reduce compile-time tests (--run-tests) output (remove results section).",
-		},
-		{
-		    .name       = "--no-api",
-		    .property.b = &opt.target->no_api,
-		    .help       = "Don't load internal API.",
-		},
-		{
-		    .name       = "--no-bin",
-		    .property.b = &opt.target->no_bin,
-		    .help       = "Don't write binary to disk.",
-		},
-		{
-		    .name       = "--no-llvm",
-		    .property.b = &opt.target->no_llvm,
-		    .help       = "Disable LLVM back-end.",
-		},
-		{
-		    .name       = "--no-analyze",
-		    .property.b = &opt.target->no_analyze,
-		    .help       = "Disable analyze pass, only parse and exit.",
-		},
+	    {
+	        .name       = "--no-jobs",
+	        .property.b = &opt.builder.no_jobs,
+	        .help       = "Enable single-thread mode. This is mainly useful for compiler debugging.",
+	    },
+	    {
+	        .name       = "--no-warning",
+	        .property.b = &opt.builder.no_warning,
+	        .help       = "Ignore all warnings.",
+	    },
+	    {
+	        .name       = "--full-path",
+	        .property.b = &opt.builder.full_path_reports,
+	        .help       = "Report full file paths.",
+	    },
+	    {
+	        .name       = "--no-usage-check",
+	        .property.b = &opt.builder.no_usage_check,
+	        .help       = "Disable checking of unused symbols.",
+	    },
+	    {
+	        .name       = "--stats",
+	        .property.b = &opt.builder.stats,
+	        .help       = "Print compilation statistics.",
+	    },
+	    {
+	        .name       = "--lex-dump",
+	        .property.b = &opt.target->print_tokens,
+	        .help       = "Print tokens.",
+	    },
+	    {
+	        .name       = "--ast-dump",
+	        .property.b = &opt.target->print_ast,
+	        .help       = "Print AST.",
+	    },
+	    {
+	        .name = "--scope-dump-parenting",
+	        .help = "Print scope parenting structure in dot Graphviz format.",
+	        .id   = ID_DUMP_SCOPES_PARENTING,
+	    },
+	    {
+	        .name = "--scope-dump-injection",
+	        .help = "Print scope injection structure in dot Graphviz format.",
+	        .id   = ID_DUMP_SCOPES_INJECTION,
+	    },
+	    {
+	        .name       = "--emit-llvm",
+	        .property.b = &opt.target->emit_llvm,
+	        .help       = "Write LLVM-IR to file.",
+	    },
+	    {
+	        .name       = "--emit-asm",
+	        .property.b = &opt.target->emit_asm,
+	        .help       = "Write assembly to file.",
+	    },
+	    {
+	        .name       = "--emit-mir",
+	        .property.b = &opt.target->emit_mir,
+	        .help       = "Write MIR to file.",
+	    },
+	    {
+	        .name       = "--di",
+	        .kind       = ENUM,
+	        .property.n = (s32 *)&opt.target->di,
+	        .variants   = "dwarf|codeview",
+	        .help       = "Set debug info format.",
+	    },
+	    {
+	        .name       = "-opt",
+	        .kind       = ENUM,
+	        .property.n = (s32 *)&opt.target->opt,
+	        .variants   = "debug|release-fast|release-small|release-with-debug-info",
+	        .help       = "Specify binary optimization mode (use 'debug' by default).",
+	    },
+	    {
+	        .name = "-release",
+	        .kind = FLAG,
+	        .help = "Specify binary optimization mode to release. (same as '-opt=release-fast')",
+	        .id   = ID_RELEASE,
+	    },
+	    {
+	        .name       = "--assert",
+	        .kind       = ENUM,
+	        .property.n = (s32 *)&opt.target->assert_mode,
+	        .variants   = "default|on|off",
+	        .help =
+	            "Set assert mode ('default' option sets assert 'on' in debug and 'off' in release "
+	            "mode).",
+	    },
+	    {
+	        .name       = "--reg-split",
+	        .kind       = ENUM,
+	        .property.n = (s32 *)&opt.target->reg_split,
+	        .variants   = "off|on",
+	        .help       = "Enable/disable splitting of structures passed into the function by value into "
+	                      "registers. This feature is supposed to be enabled on System V ABI compatible systems.",
+	    },
+	    {
+	        .name       = "--verify-llvm",
+	        .property.b = &opt.target->verify_llvm,
+	        .help       = "Verify LLVM IR after generation.",
+	    },
+	    {
+	        .name       = "--run-tests",
+	        .property.b = &opt.target->run_tests,
+	        .help       = "Execute all unit tests in compile time.",
+	    },
+	    {
+	        .name       = "--tests-minimal-output",
+	        .property.b = &opt.target->tests_minimal_output,
+	        .help       = "Reduce compile-time tests (--run-tests) output (remove results section).",
+	    },
+	    {
+	        .name       = "--no-api",
+	        .property.b = &opt.target->no_api,
+	        .help       = "Don't load internal API.",
+	    },
+	    {
+	        .name       = "--no-bin",
+	        .property.b = &opt.target->no_bin,
+	        .help       = "Don't write binary to disk.",
+	    },
+	    {
+	        .name       = "--no-llvm",
+	        .property.b = &opt.target->no_llvm,
+	        .help       = "Disable LLVM back-end.",
+	    },
+	    {
+	        .name       = "--no-analyze",
+	        .property.b = &opt.target->no_analyze,
+	        .help       = "Disable analyze pass, only parse and exit.",
+	    },
 #if BL_DEVELOPER
-		{
-		    .name       = "--x64",
-		    .property.b = &opt.target->x64,
-		    .help       = "Use experimental x64 backeng instead of LLVM.",
-		},
+	    {
+	        .name       = "--x64",
+	        .property.b = &opt.target->x64,
+	        .help       = "Use experimental x64 backeng instead of LLVM.",
+	    },
 #endif
-		{
-		    .name       = "--syntax-only",
-		    .property.b = &opt.target->syntax_only,
-		    .help       = "Check syntax and exit.",
-		},
-		{
-		    .name       = "--vmdbg-attach",
-		    .property.b = &opt.target->vmdbg_enabled,
-		    .help       = "Attach compile-time execution debugger.",
-		},
-		{
-		    .name       = "--vmdbg-break-on",
-		    .kind       = NUMBER,
-		    .property.n = &opt.target->vmdbg_break_on,
-		    .help       = "Attach compile-time execution debugger and sets break point to the MIR "
-		                  "instruction with <N> id.",
-		    .id         = ID_VMDBG_BREAK_ON,
-		},
-		{
-		    .name       = "--error-limit",
-		    .kind       = NUMBER,
-		    .property.n = &opt.builder.error_limit,
-		    .help       = "Set maximum reported error count.",
-		},
-		{
-		    .name       = "--do-cleanup",
-		    .help       = "Toggles whether compiler should release allocated memory when compilation is done. "
-		                  "(off by default)",
-		    .variants   = "off|on",
-		    .kind       = ENUM,
-		    .property.n = (s32 *)&opt.app.do_cleanup_when_done,
-		},
-		{0},
+	    {
+	        .name       = "--syntax-only",
+	        .property.b = &opt.target->syntax_only,
+	        .help       = "Check syntax and exit.",
+	    },
+	    {
+	        .name       = "--vmdbg-attach",
+	        .property.b = &opt.target->vmdbg_enabled,
+	        .help       = "Attach compile-time execution debugger.",
+	    },
+	    {
+	        .name       = "--vmdbg-break-on",
+	        .kind       = NUMBER,
+	        .property.n = &opt.target->vmdbg_break_on,
+	        .help       = "Attach compile-time execution debugger and sets break point to the MIR "
+	                      "instruction with <N> id.",
+	        .id         = ID_VMDBG_BREAK_ON,
+	    },
+	    {
+	        .name       = "--error-limit",
+	        .kind       = NUMBER,
+	        .property.n = &opt.builder.error_limit,
+	        .help       = "Set maximum reported error count.",
+	    },
+	    {
+	        .name       = "--do-cleanup",
+	        .help       = "Toggles whether compiler should release allocated memory when compilation is done. "
+	                      "(off by default)",
+	        .variants   = "off|on",
+	        .kind       = ENUM,
+	        .property.n = (s32 *)&opt.app.do_cleanup_when_done,
+	    },
+	    {0},
 	};
 
 	sort_optlist(optlist);

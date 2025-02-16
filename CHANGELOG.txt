@@ -102,6 +102,8 @@ master
 	Foo :: struct #base get_type(s32) {
 	}
 
+- Change string builtin to be a dynamic array.
+
 [Modules]
 - Add math module.
 
@@ -121,10 +123,10 @@ build.bl:
 - Add link_framework. For linking of macOS frameworks.
 - Add add_framework_path. For adding search path for macOS framewors.
 
-str/string:
-	Strings are no longer zero termated. The string type is now only wrapper over dynamic
-	array with special semantics. In case zero-termination is required `strtoc` function is
-	supposed to be used to do the coversion.
+std/string:
+- Strings are no longer zero terminated. The string type is now only wrapper over dynamic
+  array with special semantics. In case zero-termination is required `strtoc` function is
+  supposed to be used to do the conversion.
 
 [Documentation]
 - Improved "Libraries" section in documentation.

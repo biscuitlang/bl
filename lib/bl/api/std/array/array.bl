@@ -17,6 +17,8 @@
 //! }
 //! ```
 //!
+//! Dynamic array is represented as `[..]T` type.
+//!
 //! ### Example
 //!
 //! ```bl
@@ -42,7 +44,7 @@ ARRAY_GROW_FACTOR      : f32   = 1.5f;
 
 // Not direcly used internally, when layout of this structure is changed, internal compiler
 // representation must be modified too.
-_Array :: struct { // @Clanup 2025-02-12: We don't need this anymore!
+_Array :: struct {
 	len: s64;
 	ptr: *u8;
 	allocated_elems: usize;
@@ -176,6 +178,10 @@ array_reserve :: fn (_arr: *[..]?T, n: s64) #inline {
 /// extended, but newly occupied buffer range remains uninitialized.
 ///
 /// Returns original length.
+///
+/// ```bl
+/// @@@examples/array_resize.bl
+/// ```
 array_resize :: fn (_arr: *[..]?T, len: s64) s64 #inline {
 	assert(_arr, "Passed array is invalid.");
 	array_reserve(_arr, len);
@@ -207,7 +213,7 @@ array_erase :: fn (_arr: *[..]?T, i: s64) {
 	arr.len -= 1;
 }
 
-/// Erase element on index `i` and move all following elements left unsing memmove. This might be slow in
+/// Erase element on index `i` and move all following elements left using memmove. This might be slow in
 /// case the array is large. Function invoke panic in case of index being out of array valid range <0, arr.len).
 array_erase_keep_order :: fn (_arr: *[..]?T, i: s64) {
 	assert(_arr, "Passed array is invalid.");
@@ -347,4 +353,3 @@ _array_ensure_space :: fn (arr: *_Array, elem_size: usize, needed_elems: usize, 
 
 #scope_private
 #import "std/math"
-#import "std/print"
