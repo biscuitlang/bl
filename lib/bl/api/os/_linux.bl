@@ -110,7 +110,18 @@ os_get_backtrace :: fn (skip_frames := 0 #maybe_unused, max_frame_count := 64 #m
 }
 
 __os_debug_break :: fn () #inline #compiler {
+	if IS_COMPTIME_RUN {
+		print_warn("__os_debug_break is not available in VM execution mode.");
+		return;
+	}
+
+	if !__os_is_debugger_present() then return;
 	C.raise(C.SIGTRAP);
+}
+
+__os_is_debugger_present :: fn () bool {
+	// @Incomplete 2025-02-16
+	return false;
 }
 
 __os_write :: fn (fd: s32, buf: *u8, count: usize) s32 {
@@ -118,16 +129,13 @@ __os_write :: fn (fd: s32, buf: *u8, count: usize) s32 {
 };
 
 __os_abort :: fn () #compiler {
-	#if IS_DEBUG { __os_debug_break(); }
-	if application_context.abort_fn {
-		application_context.abort_fn();
-	} else {
-		__os_abort_default();
-	}
+	application_context.abort_fn();
 }
 
 __os_abort_default :: fn () {
-	if !IS_COMPTIME_RUN { print_backtrace(); }
+	debugbreak;
+
+	if !IS_COMPTIME_RUN then print_backtrace();
 	C.raise(C.SIGABRT);
 }
 

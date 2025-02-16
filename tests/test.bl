@@ -63,18 +63,14 @@ Static shit
 
 */
 
-#import "extra/ui"
-
-get_type :: fn (T: type #comptime) type #comptime {
-	return T;
-}
-
-Foo :: struct #base 2 + 2 {
-	bar: s32;
+foo :: fn (_: s32, _: string_view) {
+	debugbreak;
 }
 
 main :: fn () s32 {
-	print(">> %\n", Foo);
+	n :: 10;
+	h :: "Hello!";
+	foo(n, h);
 	return 0;
 }
 
