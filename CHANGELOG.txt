@@ -103,6 +103,10 @@ master
 	}
 
 - Change string builtin to be a dynamic array.
+- Fix vmdbg causing compilation fail in case it reported error (for example unknown command
+  was used).
+- Fix vmdbg crash in case it tries to print unused variables.
+
 
 [Modules]
 - Add math module.
