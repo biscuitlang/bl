@@ -93,6 +93,14 @@ master
 - Add --no-finished-report compiler flag to disable printing of final compilation time report.
 - Doctor now outputs warnings in examples.
 
+- #base directive now can take any arbitrary expression evaluating to 'type'. So we can do:
+
+	get_type :: fn (T: type #comptime) type #comptime {
+		return T;
+	}
+
+	Foo :: struct #base get_type(s32) {
+	}
 
 [Modules]
 - Add math module.

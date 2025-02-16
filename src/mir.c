@@ -10930,6 +10930,7 @@ static void ast_decl_var_global_or_struct(struct context *ctx, struct ast *ast_g
 
 		struct ast *struct_type_value = ast_value->data.expr_type.type;
 		bassert(struct_type_value->kind == AST_TYPE_STRUCT);
+		const bool has_base_type = struct_type_value->data.type_strct.base_type_expr;
 
 		// Set to const type fwd decl
 		struct mir_type *fwd_decl_type = create_type_struct_incomplete(ctx, ctx->ast.current_entity_id, false);
@@ -11312,7 +11313,7 @@ struct mir_instr *ast_type_struct(struct context *ctx, struct ast *type_struct) 
 	const bool   is_multiple_return_type = type_struct->data.type_strct.is_multiple_return_type;
 
 	bassert(ast_members);
-	struct ast *ast_base_type = type_struct->data.type_strct.base_type;
+	struct ast *ast_base_type = type_struct->data.type_strct.base_type_expr;
 
 	mir_instrs_t *members = arena_alloc(ctx->small_array_arena);
 	struct scope *scope   = type_struct->data.type_strct.scope;

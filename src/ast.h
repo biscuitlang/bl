@@ -276,7 +276,7 @@ struct ast_type_struct {
 	struct scope *scope;
 	// Can contain also non-members i.e. using.
 	ast_nodes_t *members;
-	struct ast  *base_type;
+	struct ast  *base_type_expr;
 	bool         is_union;
 	bool         is_multiple_return_type;
 };

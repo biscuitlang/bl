@@ -1,5 +1,38 @@
 TODO:
 
+- Directives taking parameters should use same syntax as function calls #export("foo")
+  #base(Foo) #alignas(16).
+- Parse all arguments of directives as expressions, this way we can use old style:
+
+	#base Foo #export "foo"
+	vs
+	#base(Foo) #export("foo")
+
+	+ we allow compile-time functions to be called there!
+
+	problematic directives: EXPORT, IMPORT, EXTERN, LOAD
+
+
+- 'test_run' should use long jump instead of thread wrapping?
+- Finalize origin/test-api branch.
+
+- Allow empty structs to be usead as base types:
+
+	We can use this for polymorph checks:
+
+	TableBase :: struct;
+
+	Foo :: struct #base TableBase {
+		...
+	}
+
+	...
+	assert(is_base_of(Foo, TableBase));
+	...
+
+
+
+[future]
 - Use #run to mark function to be executed in compile time on the call side: '#run foo()'.
 - Use #run to mark function executed only in compile time on the declaration side: 'foo :: fn () #run {}'.
 - Consider #import and #load to be limited only to the file scope.

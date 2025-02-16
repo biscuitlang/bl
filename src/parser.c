@@ -466,7 +466,13 @@ struct ast *parse_hash_directive(struct context *ctx, s32 expected_mask, enum ha
 	}
 
 	case HD_BASE: {
-		return_zone(parse_type(ctx));
+		struct ast *type = parse_expr(ctx);
+		if (!type) {
+			struct token *tok_err = tokens_peek(ctx->tokens);
+			report_error(EXPECTED_NAME, tok_err, CARET_WORD, "Expected struct base type name.");
+			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_directive, scope_get(ctx)));
+		}
+		return_zone(type);
 	}
 
 	case HD_TAG: {
@@ -2156,16 +2162,16 @@ struct ast *parse_type_struct(struct context *ctx) {
 	const bool is_union = tok_struct->sym == SYM_UNION;
 
 	// parse flags
-	u32         accepted  = is_union ? 0 : HD_COMPILER | HD_BASE | HD_MAYBE_UNUSED;
-	u32         flags     = 0;
-	struct ast *base_type = NULL;
+	u32         accepted       = is_union ? 0 : HD_COMPILER | HD_BASE | HD_MAYBE_UNUSED;
+	u32         flags          = 0;
+	struct ast *base_type_expr = NULL;
 	while (true) {
 		struct ast               *hd_extension;
 		enum hash_directive_flags found = HD_NONE;
 		hd_extension                    = parse_hash_directive(ctx, accepted, &found, false);
 		if (found == HD_BASE) {
 			bassert(hd_extension);
-			base_type = hd_extension;
+			base_type_expr = hd_extension;
 		} else if (!hash_directive_to_flags(found, &flags)) {
 			break;
 		}
@@ -2188,10 +2194,10 @@ struct ast *parse_type_struct(struct context *ctx) {
 
 	struct ast *type_struct =
 	    ast_create_node(ctx->ast_arena, AST_TYPE_STRUCT, tok_struct, scope_get(ctx));
-	type_struct->data.type_strct.scope     = scope;
-	type_struct->data.type_strct.members   = arena_alloc(ctx->sarr_arena);
-	type_struct->data.type_strct.base_type = base_type;
-	type_struct->data.type_strct.is_union  = is_union;
+	type_struct->data.type_strct.scope          = scope;
+	type_struct->data.type_strct.members        = arena_alloc(ctx->sarr_arena);
+	type_struct->data.type_strct.base_type_expr = base_type_expr;
+	type_struct->data.type_strct.is_union       = is_union;
 
 	// parse members
 	struct ast *tmp;
