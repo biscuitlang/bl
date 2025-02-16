@@ -106,7 +106,7 @@ master
 - Fix vmdbg causing compilation fail in case it reported error (for example unknown command
   was used).
 - Fix vmdbg crash in case it tries to print unused variables.
-
+- `debugbreak` now detects if debugger is attached in runtime and does nothing in case it's not.
 
 [Modules]
 - Add math module.
@@ -116,6 +116,7 @@ std/sync:
 
 std/fs:
 - Fix invalid file descriptor reported by `copy` function on linux and mac.
+- read_entire_file now returns slice `[]u8` instead of dynamic array.
 
 std/test:
 - test_run now output ANSI colored reports in case 'ansi_color' argument passed to the
@@ -134,6 +135,9 @@ std/string:
 
 os/posix/syscall:
 - Removed support for arm64-apple-darwin target since `syscall` is deprecated on macos.
+
+os/linux/sys/ptrace:
+- Added.
 
 [Documentation]
 - Improved "Libraries" section in documentation.

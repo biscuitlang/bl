@@ -223,11 +223,16 @@ copy_stream :: fn (dest: *Stream, src: *Stream, buffer_size := 512 #comptime) Er
 	return state;
 }
 
-/// @Incomplete 2025-02-16: Missing documentation.
-get_stream_size :: fn (stream: *Stream) (s64, Error) {
+/// Resolve total size of data in the stream in bytes. The stream must be seakable (`stream.seek` function
+/// is not `null`).
+///
+/// The size is calculated as difference between `StreamLocator.BEGIN` and `StreamLocator.END` positions.
+/// The original locator position is restored even if function fails with error.
+///
+/// In case of any error, 0 size is returned.
+get_stream_size :: fn (stream: *Stream) (size: s64, err: Error) {
 	using StreamLocator;
 
-	/// @Incomplete 2025-02-16: This is where new error handling might help to reduce the errX noise.
 	prev_location, err1  :: seek(stream, CURRENT);
 	if err1 then return 0, err1;
 	defer seek(stream, CURRENT, prev_location);
