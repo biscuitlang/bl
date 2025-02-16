@@ -1,0 +1,18 @@
+#import "std/array"
+#import "std/print"
+
+main :: fn () s32 {
+	arr: [..]s32;
+	defer array_terminate(&arr);
+	array_push_all(&arr, [_]s32.{ 0, 1, 2 });
+
+	NEW_SIZE :: 10;
+
+	loop i := array_resize(&arr, NEW_SIZE); i < arr.len; i += 1 {
+		arr[i] = auto i;
+	}
+
+	print("%\n", arr);
+
+	return 0;
+}

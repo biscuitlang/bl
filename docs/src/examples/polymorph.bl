@@ -1,9 +1,7 @@
-// =================================================================================================
 // Polymorphic (Generic/Templated) Functions
-// =================================================================================================
 
 /*
-	Use 'blc --no-warning -run polymorph.bl' to execute this file.
+	Use 'blc -run polymorph.bl' to execute this file.
  */
 
 #import "std/array"
@@ -24,9 +22,9 @@ intro :: fn () {
 	print("compare(%, %) = %\n", a1, b1, result1);
 
 	// This is great, but what if we want to do the same with floating point values?
-	a2: f32 = 10.f;
-	b2: f32 = 20.f;
-	// result2 := compare(a, b); // This wont compile, the function expects 's32' not 'f32' numbers.
+	a2: f32 = 10.f #maybe_unused;
+	b2: f32 = 20.f #maybe_unused;
+	// result2 := compare(a2, b2); // This wont compile, the function expects 's32' not 'f32' numbers.
 
 	// In this case we can write another 'compare' function taking 'f32' numbers instead of 's32'
 	// or we can use polymorphic function in this case and let the compiler do all work.
@@ -50,8 +48,8 @@ intro :: fn () {
 
 	// Since the type of 'b' is dependent on the type of 'a' argument, the following code would
 	// not compile.
-	a4: s32 = 10;
-	b4: f32 = 20.f; // using floating point number
+	a4: s32 = 10 #maybe_unused;
+	b4: f32 = 20.f  #maybe_unused; // using floating point number
 	// result4 := compare_poly(a4, b4); // Compiler error
 
 	/*
@@ -78,8 +76,8 @@ intro :: fn () {
 	// What if we call the 'compare_poly' function with arguments which cannot be compared by '=='
 	// operator?
 
-	a6: string_view = "hello";
-	b6: string_view = "world";
+	a6: string_view = "hello" #maybe_unused;
+	b6: string_view = "world" #maybe_unused;
 	// result6 := compare_poly(a6, b6); // Compiler error
 
 	/*
@@ -157,8 +155,8 @@ specialization :: fn () {
 		b: bool;
 	};
 
-	a3: Data;
-	b3: Data;
+	a3: Data #maybe_unused;
+	b3: Data #maybe_unused;
 	// result3 := compare_poly(a3, b3); // Compiler error
 
 	/*
@@ -203,8 +201,8 @@ specialization :: fn () {
 
 	// Let's try it again:
 
-	a4: Data;
-	b4: Data;
+	a4: Data #maybe_unused;
+	b4: Data #maybe_unused;
 	// result4 := compare_poly_safe(a4, b4); // Compiler error
 
 	/*

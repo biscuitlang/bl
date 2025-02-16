@@ -11,8 +11,8 @@ main :: fn () s32 {
 		return 1;
 	}
 
-	str := str_new();
-	defer str_delete(&str);
+	str: string;
+	defer str_terminate(&str);
 	read_bytes, read_err :: read_string(&stream, &str);
 	if read_err {
 		print_err(read_err);

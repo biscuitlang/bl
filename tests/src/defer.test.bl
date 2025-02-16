@@ -103,78 +103,78 @@ f11 :: fn (list: *string) s32 {
 }
 
 defer_test_1 :: fn () #test {
-	list :: str_new();
+	list: string;
 	f1(&list);
 	test_eq(list, "AB");
-	str_delete(&list);
+	str_terminate(&list);
 }
 
 defer_test_2 :: fn () #test {
-	list :: str_new();
+	list: string;
 	f2(&list);
 	test_eq(list, "ABCD");
-	str_delete(&list);
+	str_terminate(&list);
 }
 
 defer_test_3 :: fn () #test {
-	list :: str_new();
+	list: string;
 	f3(&list);
 	test_eq(list, "ABCDEFG");
-	str_delete(&list);
+	str_terminate(&list);
 }
 
 defer_test_4 :: fn () #test {
-	list :: str_new();
+	list: string;
 	f4(&list);
 	test_eq(list, "ABCDEFGH");
-	str_delete(&list);
+	str_terminate(&list);
 }
 
 defer_test_5 :: fn () #test {
-	list :: str_new();
+	list: string;
 	f5(&list);
 	test_eq(list, "AB");
-	str_delete(&list);
+	str_terminate(&list);
 }
 
 defer_test_6 :: fn () #test {
-	list :: str_new();
+	list: string;
 	f6(&list);
 	test_eq(list, "ABC");
-	str_delete(&list);
+	str_terminate(&list);
 }
 
 defer_test_7 :: fn () #test {
-	list :: str_new();
+	list: string;
 	f7(&list);
 	test_eq(list, "AB");
-	str_delete(&list);
+	str_terminate(&list);
 }
 
 defer_test_8 :: fn () #test {
-	list :: str_new();
+	list: string;
 	f8(&list);
 	test_eq(list, "ABC");
-	str_delete(&list);
+	str_terminate(&list);
 }
 
 defer_test_9 :: fn () #test {
-	list :: str_new();
+	list: string;
 	f9(&list);
 	test_eq(list, "ABC");
-	str_delete(&list);
+	str_terminate(&list);
 }
 
 defer_test_10 :: fn () #test {
-	list :: str_new();
+	list: string;
 	f10(&list);
 	test_eq(list, "A0A1A2A3A4A5A6A7A8A9");
-	str_delete(&list);
+	str_terminate(&list);
 }
 
 defer_test_11 :: fn () #test {
-	list :: str_new();
+	list: string;
 	f11(&list);
 	test_eq(list, "AB");
-	str_delete(&list);
+	str_terminate(&list);
 }

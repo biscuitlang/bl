@@ -145,7 +145,7 @@ create_dir :: fn (dirpath: string_view) Error #inline {
 }
 
 create_all_dir :: fn (dirpath: string_view) Error {
-	if str_is_empty(dirpath) { return error(ERR_INVALID_HANDLE, "Directory path is empty!"); }
+	if dirpath.len < 1 { return error(ERR_INVALID_HANDLE, "Directory path is empty!"); }
 	is_valid, err :: is_existing_directory(dirpath);
 	if err      { return err; }
 	if is_valid { return OK;  }
@@ -156,14 +156,13 @@ create_all_dir :: fn (dirpath: string_view) Error {
 	};
 
 	data: Data;
-	data.path = str_new();
-	defer str_delete(&data.path);
+	defer str_terminate(&data.path);
 	// Handle unix root.
 	assert(dirpath.len > 0);
 	if dirpath[0] == '/' { str_append(&data.path, "/"); }
 
 	str_tokenize(dirpath, '/', &data, &fn (sub_path: string_view, data: *Data) bool {
-		if data.path.len > 0 && data.path[data.path.len] != '/' { str_append(&data.path, "/"); }
+		if data.path.len > 0 && data.path[data.path.len-1] != '/' { str_append(&data.path, "/"); }
 		str_append(&data.path, sub_path);
 		existing, err :: is_existing_directory(data.path);
 		if err {
@@ -314,11 +313,8 @@ path_normalize :: fn (filepath: *string) Error #inline {
 /// | /usr/local/.hidden.file | /usr/local/ | .hidden.file |
 /// | /                       | /           | -            |
 /// | C:/                     | C:/         | -            |
-///
-/// !!! note
-///     Returned components may not be zero terminated.
 path_split :: fn (filepath: string_view) (head: string_view, tail: string_view) {
-	if str_is_empty(filepath) { return str_empty, str_empty; }
+	if filepath.len < 1 { return str_empty, str_empty; }
 
 	head, tail: string_view;
 	if !str_split_by_last(filepath, '/', &head, &tail) {
@@ -342,11 +338,8 @@ path_split :: fn (filepath: string_view) (head: string_view, tail: string_view) 
 /// | /usr/local/.hidden.file | /usr/local/.hidden | .file        |
 /// | /                       | /                  | -            |
 /// | C:/                     | C:/                | -            |
-///
-/// !!! note
-///     Returned components may not be zero terminated.
 path_splitext :: fn (filepath: string_view) (head: string_view, ext: string_view) {
-	if str_is_empty(filepath) { return str_empty, str_empty; }
+	if filepath.len < 1 { return str_empty, str_empty; }
 	head, ext: string_view;
 	index: s32;
 	if str_split_by_last(filepath, '.', &head, &ext, &index) {
@@ -356,8 +349,8 @@ path_splitext :: fn (filepath: string_view) (head: string_view, ext: string_view
 	return head, ext;
 }
 
-// @Incomplete: use temporary allocator
-/// Try to obtain current working directory, result must be released by `str_delete`. Path does
+// @Incomplete 2025-02-13: use temporary allocator
+/// Try to obtain current working directory, result must be released by `str_terminate`. Path does
 /// not contain last path separator.
 get_cwd :: fn () string #inline {
 	return _get_cwd();
@@ -368,15 +361,17 @@ set_cwd :: fn (path: string_view) Error #inline {
 	return _set_cwd(path);
 }
 
-// @Incomplete: use temporary allocator
-/// Try to obtain system home directory, result must be released by `str_delete`. Path does not
+// @Incomplete 2025-02-13: use temporary allocator
+/// Try to obtain system home directory, result must be released by `str_terminate`. Path does not
 /// contain last path separator.
 get_home :: fn () string #inline {
 	return _get_home();
 }
 
-// @Incomplete: use temporary allocator
-/// Try to obtain system temporary directory, result must be released by `str_delete`. Path does
+// @Incomplete 2025-02-13: use temporary allocator
+// @Incomplete 2025-02-13: Inconsisten behaviour across platforms (fail vs empty value). Verify this
+//                         also for other similar functions.
+/// Try to obtain system temporary directory, result must be released by `str_terminate`. Path does
 /// not contain last path separator.
 get_tmp :: fn () string #inline {
 	return _get_tmp();
@@ -410,7 +405,7 @@ impl_remove_all_dir_with_filter :: fn (dirpath: string_view, remove_root: bool, 
 }
 
 impl_remove_all_dir_with_filter_and_context :: fn (dirpath: string_view, remove_root: bool, ctx: *?T, filter: *fn(info: *FileVisitInfo, ctx: *T) bool) Error {
-	if str_is_empty(dirpath) { return OK; }
+	if dirpath.len < 1 { return OK; }
 
 	Data :: struct {
 		filter: *fn(info: *FileVisitInfo, ctx: *T) bool;

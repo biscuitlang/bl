@@ -11,3 +11,9 @@ test_os_sleep_ms :: fn () #test {
 	test_gt(elapsed, 99);
 }
 
+get_exec_path :: fn () #test {
+	path :: os_get_exec_path();
+	defer str_terminate(&path);
+	test_gt(path.len, 0);
+}
+

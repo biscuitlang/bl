@@ -11,9 +11,28 @@ T :: struct #base Base {
 	j: s32;
 }
 
+T2 :: struct #base(Base) {
+	j: s32;
+}
+
+get_type :: fn (T: type #comptime) type #comptime {
+	return T;
+}
+
 size :: fn () #test {
 	test_eq(cast(s64) sizeof(Empty), cast(s64) sizeof(Base));
 	test_eq(cast(s64) sizeof(T), 8);
+	test_eq(cast(s64) sizeof(T2), 8);
+}
+
+check_base_type :: fn () #test {
+	T1 :: struct #base(get_type(s32)) {};
+	T2 :: struct #base get_type(s32) {};
+	T3 :: struct #base get_type(u8) {};
+
+	test_eq(typeinfo(s32), typeinfo(T1.base));
+	test_eq(typeinfo(s32), typeinfo(T2.base));
+	test_eq(typeinfo(u8),  typeinfo(T3.base));
 }
 
 initialization :: fn () #test {

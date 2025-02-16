@@ -56,8 +56,8 @@ main :: fn () s32 {
 	write_string(&stream, "Hello");
 	write_string(&stream, "World");
 
-	str := str_new();
-	defer str_delete(&str);
+	str: string;
+	defer str_terminate(&str);
 
 	read_string(&stream, &str);
 

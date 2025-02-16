@@ -11,6 +11,7 @@ size_of :: fn () #test {
 	assert(sizeof(s64) == 8);
 	assert(sizeof(f32) == 4);
 	assert(sizeof(f64) == 8);
-	assert(sizeof(string) == 16);
+	assert(sizeof(string) == 32);
+	assert(sizeof(string_view) == 16);
 	assert(sizeof(1 + 2) == 4);
 };

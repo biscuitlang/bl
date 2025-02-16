@@ -1,0 +1,17 @@
+#import "std/print"
+#import "std/string"
+
+main :: fn () s32 {
+	s: string;
+	// Initialize string with "Hello".
+	str_init(&s, "name");
+
+	// Insert at the end of the string.
+	str_insert(&s, s.len, " is Alois");
+
+	// Insert at the beginning of the string.
+	str_insert(&s, 0, "My ");
+	print("%\n", s);
+
+	return 0;
+}

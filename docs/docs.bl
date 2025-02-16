@@ -9,26 +9,16 @@ C  :: #import "libc";
 #import "std/print"
 #import "std/array"
 
+GITHUB_BASE :: "https://github.com/biscuitlang/bl/blob";
+
+GIT_BRANCH:  string;
+GITHUB_ROOT: string;
+
 MD_PAGES :: [_]string_view.{
 	"index",
 	"manual",
 	"examples",
-
-	"examples/argparse",
-	"examples/arrays",
-	"examples/bucket_array",
 	"examples/demo",
-	"examples/dynamic_arrays",
-	"examples/first_program",
-	"examples/flow_control",
-	"examples/polymorph",
-	"examples/simple_allocator",
-	"examples/slices",
-	"examples/streams",
-	"examples/table",
-	"examples/thread_local_variable",
-	"examples/threading",
-	"examples/variables",
 };
 
 MD_PAGES_MODULES :: [_]string_view.{
@@ -197,10 +187,16 @@ main :: fn () s32 {
 	LIB_DIR        :: "../lib/bl/api";
 	MODULE_OUT_DIR :: tprint("%/%", SRC_DIR, "modules");
 
+	GIT_BRANCH  = get_blc_branch();
+	GITHUB_ROOT = sprint("%/%", GITHUB_BASE, GIT_BRANCH);
+
+	defer str_terminate(&GIT_BRANCH);
+	defer str_terminate(&GITHUB_ROOT);
+
 	defer temporary_release();
 
 	root_dir :: get_root_dir();
-	defer str_delete(&root_dir);
+	defer str_terminate(&root_dir);
 
 	print_info("Running in: '%'", root_dir);
 
@@ -209,11 +205,11 @@ main :: fn () s32 {
 		blc = "blc.exe";
 	}
 
-	src_dir    = sprint("%/%", root_dir, SRC_DIR);        defer str_delete(&src_dir);
-	side_dir   = sprint("%/%", root_dir, SIDE_DIR);       defer str_delete(&side_dir);
-	lib_dir    = sprint("%/%", root_dir, LIB_DIR);        defer str_delete(&lib_dir);
-	module_dir = sprint("%/%", root_dir, MODULE_OUT_DIR); defer str_delete(&module_dir);
-	blc_exec   = sprint("%/../bin/%", root_dir, blc);     defer str_delete(&blc_exec);
+	src_dir    = sprint("%/%", root_dir, SRC_DIR);        defer str_terminate(&src_dir);
+	side_dir   = sprint("%/%", root_dir, SIDE_DIR);       defer str_terminate(&side_dir);
+	lib_dir    = sprint("%/%", root_dir, LIB_DIR);        defer str_terminate(&lib_dir);
+	module_dir = sprint("%/%", root_dir, MODULE_OUT_DIR); defer str_terminate(&module_dir);
+	blc_exec   = sprint("%/../bin/%", root_dir, blc);     defer str_terminate(&blc_exec);
 
 	blc_exec_err :: path_normalize(&blc_exec);
 	if blc_exec_err {
@@ -238,18 +234,18 @@ main :: fn () s32 {
 		return 1;
 	}
 
-	search_json := str_new(1024 * 10);
-	defer str_delete(&search_json);
+	search_json := str_make(1024 * 10);
+	defer str_terminate(&search_json);
 	str_append(&search_json, "[");
 
-	menu :: str_new(256);
-	defer str_delete(&menu);
+	menu :: str_make(256);
+	defer str_terminate(&menu);
 	generate_menu_entries(&menu, MAIN_MENU);
 
 	loop i := 0; i < MD_PAGES.len; i += 1 {
 		page :: MD_PAGES[i];
 		err :: md2html(page, menu, null);
-		if err { 
+		if err {
 			print_err(err);
 			return 1;
 		}
@@ -278,7 +274,7 @@ main :: fn () s32 {
 	}
 
 	loop i := 0; i < include_file_cache.values.len; i += 1 {
-		str_delete(&include_file_cache.values[i]);
+		str_terminate(&include_file_cache.values[i]);
 	}
 	tbl_terminate(&include_file_cache);
 
@@ -301,7 +297,7 @@ generate_module_documentation :: fn () Error {
 	print_info("Generate BL API documentation in '%'.\n", module_dir);
 	measure_elapsed_ms_begin();
 
-	src_files := str_new(&default_temporary_allocator);
+	src_files := str_make(&default_temporary_allocator);
 
 	// 2024-12-12 This might cause issues because, some modules should be skipped for now.
 	//            For example libc module contains duplicit functions for different platforms
@@ -350,7 +346,7 @@ md2html :: fn (name: string_view, menu: string_view, search_json: *string) Error
 
 	in  :: tprint("%/%.md", src_dir, name);
 
-	tmp :: tprint("%", name);
+	tmp :: str_make(name, application_context.temporary_allocator);
 	str_replace_all(&tmp, '/', '_');
 
 	out :: tprint("%/%.html", side_dir, tmp);
@@ -362,12 +358,12 @@ md2html :: fn (name: string_view, menu: string_view, search_json: *string) Error
 		search_json = search_json,
 	};
 
-	ctx.fix_text_tmp = str_new(1024, allocator);
+	ctx.fix_text_tmp = str_make(1024, allocator);
 	ctx.table.col_num = -1;
 
 
 	array_init(&ctx.on_this_page, 64, allocator);
-	page_menu :: str_new(256, allocator);
+	page_menu :: str_make(256, allocator);
 
 	{
 		file, file_err :: open_file(in, OpenFileMode.READ);
@@ -377,7 +373,7 @@ md2html :: fn (name: string_view, menu: string_view, search_json: *string) Error
 		data, read_err :: load_whole_file(&file, allocator);
 		if read_err then return read_err;
 
-		ctx.content = str_new(data.len * 2, allocator);
+		ctx.content = str_make(data.len * 2, allocator);
 
 		parser := MD_PARSER.{
 			flags = MD_FLAG_TABLES,
@@ -402,8 +398,8 @@ md2html :: fn (name: string_view, menu: string_view, search_json: *string) Error
 
 generate_modules_page :: fn (name: string_view, menu: string_view, module_list: []MenuItem) {
 	allocator :: application_context.temporary_allocator;
-	content   :: str_new(2048, allocator);
-	page_menu :: str_new(2048, allocator);
+	content   :: str_make(2048, allocator);
+	page_menu :: str_make(2048, allocator);
 
 	str_append(&content,
 		"<h1>Modules</h1>\n"
@@ -441,7 +437,7 @@ generate_page :: fn (filepath: string_view, menu: string_view, content: string_v
 		"<a href=\"https://biscuitlang.org\"><img src=\"biscuit_logo.svg\"></a>\n"
 		"<label class=\"version\">%</label>\n"
 		"</div>\n",
-		get_blc_branch())
+		GIT_BRANCH)
 	);
 
 	write_string(&file, menu);
@@ -520,6 +516,7 @@ add_search_entry :: fn (ctx: *Ctx, id: string_view, text: string_view) {
 	str_concat(ctx.search_json, "{\"id\":\"", id, "\",\"file\":\"", ctx.output_file, "\",\"text\":\"", text, "\"}");
 }
 
+// @Cleanup 2025-02-12: Can we use fs.read_entire_file?
 load_whole_file :: fn (stream: *io.Stream, allocator: *Allocator = null) (data: string, err: Error) {
 	using io;
 	using StreamLocator;
@@ -537,7 +534,7 @@ load_whole_file :: fn (stream: *io.Stream, allocator: *Allocator = null) (data: 
 	_, err4 :: seek(stream, BEGIN);
 	if err4 then return .{}, err4;
 
-	data := str_new(size, allocator);
+	data := str_make(size, allocator);
 	data.len = auto size;
 	err :: read_all(stream, data.ptr, size, 2048);
 
@@ -623,7 +620,23 @@ enter_span :: fn (kind: MD_SPANTYPE, detail: *C.void_ptr, ctx: *Ctx) C.int {
 		MD_SPAN_STRONG { str_append(&ctx.content, "<b>"); }
 		MD_SPAN_A {
 			a :: cast(*MD_SPAN_A_DETAIL)detail;
-			str_concat(&ctx.content, "<a href=\"", string_view.{ auto a.href.size, auto a.href.text }, "\">");
+			link :: string_view.{ auto a.href.size, auto a.href.text };
+			str_append(&ctx.content, "<a href=\"");
+			loop i := 0; i < link.len; i += 1 {
+				if link[i] == '$' {
+					i += 1;
+					key := string_view.{ 0, &link[i] };
+					loop ; i < link.len; i += 1 {
+						if link[i] == '$' then break;
+						key.len += 1;
+					}
+					if str_match(key, "GITHUB") then str_append(&ctx.content, GITHUB_ROOT);
+					continue;
+				}
+				str_append(&ctx.content, string_view.{ 1, &link[i] });
+			}
+
+			str_append(&ctx.content, "\">");
 		}
 		default;
 	}
@@ -664,7 +677,9 @@ text :: fn (kind: MD_TEXTTYPE, ptr: *MD_CHAR, len: MD_SIZE, ctx: *Ctx) C.int {
 				}
 
 				switch ctx.current_code_block_lang {
-					Lang.BL { append_bl_code(ctx, str); }
+					Lang.BL {
+						append_bl_code(ctx, str);
+					}
 					default {
 						str_append(&ctx.content, str);
 					}
@@ -675,7 +690,7 @@ text :: fn (kind: MD_TEXTTYPE, ptr: *MD_CHAR, len: MD_SIZE, ctx: *Ctx) C.int {
 		}
 		default {
 			if ctx.current_header_level != -1 {
-				id :: tprint("%", str);
+				id :: str_make(str, application_context.temporary_allocator);
 				str_replace_all(&id, ' ', '-');
 
 				if ctx.current_header_level < 3 {
@@ -799,13 +814,10 @@ append_bl_comment :: fn (ctx: *Tokenizer) bool {
 			loop ctx.index < ctx.bytes.len {
 				c = ctx.bytes[ctx.index];
 				if c == 0 { break; }
-				if c == '*' && ctx.index+1 < ctx.bytes.len {
-					ctx.index += 1;
-					if ctx.bytes[ctx.index] == '/' {
-						len += 2; // /**/
-						break;
-					}
-					ctx.index -= 1;
+				if c == '*' && ctx.index+1 < ctx.bytes.len && ctx.bytes[ctx.index+1] == '/' {
+					ctx.index += 2;
+					len += 2; // /**/
+					break;
 				}
 				len       += 1;
 				ctx.index += 1;
@@ -850,7 +862,7 @@ append_bl_identifier_or_keyword :: fn (ctx: *Tokenizer) bool {
 	}
 
 	str_append(ctx.dest, maybe_keyword);
-	return false;
+	return maybe_keyword.len > 0;
 }
 
 append_bl_directive :: fn (ctx: *Tokenizer) bool {
@@ -925,9 +937,7 @@ include_file :: fn (filepath: string_view) (content: string_view, err: Error) {
 }
 
 get_root_dir :: fn () string {
-	exec_path :: os_get_exec_path();
-	defer str_delete(&exec_path);
-
+	exec_path := os_get_exec_path();
 	exec_dir := path_split(exec_path);
 	if exec_dir.len > 0 && exec_dir[exec_dir.len-1] == '/' {
 		exec_dir.len -= 1;
@@ -935,14 +945,14 @@ get_root_dir :: fn () string {
 	if exec_dir.len == 0 {
 		panic("Unable to resolve the root directory of the editor executable.");
 	}
-
-	return str_new(exec_dir);
+	exec_path.len = exec_dir.len;
+	return exec_path;
 }
 
-get_blc_branch :: fn () string_view #inline {
+get_blc_branch :: fn () string #inline {
 	branch_name, err :: cmd_read_stdout("git branch --show-current");
-	if err { print_err(err); return "UNKNOWN"; }
-	return branch_name;
+	if err { print_err(err); return str_make("UNKNOWN"); }
+	return str_make(branch_name);
 }
 
 list_files_recursive :: fn (dirpath: string_view, out: *string) {
@@ -984,7 +994,7 @@ cmd :: fn (fmt: string_view, args: ...) Error {
 cmd_read_stdout :: fn (fmt: string_view, args: ...) (out: string_view, err: Error) {
 	cmd :: tprint(fmt, args);
 
-	tmp  := str_new(128, application_context.temporary_allocator);
+	tmp  := str_make(128, application_context.temporary_allocator);
 	pipe :: C.popen(strtoc(cmd), strtoc("r"));
 	defer C.pclose(pipe);
 
@@ -996,7 +1006,6 @@ cmd_read_stdout :: fn (fmt: string_view, args: ...) (out: string_view, err: Erro
 	}
 
 	if (tmp.len > 0 && tmp[tmp.len - 1] == '\n') {
-		tmp[tmp.len-1] = '\0';
 		tmp.len -= 1;
 	}
 

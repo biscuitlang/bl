@@ -6,15 +6,11 @@
 #import "std/math"
 
 make_test_files :: fn (root_name: string_view) string {
-	make_file :: fn (filepath: string_view) {
-		create_file(filepath);
-	};
-
 	root :: get_cwd();
 	str_concat(&root, "/", root_name);
 
-	tmp :: str_new();
-	defer str_delete(&tmp);
+	tmp: string;
+	defer str_terminate(&tmp);
 
 	remove_all_dir(root);
 	create_all_dir(root);
@@ -25,21 +21,21 @@ make_test_files :: fn (root_name: string_view) string {
 	create_all_dir(str_clear_concat(&tmp, root, "/A/A"));
 	create_all_dir(str_clear_concat(&tmp, root, "/A/B"));
 
-	make_file(str_clear_concat(&tmp, root, "/a.txt"));
-	make_file(str_clear_concat(&tmp, root, "/b.jpg"));
-	make_file(str_clear_concat(&tmp, root, "/c.txt"));
-	make_file(str_clear_concat(&tmp, root, "/A/a.txt"));
-	make_file(str_clear_concat(&tmp, root, "/A/b.jpg"));
-	make_file(str_clear_concat(&tmp, root, "/A/c.txt"));
-	make_file(str_clear_concat(&tmp, root, "/B/a.txt"));
-	make_file(str_clear_concat(&tmp, root, "/B/b.jpg"));
-	make_file(str_clear_concat(&tmp, root, "/B/c.txt"));
-	make_file(str_clear_concat(&tmp, root, "/C/a.txt"));
-	make_file(str_clear_concat(&tmp, root, "/C/b.jpg"));
-	make_file(str_clear_concat(&tmp, root, "/C/c.txt"));
-	make_file(str_clear_concat(&tmp, root, "/A/A/a.txt"));
-	make_file(str_clear_concat(&tmp, root, "/A/B/b.jpg"));
-	make_file(str_clear_concat(&tmp, root, "/A/B/c.txt"));
+	create_file(str_clear_concat(&tmp, root, "/a.txt"));
+	create_file(str_clear_concat(&tmp, root, "/b.jpg"));
+	create_file(str_clear_concat(&tmp, root, "/c.txt"));
+	create_file(str_clear_concat(&tmp, root, "/A/a.txt"));
+	create_file(str_clear_concat(&tmp, root, "/A/b.jpg"));
+	create_file(str_clear_concat(&tmp, root, "/A/c.txt"));
+	create_file(str_clear_concat(&tmp, root, "/B/a.txt"));
+	create_file(str_clear_concat(&tmp, root, "/B/b.jpg"));
+	create_file(str_clear_concat(&tmp, root, "/B/c.txt"));
+	create_file(str_clear_concat(&tmp, root, "/C/a.txt"));
+	create_file(str_clear_concat(&tmp, root, "/C/b.jpg"));
+	create_file(str_clear_concat(&tmp, root, "/C/c.txt"));
+	create_file(str_clear_concat(&tmp, root, "/A/A/a.txt"));
+	create_file(str_clear_concat(&tmp, root, "/A/B/b.jpg"));
+	create_file(str_clear_concat(&tmp, root, "/A/B/c.txt"));
 	return root;
 }
 
@@ -56,7 +52,7 @@ fs_exist_test :: fn () #test {
 
 fs_get_home_test :: fn () #test {
 	tmp :: get_home();
-	defer str_delete(&tmp);
+	defer str_terminate(&tmp);
 	test_neq(tmp, str_empty);
 	test_true(file_exist(tmp));
 	test_true(tmp[tmp.len-1] != '/');
@@ -68,7 +64,7 @@ fs_get_home_test :: fn () #test {
 
 fs_get_tmp_test :: fn () #test {
 	tmp :: get_tmp();
-	defer str_delete(&tmp);
+	defer str_terminate(&tmp);
 	test_neq(tmp, str_empty);
 	test_true(file_exist(tmp));
 	test_true(tmp[tmp.len-1] != '/');
@@ -80,7 +76,7 @@ fs_get_tmp_test :: fn () #test {
 
 fs_get_cwd_test :: fn () #test {
 	tmp :: get_cwd();
-	defer str_delete(&tmp);
+	defer str_terminate(&tmp);
 	test_neq(tmp, str_empty);
 	test_true(file_exist(tmp));
 	test_true(tmp[tmp.len-1] != '/');
@@ -122,8 +118,8 @@ fs_read_string_test :: fn () #test {
 	stream, err1 :: open_file(#file, OpenFileMode.READ);
 	defer close_file(&stream);
 	test_ok(err1);
-	tmp := str_new();
-	defer str_delete(&tmp);
+	tmp: string;
+	defer str_terminate(&tmp);
 	err2 := read_string(&stream, &tmp);
 	test_ok(err2);
 	test_true(tmp.len > 0);
@@ -159,7 +155,7 @@ fs_file_stream_create_invalid :: fn () #test {
 
 fs_file_stream_create_invalid_write :: fn () #test {
 	filepath :: get_dummy_filepath();
-	defer str_delete(&filepath);
+	defer str_terminate(&filepath);
 	remove_file(filepath);
 	stream, err :: open_file(filepath, OpenFileMode.CREATE);
 	defer close_file(&stream);
@@ -172,7 +168,7 @@ fs_file_stream_create_invalid_write :: fn () #test {
 
 fs_file_stream_create_and_write :: fn () #test {
 	filepath :: get_dummy_filepath();
-	defer str_delete(&filepath);
+	defer str_terminate(&filepath);
 	remove_file(filepath);
 	stream, err :: open_file(filepath, OpenFileMode.CREATE | OpenFileMode.WRITE);
 	defer close_file(&stream);
@@ -184,7 +180,7 @@ fs_file_stream_create_and_write :: fn () #test {
 
 fs_file_stream_create_and_reuse :: fn () #test {
 	filepath :: get_dummy_filepath();
-	defer str_delete(&filepath);
+	defer str_terminate(&filepath);
 	remove_file(filepath);
 
 	{
@@ -207,8 +203,8 @@ fs_file_stream_create_and_reuse :: fn () #test {
 		stream, err :: open_file(filepath);
 		defer close_file(&stream);
 		test_ok(err);
-		tmp := str_new();
-		defer str_delete(&tmp);
+		tmp: string;
+		defer str_terminate(&tmp);
 		err2 :: read_string(&stream, &tmp);
 		test_ok(err2);
 		test_eq(tmp, "Hello!Hello!");
@@ -217,15 +213,15 @@ fs_file_stream_create_and_reuse :: fn () #test {
 
 fs_file_read_empty :: fn () #test {
 	filepath :: get_dummy_filepath();
-	defer str_delete(&filepath);
+	defer str_terminate(&filepath);
 	remove_file(filepath);
 	err_create :: create_file(filepath);
 	test_ok(err_create);
 	stream, err :: open_file(filepath);
 	defer close_file(&stream);
 	test_ok(err);
-	tmp := str_new();
-	defer str_delete(&tmp);
+	tmp: string;
+	defer str_terminate(&tmp);
 	err2 :: read_string(&stream, &tmp);
 	test_ok(err2);
 	test_eq(tmp, "");
@@ -233,7 +229,7 @@ fs_file_read_empty :: fn () #test {
 
 fs_file_stream_create_twice_and_override :: fn () #test {
 	filepath :: get_dummy_filepath();
-	defer str_delete(&filepath);
+	defer str_terminate(&filepath);
 	remove_file(filepath);
 
 	{
@@ -256,8 +252,8 @@ fs_file_stream_create_twice_and_override :: fn () #test {
 		stream, err :: open_file(filepath);
 		defer close_file(&stream);
 		test_ok(err);
-		tmp := str_new();
-		defer str_delete(&tmp);
+		tmp: string;
+		defer str_terminate(&tmp);
 		err2 :: read_string(&stream, &tmp);
 		test_ok(err2);
 		test_eq(tmp, "Hello!");
@@ -276,7 +272,7 @@ fs_read_exact_size :: fn () #test {
 
 fs_write_raw :: fn () #test {
 	filepath :: get_dummy_filepath();
-	defer str_delete(&filepath);
+	defer str_terminate(&filepath);
 	remove_file(filepath);
 	content :: "Hello I'm cool file content!";
 
@@ -290,8 +286,8 @@ fs_write_raw :: fn () #test {
 	{ // read
 		stream :: open_file(filepath);
 		defer close_file(&stream);
-		tmp := str_new();
-		defer str_delete(&tmp);
+		tmp: string;
+		defer str_terminate(&tmp);
 		err :: read_string(&stream, &tmp);
 		test_ok(err);
 		test_eq(tmp, content);
@@ -300,7 +296,7 @@ fs_write_raw :: fn () #test {
 
 fs_write_string :: fn () #test {
 	filepath :: get_dummy_filepath();
-	defer str_delete(&filepath);
+	defer str_terminate(&filepath);
 	remove_file(filepath);
 	content :: "Hello I'm cool file content!";
 
@@ -314,8 +310,8 @@ fs_write_string :: fn () #test {
 	{ // read
 		stream :: open_file(filepath);
 		defer close_file(&stream);
-		tmp := str_new();
-		defer str_delete(&tmp);
+		tmp: string;
+		defer str_terminate(&tmp);
 		err :: read_string(&stream, &tmp);
 		test_ok(err);
 		test_eq(tmp, content);
@@ -363,7 +359,7 @@ fs_seek_begin_end :: fn () #test {
 
 fs_get_uid_test_from_filename :: fn () #test {
 	filepath :: get_dummy_filepath();
-	defer str_delete(&filepath);
+	defer str_terminate(&filepath);
 	remove_file(filepath);
 	create_file(filepath);
 	uid, err2 :: file_uid(filepath);
@@ -373,7 +369,7 @@ fs_get_uid_test_from_filename :: fn () #test {
 
 fs_get_uid_test_from_file :: fn () #test {
 	filepath :: get_dummy_filepath();
-	defer str_delete(&filepath);
+	defer str_terminate(&filepath);
 	remove_file(filepath);
 	stream, err :: open_file(filepath, OpenFileMode.CREATE);
 	defer close_file(&stream);
@@ -405,11 +401,11 @@ fs_validate_filename_test :: fn () #test {
 
 fs_normalize_1 :: fn () #test {
 	cwd :: get_cwd();
-	defer str_delete(&cwd);
+	defer str_terminate(&cwd);
 	parent: string_view;
 	test_true(str_split_by_last(cwd, '/', &parent, null));
-	filepath :: str_new("..");
-	defer str_delete(&filepath);
+	filepath :: str_make("..");
+	defer str_terminate(&filepath);
 	status :: path_normalize(&filepath);
 	test_ok(status);
 	test_eq(filepath, parent);
@@ -417,9 +413,9 @@ fs_normalize_1 :: fn () #test {
 
 fs_normalize_2 :: fn () #test {
 	cwd :: get_cwd();
-	defer str_delete(&cwd);
-	filepath :: str_new(".");
-	defer str_delete(&filepath);
+	defer str_terminate(&cwd);
+	filepath :: str_make(".");
+	defer str_terminate(&filepath);
 	status :: path_normalize(&filepath);
 	test_ok(status);
 	test_eq(filepath, cwd);
@@ -429,10 +425,10 @@ fs_normalize_3 :: fn () #test {
 	create_file("foo");
 	defer remove_file("foo");
 	cwd :: get_cwd();
-	defer str_delete(&cwd);
-	filepath :: str_new("foo");
+	defer str_terminate(&cwd);
+	filepath :: str_make("foo");
 	str_concat(&cwd, "/", filepath);
-	defer str_delete(&filepath);
+	defer str_terminate(&filepath);
 	status :: path_normalize(&filepath);
 	test_ok(status);
 	test_eq(filepath, cwd);
@@ -440,7 +436,7 @@ fs_normalize_3 :: fn () #test {
 
 fs_remove_test :: fn () #test {
 	filepath :: get_dummy_filepath();
-	defer str_delete(&filepath);
+	defer str_terminate(&filepath);
 	remove_file(filepath);
 	test_false(file_exist(filepath));
 	err :: create_file(filepath);
@@ -454,8 +450,8 @@ fs_remove_test :: fn () #test {
 fs_copy_test :: fn () #test {
 	filepath1 :: get_dummy_filepath(1);
 	filepath2 :: get_dummy_filepath(2);
-	defer str_delete(&filepath1);
-	defer str_delete(&filepath2);
+	defer str_terminate(&filepath1);
+	defer str_terminate(&filepath2);
 	remove_file(filepath1);
 	remove_file(filepath2);
 
@@ -487,7 +483,7 @@ visitor :: fn (info: *FileVisitInfo, data: *VisitData) Error {
 	test_neq(info.filename, "..");
 	if info.is_directory {
 		data.directory_count += 1;
-	} else if str_is_empty(data.include_ext) {
+	} else if data.include_ext.len == 0 {
 		data.file_count += 1;
 	} else {
 		_, ext :: path_splitext(info.filename);
@@ -501,7 +497,7 @@ visitor :: fn (info: *FileVisitInfo, data: *VisitData) Error {
 
 fs_dir_visit1 :: fn () #test {
 	root :: make_test_files("root");
-	defer str_delete(&root);
+	defer str_terminate(&root);
 
 	data: VisitData;
 	err :: visit_files(root, VisitOpt.{}, &data, &visitor);
@@ -513,7 +509,7 @@ fs_dir_visit1 :: fn () #test {
 
 fs_dir_visit2 :: fn () #test {
 	root :: make_test_files("root");
-	defer str_delete(&root);
+	defer str_terminate(&root);
 
 	data: VisitData;
 	err :: visit_files(root, VisitOpt.{ recursive = true }, &data, &visitor);
@@ -525,7 +521,7 @@ fs_dir_visit2 :: fn () #test {
 
 fs_dir_visit_only_txt :: fn () #test {
 	root :: make_test_files("root");
-	defer str_delete(&root);
+	defer str_terminate(&root);
 
 	data := VisitData.{ include_ext = ".txt" };
 	err :: visit_files(root, VisitOpt.{ recursive = true }, &data, &visitor);
@@ -537,7 +533,7 @@ fs_dir_visit_only_txt :: fn () #test {
 
 fs_is_directory_test1 :: fn () #test {
 	tmp :: get_tmp();
-	defer str_delete(&tmp);
+	defer str_terminate(&tmp);
 	state, err :: is_directory(tmp);
 	test_ok(err);
 	test_true(state);
@@ -551,7 +547,7 @@ fs_is_directory_test2 :: fn () #test {
 
 fs_create_remove_dir_test1 :: fn () #test {
 	dir :: get_tmp();
-	defer str_delete(&dir);
+	defer str_terminate(&dir);
 	str_append(&dir, "/__DELETE_ME__");
 
 	remove_all_dir(dir);
@@ -567,7 +563,7 @@ fs_create_remove_dir_test1 :: fn () #test {
 
 fs_remove_all_dir_test1 :: fn () #test {
 	dir :: get_tmp();
-	defer str_delete(&dir);
+	defer str_terminate(&dir);
 	str_append(&dir, "/__DELETE_ME__");
 
 	print_log("PATH = %", dir);
@@ -578,8 +574,8 @@ fs_remove_all_dir_test1 :: fn () #test {
 	}
 
 	{
-		file :: str_new(dir);
-		defer str_delete(&file);
+		file :: str_make(dir);
+		defer str_terminate(&file);
 		str_append(&file, "/file.txt");
 		err :: create_file(file);
 		test_ok(err);
@@ -592,7 +588,7 @@ fs_remove_all_dir_test1 :: fn () #test {
 
 fs_create_all_dir_test1 :: fn () #test {
 	dir :: get_tmp();
-	defer str_delete(&dir);
+	defer str_terminate(&dir);
 	str_append(&dir, "/foo");
 	remove_all_dir(dir);
 	str_append(&dir, "/bar/bazz");
@@ -602,7 +598,7 @@ fs_create_all_dir_test1 :: fn () #test {
 
 fs_remove_all_dir :: fn () #test {
 	root :: make_test_files("root");
-	defer str_delete(&root);
+	defer str_terminate(&root);
 }
 
 fs_path_split :: fn () #test {
@@ -698,7 +694,7 @@ fs_path_splitext :: fn () #test {
 
 fs_read_write_entire_file :: fn () #test {
 	filepath :: get_dummy_filepath();
-	defer str_delete(&filepath);
+	defer str_terminate(&filepath);
 	remove_file(filepath);
 
 	CONTENT :: "This is content of my file!";

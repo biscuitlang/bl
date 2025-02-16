@@ -170,7 +170,7 @@ parse :: fn (parser: *Parser, args: []string_view, first_arg_index := 1) (parsed
 			STRING {
 				string_value, err :: string_from_value(name, value);
 				if err { return parsed_count, err; }
-				str_clear(found_argument.data.str);
+				found_argument.data.str.len = 0;
 				str_append(found_argument.data.str, string_value);
 			}
 			ENUM {
@@ -261,8 +261,8 @@ print_help :: fn (parser: *Parser) {
 		print("\n");
 	}
 	print("Options:\n");
-	line := str_new(parser.allocator);
-	defer str_delete(&line);
+	line := str_make(parser.allocator);
+	defer str_terminate(&line);
 	loop i := 0; i < sorted_args.len; i += 1 {
 		arg :: sorted_args[i];
 		str_append(&line, "  ");
@@ -274,7 +274,7 @@ print_help :: fn (parser: *Parser) {
 		append_value_options(&line, arg.info);
 		if line.len >= PADDING {
 			print("%\n", line);
-			str_clear(&line);
+			line.len = 0;
 		}
 		loop line.len < PADDING {
 			str_append(&line, " ");
@@ -283,7 +283,7 @@ print_help :: fn (parser: *Parser) {
 			str_append(&line, arg.help);
 		}
 		print("%\n", line);
-		str_clear(&line);
+		line.len = 0;
 	}
 }
 
@@ -359,14 +359,14 @@ string_from_value :: fn (name: string_view, value: string_view) (string_view, Er
 enum_variant_from_value :: fn (parser: *Parser, info: *TypeInfoEnum, name: string_view, value: string_view) (u64, Error) {
 	assert(info && info.kind == TypeKind.ENUM);
 	if value.len == 0 { return 0, error("Expected value for argument '%'.", name); }
-	tmp_value := str_new(value, parser.allocator);
-	defer str_delete(&tmp_value);
+	tmp_value := str_make(value, parser.allocator);
+	defer str_terminate(&tmp_value);
 	str_lower(&tmp_value);
-	tmp_variant := str_new(parser.allocator);
-	defer str_delete(&tmp_variant);
+	tmp_variant := str_make(parser.allocator);
+	defer str_terminate(&tmp_variant);
 	loop i := 0; i < info.variants.len; i += 1 {
 		variant :: &info.variants[i];
-		str_clear(&tmp_variant);
+		tmp_variant.len = 0;
 		str_append(&tmp_variant, variant.name);
 		str_lower(&tmp_variant);
 		if str_match(tmp_value, tmp_variant) {

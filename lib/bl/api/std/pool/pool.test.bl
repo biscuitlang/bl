@@ -198,7 +198,7 @@ allocation_real_data :: fn () #test {
 	TEST_COUNT :: 1000;
 	tmp: [TEST_COUNT]string #noinit;
 	loop i := 0; i < TEST_COUNT; i += 1 {
-		tmp[i] = str_new(some_data[i % some_data.len], &pool);
+		tmp[i] = str_make(some_data[i % some_data.len], &pool);
 	}
 
 	loop i := 0; i < TEST_COUNT; i += 1 {
@@ -214,7 +214,7 @@ allocation_real_data_small_blocks :: fn () #test {
 	TEST_COUNT :: 1000;
 	tmp: [TEST_COUNT]string #noinit;
 	loop i := 0; i < TEST_COUNT; i += 1 {
-		tmp[i] = str_new(some_data[i % some_data.len], &pool);
+		tmp[i] = str_make(some_data[i % some_data.len], &pool);
 	}
 
 	loop i := 0; i < TEST_COUNT; i += 1 {
@@ -249,7 +249,7 @@ used_as_allocator :: fn () #test {
 		defer reset_allocator(&pool);
 		arr: [..]Data;
 		array_init(&arr, 0, &pool);
-		str :: str_new(&pool);
+		str :: str_make(&pool);
 
 		loop j : usize = 0; j < auto i; j += 1 {
 			// allocate some random memory from the pool

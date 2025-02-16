@@ -8,56 +8,56 @@ test_print_int :: fn () #test {
 	{
 		v : u64 : U64_MAX;
 		str :: sprint("%", v);
-		defer str_delete(&str);
+		defer str_terminate(&str);
 		test_eq(str, "18446744073709551615");
 	}
 
 	{
 		v : s64 : S64_MAX;
 		str :: sprint("%", v);
-		defer str_delete(&str);
+		defer str_terminate(&str);
 		test_eq(str, "9223372036854775807");
 	}
 
 	{
 		v : s64 : S64_MIN;
 		str :: sprint("%", v);
-		defer str_delete(&str);
+		defer str_terminate(&str);
 		test_eq(str, "-9223372036854775808");
 	}
 
 	{
 		v : s32 : S32_MAX;
 		str :: sprint("%", v);
-		defer str_delete(&str);
+		defer str_terminate(&str);
 		test_eq(str, "2147483647");
 	}
 
 	{
 		v : s32 : S32_MIN;
 		str :: sprint("%", v);
-		defer str_delete(&str);
+		defer str_terminate(&str);
 		test_eq(str, "-2147483648");
 	}
 
 	{
 		v : s16 : S16_MAX;
 		str :: sprint("%", v);
-		defer str_delete(&str);
+		defer str_terminate(&str);
 		test_eq(str, "32767");
 	}
 
 	{
 		v : s16 : S16_MIN;
 		str :: sprint("%", v);
-		defer str_delete(&str);
+		defer str_terminate(&str);
 		test_eq(str, "-32768");
 	}
 
 	{
 		v :: -0;
 		str :: sprint("%", v);
-		defer str_delete(&str);
+		defer str_terminate(&str);
 		test_eq(str, "0");
 	}
 }
@@ -65,13 +65,13 @@ test_print_int :: fn () #test {
 test_print_bool :: fn () #test {
 	{
 		str :: sprint("%", false);
-		defer str_delete(&str);
+		defer str_terminate(&str);
 		test_eq(str, "false");
 	}
 
 	{
 		str :: sprint("%", true);
-		defer str_delete(&str);
+		defer str_terminate(&str);
 		test_eq(str, "true");
 	}
 }
@@ -79,42 +79,42 @@ test_print_bool :: fn () #test {
 test_fmt_f32 :: fn () #test {
 	{
 		str :: sprint("%", fmt_real(0.f, 0));
-		defer str_delete(&str);
+		defer str_terminate(&str);
 
 		test_eq(str, "0");
 	}
 
 	{
 		str :: sprint("%", fmt_real(10.12f, 2));
-		defer str_delete(&str);
+		defer str_terminate(&str);
 
 		test_eq(str, "10.12");
 	}
 
 	{
 		str :: sprint("%", fmt_real(10.121234f, 0));
-		defer str_delete(&str);
+		defer str_terminate(&str);
 
 		test_eq(str, "10");
 	}
 
 	{
 		str :: sprint("%", fmt_real(-10.121234f, -1));
-		defer str_delete(&str);
+		defer str_terminate(&str);
 
 		test_eq(str, "-10.121234");
 	}
 
 	{
 		str :: sprint("%", fmt_real(121234.f, 5));
-		defer str_delete(&str);
+		defer str_terminate(&str);
 
 		test_eq(str, "121234.00000");
 	}
 
 	{
 		str :: sprint("%", fmt_real(0.121234f, -1));
-		defer str_delete(&str);
+		defer str_terminate(&str);
 
 		test_eq(str, "0.121234");
 	}
@@ -123,28 +123,28 @@ test_fmt_f32 :: fn () #test {
 test_fmt_s32_base10 :: fn () #test {
 	{
 		str :: sprint("%", fmt_int(0, FmtIntBase.DEC));
-		defer str_delete(&str);
+		defer str_terminate(&str);
 
 		test_eq(str, "0");
 	}
 
 	{
 		str :: sprint("%", fmt_int(10, FmtIntBase.DEC));
-		defer str_delete(&str);
+		defer str_terminate(&str);
 
 		test_eq(str, "10");
 	}
 
 	{
 		str :: sprint("%", fmt_int(-10, FmtIntBase.DEC));
-		defer str_delete(&str);
+		defer str_terminate(&str);
 
 		test_eq(str, "-10");
 	}
 
 	{
 		str :: sprint("%", fmt_int(123456789, FmtIntBase.DEC));
-		defer str_delete(&str);
+		defer str_terminate(&str);
 
 		test_eq(str, "123456789");
 	}
@@ -153,14 +153,14 @@ test_fmt_s32_base10 :: fn () #test {
 test_fmt_s32_base2 :: fn () #test {
 	{
 		str :: sprint("%", fmt_int(0, FmtIntBase.BIN));
-		defer str_delete(&str);
+		defer str_terminate(&str);
 
 		test_eq(str, "0b0");
 	}
 
 	{
 		str :: sprint("%", fmt_int(0b1011, FmtIntBase.BIN));
-		defer str_delete(&str);
+		defer str_terminate(&str);
 
 		test_eq(str, "0b1011");
 	}
@@ -169,14 +169,14 @@ test_fmt_s32_base2 :: fn () #test {
 test_fmt_s32_base16 :: fn () #test {
 	{
 		str :: sprint("%", fmt_int(0, FmtIntBase.HEX));
-		defer str_delete(&str);
+		defer str_terminate(&str);
 
 		test_eq(str, "0x0");
 	}
 
 	{
 		str :: sprint("%", fmt_int(0xfa12, FmtIntBase.HEX));
-		defer str_delete(&str);
+		defer str_terminate(&str);
 
 		test_eq(str, "0xfa12");
 	}
@@ -184,7 +184,7 @@ test_fmt_s32_base16 :: fn () #test {
 
 test_print_content_simple :: fn () #test {
 	str :: sprint("%%%", "text", 10, true);
-	defer str_delete(&str);
+	defer str_terminate(&str);
 
 	test_eq(str, "text10true");
 }
@@ -192,7 +192,7 @@ test_print_content_simple :: fn () #test {
 test_print_array :: fn () #test {
 	arr :: [3]s32.{1, 2, 3};
 	str :: sprint("%", arr);
-	defer str_delete(&str);
+	defer str_terminate(&str);
 
 	test_eq(str, "[1, 2, 3]");
 }
@@ -204,7 +204,7 @@ test_print_slice :: fn () #test {
 	slice.len = arr.len;
 
 	str :: sprint("%", slice);
-	defer str_delete(&str);
+	defer str_terminate(&str);
 
 	test_eq(str, "[1, 2, 3]");
 }
@@ -217,7 +217,7 @@ test_print_dynamic_array :: fn () #test {
 	array_push(&arr, 3);
 
 	str :: sprint("%", arr);
-	defer str_delete(&str);
+	defer str_terminate(&str);
 
 	test_eq(str, "[1, 2, 3]");
 }
@@ -230,7 +230,7 @@ test_print_struct :: fn () #test {
 
 	foo :: Foo.{666, true};
 	str :: sprint("%", foo);
-	defer str_delete(&str);
+	defer str_terminate(&str);
 
 	test_eq(str, "Foo {i = 666, j = true}");
 }
@@ -243,7 +243,7 @@ test_print_union :: fn () #test {
 
 	foo: Foo;
 	str :: sprint("%", foo);
-	defer str_delete(&str);
+	defer str_terminate(&str);
 
 	test_eq(str, "Foo {i = 0, j = false}");
 }
@@ -257,32 +257,32 @@ test_complex_type :: fn () #test {
 
 	foo :: Foo.{666, true, [3]s32.{1, 2, 3}};
 	str :: sprint("%", foo);
-	defer str_delete(&str);
+	defer str_terminate(&str);
 
 	test_eq(str, "Foo {i = 666, j = true, arr = [1, 2, 3]}");
 }
 
 test_char :: fn () #test {
 	str :: sprint("%", fmt_char('c'));
-	defer str_delete(&str);
+	defer str_terminate(&str);
 	test_eq(str, "c");
 }
 
 test_format_1 :: fn () #test {
 	str :: sprint("% is %", 10, 20);
-	defer str_delete(&str);
+	defer str_terminate(&str);
 	test_eq(str, "10 is 20");
 }
 
 test_format_2 :: fn () #test {
 	str :: sprint("% is %", 10);
-	defer str_delete(&str);
+	defer str_terminate(&str);
 	test_eq(str, "10 is (null)");
 }
 
 test_format_3 :: fn () #test {
 	str :: sprint("% is %");
-	defer str_delete(&str);
+	defer str_terminate(&str);
 	test_eq(str, "(null) is (null)");
 }
 
@@ -298,27 +298,27 @@ print_enum_1 :: fn () #test {
 		A = 0; B; C; D = B | C; E; F = D | E;
 	};
 	a :: sprint("%", F.A);
-	defer str_delete(&a);
+	defer str_terminate(&a);
 	test_eq(a, "F.A");
 
 	b :: sprint("%", F.B);
-	defer str_delete(&b);
+	defer str_terminate(&b);
 	test_eq(b, "F.B");
 
 	c :: sprint("%", F.C);
-	defer str_delete(&c);
+	defer str_terminate(&c);
 	test_eq(c, "F.C");
 
 	d :: sprint("%", F.D);
-	defer str_delete(&d);
+	defer str_terminate(&d);
 	test_eq(d, "F.B | F.C");
 
 	e :: sprint("%", F.E);
-	defer str_delete(&e);
+	defer str_terminate(&e);
 	test_eq(e, "F.E");
 
 	f :: sprint("%", F.F);
-	defer str_delete(&f);
+	defer str_terminate(&f);
 	test_eq(f, "F.B | F.C | F.E");
 }
 

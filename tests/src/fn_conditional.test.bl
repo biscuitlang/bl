@@ -38,6 +38,16 @@ simple_disabled_expr :: fn () #test {
 	test_eq(called_num, 1);
 }
 
+simple_disabled_expr_with_parentheses :: fn () #test {
+	foo :: fn () #enable_if(true && IS_ENABLED) {
+		called_num += 1;
+	};
+
+	called_num = 0;
+	foo();
+	test_eq(called_num, 1);
+}
+
 simple_enabled_ret_val :: fn () #test {
 	foo :: fn () s32 #enable_if true {
 		called_num += 1;

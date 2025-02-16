@@ -9,7 +9,7 @@ _exist :: fn (filepath: string_view) bool #inline {
 }
 
 _open :: fn (filepath: string_view, mode: OpenFileMode) (_File, Error) {
-	if str_is_empty(filepath) { return null, error(ERR_INVALID_HANDLE, "File path is empty!"); }
+	if filepath.len < 1 then return null, error(ERR_INVALID_HANDLE, "File path is empty!");
 	access, create :: modes_to_flags(mode);
 	handle :: CreateFile(strtoc(filepath), access, 0, null, create, FILE_ATTRIBUTE_NORMAL, null);
 	if handle == INVALID_HANDLE_VALUE {
@@ -25,7 +25,7 @@ _open :: fn (filepath: string_view, mode: OpenFileMode) (_File, Error) {
 }
 
 _remove :: fn (filepath: string_view) Error #inline {
-	if str_is_empty(filepath) { return error(ERR_INVALID_HANDLE, "File path is empty!"); }
+	if filepath.len < 1 then return error(ERR_INVALID_HANDLE, "File path is empty!");
 	tmp :: DeleteFileA(strtoc(filepath));
 	if tmp == 0 {
 		ec, estr :: os_get_last_error();
@@ -35,8 +35,8 @@ _remove :: fn (filepath: string_view) Error #inline {
 }
 
 _copy :: fn (src: string_view, dest: string_view, override: bool) Error {
-	if str_is_empty(src) { return error(ERR_INVALID_HANDLE, "File path is empty!"); }
-	if str_is_empty(dest) { return error(ERR_INVALID_HANDLE, "File path is empty!"); }
+	if src.len  < 1 then return error(ERR_INVALID_HANDLE, "Source file path is empty!");
+	if dest.len < 1 then return error(ERR_INVALID_HANDLE, "Destination file path is empty!");
 	fail_if_exist := 1;
 	if  override { fail_if_exist = 0; }
 	if CopyFileA(strtoc(src), strtoc(dest), fail_if_exist) == 0 {
@@ -69,7 +69,7 @@ _get_uid_by_name :: fn (filepath: string_view) (u64, Error) {
 }
 
 _create_dir :: fn (dirpath: string_view) Error {
-	if str_is_empty(dirpath) { return error(ERR_INVALID_HANDLE, "Cannot create directory, dirpath is empty."); }
+	if dirpath.len < 1 then return error(ERR_INVALID_HANDLE, "Cannot create directory, dirpath is empty.");
 	if CreateDirectoryA(strtoc(dirpath), null) == 0 {
 		ec, estr :: os_get_last_error();
 		return error(ec, "Cannot create directory '%': %", dirpath, estr);
@@ -78,7 +78,7 @@ _create_dir :: fn (dirpath: string_view) Error {
 }
 
 _remove_dir :: fn (dirpath: string_view) Error {
-	if str_is_empty(dirpath) { return error(ERR_INVALID_HANDLE, "Cannot remove directory, dirpath is empty."); }
+	if dirpath.len < 1 then return error(ERR_INVALID_HANDLE, "Cannot remove directory, dirpath is empty.");
 	if RemoveDirectoryA(strtoc(dirpath)) == 0 {
 		ec, estr :: os_get_last_error();
 		return error(ec, "Cannot remove directory '%': %", dirpath, estr);
@@ -87,7 +87,7 @@ _remove_dir :: fn (dirpath: string_view) Error {
 }
 
 _is_directory :: fn (path: string_view) (bool, Error) #inline {
-	if str_is_empty(path) { return false, error(ERR_INVALID_HANDLE, "Path is empty."); }
+	if path.len < 1 then return false, error(ERR_INVALID_HANDLE, "Path is empty.");
 	attributes :: GetFileAttributesA(strtoc(path));
 	if attributes == INVALID_FILE_ATTRIBUTES {
 		ec, estr :: os_get_last_error();
@@ -98,13 +98,13 @@ _is_directory :: fn (path: string_view) (bool, Error) #inline {
 
 _visit_files :: fn (dirpath: string_view, is_recursive: bool, leaf_first: bool, visitor: *fn(info: *FileVisitInfo, ctx: *u8) Error, ctx: *u8 = null) Error #inline {
 	if dirpath.len > (MAX_PATH-3) { return error("Path too long!"); }
-	directory := str_new(dirpath);
-	defer str_delete(&directory);
+	directory :: str_make(dirpath);
+	defer str_terminate(&directory);
 	err :: _normalize(&directory);
 	if err { return err; }
 
-	tmp :: str_new(directory);
-	defer str_delete(&tmp);
+	tmp :: str_make(directory);
+	defer str_terminate(&tmp);
 	str_append(&tmp, "\\*");
 
 	find_data: FIND_DATA;
@@ -115,8 +115,9 @@ _visit_files :: fn (dirpath: string_view, is_recursive: bool, leaf_first: bool, 
 	}
 	defer FindClose(handle);
 
-	filepath :: str_new();
-	defer str_delete(&filepath);
+	filepath: string;
+	defer str_terminate(&filepath);
+
 	loop {
 		info: FileVisitInfo;
 		if is_flag(find_data.dwFileAttributes, auto FILE_ATTRIBUTE_DIRECTORY) {
@@ -161,17 +162,24 @@ _validate_filename :: fn (name: string_view) bool {
 }
 
 _get_cwd :: fn () string #inline {
-	buf: [OS_PATH_MAX]u8 #noinit;
-	written :: GetCurrentDirectoryA(auto buf.len, auto buf.ptr);
-	if written == 0 { return str_new(); }
-	out :: str_new(buf.ptr);
-	str_replace_all(&out, '\\', '/');
-	remove_last_separator(&out);
-	return out;
+	result: string;
+	required_buffer_size :: GetCurrentDirectoryA(0, null);
+	if required_buffer_size == 0 then panic("Unable to resolve current working directory.");
+
+	str_resize(&result, auto required_buffer_size);
+	written :: GetCurrentDirectoryA(auto result.len, auto result.ptr);
+	if written == 0 then panic("Unable to resolve current working directory, read path incomplete.");
+	result.len -= 1; // Shrink zero-terminator.
+	if written != auto result.len then panic("Unable to resolve current working directory, read path incomplete.");
+
+	str_replace_all(&result, '\\', '/');
+	remove_last_separator(&result);
+
+	return result;
 }
 
 _set_cwd :: fn (path: string_view) Error #inline {
-	if str_is_empty(path) { return error(ERR_INVALID_HANDLE, "Path is empty!"); }
+	if path.len < 1 then return error(ERR_INVALID_HANDLE, "Path is empty!");
 	if SetCurrentDirectoryA(strtoc(path)) == 0 {
 		ec, estr :: os_get_last_error();
 		return error(ec, "Cannot set current directory to '%': %", path, estr);
@@ -180,28 +188,34 @@ _set_cwd :: fn (path: string_view) Error #inline {
 }
 
 _get_home :: fn () string #inline {
+	result: string;
 	tmp :: "USERPROFILE";
 	cdir :: cast(*u8) C.getenv(auto tmp.ptr);
-	if !cdir { return str_new(); }
-	out :: str_new(cdir);
-	str_replace_all(&out, '\\', '/');
-	remove_last_separator(&out);
-	return out;
+	if !cdir then return result;
+	str_append(&result, ctostr(auto cdir));
+	str_replace_all(&result, '\\', '/');
+	remove_last_separator(&result);
+	return result;
 }
 
 _get_tmp :: fn () string #inline {
-	buf: [OS_PATH_MAX]u8 #noinit;
-	written :: GetTempPathA(auto buf.len, auto buf.ptr);
-	if written == 0 { return str_new(); }
-	out :: str_new(buf.ptr);
-	str_replace_all(&out, '\\', '/');
-	remove_last_separator(&out);
-	return out;
+	result: string;
+
+	required_buffer_size :: GetTempPathA(0, null);
+	if required_buffer_size == 0 then panic("Unable to resolve temporary directory.");
+	str_resize(&result, auto required_buffer_size);
+
+	written :: GetTempPathA(auto result.len, auto result.ptr);
+	if written == 0 then return result;
+	result.len -= 1; // Shrink zero-terminator.
+	if written != auto result.len then panic("Unable to resolve temporary directory, read path incomplete.");
+	str_replace_all(&result, '\\', '/');
+	remove_last_separator(&result);
+	return result;
 }
 
 _normalize :: fn (filepath: *string) Error {
-	if !filepath { return error(ERR_INVALID_HANDLE, "File path is null!"); }
-	if str_is_empty(@filepath) { return error(ERR_INVALID_HANDLE, "File path is empty!"); }
+	if !filepath || filepath.len < 1 { return error(ERR_INVALID_HANDLE, "File path is null!"); }
 	buf : [OS_PATH_MAX]s8 #noinit;
 	if GetFullPathNameA(strtoc(@filepath), auto buf.len, buf.ptr, null) == 0 {
 		ec, estr :: os_get_last_error();
@@ -211,7 +225,7 @@ _normalize :: fn (filepath: *string) Error {
 		ec, estr :: os_get_last_error();
 		return error(ec, "Cannot normalize '%': %", @filepath, estr);
 	}
-	str_clear(filepath);
+	filepath.len = 0;
 	str_append(filepath, ctostr(buf.ptr));
 	str_replace_all(filepath, '\\', '/'); // Fix to unix
 	return OK;
@@ -274,9 +288,8 @@ modes_to_flags :: fn (modes: OpenFileMode) (access: u32, create: u32) #inline {
 }
 
 remove_last_separator :: fn (path: *string) #inline {
-	if str_is_empty(@path) { return; }
+	if path.len < 1 then return;
 	if (@path)[path.len-1] == '/' {
-		(@path)[path.len-1] = '\0';
 		path.len -= 1;
 	}
 }
