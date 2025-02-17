@@ -269,7 +269,7 @@ typedef struct
 static struct mir_type *create_type_struct(struct context *ctx, create_type_struct_args_t *args);
 
 // Create incomplete struct type placeholder to be filled later.
-static struct mir_type *create_type_struct_incomplete(struct context *ctx, struct id *user_id, bool is_union, bool has_base);
+static struct mir_type *create_type_struct_incomplete(struct context *ctx, struct id *user_id, bool is_union);
 
 typedef struct
 {
@@ -298,7 +298,7 @@ typedef struct
 
 static struct mir_type *create_type_enum(struct context *ctx, create_type_enum_args_t *args);
 static struct mir_type *create_type_slice(struct context *ctx, enum mir_type_kind kind, struct id *user_id, struct mir_type *elem_ptr_type, bool is_string_literal);
-static struct mir_type *create_type_struct_dynarr(struct context *ctx, struct id *user_id, struct mir_type *elem_ptr_type);
+static struct mir_type *create_type_struct_dynarr(struct context *ctx, enum mir_type_kind kind, struct id *user_id, struct mir_type *elem_ptr_type);
 
 static void type_init_llvm_int(struct context *ctx, struct mir_type *type);
 static void type_init_llvm_real(struct context *ctx, struct mir_type *type);
@@ -2053,8 +2053,7 @@ static void generate_struct_signature(str_buf_t *name, create_type_struct_args_t
 	str_buf_append(name, cstr("}"));
 }
 
-struct mir_type *create_type_struct_incomplete(struct context *ctx, struct id *user_id, bool is_union, bool has_base) {
-	(void)has_base; // @Cleanup?
+struct mir_type *create_type_struct_incomplete(struct context *ctx, struct id *user_id, bool is_union) {
 	bassert(user_id);
 	str_buf_t name = get_tmp_str();
 	generate_struct_signature(&name,
@@ -2090,34 +2089,36 @@ struct mir_type *create_type_struct(struct context *ctx, create_type_struct_args
 	struct id        id;
 	struct mir_type *result;
 
-	str_buf_t name          = get_tmp_str();
-	bool      can_use_cache = false;
+	str_buf_t name = get_tmp_str();
+
+	// 2025-02-15: Struct type caching:
+	//             We do not use cache for anonymous structs here because even if we might end up with more
+	//             of them having the same layout, they might have different metadata (tags) which are not
+	//             exposed into signature. On the other hand user named structs are defined once and then
+	//             referenced every time, so there is no need to cache them and lookup them (they are created
+	//             just once).
+	//
+	//             Note that we still have to decide if result->can_use_cache is set or not, consider pointer
+	//             to structs; in order to cache repeating p.foo the pointee type must have caching allowed!
+	bool can_use_cache = false;
 
 	if (!args->id) {
 		generate_struct_signature(&name, args);
-		can_use_cache     = args->user_id;
-		const hash_t hash = strhash(name);
-
-		if (can_use_cache) {
-			lock_type_cache(ctx);
-			result = lookup_type(ctx, hash, str_buf_view(name));
-			if (result) {
-				bassert(result->kind == MIR_TYPE_STRING);
-				unlock_type_cache(ctx);
-				goto DONE;
-			}
-		}
-
-		id.hash = hash;
-		id.str  = scdup2(ctx->string_cache, name);
+		can_use_cache = args->user_id; // Allow for user named structs.
+		id.hash       = strhash(name);
+		id.str        = scdup2(ctx->string_cache, name);
 
 	} else {
+		// 2025-02-15: In case we already have ID, this function was probably called from create_type_slice
+		//             or similar function where ID was precomputed; so we don't need to generate it again here.
 		id = *args->id;
 	}
 
 	result = create_type(ctx, args->kind, args->user_id);
 
-	result->id                                 = id;
+	result->id            = id;
+	result->can_use_cache = can_use_cache;
+
 	result->data.strct.members                 = args->members;
 	result->data.strct.scope                   = args->scope;
 	result->data.strct.scope_layer             = args->scope_layer;
@@ -2129,13 +2130,6 @@ struct mir_type *create_type_struct(struct context *ctx, create_type_struct_args
 
 	type_init_llvm_struct(ctx, result);
 
-	if (can_use_cache) {
-		insert_type_into_cache(ctx, result, str_buf_view(name));
-		result->can_use_cache = true;
-		unlock_type_cache(ctx);
-	}
-
-DONE:
 	put_tmp_str(name);
 	return result;
 }
@@ -2181,10 +2175,6 @@ struct mir_type *create_type_slice(struct context *ctx, enum mir_type_kind kind,
 	bool      can_use_cache = elem_ptr_type->can_use_cache;
 
 	switch (kind) {
-	case MIR_TYPE_STRING:
-		bassert(user_id);
-		str_buf_append(&name, user_id->str);
-		break;
 	case MIR_TYPE_SLICE:
 	case MIR_TYPE_VARGS: {
 		const str_t prefix    = kind == MIR_TYPE_SLICE ? cstr("sl") : cstr("sv");
@@ -2252,7 +2242,7 @@ DONE:
 	return result;
 }
 
-struct mir_type *create_type_struct_dynarr(struct context *ctx, struct id *user_id, struct mir_type *elem_ptr_type) {
+struct mir_type *create_type_struct_dynarr(struct context *ctx, enum mir_type_kind kind, struct id *user_id, struct mir_type *elem_ptr_type) {
 	bassert(mir_is_pointer_type(elem_ptr_type));
 
 	struct mir_type *result;
@@ -2261,17 +2251,28 @@ struct mir_type *create_type_struct_dynarr(struct context *ctx, struct id *user_
 	struct mir_type *allocated_type = ctx->builtin_types->t_usize;
 	struct mir_type *allocator_type = ctx->builtin_types->t_u8_ptr;
 
-	const bool can_use_cache = elem_ptr_type->can_use_cache;
-	str_buf_t  name          = get_tmp_str();
+	bool      can_use_cache = elem_ptr_type->can_use_cache;
+	str_buf_t name          = get_tmp_str();
 
-	str_buf_append_fmt(&name, "da.{{{str},{str},{str},{str}}}", len_type->id.str, elem_ptr_type->id.str, allocated_type->id.str, allocator_type->id.str);
+	switch (kind) {
+	case MIR_TYPE_STRING:
+		// 2025-02-15: String is just dynamic array with special semantics.
+		can_use_cache = false;
+		str_buf_append(&name, user_id->str);
+		break;
+	case MIR_TYPE_DYNARR:
+		str_buf_append_fmt(&name, "da.{{{str},{str},{str},{str}}}", len_type->id.str, elem_ptr_type->id.str, allocated_type->id.str, allocator_type->id.str);
+		break;
+	default:
+		babort("Unexpected type kind.");
+	}
 
 	const hash_t hash = strhash(name);
 	if (can_use_cache) {
 		lock_type_cache(ctx);
 		result = lookup_type(ctx, hash, str_buf_view(name));
 		if (result) {
-			bassert(result->kind == MIR_TYPE_DYNARR);
+			bassert(result->kind == kind);
 			unlock_type_cache(ctx);
 			goto DONE;
 		}
@@ -2316,7 +2317,7 @@ struct mir_type *create_type_struct_dynarr(struct context *ctx, struct id *user_
 
 	result = create_type_struct(ctx,
 	                            &(create_type_struct_args_t){
-	                                .kind        = MIR_TYPE_DYNARR,
+	                                .kind        = kind,
 	                                .user_id     = user_id,
 	                                .id          = &id,
 	                                .scope       = body_scope,
@@ -5830,8 +5831,10 @@ struct result analyze_instr_decl_ref(struct context *ctx, struct mir_instr_decl_
 		// which are used.
 		++fn->ref_count;
 
+		const bool is_in_group = ref->scope->kind == SCOPE_FN_GROUP;
+
 		// Report if the referenced function is obsolete.
-		if (isflag(fn->flags, FLAG_OBSOLETE)) {
+		if (isflag(fn->flags, FLAG_OBSOLETE) && !is_in_group) {
 			report_warning(ref->base.node, "Function is marked as obsolete. " STR_FMT "", STR_ARG(fn->obsolete_message));
 		}
 		break;
@@ -7035,7 +7038,7 @@ struct result analyze_instr_type_dynarr(struct context *ctx, struct mir_instr_ty
 
 	elem_type = create_type_ptr(ctx, elem_type);
 
-	MIR_CEV_WRITE_AS(struct mir_type *, &type_dynarr->base.value, create_type_struct_dynarr(ctx, user_id, elem_type));
+	MIR_CEV_WRITE_AS(struct mir_type *, &type_dynarr->base.value, create_type_struct_dynarr(ctx, MIR_TYPE_DYNARR, user_id, elem_type));
 
 	return_zone(PASS);
 }
@@ -7825,6 +7828,11 @@ static struct mir_fn *group_select_overload(struct context *ctx, struct mir_inst
 DONE:
 	sarrfree(&list);
 	bassert(selected_fn);
+
+	if (isflag(selected_fn->flags, FLAG_OBSOLETE)) {
+		report_warning(call->base.node, "Function overload is marked as obsolete. " STR_FMT "", STR_ARG(selected_fn->obsolete_message));
+	}
+
 	return selected_fn;
 }
 
@@ -10920,12 +10928,8 @@ static void ast_decl_var_global_or_struct(struct context *ctx, struct ast *ast_g
 			report_error(INVALID_NAME, ast_next_name, " cannot be multi-declared.");
 		}
 
-		struct ast *struct_type_value = ast_value->data.expr_type.type;
-		bassert(struct_type_value->kind == AST_TYPE_STRUCT);
-		const bool has_base_type = struct_type_value->data.type_strct.base_type;
-
 		// Set to const type fwd decl
-		struct mir_type *fwd_decl_type = create_type_struct_incomplete(ctx, ctx->ast.current_entity_id, false, has_base_type);
+		struct mir_type *fwd_decl_type = create_type_struct_incomplete(ctx, ctx->ast.current_entity_id, false);
 
 		value = create_instr_const_type(ctx, ast_value, fwd_decl_type);
 		analyze_instr_rq(ctx, value);
@@ -11305,7 +11309,7 @@ struct mir_instr *ast_type_struct(struct context *ctx, struct ast *type_struct) 
 	const bool   is_multiple_return_type = type_struct->data.type_strct.is_multiple_return_type;
 
 	bassert(ast_members);
-	struct ast *ast_base_type = type_struct->data.type_strct.base_type;
+	struct ast *ast_base_type = type_struct->data.type_strct.base_type_expr;
 
 	mir_instrs_t *members = arena_alloc(ctx->small_array_arena);
 	struct scope *scope   = type_struct->data.type_strct.scope;
@@ -12052,7 +12056,7 @@ static void initialize_builtins(struct assembly *assembly) {
 	bt->t_scope                = create_type_named_scope(&ctx);
 	bt->t_void                 = create_type_void(&ctx);
 	bt->t_u8_ptr               = create_type_ptr(&ctx, bt->t_u8);
-	bt->t_string               = create_type_slice(&ctx, MIR_TYPE_STRING, &builtin_ids[BUILTIN_ID_TYPE_STRING], bt->t_u8_ptr, false);
+	bt->t_string               = create_type_struct_dynarr(&ctx, MIR_TYPE_STRING, &builtin_ids[BUILTIN_ID_TYPE_STRING], bt->t_u8_ptr);
 	bt->t_string_literal       = create_type_slice(&ctx, MIR_TYPE_SLICE, NULL, bt->t_u8_ptr, true);
 	bt->t_resolve_type_fn      = create_type_fn(&ctx, &(create_type_fn_args_t){.ret_type = bt->t_type});
 	bt->t_resolve_bool_expr_fn = create_type_fn(&ctx, &(create_type_fn_args_t){.ret_type = bt->t_bool});

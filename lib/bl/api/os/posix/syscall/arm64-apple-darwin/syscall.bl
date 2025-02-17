@@ -1,3 +1,5 @@
+// @Cleanup Seems to be deprecated on mac...
+
 SYS_syscall        : s64 : 0;
 SYS_exit           : s64 : 1;
 SYS_fork           : s64 : 2;

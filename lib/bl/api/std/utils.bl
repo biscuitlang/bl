@@ -83,19 +83,22 @@ is_valid_bitflags :: fn (T: type #comptime) bool #comptime {
 }
 #scope_public
 
+// @Incomplete 2025-02-13: Internally allocates, pass allocator.
+// @Incomplete 2025-02-13: May fail.
 /// Reads environment variable specified by `var` name. Result is empty in case no such variable was
 /// found or has no content. It's caller responsibility to delete result string.
 env_get :: fn (var: string_view) string {
-	out :: cast(*u8) C.getenv(strtoc(var));
-	if !out { return str_new(); }
-	return str_new(out);
+	result: string;
+	out :: C.getenv(strtoc(var));
+	if !out then return result;
+	str_append(&result, ctostr(out));
+	return result;
 }
 
+// @Incomplete 2025-02-13: Internally allocates, pass allocator.
 /// Sets environment variable.
 env_set :: fn (var: string_view, value: string_view) #inline {
-	tmp :: sprint("%=%", var, value);
-	defer str_delete(&tmp);
-	C.putenv(strtoc(tmp));
+	C.putenv(auto tprint("%=%\0", var, value).ptr);
 }
 
 /// Sets seed for `rand` or utility function [random_number](#random_number) based on current
@@ -167,7 +170,7 @@ next_pow_2 :: fn (n: s64) s64 #inline {
 /// Converts UTF8 encoded string to UTF32.
 utf8_to_utf32 :: fn (utf8_str: string_view, out_utf32_str: *[..]u32) Error {
 	assert(out_utf32_str);
-	if str_is_empty(utf8_str) { return OK; }
+	if utf8_str.len < 1 then return OK;
 	array_reserve(out_utf32_str, utf8_str.len);
 	converted_bytes: s32;
 	loop converted_bytes < utf8_str.len {
@@ -181,7 +184,7 @@ utf8_to_utf32 :: fn (utf8_str: string_view, out_utf32_str: *[..]u32) Error {
 }
 
 utf8_to_utf32_single_char :: fn (utf8: string_view) (utf32: u32, decoded_bytes: s32, state: Error) #inline {
-	if str_is_empty(utf8) { return 0, 0, error("Unable to convert UTF8 to UTF32, input character is empty."); }
+	if utf8.len < 1 then return 0, 0, error("Unable to convert UTF8 to UTF32, input character is empty.");
 	if utf8[0] < 0x80 { // single byte encoding
 		return auto utf8[0], 1, OK;
 	}
@@ -291,7 +294,7 @@ reinterpret_write_any :: fn (dest: Any, value: ?T) usize #inline {
 }
 
 /// Can be used as replacement for C ternary operator `expr ? a : b`.
-ternary :: fn (expr: bool, a: ?T, b: T) T #inline #obsolete "Use language builtin 'if expr then a else b' instead" {
+ternary :: fn (expr: bool, a: ?T, b: T) T #inline #obsolete "Since 0.13.0; Use language builtin 'if expr then a else b' instead." {
 	if expr { return a; }
 	return b;
 };

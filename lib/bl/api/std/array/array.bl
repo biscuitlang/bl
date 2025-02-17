@@ -8,11 +8,36 @@
 //! is no space reminding in currently allocated block, new one is allocated and all already pushed
 //! data are copied from old block to the new one.
 //!
+//! ```bl
+//! array :: struct {
+//!     len:             s64;
+//!     ptr:            *u8;
+//!     allocated_elems: usize;
+//!     allocator:      *Allocator;
+//! }
+//! ```
+//!
+//! Dynamic array is represented as `[..]T` type.
+//!
 //! ### Example
 //!
 //! ```bl
 //! @@@examples/dynamic_arrays.bl
 //! ```
+//!
+//! ## Preallocation Rules
+//!
+//! Underlying array buffer is allocated using provided allocator or `application_context.allocator`
+//! by default.
+//!
+//! - In case the array does not hold any previous allocation, at least `ARRAY_ALLOC_BLOCK_SIZE`
+//!   bytes are preallocated.
+//! - In case the array already holds preallocated buffer and new requested size fits into current
+//!   preallocated block, no allocation is done.
+//! - In case the array already holds preallocated buffer which is not large enought to hold
+//!   requested data size `ARRAY_GROW_FACTOR * requested size` is preallocated.
+//! - Failing allocation issues panic in current implementation, this might change in future, where
+//!   panic might be replaced by proper error handling.
 
 ARRAY_ALLOC_BLOCK_SIZE : usize = 32;
 ARRAY_GROW_FACTOR      : f32   = 1.5f;
@@ -29,24 +54,26 @@ _Array :: struct {
 /// Sets dynamic array to default state. If array contains already allocated memory `array_terminate`
 /// must be called first.
 ///
-/// Initial capacity can be specified by `n` (count of elements). If `n` is greater than 0, needed
-/// memory is preallocated using specified `allocator`; otherwise no allocation is done.
+/// Initial capacity can be specified by `capacity` (count of elements). If `capacity` is greater
+/// than 0, needed memory is preallocated using specified `allocator`; otherwise no allocation is done.
 ///
 /// It's usually enough to rely on default implicit initialization in case we don't need specify
-/// custom allocator or preallocate storage to specified `n` of entries.
-array_init :: fn (_arr: *[..]?T, n: s64 = 0, allocator: *Allocator = null) #inline {
+/// custom allocator or preallocate storage to specified `capacity` of entries.
+array_init :: fn (_arr: *[..]?T, capacity: s64 = 0, allocator: *Allocator = null) #inline {
+	assert(_arr, "Passed array is invalid.");
 	arr := cast(*_Array) _arr;
 	arr.ptr = null;
 	arr.len = 0;
 	arr.allocated_elems = 0;
 	arr.allocator = allocator;
-	array_reserve(_arr, n);
+	array_reserve(_arr, capacity);
 }
 
 /// Release memory allocated by dynamic array. This function is supposed to be called when dynamic
 /// array is no longer needed. Passed dynamic array is reset to default state.
 /// Calling `array_terminate` on already terminated or non-initialized array is allowed.
 array_terminate :: fn (_arr: *[..]?T) #inline {
+	assert(_arr, "Passed array is invalid.");
 	arr := cast(*_Array) _arr;
 	free(arr.ptr, arr.allocator);
 	arr.ptr = null;
@@ -65,6 +92,7 @@ array_push :: fn { impl_push_empty; impl_push; }
 
 #scope_private
 impl_push :: fn (arr: *[..]?T, v: T) *T #inline {
+	assert(arr, "Passed array is invalid.");
 	data      :: v;
 	elem_size :: sizeof(T);
 	dest      :: impl_push_empty(arr);
@@ -73,6 +101,7 @@ impl_push :: fn (arr: *[..]?T, v: T) *T #inline {
 }
 
 impl_push_empty :: fn (arr: *[..]?T) *T {
+	assert(arr, "Passed array is invalid.");
 	elem_size :: sizeof(T);
 	arr.len += 1;
 	_array_ensure_space(auto arr, elem_size, auto arr.len, alignof(T));
@@ -80,12 +109,14 @@ impl_push_empty :: fn (arr: *[..]?T) *T {
 }
 #scope_public
 
-/// Append all `data` at the dynamic array end. New heap allocation is done here only in cases when
-/// there is not enough memory allocated to store all values.
-/// Does nothing when `data.len < 1`.
+/// Append array with a new `data`. Underlying preallocated memory block might grow in case there
+/// is not enough space (See [Preallocation Rules](modules_array.html#Preallocation-Rules)).
+///
+/// Does nothing in case the input `data` is empty.
 array_push_all :: fn (_arr: *[..]?T, data: []T) {
+	assert(_arr, "Passed array is invalid.");
 	arr := cast(*_Array) _arr;
-	if data.len < 1 { return; }
+	if data.len < 1 then return;
 	elem_size :: sizeof(T);
 	arr.len += data.len;
 	_array_ensure_space(auto arr, elem_size, auto arr.len, alignof(T));
@@ -96,6 +127,7 @@ array_push_all :: fn (_arr: *[..]?T, data: []T) {
 /// Duplicate the last array element into `out` argument (if not null) and reduce the array length by
 /// one. Returns `true` in case the element was erased.
 array_pop :: fn (_arr: *[..]?T, out: *T = null) bool #inline {
+	assert(_arr, "Passed array is invalid.");
 	arr := cast(*_Array) _arr;
 	// Eventually assert?
 	if arr.len == 0 { return false; }
@@ -110,6 +142,7 @@ array_pop :: fn (_arr: *[..]?T, out: *T = null) bool #inline {
 /// Duplicate first array element into `out` location (if not null) and shift all other elements by
 /// one slot left (the ordeing is kept). Returns `true` in case the element was erased.
 array_pop_first :: fn (_arr: *[..]?T, out: *T = null) bool #inline {
+	assert(_arr, "Passed array is invalid.");
 	arr := cast(*_Array) _arr;
 	// Eventually assert?
 	if arr.len == 0 { return false; }
@@ -126,23 +159,47 @@ array_pop_first :: fn (_arr: *[..]?T, out: *T = null) bool #inline {
 ///
 /// In case `n` is 0 function immediately returns without any allocations.
 array_reserve :: fn (_arr: *[..]?T, n: s64) #inline {
+	assert(_arr, "Passed array is invalid.");
 	arr := cast(*_Array) _arr;
-	if n == 0 { return; }
-	if n < 0 { panic("Invalid array capacity!"); }
+	if n == 0 then return;
+	if n < 0  then panic("Invalid array capacity!");
 	_array_ensure_space(arr, sizeof(T), auto n, alignof(T));
 }
 
-array_resize :: fn (_arr: *[..]?T, n: s64) #inline {
-	array_reserve(_arr, n);
-	_arr.len = n;
+/// Resize array to required `len`. Behaviour of this function is similar to `array_reserve` except
+/// the array length is changed.
+///
+/// Buffer reallocation occours in case the current allocated buffer it not capable to handle
+/// requested length.
+///
+/// Setting the length to smaller values then length of current array content will shrink the
+/// array content, minimal possible length value is zero; setting negative value will cause
+/// panic. On the other hand, when array content is smaller then required length, the array is
+/// extended, but newly occupied buffer range remains uninitialized.
+///
+/// Returns original length.
+///
+/// ```bl
+/// @@@examples/array_resize.bl
+/// ```
+array_resize :: fn (_arr: *[..]?T, len: s64) s64 #inline {
+	assert(_arr, "Passed array is invalid.");
+	array_reserve(_arr, len);
+	swap(&_arr.len, &len);
+	return len;
 }
 
-/// Erase element on index `i`. Call to this function can cause reordering of an dynamic array.
+/// Erase element on index `i`. Call to this function may cause reordering of an dynamic array.
 /// Allocated memory is kept even if we erase entire dynamic array. Function invoke panic in case
-/// of index overflow.
+/// of index being out of array valid range <0, arr.len).
 array_erase :: fn (_arr: *[..]?T, i: s64) {
+	assert(_arr, "Passed array is invalid.");
 	arr := cast(*_Array) _arr;
-	if i >= arr.len { panic("Index overflow!"); }
+	if i >= arr.len || i < 0 {
+		panic("Array index out of range, index is % but array size is %.", i, arr.len);
+	}
+
+	// Remove last element.
 	if i == arr.len - 1 {
 		arr.len -= 1;
 		return;
@@ -156,11 +213,15 @@ array_erase :: fn (_arr: *[..]?T, i: s64) {
 	arr.len -= 1;
 }
 
-/// Erase element on index `i` and move all following elements left. This might be slow in case the array is
-/// large.
+/// Erase element on index `i` and move all following elements left using memmove. This might be slow in
+/// case the array is large. Function invoke panic in case of index being out of array valid range <0, arr.len).
 array_erase_keep_order :: fn (_arr: *[..]?T, i: s64) {
+	assert(_arr, "Passed array is invalid.");
 	arr := cast(*_Array) _arr;
-	if i >= arr.len { panic("Index overflow!"); }
+	if i >= arr.len || i < 0 {
+		panic("Array index out of range, index is % but array size is %.", i, arr.len);
+	}
+
 	if i == arr.len - 1 {
 		arr.len -= 1;
 		return;
@@ -174,6 +235,7 @@ array_erase_keep_order :: fn (_arr: *[..]?T, i: s64) {
 /// Erase element of the value `v` and return `true` in case element was erased. Note this might be expensive
 /// since all elements in array might be visited in the worst case.
 array_erase_value :: fn (arr: *[..]?T, v: T) bool {
+	assert(arr, "Passed array is invalid.");
 	loop i := 0; i < arr.len; i += 1 {
 		if (@arr)[i] == v {
 			array_erase(arr, i);
@@ -191,35 +253,72 @@ array_erase_value :: fn (arr: *[..]?T, v: T) bool {
 /// `array_push`.
 ///
 /// Order of already existing elements is preserved.
+///
+/// Panic is issued in case the `before_index` is out of range <0, arr.len>.
+///
+/// Returns index of newly inserted element.
 array_insert :: fn (_arr: *[..]?T, before_index: s64, value: T) s64 {
+	return array_insert_all(_arr, before_index, []T.{ 1, &value });
+}
+
+/// Inserts `values` at desired position. The position is defined as `before_index` pointing to the
+/// element in the input array before which the new content will be inserted, or simply defining
+/// position of the first element of the inserted values in the original array after the modification
+/// is done.
+///
+/// Valid range for the `before_index` is `<0, arr.len>`, values out of the range cause panic.
+///
+/// Function does nothing in case `values` slice is empty.
+///
+/// Returns index of the first element of inserted values.
+array_insert_all :: fn (_arr: *[..]?T, before_index: s64, values: []T) s64 {
+	assert(_arr, "Passed array is invalid.");
 	arr := cast(*_Array) _arr;
-	assert(arr);
-	assert(before_index >= 0 && before_index <= arr.len);
+	if before_index < 0 || before_index > arr.len {
+		panic("Array index out of range, index value is supposed to be in range <0, %>, provided index is %.", arr.len, before_index);
+	}
+	if values.len < 1 then return before_index;
+
 	if before_index == arr.len {
 		// Last (insert before the end).
-		array_push(_arr, value);
-		return _arr.len - 1;
+		array_push_all(_arr, values);
+		return before_index;
 	}
-	// Make room for one element at the end of the allocated block.
-	array_push(_arr);
-	elem_size :: sizeof(T);
+
+	elem_size    :: sizeof(T);
 	size_to_move :: (arr.len - before_index) * auto elem_size;
-	memmove(_array_get_elem_ptr(arr, elem_size, before_index+1), _array_get_elem_ptr(arr, elem_size, before_index), auto size_to_move);
-	dest_ptr :: _array_get_elem_ptr(auto arr, elem_size, before_index);
-	memcpy(dest_ptr, auto &value, elem_size);
+
+	// Allocate new space at the end of array.
+	len :: arr.len + values.len;
+	_array_ensure_space(arr, elem_size, auto len, alignof(T));
+	arr.len = len;
+
+	memmove(
+		_array_get_elem_ptr(arr, elem_size, before_index + values.len),
+		_array_get_elem_ptr(arr, elem_size, before_index),
+		auto size_to_move
+	);
+	memcpy(
+		_array_get_elem_ptr(arr, elem_size, before_index),
+		auto values.ptr,
+		elem_size * auto values.len
+	);
+
 	return before_index;
 }
 
-// @Cleanup: We tend to use directly arr.len = 0 in our code base, so we can remove this function eventually...
 /// Erase all elements in dynamic array but keep allocated memory.
-array_clear :: fn (_arr: *[..]?T) #inline {
+array_clear :: fn (_arr: *[..]?T) #inline #obsolete "Since 0.13.0; Use 'arr.len = 0' instead." {
+	assert(_arr, "Passed array is invalid.");
 	arr := cast(*_Array) _arr;
 	arr.len = 0;
 }
 
+/// Returns total number of allocated bytes used by the array.
 array_allocated_bytes :: fn (_arr: *[..]?T) usize #inline {
+	assert(_arr, "Passed array is invalid.");
 	arr :: cast(*_Array) _arr;
-	return arr.allocated_elems;
+	return arr.allocated_elems * sizeof(T);
 }
 
 // Mostly implementation private stuff, this is not private because it might be useful in some rare cases.

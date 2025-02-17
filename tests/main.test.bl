@@ -1,4 +1,6 @@
 #import "std/test"
+#import "std/print"
+#import "std/string"
 
 debug_allocator: DebugAllocator;
 
@@ -25,8 +27,6 @@ main :: fn () s32 {
 
 #import "std/debug_allocator"
 #import "std/pool"
-#import "std/print"
-#import "std/string"
 
 io :: #import "std/io";
 

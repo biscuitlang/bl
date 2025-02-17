@@ -470,7 +470,9 @@ typedef struct {
 	CRITICAL_SECTION lock;
 } once_flag;
 #define ONCE_FLAG_INIT \
-	{ 0, }
+	{                  \
+	    0,             \
+	}
 #else
 #define once_flag      pthread_once_t
 #define ONCE_FLAG_INIT PTHREAD_ONCE_INIT

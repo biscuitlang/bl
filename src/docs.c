@@ -122,6 +122,18 @@ void doc_decl_entity(struct context *ctx, struct ast *decl) {
 	str_buf_t name_tmp = get_tmp_str();
 	H1(ctx->stream, str_to_c(&name_tmp, name));
 	put_tmp_str(name_tmp);
+
+	if (value && value->kind == AST_EXPR_LIT_FN && isflag(decl->data.decl.flags, FLAG_OBSOLETE)) {
+		fprintf(ctx->stream, "!!! warning\n");
+		struct ast *msg = value->data.expr_fn.obsolete_warning_message;
+		if (msg) {
+			bassert(msg->kind == AST_EXPR_LIT_STRING);
+			fprintf(ctx->stream, "\tFunction is marked as obsolete. " STR_FMT "\n", STR_ARG(msg->data.expr_string.val));
+		} else {
+			fprintf(ctx->stream, "\tFunction is marked as obsolete.\n");
+		}
+	}
+
 	CODE_BLOCK_BEGIN(ctx->stream);
 	fprintf(ctx->stream, STR_FMT " :", STR_ARG(name));
 	if (type) {
@@ -240,9 +252,18 @@ void doc_type_struct(struct context *ctx, struct ast *type) {
 	if (!ctx->is_multi_return) {
 		if (type->data.type_strct.is_union) {
 			fprintf(ctx->stream, "union {");
-		} else if (type->data.type_strct.base_type) {
-			struct ast *base_ident = type->data.type_strct.base_type->data.ref.ident;
-			const str_t base_name  = base_ident ? base_ident->data.ident.id.str : make_str_from_c("UNKNOWN");
+		} else if (type->data.type_strct.base_type_expr) {
+			struct ast *base_type_expr = type->data.type_strct.base_type_expr;
+			str_t       base_name;
+
+			// @Incomplete 2025-02-10: We might want to extend this to handle more expressions kinds?
+			if (base_type_expr->kind == AST_REF) {
+				struct ast *base_ident = base_type_expr->data.ref.ident;
+				base_name              = base_ident ? base_ident->data.ident.id.str : make_str_from_c("UNKNOWN");
+			} else {
+				base_name = cstr("<EXPR>");
+			}
+
 			fprintf(ctx->stream, "struct #base " STR_FMT " {", STR_ARG(base_name));
 		} else {
 			fprintf(ctx->stream, "struct {");

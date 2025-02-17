@@ -75,16 +75,22 @@ os_ftick_ms :: fn () f64 #inline {
 	}
 }
 
+// @Incomplete 2025-02-13: Should take allocator and return string_view. TMP alloc by default?
 os_get_exec_path :: fn () string {
-	buf : [OS_PATH_MAX]u8 #noinit;
-	buf_len := cast(u32) buf.len;
-	if NSGetExecutablePath(auto buf.ptr, &buf_len) == -1 { return str_new(); }
-
-	return str_new(buf.ptr);
+	result: string;
+	// Resolve buffer size first.
+	required_buffer_size: u32;
+	NSGetExecutablePath(null, &required_buffer_size);
+	if required_buffer_size < 1 then return result;
+	str_resize(&result, auto required_buffer_size);
+	if NSGetExecutablePath(auto result.ptr, auto &result.len) == -1 then return result;
+	// Shring zero terminator.
+	result.len -= 1;
+	return result;
 }
 
-os_execute :: fn (command: string_view) s32 {
-	return C.WEXITSTATUS(C.system(strtoc(command)));
+os_execute :: fn (command: string_view, allocator : *Allocator = null) s32 {
+	return C.WEXITSTATUS(C.system(strtoc(command, allocator)));
 }
 
 os_get_last_error :: fn () (s32, string_view) #inline {
@@ -101,7 +107,12 @@ os_get_last_error2 :: fn () Error #inline {
 	return error(ec, str);
 }
 
-os_get_backtrace :: fn (skip_frames := 0 #maybe_unused, max_frame_count := 64 #maybe_unused) []CodeLocation {
+os_get_backtrace :: fn (skip_frames := 0 #maybe_unused, max_frame_count := 64 #maybe_unused, _allocator : *Allocator = null #maybe_unused) []CodeLocation {
+	if IS_COMPTIME_RUN {
+		print_warn("os_get_backtrace is not available in VM execution mode.");
+		return .{};
+	}
+
 	// @Incomplete <2022-08-21 Sun>: Here we tried to use 'backtrace' from the C library, but is seems not
 	// working correctly. Documentation claims that '-rdynamic' linker flag must be used, but still, the
 	// resulting array does not contain any captured frames.
@@ -112,8 +123,38 @@ os_get_backtrace :: fn (skip_frames := 0 #maybe_unused, max_frame_count := 64 #m
 	trace: [..]CodeLocation;
 	return trace;
 }
+
 __os_debug_break :: fn () #inline #compiler {
+	if IS_COMPTIME_RUN {
+		print_warn("__os_debug_break is not available in VM execution mode.");
+		return;
+	}
+
+	if !__os_is_debugger_present() then return;
 	C.raise(C.SIGTRAP);
+}
+
+__os_is_debugger_present :: fn () bool {
+	if IS_COMPTIME_RUN {
+		print_warn("__os_is_debugger_present is not available in VM execution mode.");
+		return false;
+	}
+
+	mib: [4]s32;
+	mib[0] = CTL_KERN;
+	mib[1] = KERN_PROC;
+	mib[2] = KERN_PROC_PID;
+	mib[3] = C.getpid();
+
+	info: kinfo_proc #noinit;
+	size : u64 : sizeof(info);
+
+	if sysctl(mib.ptr, auto mib.len, auto &info, &size, null, 0) == -1 {
+		// panic(os_get_last_error2());
+		return false;
+	}
+
+	return (info.kp_proc.p_flag & P_TRACED) != 0;
 }
 
 __os_write :: fn (fd: s32, buf: *u8, count: usize) s32 {
@@ -121,16 +162,13 @@ __os_write :: fn (fd: s32, buf: *u8, count: usize) s32 {
 }
 
 __os_abort :: fn () #compiler {
-	#if IS_DEBUG { __os_debug_break(); }
-	if application_context.abort_fn {
-		application_context.abort_fn();
-	} else {
-		__os_abort_default();
-	}
+	application_context.abort_fn();
 }
 
 __os_abort_default :: fn () {
-	if !IS_COMPTIME_RUN { print_backtrace(); }
+	debugbreak;
+
+	if !IS_COMPTIME_RUN then print_backtrace();
 	C.raise(C.SIGABRT);
 }
 
@@ -167,6 +205,11 @@ __os_start :: fn (argc: s64, argv: **u8, _: **u8) #entry {
 #scope_private
 #import "os/macos"
 #import "std/string"
+
+// @Incomplete 2025-02-09: Both modules are arm-only. We might consider support also
+// intel based macs; but aren't they too old now?
+#import "os/posix/sysctl"
+#import "os/posix/proc"
 
 io :: #import "std/io";
 C  :: #import "libc";

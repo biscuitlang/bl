@@ -20,8 +20,8 @@ RAND_MAX :: 0x7fff;
 
 SIGHUP  :: 1;
 SIGINT  :: 2;
-SIGQUIT :: 3; 
-SIGILL  :: 4; 
+SIGQUIT :: 3;
+SIGILL  :: 4;
 SIGTRAP :: 5;
 SIGABRT :: 6;
 
@@ -77,3 +77,18 @@ toupper :: fn (c: int) int #extern "toupper";
 setlocale :: fn (category: int, locale: *char) *char #extern "setlocale";
 
 __acrt_iob_func :: fn (i: int) void_ptr #extern "__acrt_iob_func";
+
+/*
+
+@Incomplete 2025-02-16: We need to set jmp_buf alignment to 16, for this we need implement
+                        #aling(N) directive first!
+
+_JBLEN :: 256;
+
+jmp_buf :: struct {
+	_: [_JBLEN]u8;
+}
+
+setjmp :: fn (buf: *jmp_buf) int #extern "setjmp";
+longjmp :: fn (buf: *jmp_buf, status: int) #extern "longjmp";
+*/

@@ -239,6 +239,8 @@ const char *scope_kind_name(const struct scope *scope) {
 		return "Private";
 	case SCOPE_FN:
 		return "Function";
+	case SCOPE_FN_GROUP:
+		return "FunctionGroup";
 	case SCOPE_FN_BODY:
 		return "Function";
 	case SCOPE_LEXICAL:

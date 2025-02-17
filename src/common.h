@@ -71,7 +71,7 @@ _Pragma("GCC diagnostic ignored \"-Wsign-conversion\"")
 #define _SHUT_UP_END  _Pragma("GCC diagnostic pop")
 #define UNUSED(x)     __attribute__((unused)) x
 #define _Thread_local __thread
-#define RESTRICT __restrict__
+#define RESTRICT      __restrict__
 
 #elif BL_COMPILER_MSVC
 
@@ -79,7 +79,7 @@ _Pragma("GCC diagnostic ignored \"-Wsign-conversion\"")
 #define _SHUT_UP_END   __pragma(warning(pop))
 #define UNUSED(x)      __pragma(warning(suppress : 4100)) x
 #define _Thread_local  __declspec(thread)
-#define RESTRICT __restrict
+#define RESTRICT       __restrict
 
 #else
 #error "Unsuported compiler!"
@@ -135,10 +135,9 @@ enum { BL_RED,
 		.ptr = (char *)(p), .len = (s32)(l) \
 	}
 
-#define cstr(P)                                             \
-	(str_t) {                                               \
-		.ptr = (P), .len = (sizeof(P) / sizeof((P)[0])) - 1 \
-	}
+#define cstr(P) \
+	(str_t){    \
+	    .ptr = (P), .len = (sizeof(P) / sizeof((P)[0])) - 1}
 
 #define make_str_from_c(p)                                \
 	(str_t) {                                             \
@@ -146,9 +145,8 @@ enum { BL_RED,
 	}
 
 #define str_empty \
-	(str_t) {     \
-		0         \
-	}
+	(str_t){      \
+	    0}
 
 // Non-owning string representation with cached size. Note that the string might not be zero
 // terminated. This way we can avoid calling strlen() every time and we can reduce amount of string
@@ -282,7 +280,7 @@ s32 bvsnprint(char *buf, s32 buf_len, const char *fmt, va_list args);
 typedef sarr_t(u8, 1) sarr_any_t;
 
 #define SARR_ZERO \
-	{ .len = 0, .cap = 0 }
+	{.len = 0, .cap = 0}
 
 #define sarradd(A) sarraddn(A, 1)
 #define sarraddn(A, N)                                                                     \

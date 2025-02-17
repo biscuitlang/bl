@@ -1,13 +1,389 @@
-foo :: fn () {
+// =================================================================================================
+// Polymorphic (Generic/Templated) Functions
+// =================================================================================================
+
+/*
+	Use 'blc --no-warning -run polymorph.bl' to execute this file.
+ *//
+
+#import "std/array"
+#import "std/print"
+#import "std/string"
+
+intro :: fn () {
+	// Consider the following example; we need simple 'compare' function to perform comparison of two
+	// values.
+	compare :: fn (a: s32, b: s32) bool {
+		return a == b;
+	};
+
+	// Now we can call this function with any numbers.
+	a1: s32 = 10;
+	b1: s32 = 20;
+	result1 := compare(a1, b1);
+	print("compare(%, %) = %\n", a1, b1, result1);
+
+	// This is great, but what if we want to do the same with floating point values?
+	a2: f32 = 10.f;
+	b2: f32 = 20.f;
+	// result2 := compare(a, b); // This wont compile, the function expects 's32' not 'f32' numbers.
+
+	// In this case we can write another 'compare' function taking 'f32' numbers instead of 's32'
+	// or we can use polymorphic function in this case and let the compiler do all work.
+	compare_poly :: fn (a: ?T, b: T) bool {
+		return a == b;
+	};
+
+	// This function does not exist until it's used somewhere, we can think about it as if it was
+	// a recipe for 'compare' function. Type '?T' (it can be any other name '?TValue', '?TKey' etc) is
+	// replaced with the actual type used for the argument 'a' when the function is called. The
+	// question mark before the type name 'T' here is important, it means basically that 'T' can
+	// be replaced. However, all other 'T' in the argument list are just references to the actual
+	// replaced type used for 'a' argument.
+	// So if type of 'a' argument is 's32', the type of 'b' is 's32' also.
+
+	// Use of the function.
+	a3: s32 = 10;
+	b3: s32 = 20;
+	result3 := compare_poly(a3, b3);
+	print("compare_poly(%, %) = %\n", a3, b3, result3);
+
+	// Since the type of 'b' is dependent on the type of 'a' argument, the following code would
+	// not compile.
+	a4: s32 = 10;
+	b4: f32 = 20.f; // using floating point number
+	// result4 := compare_poly(a4, b4); // Compiler error
+
+	/*
+
+		polymorph.bl:47:29: error(0035): No implicit cast for type 'f32' and 's32'.
+		   46 |     b4: f32 = 20.f; // using floating point number
+		>  47 |     result4 := compare_poly(a4, b4); // Compiler error
+			  |                                 ^^
+		   48 | }
+
+	 *//
+
+	// But we call call the same function with different value types now.
+	a5: f32 = 10.f;
+	b5: f32 = 20.f;
+	result5 := compare_poly(a5, b5);
+	print("compare_poly(%, %) = %\n", a5, b5, result5);
+
+	// One important thing to know is that we have internally two 'compare_poly' functions generated
+	// by the compiler. One for 's32' and one for 'f32' types. When we call 'compare_poly' again with
+	// 'f32' values, compiler will try to reuse already existing function if possible (same for
+	// 's32').
+
+	// What if we call the 'compare_poly' function with arguments which cannot be compared by '=='
+	// operator?
+
+	a6: string_view = "hello";
+	b6: string_view = "world";
+	// result6 := compare_poly(a6, b6); // Compiler error
+
+	/*
+
+		polymorph.bl:30:18: error(0035): Invalid operation for string_view type.
+		   29 |     compare_poly :: fn (a: ?T, b: T) bool {
+		>  30 |         return a == b;
+			  |                  ^^
+		   31 |     };
+
+		polymorph.bl:29:5: In polymorph of function with substitution: T = string_view;
+		   28 |     // or we can use polymorphic function in this case and let the compiler do all work.
+		>  29 |     compare_poly :: fn (a: ?T, b: T) bool {
+			  |     ^^^^^^^^^^^^
+		   30 |         return a == b;
+
+		polymorph.bl:79:16: First called here:
+		   78 |     b6: string_view = "world";
+		>  79 |     result6 := compare_poly(a6, b6);
+			  |                ^^^^^^^^^^^^
+		   80 | }
+
+	 *//
+
+	// We can handle such situations quite easily, see the next section.
 }
 
-// #scope_private
+specialization :: fn () {
+	// Remember that we have separate implementation of our function for every type internally.
+	// Keeping this in mind, we can create specialization for some types if needed. So how to make
+	// out 'compare' function to work even with strings?
 
-// #load "test3.bl"
+	compare_poly :: fn (a: ?T, b: T) bool {
+		are_the_same := false;
+		// #if is evaluated in compile-time and only one of the branches is actually "inserted" into
+		// the code based on the condition.
+		// One important think here to know is that the condition value must be known in compile-time,
+		// in this case the compiler knows that 'T' has been already replaced and does not change in
+		// the function-type specialization.
+		#if T == string_view {
+			// Do this when 'T' is 'string_view'.
+			are_the_same = str_match(a, b);
+		} else {
+			// Do this for all other types.
+			are_the_same = a == b;
+		}
+		return are_the_same;
+	};
 
-// bar2 :: fn () {
-// 	foo();
-// 	imprivate();
-// }
+
+	a1: s32 = 10;
+	b1: s32 = 10;
+
+	// The function is called with integers so the second branch is used when the function
+	// implementation is generated.
+	result1 := compare_poly(a1, b1);
+	print("compare_poly(%, %) = %\n", a1, b1, result1);
 
 
+	// The same but now with strings.
+	a2: string_view = "hello";
+	b2: string_view = "hello";
+
+	// The function is called with strings so the first branch is used when the function
+	// implementation is generated.
+	result2 := compare_poly(a2, b2);
+	print("compare_poly(%, %) = %\n", a2, b2, result2);
+
+
+	// So now we can call the "same" function with numbers and integers, but what if we call it with
+	// structure type?
+
+	Data :: struct {
+		a: s32;
+		b: bool;
+	};
+
+	a3: Data;
+	b3: Data;
+	// result3 := compare_poly(a3, b3); // Compiler error
+
+	/*
+
+		polymorph.bl:123:30: error(0035): Invalid operation for Data type.
+		   122 |             // Do this for all other types.
+		>  123 |             are_the_same = a == b;
+			   |                              ^^
+		   124 |         }
+
+		polymorph.bl:111:5: In polymorph of function with substitution: T = Data;
+		   110 |
+		>  111 |     compare_poly :: fn (a: ?T, b: T) bool {
+			   |     ^^^^^^^^^^^^
+		   112 |         are_the_same := false;
+
+		polymorph.bl:158:16: First called here:
+		   157 |     b3: Data;
+		>  158 |     result3 := compare_poly(a3, b3);
+			   |                ^^^^^^^^^^^^
+		   159 | }
+
+	 *//
+
+	// Yes, again the '==' operator is not valid for our 'Data' type. We can consider this as
+	// mistake in our program and introduce some meaningful error report.
+
+	compare_poly_safe :: fn (a: ?T, b: T) bool {
+		are_the_same := false;
+		#if T == string_view {
+			are_the_same = str_match(a, b);
+		} else {
+			is_number :: T == s32 || T == f32;
+			#if is_number {
+				are_the_same = a == b;
+			} else {
+				compiler_error("The compare_poly_safe function works only with numbers and strings!");
+			}
+		}
+		return are_the_same;
+	};
+
+	// Let's try it again:
+
+	a4: Data;
+	b4: Data;
+	// result4 := compare_poly_safe(a4, b4); // Compiler error
+
+	/*
+
+		polymorph.bl:194:18: error(0084): The compare_poly_safe function works only with numbers and strings!
+		   193 |             } else {
+		>  194 |                 compiler_error("The compare_poly_safe function works only with numbers and strings!");
+			   |                  ^^^^^
+		   195 |             }
+
+		polymorph.bl:185:5: In polymorph of function with substitution: T = Data;
+		   184 |
+		>  185 |     compare_poly_safe :: fn (a: ?T, b: T) bool {
+			   |     ^^^^^^^^^^^^^^^^^
+		   186 |         are_the_same := false;
+
+		polymorph.bl:204:16: First called here:
+		   203 |     b4: Data;
+		>  204 |     result4 := compare_poly_safe(a4, b4); // Compiler error
+			   |                ^^^^^^^^^^^^^^^^^
+		   205 | }
+
+	 *//
+}
+
+function_interface_matching :: fn () {
+	// The polymorph type matching can follow type patterns in function declaration. Consider the
+	// following example:
+
+	push_anything :: fn (array: *[..]?T, value: T) {
+		array_push(array, value);
+	};
+
+	// Such a function accept only pointers to dynamic arrays '*[..]' containing any type '?T'.
+
+	numbers: [..]s32;
+	strings: [..]string_view;
+
+	// Cleanup at the end of the scope.
+	defer array_terminate(&numbers);
+	defer array_terminate(&strings);
+
+	push_anything(&numbers, 10);
+	push_anything(&strings, "hello");
+	print("%\n", numbers);
+	print("%\n", strings);
+
+	// Now the 'array' argument must be pointer to any dynamic array every time and value type must
+	// be the same as the array element type.
+
+	// push_anything(numbers, 10); // Compiler error.
+
+	/*
+
+		polymorph.bl:235:33: error(0081): Cannot deduce polymorph function argument type 'T'. Expected is '*[..]T' but call-side argument type is '[..]s32'.
+		   234 |
+		>  235 |     push_anything :: fn (array: *[..]?T, value: T) {
+			   |                                 ^
+		   236 |         array_push(array, value);
+
+		polymorph.bl:256:19: Called from here.
+		   255 |
+		>  256 |     push_anything(numbers, 10); // Compiler error.
+			   |                   ^^^^^^^^
+		   257 | }
+
+	 */
+
+	// push_anything(&numbers, "hello"); // Compiler error.
+
+	/*
+
+		polymorph.bl:274:31: error(0035): No implicit cast for type 'string_view' and 's32'.
+		   273 |
+		>  274 |     push_anything(&numbers, "hello"); // Compiler error.
+			   |                              ^^^^^
+		   275 | }
+
+	 */
+}
+
+function_interface_matching_with_sub_types :: fn () {
+	// One really cool feature of BL is possibility to access "sub-types"; take a look at following
+	// example showing naive implementation of hash table:
+
+	Table :: struct {
+		keys: [..]s32;
+		values: [..]string_view;
+	};
+
+	// In general we can do following to get type of any structure member:
+
+	TypeOfKeys :: Table.keys;
+	TypeOfValues :: Table.values;
+	print("TypeOfKeys = %\n", TypeOfKeys);
+	print("TypeOfValues = %\n", TypeOfValues);
+
+	// Or go even more deeper.
+	TypeOfKey :: @Table.keys.ptr; // use @ to convert *T to T
+	print("TypeOfKey = %\n", TypeOfKey);
+
+	// There is probably no need to use this feature like this, but it can be really useful in
+	// polymorph functions.
+
+	// The following function can insert values into our table:
+	insert :: fn (table: *?T, key: @T.keys.ptr, value: @T.values.ptr) {
+		array_push(&table.keys, key);
+		array_push(&table.values, value);
+	};
+
+	// And we also want to lookup our values in the table...
+	get :: fn (table: *?T, key: @T.keys.ptr) @T.values.ptr {
+		default_value: @T.values.ptr; // zero initialized by default
+		loop i := 0; i < table.keys.len; i += 1 {
+			if table.keys[i] == key {
+				return table.values[i];
+			}
+		}
+		return default_value;
+	};
+
+	table: Table;
+	insert(&table, 10, "hello");
+	insert(&table, 20, "world");
+
+	v1 := get(&table, 10);
+	v2 := get(&table, 20);
+	print("v1 = %\n", v1);
+	print("v2 = %\n", v2);
+
+	// But wait! Why we should use polymorphic functions like this if type of table is always
+	// 'Table'?
+
+	// Because we can do this:
+
+	AnotherTable :: struct {
+		keys: [..]u64;
+		values: [..]bool;
+	};
+
+	another_table: AnotherTable;
+	insert(&another_table, 10, true);
+	insert(&another_table, 20, false);
+
+	v3 := get(&another_table, 10);
+	v4 := get(&another_table, 20);
+	print("v3 = %\n", v3);
+	print("v4 = %\n", v4);
+
+	// This is just one step from 'generic' hash table, because we can generate the type of the
+	// table in compile-time based on some inputs. This is not really part of this demo, but type of
+	// the table can be generated by compile-time function:
+
+	GenericTable :: fn (TKey: type #comptime, TValue: type #comptime) type #comptime {
+		// Return new type.
+		return struct {
+			keys: [..]TKey;
+			values: [..]TValue;
+		};
+	};
+
+	generic_table: GenericTable(s32, string_view);
+	// The function 'GenericTable' is called during compilation and it's result is used as constant; in
+	// this case it's type of out table.
+
+	// And we can still use the same functions to modify the table.
+	insert(&generic_table, 10, "hello");
+	insert(&generic_table, 20, "world");
+
+	v5 := get(&generic_table, 10);
+	v6 := get(&generic_table, 20);
+	print("v5 = %\n", v5);
+	print("v6 = %\n", v6);
+}
+
+main :: fn () s32 {
+	intro();
+	specialization();
+	function_interface_matching();
+	function_interface_matching_with_sub_types();
+	return 0;
+}

@@ -223,6 +223,38 @@ test_is_error :: fn (got_err: Error, expected_code: s32, loc := #call_location) 
 	stop(loc);
 }
 
+/*
+// @Incomplete 2025-02-12: We need long jump for this to work.
+
+// @Incomplete 2025-02-12: Comment!
+_expect_abort_context: struct {
+	prev_abort_handler: *fn();
+	was_hit: bool;
+} #thread_local;
+
+test_expect_abort_begin :: fn () {
+	ctx :: &_expect_abort_context;
+	ctx.prev_abort_handler = application_context.abort_fn;
+	ctx.was_hit = false;
+
+	application_context.abort_fn = &fn () {
+		_expect_abort_context.was_hit = true;
+	};
+}
+
+test_expect_abort_end :: fn (loc := #call_location) {
+	ctx :: &_expect_abort_context;
+	defer zeroinit(ctx);
+	print("KOKOT\n");
+
+	application_context.abort_fn = ctx.prev_abort_handler;
+	if ctx.was_hit then return;
+
+	print_err("Test block was expected to fail with abort.");
+	stop(loc);
+}
+*/
+
 /// Execute all registered test cases in current assembly. The `test_run` function uses compiler
 /// builtin `TEST_CASES` constant containing slice of all registered test cases in the current
 /// assembly (all functions with hash directive `#test`).
@@ -273,7 +305,8 @@ test_run :: fn (print_results := true, ansi_colors := false) s32 {
 
 	loop i := 0; i < cases.len; i += 1 {
 		case :: &cases[i];
-		name := str_new(&string_pool);
+		name: string #noinit;
+		str_init(&name, &string_pool);
 		str_concat(&name, case.file, ":", case.line, ": ", case.name);
 		array_push(&_queue, TestRun.{ case.func, name });
 	}
@@ -352,6 +385,7 @@ abort_handler :: fn () {
 	_current.runtime_ms = os_ftick_ms() - _start_time;
 	_current.passed = false;
 	print("[      | % ] % (% ms)\n", colorize("FAIL", 31), _current.name, _current.runtime_ms);
+	temporary_release();
 	thread_exit(1);
 	__os_abort_default();
 }
@@ -365,7 +399,11 @@ worker :: fn (_: *u8) s32 {
 		_current.runtime_ms = os_ftick_ms() - _start_time;
 		_current.passed = true;
 		print("[ % |      ] % (% ms)\n", colorize("PASS", 32), _current.name, _current.runtime_ms);
+
+		temporary_reset();
 	}
+
+	temporary_release();
 	return 0;
 }
 

@@ -49,3 +49,15 @@ struct_member_tags2 :: fn () #test {
 	test_eq(info.members[0].tag, U64_MAX);
 	test_eq(info.members[1].tag, U32_MAX);
 }
+
+T4 :: struct {
+	a: s32 #tag(10 + 2);
+	b: s32 #tag(A + 1);
+}
+
+struct_member_tags_arbitrary_expression :: fn () #test {
+	info := cast(*TypeInfoStruct) typeinfo(T4);
+	test_eq(info.members.len, 2);
+	test_eq(info.members[0].tag, 10 + 2);
+	test_eq(info.members[1].tag, A + 1);
+}

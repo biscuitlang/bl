@@ -142,8 +142,11 @@ static void print_variable(struct mir_var *var) {
 		printf("%-32.*s%-32s", var->linkage_name.len, var->linkage_name.ptr, "<UNKNONW_TYPE>");
 	}
 
-	vm_stack_ptr_t data = vm_read_var(current_vm, var);
-	print_data(var->value.type, data);
+	if (var->ref_count) {
+		vm_stack_ptr_t data = vm_read_var(current_vm, var);
+		print_data(var->value.type, data);
+	}
+
 	printf("\n");
 }
 
@@ -221,16 +224,15 @@ NEXT:
 		goto NEXT;
 	} else {
 		builder_error("Invalid command.");
-		builder.errorc = 0; // @Hack: reset error count.
-		buf[0]         = '\0';
+		buf[0] = '\0';
 		goto NEXT;
 	}
 #undef CMD
 }
 
-// =================================================================================================
+//
 // Public
-// =================================================================================================
+//
 
 void vmdbg_attach(struct virtual_machine *vm) {
 	bassert(current_vm == NULL);
@@ -245,6 +247,11 @@ void vmdbg_detach(void) {
 
 	current_vm = NULL;
 	state      = CONTINUE;
+
+	builder.errorc = 0; // @Hack 2025-02-16: Reset error count here on detach to prevent compilation
+	                    //                   failure in case there were error reported by debugger.
+	                    //                   This is kinda messy solution, we need probably separate
+	                    //                   error logging for debugger.
 }
 
 void vmdbg_notify_instr(struct mir_instr *instr) {

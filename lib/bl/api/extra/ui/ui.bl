@@ -78,10 +78,7 @@ get_default_style_ref :: fn {
 	};
 };
 
-begin :: fn () {
-	edit_tmp = str_new();
-	num_conversion_tmp = str_new();
-}
+begin :: fn () {}
 
 end :: fn () {
 	tbl_terminate(&buttons);
@@ -98,8 +95,8 @@ end :: fn () {
 	current_keyboard_focus = 0;
 	last_keyboard_focus    = 0;
 
-	str_delete(&edit_tmp);
-	str_delete(&num_conversion_tmp);
+	str_terminate(&edit_tmp);
+	str_terminate(&num_conversion_tmp);
 
 	reset_allocator(&context_pool);
 }
@@ -1272,7 +1269,7 @@ button_impl :: fn (rect: Rect, text := "", flags := ButtonFlags.DEFAULT, _style:
 	clicked, button_state :: button_begin(rect, flags, style, index, loc);
 	defer button_end();
 
-	if !str_is_empty(text) {
+	if text.len > 0 {
 		parent_rect :: peek();
 		label_style := style.label;
 
@@ -1471,7 +1468,7 @@ variants_item_impl :: fn (name: string_view, value: Any, flags := VariantsFlags.
 //
 
 intbox_item_impl :: fn (name: string_view, value: *s64, flags := TextboxFlags.DEFAULT, style: *TextboxStyle = null, index : u64 = 0, loc := #call_location) bool {
-	str_clear(&num_conversion_tmp);
+	num_conversion_tmp.len = 0;
 	str_append(&num_conversion_tmp, @value);
 	if textbox_item_impl(name, &num_conversion_tmp, flags | TextboxFlags.NUMBER_INPUT, style, null, index, loc) {
 		n, err :: strtos64(&num_conversion_tmp);
@@ -1494,7 +1491,7 @@ floatbox_item_impl :: fn (name: string_view, value: *f32, flags := TextboxFlags.
 }
 
 floatbox_impl :: fn (rect: Rect, value: *f32, flags := TextboxFlags.DEFAULT, style: *TextboxStyle = null, index : u64 = 0, loc := #call_location) bool {
-	str_clear(&num_conversion_tmp);
+	num_conversion_tmp.len = 0;
 	str_append(&num_conversion_tmp, fmt_real(@value, 3));
 	if textbox_impl(rect, &num_conversion_tmp, flags | TextboxFlags.NUMBER_INPUT, style, null, index, loc) {
 		n, err :: strtof64(&num_conversion_tmp);
@@ -1780,7 +1777,7 @@ handle_textbox_input :: fn (textbox: *Textbox, lines: []TextBoxLine, target_text
 
 	if api.is_key_press(CLIPBOARD_PASTE) {
 		orig_text := api.get_clipboard();
-		text :: str_new(orig_text, application_context.temporary_allocator);
+		text :: str_make(orig_text, application_context.temporary_allocator);
 		cut_textbox_selection(textbox, target_text);
 		str_replace_all(&text, '\r');
 
@@ -2098,7 +2095,7 @@ get_style :: fn {
 }
 
 unicode_char_to_utf8_with_fallback :: fn (c: u32, fallback: string_view = "?") string_view #inline {
-	tmp :: str_new(4, application_context.temporary_allocator);
+	tmp :: str_make(4, application_context.temporary_allocator);
 	err :: utf32_to_utf8_single_char(c, &tmp);
 	if err {
 		print_err(err);

@@ -1,0 +1,154 @@
+/* Type of the REQUEST argument to `ptrace.'  */
+PtraceRequest :: enum s32 {
+	/* Indicate that the process making this request should be traced.
+	All signals received by this process can be intercepted by its
+	parent, and its parent can use the other `ptrace' requests.  */
+	PTRACE_TRACEME = 0;
+
+	/* Return the word in the process's text space at address ADDR.  */
+	PTRACE_PEEKTEXT = 1;
+
+	/* Return the word in the process's data space at address ADDR.  */
+	PTRACE_PEEKDATA = 2;
+
+	/* Return the word in the process's user area at offset ADDR.  */
+	PTRACE_PEEKUSER = 3;
+
+	/* Write the word DATA into the process's text space at address ADDR.  */
+	PTRACE_POKETEXT = 4;
+
+	/* Write the word DATA into the process's data space at address ADDR.  */
+	PTRACE_POKEDATA = 5;
+
+	/* Write the word DATA into the process's user area at offset ADDR.  */
+	PTRACE_POKEUSER = 6;
+
+	/* Continue the process.  */
+	PTRACE_CONT = 7;
+
+	/* Kill the process.  */
+	PTRACE_KILL = 8;
+
+	/* Single step the process.  */
+	PTRACE_SINGLESTEP = 9;
+
+	/* Get all general purpose registers used by a processes.  */
+	PTRACE_GETREGS = 12;
+
+	/* Set all general purpose registers used by a processes.  */
+	PTRACE_SETREGS = 13;
+
+	/* Get all floating point registers used by a processes.  */
+	PTRACE_GETFPREGS = 14;
+
+	/* Set all floating point registers used by a processes.  */
+	PTRACE_SETFPREGS = 15;
+
+	/* Attach to a process that is already running. */
+	PTRACE_ATTACH = 16;
+
+	/* Detach from a process attached to with PTRACE_ATTACH.  */
+	PTRACE_DETACH = 17;
+
+	/* Get all extended floating point registers used by a processes.  */
+	PTRACE_GETFPXREGS = 18;
+
+	/* Set all extended floating point registers used by a processes.  */
+	PTRACE_SETFPXREGS = 19;
+
+	/* Continue and stop at the next entry to or return from syscall.  */
+	PTRACE_SYSCALL = 24;
+
+	/* Get a TLS entry in the GDT.  */
+	PTRACE_GET_THREAD_AREA = 25;
+
+	/* Change a TLS entry in the GDT.  */
+	PTRACE_SET_THREAD_AREA = 26;
+
+	/* Access TLS data.  */
+	PTRACE_ARCH_PRCTL = 30;
+
+	/* Continue and stop at the next syscall, it will not be executed.  */
+	PTRACE_SYSEMU = 31;
+
+	/* Single step the process, the next syscall will not be executed.  */
+	PTRACE_SYSEMU_SINGLESTEP = 32;
+
+	/* Execute process until next taken branch.  */
+	PTRACE_SINGLEBLOCK = 33;
+
+	/* Set ptrace filter options.  */
+	PTRACE_SETOPTIONS = 0x4200;
+
+	/* Get last ptrace message.  */
+	PTRACE_GETEVENTMSG = 0x4201;
+
+	/* Get siginfo for process.  */
+	PTRACE_GETSIGINFO = 0x4202;
+
+	/* Set new siginfo for process.  */
+	PTRACE_SETSIGINFO = 0x4203;
+
+	/* Get register content.  */
+	PTRACE_GETREGSET = 0x4204;
+
+	/* Set register content.  */
+	PTRACE_SETREGSET = 0x4205;
+
+	/* Like PTRACE_ATTACH, but do not force tracee to trap and do not affect
+	signal or group stop state.  */
+	PTRACE_SEIZE = 0x4206;
+
+	/* Trap seized tracee.  */
+	PTRACE_INTERRUPT = 0x4207;
+
+	/* Wait for next group event.  */
+	PTRACE_LISTEN = 0x4208;
+
+	/* Retrieve siginfo_t structures without removing signals from a queue.  */
+	PTRACE_PEEKSIGINFO = 0x4209;
+
+	/* Get the mask of blocked signals.  */
+	PTRACE_GETSIGMASK = 0x420a;
+
+	/* Change the mask of blocked signals.  */
+	PTRACE_SETSIGMASK = 0x420b;
+
+	/* Get seccomp BPF filters.  */
+	PTRACE_SECCOMP_GET_FILTER = 0x420c;
+
+	/* Get seccomp BPF filter metadata.  */
+	PTRACE_SECCOMP_GET_METADATA = 0x420d;
+
+	/* Get information about system call.  */
+	PTRACE_GET_SYSCALL_INFO = 0x420e;
+
+	/* Get rseq configuration information.  */
+	PTRACE_GET_RSEQ_CONFIGURATION = 0x420f;
+
+	/* Set configuration for syscall user dispatch.  */
+	PTRACE_SET_SYSCALL_USER_DISPATCH_CONFIG = 0x4210;
+
+	/* Get configuration for syscall user dispatch.  */
+	PTRACE_GET_SYSCALL_USER_DISPATCH_CONFIG = 0x421;
+}
+
+ptrace :: fn {
+	fn (request: PtraceRequest) C.long #inline {
+		return __ptrace(request);
+	};
+	fn (request: PtraceRequest, a: s64) C.long #inline {
+		return (cast(*fn(PtraceRequest, s64)C.long)&__ptrace)(request, a);
+	};
+	fn (request: PtraceRequest, a: s64, b: s64) C.long #inline {
+		return (cast(*fn(PtraceRequest, s64, s64)C.long)&__ptrace)(request, a, b);
+	};
+	fn (request: PtraceRequest, a: s64, b: s64, c: s64) C.long #inline {
+		return (cast(*fn(PtraceRequest, s64, s64, s64)C.long)&__ptrace)(request, a, b, c);
+	};
+}
+
+#scope_module
+C :: #import "libc";
+
+__ptrace :: fn (request: PtraceRequest) C.long #extern "ptrace";

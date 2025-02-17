@@ -69,8 +69,8 @@ os_ftick_ms :: fn () f64 #inline {
 	return (s*1000.) + (n/1000000.);
 }
 
-os_execute :: fn (command: string_view) s32 {
-	return C.WEXITSTATUS(C.system(strtoc(command)));
+os_execute :: fn (command: string_view, allocator : *Allocator = null) s32 {
+	return C.WEXITSTATUS(C.system(strtoc(command, allocator)));
 }
 
 os_get_last_error :: fn () (s32, string_view) #inline {
@@ -88,16 +88,16 @@ os_get_last_error2 :: fn () Error #inline {
 }
 
 os_get_exec_path :: fn () string {
-	buf : [OS_PATH_MAX]u8;
+	buf : [OS_PATH_MAX]C.char;
 	buf_len := cast(C.size_t) buf.len;
 	link :: "/proc/self/exe";
-	if C.readlink(auto link.ptr, auto buf.ptr, buf_len) == -1 {
-		return str_new();
+	if C.readlink(auto link.ptr, buf.ptr, buf_len) == -1 {
+		return .{};
 	}
-	return str_new(buf.ptr);
+	return str_make(buf.ptr);
 }
 
-os_get_backtrace :: fn (skip_frames := 0 #maybe_unused, max_frame_count := 64 #maybe_unused) []CodeLocation {
+os_get_backtrace :: fn (skip_frames := 0 #maybe_unused, max_frame_count := 64 #maybe_unused, _allocator : *Allocator = null #maybe_unused) []CodeLocation {
 	// @Incomplete <2022-08-21 Sun>: Here we tried to use 'backtrace' from the C library, but is seems not
 	// working correctly. Documentation claims that '-rdynamic' linker flag must be used, but still, the
 	// resulting array does not contain any captured frames.
@@ -110,7 +110,24 @@ os_get_backtrace :: fn (skip_frames := 0 #maybe_unused, max_frame_count := 64 #m
 }
 
 __os_debug_break :: fn () #inline #compiler {
+	if IS_COMPTIME_RUN {
+		print_warn("__os_debug_break is not available in VM execution mode.");
+		return;
+	}
+
+	if !__os_is_debugger_present() then return;
 	C.raise(C.SIGTRAP);
+}
+
+__os_is_debugger_present :: fn () bool {
+	using ptrace;
+	using PtraceRequest;
+	if ptrace(PTRACE_TRACEME, 0, 0, 0) == -1 {
+		ec :: os_get_last_error();
+		if ec == C.EPERM then return true;
+	}
+	ptrace(PTRACE_DETACH, 0, 0, 0);
+	return false;
 }
 
 __os_write :: fn (fd: s32, buf: *u8, count: usize) s32 {
@@ -118,16 +135,13 @@ __os_write :: fn (fd: s32, buf: *u8, count: usize) s32 {
 };
 
 __os_abort :: fn () #compiler {
-	#if IS_DEBUG { __os_debug_break(); }
-	if application_context.abort_fn {
-		application_context.abort_fn();
-	} else {
-		__os_abort_default();
-	}
+	application_context.abort_fn();
 }
 
 __os_abort_default :: fn () {
-	if !IS_COMPTIME_RUN { print_backtrace(); }
+	debugbreak;
+
+	if !IS_COMPTIME_RUN then print_backtrace();
 	C.raise(C.SIGABRT);
 }
 
@@ -158,8 +172,9 @@ __os_start :: fn (argc: s64, argv: **u8, _: **u8) s32 #entry {
 #scope_private
 #import "std/string"
 
-C  :: #import "libc";
-io :: #import "std/io";
+C      :: #import "libc";
+io     :: #import "std/io";
+ptrace :: #import "os/linux/sys/ptrace";
 
 STD_IN_STREAM_VTABLE :: io.StreamVTable.{
 	read = auto &std_io_read

@@ -93,6 +93,20 @@ master
 - Add --no-finished-report compiler flag to disable printing of final compilation time report.
 - Doctor now outputs warnings in examples.
 
+- #base directive now can take any arbitrary expression evaluating to 'type'. So we can do:
+
+	get_type :: fn (T: type #comptime) type #comptime {
+		return T;
+	}
+
+	Foo :: struct #base get_type(s32) {
+	}
+
+- Change string builtin to be a dynamic array.
+- Fix vmdbg causing compilation fail in case it reported error (for example unknown command
+  was used).
+- Fix vmdbg crash in case it tries to print unused variables.
+- `debugbreak` now detects if debugger is attached in runtime and does nothing in case it's not.
 
 [Modules]
 - Add math module.
@@ -100,23 +114,30 @@ master
 std/sync:
 - Mutex now can be explicitly initialized as recursive or non-recursive.
 
-std/string
-- Add tstrtoc function which automatically checks if passed string can be directly converted
-  to C string (checks zero terminator). In case the string is not zero-terminated,
-  implicit zero-terminated copy is created using temporary allocator.
-
-std/fs
+std/fs:
 - Fix invalid file descriptor reported by `copy` function on linux and mac.
+- read_entire_file now returns slice `[]u8` instead of dynamic array.
 
-std/test
+std/test:
 - test_run now output ANSI colored reports in case 'ansi_color' argument passed to the
   function is 'true'.
 
-build.bl
+build.bl:
 - Add link_static_library. This function just formats name of static library based on current
   platform and use append_linker_options to adjust linker arguments.
 - Add link_framework. For linking of macOS frameworks.
 - Add add_framework_path. For adding search path for macOS framewors.
+
+std/string:
+- Strings are no longer zero terminated. The string type is now only wrapper over dynamic
+  array with special semantics. In case zero-termination is required `strtoc` function is
+  supposed to be used to do the conversion.
+
+os/posix/syscall:
+- Removed support for arm64-apple-darwin target since `syscall` is deprecated on macos.
+
+os/linux/sys/ptrace:
+- Added.
 
 [Documentation]
 - Improved "Libraries" section in documentation.
@@ -125,6 +146,20 @@ build.bl
   github.
 - Fix syntax highlight issues caused by multiline comments in generated documentation.
 - Fix warnings in examples.
+
+[Deprecated]
+
+`array_clear`          - Use `arr.len = 0` instead.
+`pool_release`         - Use release_allocator instead.
+`pool_reset`           - Use reset_allocator instead.
+`str_clear`            - Use `str.len = 0` instead.
+`str_delete`           - Use `str_terminate` instead'.
+`str_is_empty`         - Use `str.len < 1` instead.
+`str_is_null_or_empty` - Use `str.len < 1 || str.ptr` instead.
+`str_is_null`          - Use `str.ptr == null` instead.
+`str_new`              - Use `str_make` or `str_init` instead.
+`ternary`              - Use language builtin `if expr then a else b`.
+`tstrtoc`              - Use `strtoc` instead.
 
 0.12.0
 ---------------------------------------------------------------------------------------

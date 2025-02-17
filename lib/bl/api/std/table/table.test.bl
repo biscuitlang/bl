@@ -58,36 +58,27 @@ DATA :: [50]string_view.{
 	"Guy Greene"
 };
 
-// =================================================================================================
-// Global
-// =================================================================================================
-g_tbl: Table(s32, s32);
+general :: fn () #test {
+	tbl: Table(s32, s32);
 
-test_insert :: fn () #test {
 	loop i := 0; i < TEST_COUNT; i += 1 {
-		value :: tbl_insert(&g_tbl, i, i);
+		value :: tbl_insert(&tbl, i, i);
 		test_eq(@value, i);
 	}
-}
 
-test_lookup :: fn () #test {
 	loop i := 0; i < TEST_COUNT; i += 1 {
-		value, found :: tbl_lookup(&g_tbl, i);
+		value, found :: tbl_lookup(&tbl, i);
 		test_true(found);
 		test_eq(value, auto i);
 	}
-}
 
-test_contains :: fn () #test {
 	loop i := 0; i < TEST_COUNT; i += 1 {
-		test_true(tbl_contains(&g_tbl, i));
+		test_true(tbl_contains(&tbl, i));
 	}
-	test_false(tbl_contains(&g_tbl, -1));
-	test_false(tbl_contains(&g_tbl, -2));
-}
+	test_false(tbl_contains(&tbl, -1));
+	test_false(tbl_contains(&tbl, -2));
 
-test_terminate :: fn () #test {
-	tbl_terminate(&g_tbl);
+	tbl_terminate(&tbl);
 }
 
 // =================================================================================================
@@ -224,6 +215,9 @@ test_erase :: fn () #test {
 	loop i := 0; i < TEST_COUNT; i += 1 {
 		test_true(tbl_erase(&tbl, i));
 	}
+
+	//zeromem(auto &test_erase2, sizeof(test_erase2));
+
 	test_eq(tbl.len, 0);
 }
 

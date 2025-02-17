@@ -25,8 +25,8 @@ dl_sym_test1 :: fn () #test {
 
 dl_test_lib :: fn () #test {
 	head :: path_split(#file);
-	lib_name :: str_new(head);
-	defer str_delete(&lib_name);
+	lib_name :: str_make(head);
+	defer str_terminate(&lib_name);
 	// @Incomplete: Platform specific
 	using Platform;
 	switch PLATFORM {

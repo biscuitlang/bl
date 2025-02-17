@@ -1,1 +1,1 @@
-for /R %%f in (*.c *.h *.cpp) do clang-format.exe -i "%%f"
+for /R %%f in (*.c *.h *.cpp) do ..\deps\clang-format\clang-format-19_windows-amd64.exe -i "%%f"

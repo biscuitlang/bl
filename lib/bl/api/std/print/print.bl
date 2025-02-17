@@ -86,9 +86,6 @@ eprint :: fn (format: string_view, args: ...) s32 {
 /// Returns count of characters written into buffer, this count does not include terminal character
 /// written at the end of the result string.
 ///
-/// !!! note
-///     String written into the buffer is always zero terminated.
-///
 /// See also [print](#print).
 bprint :: fn (buf: []u8, format: string_view, args: ...) s32 {
 	w :: _print_impl(buf, format, args);
@@ -105,12 +102,10 @@ bprint :: fn (buf: []u8, format: string_view, args: ...) s32 {
 /// !!! note
 ///     There is no need to explicitly release memory used by temporary string.
 ///
-/// !!! note
-///     Created string is always zero terminated.
-///
 /// See also [print](#print).
-tprint :: fn (format: string_view, args: ...) string #inline {
-	buf := str_new(format.len, application_context.temporary_allocator);
+tprint :: fn (format: string_view, args: ...) string_view #inline {
+	buf: string;
+	str_init(&buf, format.len, application_context.temporary_allocator);
 	_print_impl(&buf, format, args);
 	return buf;
 };
@@ -118,14 +113,13 @@ tprint :: fn (format: string_view, args: ...) string #inline {
 /// Write formatted input to the new heap-allocated string.
 ///
 /// !!! note
-///     Use `str_delete` to free memory used by string.
-///
-/// !!! note
-///     Created string is always zero terminated.
+///     Use `str_terminate` to free memory used by string.
 ///
 /// See also [print](#print).
+// @Incomplete 2025-02-13 return string by value + what allocator is used?
 sprint :: fn (format: string_view, args: ...) string {
-	buf := str_new(format.len);
+	buf: string;
+	str_init(&buf, format.len);
 	_print_impl(&buf, format, args);
 	return buf;
 }

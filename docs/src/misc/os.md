@@ -31,10 +31,10 @@ more elegant in most situations.
 ## os_execute
 
 ```bl
-os_execute :: fn (command: string_view) s32
+os_execute :: fn (command: string_view, _allocator : *Allocator = null) s32 #inline
 ```
 
-Execute shell `command` and return the command output state as an integer.
+Execute shell `command` and return the command output state as an integer. Internally allocates memory using passed `_allocator`, in case no allocator is specified, `application_context.temporary_allocator` is used.
 
 ## os_get_last_error
 
@@ -56,15 +56,12 @@ The path may be empty in case of an error.
 ## os_get_backtrace
 
 ```bl
-os_get_backtrace :: fn (skip_frames := 0, max_frame_count := 64) []CodeLocation
+os_get_backtrace :: fn (skip_frames := 0, max_frame_count := 64, _allocator : *Allocator = null) []CodeLocation
 ```
 
-Returns current execution stack trace obtained from native executable debug information. This feature is available only in `DEBUG` mode
-and only during native runtime. Output slice of [CodeLocations](modules_a.html#CodeLocation) contains stack frame records starting from the
-`os_get_backtrace` caller function + `skip_frames`. The `max_frame_count` can limit maximum count of obtained frames.
+Returns current execution stack trace obtained from native executable debug information. Function is available only in native binary execution mode. Output slice of [CodeLocations](modules_a.html#CodeLocation) contains stack frame records starting from the `os_get_backtrace` caller function + `skip_frames`. The `max_frame_count` can limit maximum count of obtained frames.
 
-!!! note
-    This function internally allocate using current application context temporary allocator.
+Internally allocates memory using passed `_allocator`, in case no allocator is specified, `application_context.temporary_allocator` is used.
 
 !!! warning
     Currently this function is implemented only on Windows and does nothing on all other supported platforms.

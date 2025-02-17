@@ -16,7 +16,7 @@ Thread :: Handle;
 /// Create and start new thread with specified `entry` function. Pointer to custom `ctx` can be
 /// optionally passed to the entry function here.
 thread_create :: fn (entry: ThreadEntryFn, ctx: *u8 = null) (Thread, Error) #inline {
-	assert(!IS_COMPTIME_RUN, "Multithreading is not supported in VM execution mode.");
+	if IS_COMPTIME_RUN then panic("Multithreading is not supported in VM execution mode.");
 	return create(entry, ctx);
 }
 

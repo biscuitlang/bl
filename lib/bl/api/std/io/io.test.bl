@@ -72,8 +72,8 @@ write_read_string :: fn () #test {
 	test_ok(e1);
 	test_eq(p1, 18);
 
-	dest := str_new();
-	defer str_delete(&dest);
+	dest: string;
+	defer str_terminate(&dest);
 	read_err :: read_string(&stream, &dest);
 	test_ok(read_err);
 	p2, e2 :: seek(&stream);
