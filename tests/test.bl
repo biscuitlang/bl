@@ -63,14 +63,13 @@ Static shit
 
 */
 
-foo :: fn (_: s32, _: string_view) {
-	debugbreak;
+Foo :: struct {
+	x: Bar;
 }
 
+Bar :: Foo;
+
 main :: fn () s32 {
-	n :: 10;
-	h :: "Hello!";
-	foo(n, h);
 	return 0;
 }
 

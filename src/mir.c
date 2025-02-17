@@ -9220,25 +9220,42 @@ void analyze_report_unresolved(struct context *ctx) {
 		for (usize j = 0; j < sarrlenu(wq); ++j) {
 			struct mir_instr *instr = sarrpeek(wq, j);
 			bassert(instr);
+
+			const char *msg = "Unknown symbol '" STR_FMT "'.";
+
 			str_t sym_name = str_empty;
 			switch (instr->kind) {
 			case MIR_INSTR_DECL_REF: {
 				struct mir_instr_decl_ref *ref = (struct mir_instr_decl_ref *)instr;
 				if (!ref->scope) continue;
 				if (!ref->rid) continue;
+
 				sym_name = ref->rid->str;
-				if (ref->scope_entry) continue;
+
+				if (ref->scope_entry) {
+					// 2025-02-17: This is a bit fragile & hacky solution to problem when we reference variable from
+					//             it'
+					const struct ast *parent_decl = ref->base.node ? ref->base.node->data.ref.used_in_decl : NULL;
+					if (!parent_decl) continue;
+					bassert(parent_decl->kind == AST_DECL_ENTITY);
+
+					if (parent_decl->data.decl.name != ref->scope_entry->node) continue;
+					msg = "Invalid use of the symbol '" STR_FMT "' in its own declaration.";
+				}
 				break;
 			}
 			default:
 				blog("Waiting instruction: %%%llu %s", instr->id, mir_instr_name(instr));
 				continue;
 			}
+
 			bassert(sym_name.len && "Invalid unresolved symbol name!");
-			report_error(UNKNOWN_SYMBOL, instr->node, "Unknown symbol '" STR_FMT "'.", STR_ARG(sym_name));
+			report_error(UNKNOWN_SYMBOL, instr->node, msg, STR_ARG(sym_name));
+
 			if (str_match(sym_name, builtin_ids[BUILTIN_ID_MAIN].str)) {
 				report_note(NULL, "Executable requires 'main' entry point function: \n\n\tmain :: fn () s32 {\n\t\treturn 0;\n\t}\n");
 			}
+
 			++reported;
 		}
 	}

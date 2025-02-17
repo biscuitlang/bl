@@ -1,0 +1,5 @@
+// @ERR_UNKNOWN_SYMBOL@
+Foo :: struct {
+	c: *fn (c: Foo);
+}
+main :: fn () s32 {	return 0; }

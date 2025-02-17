@@ -1,0 +1,6 @@
+// @ERR_UNKNOWN_SYMBOL@
+foo :: fn (_: s32) {}
+main :: fn () s32 {
+	f :: foo(f);
+	return 0;
+}

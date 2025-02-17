@@ -287,8 +287,9 @@ struct ast *parse_expr_ref(struct context *ctx) {
 	if (tok->sym != SYM_IDENT) return_zone(NULL);
 	struct ast *ident = parse_ident(ctx);
 	bassert(ident);
-	struct ast *ref     = ast_create_node(ctx->ast_arena, AST_REF, tok, scope_get(ctx));
-	ref->data.ref.ident = ident;
+	struct ast *ref            = ast_create_node(ctx->ast_arena, AST_REF, tok, scope_get(ctx));
+	ref->data.ref.ident        = ident;
+	ref->data.ref.used_in_decl = decl_get(ctx);
 	return_zone(ref);
 }
 
@@ -1827,9 +1828,10 @@ struct ast *parse_ref(struct context *ctx) {
 	struct token *tok   = tokens_peek(ctx->tokens);
 	struct ast   *ident = parse_ident(ctx);
 	if (!ident) return_zone(NULL);
-	struct ast *lhs     = ast_create_node(ctx->ast_arena, AST_REF, tok, scope_get(ctx));
-	lhs->data.ref.ident = ident;
-	struct ast *tmp     = NULL;
+	struct ast *lhs            = ast_create_node(ctx->ast_arena, AST_REF, tok, scope_get(ctx));
+	lhs->data.ref.ident        = ident;
+	lhs->data.ref.used_in_decl = decl_get(ctx);
+	struct ast *tmp            = NULL;
 	do {
 		tmp = parse_ref_nested(ctx, lhs);
 		lhs = tmp ? tmp : lhs;
@@ -1853,9 +1855,10 @@ struct ast *parse_ref_nested(struct context *ctx, struct ast *prev) {
 		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok, scope_get(ctx)));
 	}
 
-	struct ast *ref     = ast_create_node(ctx->ast_arena, AST_REF, tok, scope_get(ctx));
-	ref->data.ref.ident = ident;
-	ref->data.ref.next  = prev;
+	struct ast *ref            = ast_create_node(ctx->ast_arena, AST_REF, tok, scope_get(ctx));
+	ref->data.ref.ident        = ident;
+	ref->data.ref.next         = prev;
+	ref->data.ref.used_in_decl = decl_get(ctx);
 	return_zone(ref);
 }
 

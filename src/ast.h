@@ -146,6 +146,7 @@ struct ast_ident {
 struct ast_ref {
 	struct ast *ident;
 	struct ast *next;
+	struct ast *used_in_decl; // optional
 };
 
 struct ast_ublock {
