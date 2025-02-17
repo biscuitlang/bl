@@ -1,0 +1,8 @@
+// @ERR_UNKNOWN_SYMBOL@
+get :: fn (_: s32) (s32, s32) {
+	return 10, 20;
+}
+main :: fn () s32 {
+	a, b :: get(b);
+	return 0;
+}

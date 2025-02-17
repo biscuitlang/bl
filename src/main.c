@@ -327,7 +327,7 @@ int main(s32 argc, char *argv[]) {
 
 	const f64 start_time_ms = get_tick_ms();
 
-	opt.builder.error_limit = 10;
+	opt.builder.error_limit = 100;
 	opt.builder.doc_out_dir = "out";
 	builder_init(&opt.builder);
 	builder_log("Compiler version: %s, LLVM: %d", BL_VERSION, LLVM_VERSION_MAJOR);

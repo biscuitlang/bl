@@ -5496,13 +5496,13 @@ struct result analyze_instr_addrof(struct context *ctx, struct mir_instr_addrof 
 				             "Cannot take the address of polymorph function, its implementation "
 				             "may differ based on call side arguments, so the memory location may "
 				             "be ambiguous.");
-				report_note(fn->decl_node, "Function is declared here:");
+				report_note(fn->decl_node, "Function declared here:");
 			} else if (isflag(fn->generated_flavor, MIR_FN_GENERATED_MIXED)) {
 				report_error(EXPECTED_DECL,
 				             addrof->base.node,
 				             "Cannot take the address of compile-time generated function, the "
 				             "implementation may differ based on call-side arguments.");
-				report_note(fn->decl_node, "Function is declared here:");
+				report_note(fn->decl_node, "Function declared here:");
 			} else {
 				BL_UNREACHABLE;
 			}
@@ -5512,7 +5512,7 @@ struct result analyze_instr_addrof(struct context *ctx, struct mir_instr_addrof 
 			             addrof->base.node,
 			             "Cannot take the address of compile-time function, such a function exists "
 			             "only in compile-time and does not have any runtime representation.");
-			report_note(fn->decl_node, "Function is declared here:");
+			report_note(fn->decl_node, "Function declared here:");
 		}
 
 		// @Note: Here we increase function ref count.
@@ -5889,7 +5889,7 @@ struct result analyze_instr_decl_ref(struct context *ctx, struct mir_instr_decl_
 			// functions of local functions. (We try to implicitly capture those variables and this
 			// leads to invalid LLVM IR.)
 			report_error(INVALID_REFERENCE, ref->base.node, "Attempt to reference variable from parent function. This is not allowed.");
-			report_note(var->decl_node, "Variable declared here.");
+			report_note(var->decl_node, "Variable declared here:");
 			return_zone(FAIL);
 		}
 		ref->base.value.type        = create_type_ptr(ctx, type);
@@ -7941,7 +7941,7 @@ struct result analyze_call_slot(struct context *ctx, struct mir_instr_call *call
 	// Check if the provided function argument is compile-time known in case it's required.
 	if ((isflag(fn_arg->flags, FLAG_COMPTIME) || mir_is_comptime(&call->base)) && !mir_is_comptime(*call_arg_instr_ref)) {
 		report_error(EXPECTED_COMPTIME, (*call_arg_instr_ref)->node, "Function argument is supposed to be compile-time known.");
-		report_note(fn_arg->decl_node, "Argument is declared here:");
+		report_note(fn_arg->decl_node, "Argument declared here:");
 		return_zone(FAIL);
 	}
 
@@ -8382,7 +8382,7 @@ struct result analyze_call_stage_prescan_arguments(struct context *ctx, struct m
 INVALID_ARGS:
 	report_invalid_call_argument_count(ctx, call->base.node, func_argc, call_argc);
 	if (call->called_function && call->called_function->decl_node) {
-		report_note(call->called_function->decl_node, "Function is declared here:");
+		report_note(call->called_function->decl_node, "Function declared here:");
 	}
 	return_zone(FAIL);
 }
@@ -9211,6 +9211,60 @@ void analyze(struct context *ctx) {
 	return_zone();
 }
 
+// @Performance 2025-02-17: This might be expensive, we search throught all waiting references looking
+//                          for cycles. Luckily, we call this only in case the compilation failed...
+static bool analyze_detect_cyclic_deps(struct context *ctx, struct mir_instr_decl_ref *root_ref) {
+	bool result = false;
+
+	array(struct mir_instr_decl_ref *) queue = NULL;
+	arrput(queue, root_ref);
+
+	while (arrlen(queue)) {
+		struct mir_instr_decl_ref *ref = arrpop(queue);
+
+		const struct ast *parent_decl = ref->base.node ? ref->base.node->data.ref.used_in_decl : NULL;
+		if (!parent_decl) break;
+
+		bassert(parent_decl->kind == AST_DECL_ENTITY);
+
+		struct ast *ident = parent_decl->data.decl.name;
+
+		while (ident) {
+			bassert(ident->kind == AST_IDENT);
+
+			if (ident == root_ref->scope_entry->node) {
+				blog("Loop detected!");
+				result = true;
+				break;
+			}
+
+			const s32 waiting_group_index = tbl_lookup_index(ctx->analyze->waiting, ident->data.ident.id.hash);
+			ident                         = ident->data.ident.next;
+
+			if (waiting_group_index == -1) {
+				continue;
+			}
+
+			instrs_t *wq = &ctx->analyze->waiting[waiting_group_index].value;
+			bassert(wq);
+			for (usize j = 0; j < sarrlenu(wq); ++j) {
+				struct mir_instr *instr = sarrpeek(wq, j);
+				bassert(instr);
+
+				if (instr->kind != MIR_INSTR_DECL_REF) continue;
+				struct mir_instr_decl_ref *ref = (struct mir_instr_decl_ref *)instr;
+				if (!ref->scope) continue;
+				if (!ref->rid) continue;
+
+				arrput(queue, ref);
+			}
+		}
+	}
+
+	arrfree(queue);
+	return result;
+}
+
 void analyze_report_unresolved(struct context *ctx) {
 	s32 reported = 0;
 
@@ -9220,8 +9274,6 @@ void analyze_report_unresolved(struct context *ctx) {
 		for (usize j = 0; j < sarrlenu(wq); ++j) {
 			struct mir_instr *instr = sarrpeek(wq, j);
 			bassert(instr);
-
-			const char *msg = "Unknown symbol '" STR_FMT "'.";
 
 			str_t sym_name = str_empty;
 			switch (instr->kind) {
@@ -9233,14 +9285,12 @@ void analyze_report_unresolved(struct context *ctx) {
 				sym_name = ref->rid->str;
 
 				if (ref->scope_entry) {
-					// 2025-02-17: This is a bit fragile & hacky solution to problem when we reference variable from
-					//             it'
-					const struct ast *parent_decl = ref->base.node ? ref->base.node->data.ref.used_in_decl : NULL;
-					if (!parent_decl) continue;
-					bassert(parent_decl->kind == AST_DECL_ENTITY);
-
-					if (parent_decl->data.decl.name != ref->scope_entry->node) continue;
-					msg = "Invalid use of the symbol '" STR_FMT "' in its own declaration.";
+					if (analyze_detect_cyclic_deps(ctx, ref)) {
+						report_error(UNKNOWN_SYMBOL, instr->node, "Cyclic dependency introduced by '" STR_FMT "'. Entity declaration refers to itself in the initialization expression.", STR_ARG(sym_name));
+						report_note(ref->scope_entry->node, "Entity declared here:");
+						++reported;
+					}
+					continue;
 				}
 				break;
 			}
@@ -9250,7 +9300,7 @@ void analyze_report_unresolved(struct context *ctx) {
 			}
 
 			bassert(sym_name.len && "Invalid unresolved symbol name!");
-			report_error(UNKNOWN_SYMBOL, instr->node, msg, STR_ARG(sym_name));
+			report_error(UNKNOWN_SYMBOL, instr->node, "Unknown symbol '" STR_FMT "'.", STR_ARG(sym_name));
 
 			if (str_match(sym_name, builtin_ids[BUILTIN_ID_MAIN].str)) {
 				report_note(NULL, "Executable requires 'main' entry point function: \n\n\tmain :: fn () s32 {\n\t\treturn 0;\n\t}\n");
@@ -10942,7 +10992,7 @@ static void ast_decl_var_global_or_struct(struct context *ctx, struct ast *ast_g
 		const bool is_multidecl = ast_name->data.ident.next;
 		if (is_multidecl) {
 			const struct ast *ast_next_name = ast_name->data.ident.next;
-			report_error(INVALID_NAME, ast_next_name, " cannot be multi-declared.");
+			report_error(INVALID_NAME, ast_next_name, "Struct type cannot be multi-declared.");
 		}
 
 		// Set to const type fwd decl

@@ -63,11 +63,6 @@ Static shit
 
 */
 
-Foo :: struct {
-	x: Bar;
-}
-
-Bar :: Foo;
 
 main :: fn () s32 {
 	return 0;

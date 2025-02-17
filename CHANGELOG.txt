@@ -107,6 +107,9 @@ master
   was used).
 - Fix vmdbg crash in case it tries to print unused variables.
 - `debugbreak` now detects if debugger is attached in runtime and does nothing in case it's not.
+- Increased maximum error count to 100 by default. This can be still adjusted by `--error-limit`
+  command line argument or in `BuilderOptions.error_limit`.
+- Fix cyclic dependency detection for unresolved symbols.
 
 [Modules]
 - Add math module.
