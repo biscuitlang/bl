@@ -1,31 +1,4 @@
 
-/* CURRENT TODO
-
-module :: fn (target: *Target) #module_entry {
-    add_unit(target, "test.bl");
-}
-
-Module Import TODO
-
-x import module once
-x inject into current scope
-x module explicit namespacing
-  x with injection in local scope???
-  x should be constant?
-  x do not work with using!
-x use commas for global separators
-x scope lookup should scan injected scopes recursively?
-- do we need link_runtime
-x how to handle platform incompatible messages
-- builder api
-x remove import policy
-- config separator inconsistency with compiler default settings
-- #load and #import semicollon inconsistency
-- framework path on macos
-- Report module name in errors?
-
-*/
-
 /*
 FileNotFoundError :: struct {
 	filepath: string_view;
@@ -50,18 +23,6 @@ open_file :: fn (filepath: string_view) (handle: s32, err: !FileError) {
 // #import "std/print"
 */
 
-/*
-
-Static shit
-- We should not create scope nesting for static if.
-- Fix variables in static if block.
-- Global static if block.
-
-- Import in static if... eh
-- Static if essentially at any place?
-
-
-*/
 
 
 main :: fn () s32 {
