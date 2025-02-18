@@ -1816,6 +1816,7 @@ enum state emit_instr_unroll(struct context *ctx, struct mir_instr_unroll *unrol
 	LLVMValueRef llvm_src_ptr = unroll->src->llvm_value;
 	bassert(llvm_src_ptr);
 
+	bassert(unroll->index >= 0);
 	const unsigned int index = (const unsigned int)unroll->index;
 	unroll->base.llvm_value =
 	    LLVMBuildStructGEP2(ctx->llvm_builder,

@@ -651,7 +651,11 @@ void print_instr_call_loc(struct context *ctx, struct mir_instr_call_loc *loc) {
 void print_instr_unroll(struct context *ctx, struct mir_instr_unroll *unroll) {
 	print_instr_head(ctx, &unroll->base, "unroll");
 	print_comptime_value_or_id(ctx, unroll->src);
-	fprintf(ctx->stream, ".%d : ", unroll->index);
+	if (unroll->index == UNROLL_LAST_INDEX) {
+		fprintf(ctx->stream, ".LAST : ");
+	} else {
+		fprintf(ctx->stream, ".%d : ", unroll->index);
+	}
 	print_comptime_value_or_id(ctx, unroll->prev);
 }
 

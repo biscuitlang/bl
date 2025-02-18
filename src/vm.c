@@ -1438,12 +1438,17 @@ void interp_instr_unroll(struct virtual_machine *vm, struct mir_instr_unroll *un
 	bassert(unroll->src);
 	struct mir_type *src_type = unroll->src->value.type;
 	const s32        index    = unroll->index;
+
+	bassert(index >= 0);
 	bassert(src_type->kind == MIR_TYPE_PTR && "expected pointer");
+
 	src_type = mir_deref_type(src_type);
 	bassert(mir_is_composite_type(src_type) && "expected structure");
+
 	vm_stack_ptr_t ptr = fetch_value(vm, &unroll->src->value);
 	ptr                = VM_STACK_PTR_DEREF(ptr);
 	bassert(ptr);
+
 	vm_stack_ptr_t result = vm_get_struct_elem_ptr(vm->assembly, src_type, ptr, (u32)index);
 	stack_push(vm, (vm_stack_ptr_t)&result, unroll->base.value.type);
 }

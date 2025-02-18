@@ -47,6 +47,7 @@ static void print_private(struct ast *private, s32 pad, FILE *stream);
 static void print_module_private(struct ast *private, s32 pad, FILE *stream);
 static void print_public(struct ast *private, s32 pad, FILE *stream);
 static void print_call_loc(struct ast *call_loc, s32 pad, FILE *stream);
+static void print_err(struct ast *err, s32 pad, FILE *stream);
 static void print_block(struct ast *block, s32 pad, FILE *stream);
 static void print_unrecheable(struct ast *unr, s32 pad, FILE *stream);
 static void print_debugbreak(struct ast *debug_break, s32 pad, FILE *stream);
@@ -88,6 +89,7 @@ static void print_expr_lit_string(struct ast *lit, s32 pad, FILE *stream);
 static void print_expr_lit_fn(struct ast *fn, s32 pad, FILE *stream);
 static void print_expr_lit_fn_group(struct ast *group, s32 pad, FILE *stream);
 static void print_expr_call(struct ast *call, s32 pad, FILE *stream);
+static void print_expr_catch(struct ast *catch, s32 pad, FILE *stream);
 static void print_expr_elem(struct ast *elem, s32 pad, FILE *stream);
 
 // impl
@@ -141,6 +143,10 @@ void print_public(struct ast *public, s32 pad, FILE *stream) {
 
 void print_call_loc(struct ast *call_loc, s32 pad, FILE *stream) {
 	print_head(call_loc, pad, stream);
+}
+
+void print_err(struct ast *err, s32 pad, FILE *stream) {
+	print_head(err, pad, stream);
 }
 
 void print_unrecheable(struct ast *unr, s32 pad, FILE *stream) {
@@ -454,6 +460,12 @@ void print_expr_call(struct ast *call, s32 pad, FILE *stream) {
 	}
 }
 
+void print_expr_catch(struct ast *catch, s32 pad, FILE *stream) {
+	print_head(catch, pad, stream);
+	print_node(catch->data.expr_catch.call, pad + 1, stream);
+	print_node(catch->data.expr_catch.block, pad + 1, stream);
+}
+
 void print_expr_compound(struct ast *expr_compound, s32 pad, FILE *stream) {
 	print_head(expr_compound, pad, stream);
 
@@ -501,6 +513,10 @@ void print_node(struct ast *node, s32 pad, FILE *stream) {
 
 	case AST_CALL_LOC:
 		print_call_loc(node, pad, stream);
+		break;
+
+	case AST_EXPR_ERR:
+		print_err(node, pad, stream);
 		break;
 
 	case AST_IDENT:
@@ -620,6 +636,10 @@ void print_node(struct ast *node, s32 pad, FILE *stream) {
 
 	case AST_EXPR_CALL:
 		print_expr_call(node, pad, stream);
+		break;
+
+	case AST_EXPR_CATCH:
+		print_expr_catch(node, pad, stream);
 		break;
 
 	case AST_EXPR_ELEM:

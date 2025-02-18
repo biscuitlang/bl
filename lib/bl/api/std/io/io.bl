@@ -233,18 +233,22 @@ copy_stream :: fn (dest: *Stream, src: *Stream, buffer_size := 512 #comptime) Er
 get_stream_size :: fn (stream: *Stream) (size: s64, err: Error) {
 	using StreamLocator;
 
-	prev_location, err1  :: seek(stream, CURRENT);
-	if err1 then return 0, err1;
+	prev_location :: seek(stream, CURRENT) catch {
+		return 0, #err;
+	};
 	defer seek(stream, CURRENT, prev_location);
 
-	_, err2 :: seek(stream, BEGIN);
-	if err2 then return 0, err2;
+	seek(stream, BEGIN) catch {
+		return 0, #err;
+	};
 
-	size, err3 :: seek(stream, END);
-	if err3 then return 0, err3;
+	size :: seek(stream, END) catch {
+		return 0, #err;
+	};
 
-	_, err4 :: seek(stream, BEGIN);
-	if err4 then return 0, err4;
+	seek(stream, BEGIN) catch {
+		return 0, #err;
+	};
 
 	return size, OK;
 }

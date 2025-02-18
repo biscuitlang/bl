@@ -23,9 +23,61 @@ open_file :: fn (filepath: string_view) (handle: s32, err: !FileError) {
 // #import "std/print"
 */
 
+#import "std/print"
+#import "std/fs"
+#import "std/io"
 
+// open_file :: fn (_: string_view, i: s32) Error #inline {
+// 	return if i == 0 then error("Cannot open file!") else OK;
+// }
+
+// open_file2 :: fn (_: string_view, i: s32) (n: s32, err: Error) #inline {
+// 	if i == 0 {
+// 		return i, error("Cannot open file!");
+// 	}
+// 	return i, OK;
+// }
 
 main :: fn () s32 {
+
+	// n, err :: open_file2(#file, 0) catch {
+	// 	panic(#err);
+	// };
+
+	// open_file(#file, 1) catch {
+	// 	panic("A");
+	// };
+
+
+	stream :: open_file("blabla") catch {
+		print_err(#err);
+	};
+
+	defer close_file(&stream);
+
+	print("Done!\n");
+
+	/*
+	a, err1 :: open_file(#file, 0);
+	a       :: open_file(#file, 0);
+	_, err2 :: open_file(#file, 0);
+
+	err2 catch {
+		return false;
+	};
+
+	a :: open_file(#file, 0) catch;
+
+	a :: open_file(#file, 0) catch {
+		print_err(#err);
+		return #err;
+	};
+
+	a :: open_file(#file, 0) catch #err < 0;
+	a :: open_file(#file, 0) catch !#err {
+	};
+	*/
+
 	return 0;
 }
 

@@ -93,6 +93,7 @@ struct context {
 		struct mir_instr_block *continue_block;
 		struct id              *current_entity_id;
 		struct mir_instr       *current_fwd_struct_decl;
+		struct mir_instr_call  *current_catched_call;
 
 		array(defer_stack_t) defer_stack;
 		s32 current_defer_stack_index;
@@ -567,28 +568,31 @@ static struct mir_instr       *ast_expr_test_cases(struct context *ctx, struct a
 static struct mir_instr       *ast_expr_type(struct context *ctx, struct ast *type);
 static struct mir_instr       *ast_expr_deref(struct context *ctx, struct ast *deref);
 static struct mir_instr       *ast_expr_call(struct context *ctx, struct ast *call);
-static struct mir_instr       *ast_expr_elem(struct context *ctx, struct ast *elem);
-static struct mir_instr       *ast_expr_null(struct context *ctx, struct ast *nl);
-static struct mir_instr       *ast_expr_import(struct context *ctx, struct ast *import);
-static struct mir_instr       *ast_expr_lit_int(struct context *ctx, struct ast *expr);
-static struct mir_instr       *ast_expr_lit_float(struct context *ctx, struct ast *expr);
-static struct mir_instr       *ast_expr_lit_double(struct context *ctx, struct ast *expr);
-static struct mir_instr       *ast_expr_lit_bool(struct context *ctx, struct ast *expr);
-static struct mir_instr       *ast_expr_lit_fn(struct context      *ctx,
-                                               struct ast          *lit_fn,
-                                               struct ast          *decl_node,
-                                               str_t                explicit_linkage_name, // optional
-                                               bool                 is_global,
-                                               enum ast_flags       flags,
-                                               enum builtin_id_kind builtin_id);
-static struct mir_instr       *ast_expr_lit_fn_group(struct context *ctx, struct ast *group);
-static struct mir_instr       *ast_expr_lit_string(struct context *ctx, struct ast *lit_string);
-static struct mir_instr       *ast_expr_lit_char(struct context *ctx, struct ast *expr);
-static struct mir_instr       *ast_expr_binop(struct context *ctx, struct ast *binop);
-static struct mir_instr       *ast_expr_unary(struct context *ctx, struct ast *unop);
-static struct mir_instr       *ast_expr_compound(struct context *ctx, struct ast *cmp);
-static struct mir_instr       *ast_call_loc(struct context *ctx, struct ast *loc);
-static struct mir_instr       *ast_tag(struct context *ctx, struct ast *tag);
+static struct mir_instr       *ast_expr_catch(struct context *ctx, struct ast *catch);
+static struct mir_instr       *ast_expr_err(struct context *ctx, struct ast *err);
+
+static struct mir_instr *ast_expr_elem(struct context *ctx, struct ast *elem);
+static struct mir_instr *ast_expr_null(struct context *ctx, struct ast *nl);
+static struct mir_instr *ast_expr_import(struct context *ctx, struct ast *import);
+static struct mir_instr *ast_expr_lit_int(struct context *ctx, struct ast *expr);
+static struct mir_instr *ast_expr_lit_float(struct context *ctx, struct ast *expr);
+static struct mir_instr *ast_expr_lit_double(struct context *ctx, struct ast *expr);
+static struct mir_instr *ast_expr_lit_bool(struct context *ctx, struct ast *expr);
+static struct mir_instr *ast_expr_lit_fn(struct context      *ctx,
+                                         struct ast          *lit_fn,
+                                         struct ast          *decl_node,
+                                         str_t                explicit_linkage_name, // optional
+                                         bool                 is_global,
+                                         enum ast_flags       flags,
+                                         enum builtin_id_kind builtin_id);
+static struct mir_instr *ast_expr_lit_fn_group(struct context *ctx, struct ast *group);
+static struct mir_instr *ast_expr_lit_string(struct context *ctx, struct ast *lit_string);
+static struct mir_instr *ast_expr_lit_char(struct context *ctx, struct ast *expr);
+static struct mir_instr *ast_expr_binop(struct context *ctx, struct ast *binop);
+static struct mir_instr *ast_expr_unary(struct context *ctx, struct ast *unop);
+static struct mir_instr *ast_expr_compound(struct context *ctx, struct ast *cmp);
+static struct mir_instr *ast_call_loc(struct context *ctx, struct ast *loc);
+static struct mir_instr *ast_tag(struct context *ctx, struct ast *tag);
 
 // analyze
 static enum vm_interp_state evaluate(struct context *ctx, struct mir_instr *instr);
@@ -3353,7 +3357,7 @@ struct mir_instr *append_instr_arg(struct context *ctx, struct ast *node, unsign
 }
 
 struct mir_instr *append_instr_unroll(struct context *ctx, struct ast *node, struct mir_instr *src, struct mir_instr *prev, s32 index) {
-	bassert(index >= 0);
+	bassert(index >= 0 || index == UNROLL_LAST_INDEX);
 	bassert(src);
 	struct mir_instr_unroll *tmp = create_instr(ctx, MIR_INSTR_UNROLL, node);
 	tmp->src                     = ref_instr(src);
@@ -4588,17 +4592,24 @@ INVALID:
 struct result analyze_instr_unroll(struct context *ctx, struct mir_instr_unroll *unroll) {
 	zone();
 	struct mir_instr *src   = unroll->src;
-	const s32         index = unroll->index;
+	s32               index = unroll->index;
+
 	bassert(src && "Missing unroll input!");
-	bassert(index >= 0);
+	bassert(index >= 0 || index == UNROLL_LAST_INDEX);
 	bassert(src->value.type);
+
 	struct mir_type *src_type = src->value.type;
 	struct mir_type *type     = src_type;
+
 	if (mir_is_composite_type(src_type) && src_type->data.strct.is_multiple_return_type) {
+		if (index == UNROLL_LAST_INDEX) index = (s32)sarrlen(src_type->data.strct.members) - 1;
+		bassert(index >= 0);
+
 		if (index >= (s32)sarrlen(src_type->data.strct.members)) {
 			report_error(INVALID_MEMBER_ACCESS, unroll->base.node, "Expected more return values.");
 			return_zone(FAIL);
 		}
+
 		if (src->kind == MIR_INSTR_CALL) {
 			bassert(!mir_is_comptime(src) && "Comptime call is supposed to be converted to the constant!");
 			struct mir_instr_call *src_call = (struct mir_instr_call *)src;
@@ -4630,8 +4641,12 @@ struct result analyze_instr_unroll(struct context *ctx, struct mir_instr_unroll 
 		}
 	} else {
 		unroll->remove = true;
+		index          = 0;
 	}
 	bassert(type);
+	bassert(index >= 0);
+
+	unroll->index                  = index; // @Incomplete 2025-02-18: comment.
 	unroll->base.value.type        = type;
 	unroll->base.value.is_comptime = src->value.is_comptime;
 	unroll->base.value.addr_mode   = src->value.addr_mode;
@@ -10400,6 +10415,53 @@ struct mir_instr *ast_expr_call(struct context *ctx, struct ast *call) {
 	return append_instr_call(ctx, call, ast(ctx, ast_callee), args, false, ctx->ast.is_inside_recipe);
 }
 
+struct mir_instr *ast_expr_catch(struct context *ctx, struct ast *catch) {
+	struct ast *ast_call        = catch->data.expr_catch.call;
+	struct ast *ast_catch_block = catch->data.expr_catch.block;
+	bassert(ast_call);
+	bassert(ast_catch_block);
+
+	struct mir_fn          *fn         = ast_current_fn(ctx);
+	struct mir_instr_block *root_block = ast_current_block(ctx);
+	bassert(fn);
+
+	const bool is_unreachable = root_block->is_unreachable;
+
+	struct mir_instr_call *call = (struct mir_instr_call *)ast(ctx, ast_call);
+	bassert(call && call->base.kind == MIR_INSTR_CALL);
+
+	struct mir_instr_call *prev_catched_call = ctx->ast.current_catched_call;
+	ctx->ast.current_catched_call            = call;
+
+	struct mir_instr *cond = append_instr_unroll(ctx, catch, &call->base, NULL, UNROLL_LAST_INDEX);
+
+	struct mir_instr_block *catch_block    = append_block(ctx, fn, cstr("catch"), is_unreachable);
+	struct mir_instr_block *continue_block = append_block(ctx, fn, cstr("catch_continue"), is_unreachable);
+
+	append_instr_cond_br(ctx, catch, cond, catch_block, continue_block, false);
+
+	// catch block
+	set_current_block(ctx, catch_block);
+	ast(ctx, ast_catch_block);
+	struct mir_instr_block *last_block = ast_current_block(ctx);
+
+	if (!is_block_terminated(last_block)) {
+		set_current_block(ctx, last_block);
+		append_instr_br(ctx, get_last_instruction_node(last_block), continue_block);
+	}
+
+	set_current_block(ctx, continue_block);
+	ctx->ast.current_catched_call = prev_catched_call;
+
+	return &call->base;
+}
+
+struct mir_instr *ast_expr_err(struct context *ctx, struct ast *err) {
+	struct mir_instr_call *catched_call = ctx->ast.current_catched_call;
+	bassert(catched_call); // @Incomplete 2025-02-18: convert to error!
+	return append_instr_unroll(ctx, err, &catched_call->base, NULL, UNROLL_LAST_INDEX);
+}
+
 struct mir_instr *ast_expr_elem(struct context *ctx, struct ast *elem) {
 	struct ast *ast_arr   = elem->data.expr_elem.next;
 	struct ast *ast_index = elem->data.expr_elem.index;
@@ -10884,7 +10946,7 @@ static void ast_decl_var_local(struct context *ctx, struct ast *ast_local) {
 	struct mir_instr *type        = ast_type ? ast_create_type_resolver_call(ctx, ast_type) : NULL;
 	struct mir_instr *value       = ast(ctx, ast_value);
 	const bool        is_compiler = isflag(ast_local->data.decl.flags, FLAG_COMPILER);
-	const bool        is_unroll   = ast_value && ast_value->kind == AST_EXPR_CALL;
+	const bool        is_unroll   = ast_value && (ast_value->kind == AST_EXPR_CALL || ast_value->kind == AST_EXPR_CATCH);
 	const bool        is_mutable  = ast_local->data.decl_entity.mut;
 
 	struct scope *scope = ast_name->owner_scope;
@@ -11581,6 +11643,10 @@ struct mir_instr *ast(struct context *ctx, struct ast *node) {
 		return ast_expr_unary(ctx, node);
 	case AST_EXPR_CALL:
 		return ast_expr_call(ctx, node);
+	case AST_EXPR_CATCH:
+		return ast_expr_catch(ctx, node);
+	case AST_EXPR_ERR:
+		return ast_expr_err(ctx, node);
 	case AST_EXPR_ELEM:
 		return ast_expr_elem(ctx, node);
 	case AST_EXPR_NULL:

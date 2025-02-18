@@ -2515,9 +2515,11 @@ static void emit_instr(struct context *ctx, struct thread_context *tctx, struct 
 		struct mir_instr_unroll *unroll = (struct mir_instr_unroll *)instr;
 		const u64                vi_src = get_value(tctx, unroll->src);
 		bassert(peek(vi_src).kind == OFFSET);
-		struct mir_type *value_type  = mir_deref_type(unroll->src->value.type);
-		const s32        index       = unroll->index;
-		const s32        base_offset = (s32)vm_get_struct_elem_offset(assembly, value_type, index);
+		struct mir_type *value_type = mir_deref_type(unroll->src->value.type);
+		const s32        index      = unroll->index;
+		bassert(unroll->index >= 0);
+
+		const s32 base_offset = (s32)vm_get_struct_elem_offset(assembly, value_type, index);
 		set_value(tctx, instr, (struct x64_value){.kind = OFFSET, .offset = base_offset + peek_offset(vi_src)});
 		break;
 	}

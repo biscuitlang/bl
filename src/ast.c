@@ -62,6 +62,8 @@ const char *ast_get_name(const struct ast *n) {
 		return "CallLocation";
 	case AST_STMT_USING:
 		return "StmtUsing";
+	case AST_EXPR_ERR:
+		return "ExprErr";
 	case AST_STMT_RETURN:
 		return "StmtReturn";
 	case AST_STMT_DEFER:
@@ -112,6 +114,8 @@ const char *ast_get_name(const struct ast *n) {
 		return "ExprBinop";
 	case AST_EXPR_CALL:
 		return "ExprCall";
+	case AST_EXPR_CATCH:
+		return "ExprCatch";
 	case AST_EXPR_ELEM:
 		return "ExprElem";
 	case AST_EXPR_TEST_CASES:

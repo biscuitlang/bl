@@ -42,6 +42,8 @@
     AST_EXPR_CAST,
     AST_EXPR_BINOP,
     AST_EXPR_CALL,
+    AST_EXPR_CATCH,
+    AST_EXPR_ERR,
     AST_EXPR_ELEM,
     AST_EXPR_TEST_CASES,
     AST_EXPR_UNARY,
@@ -107,6 +109,8 @@
     struct ast_expr_cast       expr_cast;
     struct ast_expr_binop      expr_binop;
     struct ast_expr_call       expr_call;
+    struct ast_expr_catch      expr_catch;
+    struct ast_expr_err        expr_err;
     struct ast_expr_elem       expr_elem;
     struct ast_expr_unary      expr_unary;
     struct ast_expr_addrof     expr_addrof;

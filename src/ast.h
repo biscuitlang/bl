@@ -332,6 +332,11 @@ struct ast_expr_call {
 	ast_nodes_t *args;
 };
 
+struct ast_expr_catch {
+	struct ast *call;
+	struct ast *block;
+};
+
 struct ast_expr_elem {
 	struct ast *next;
 	struct ast *index;
@@ -352,6 +357,10 @@ struct ast_expr_deref {
 
 struct ast_tag {
 	struct ast *expr;
+};
+
+struct ast_expr_err {
+	void *_;
 };
 
 struct ast_call_loc {

@@ -171,14 +171,15 @@ static void setup_assembly_pipeline(struct assembly *assembly) {
 	}
 	if (t->syntax_only) return;
 	arrput(*stages, &linker_run);
-	if (t->no_analyze) return;
-	arrput(*stages, &mir_analyze_run);
-	if (t->print_scopes) arrput(*stages, &print_scopes_run);
-	if (t->vmdbg_enabled) arrput(*stages, &attach_dbg);
-	if (t->run) arrput(*stages, &entry_run);
-	if (t->kind == ASSEMBLY_BUILD_PIPELINE) arrput(*stages, build_entry_run);
-	if (t->run_tests) arrput(*stages, tests_run);
-	if (t->vmdbg_enabled) arrput(*stages, &detach_dbg);
+	if (!t->no_analyze) {
+		arrput(*stages, &mir_analyze_run);
+		if (t->print_scopes) arrput(*stages, &print_scopes_run);
+		if (t->vmdbg_enabled) arrput(*stages, &attach_dbg);
+		if (t->run) arrput(*stages, &entry_run);
+		if (t->kind == ASSEMBLY_BUILD_PIPELINE) arrput(*stages, build_entry_run);
+		if (t->run_tests) arrput(*stages, tests_run);
+		if (t->vmdbg_enabled) arrput(*stages, &detach_dbg);
+	}
 	if (t->emit_mir) arrput(*stages, &mir_writer_run);
 	if (t->no_analyze) return;
 	if (t->no_llvm) return;

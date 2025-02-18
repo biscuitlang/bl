@@ -125,6 +125,7 @@ static inline bool hash_directive_to_flags(enum hash_directive_flags hd, u32 *ou
 static struct ast *parse_expr_call(struct context *ctx, struct ast *prev);
 static struct ast *parse_expr_elem(struct context *ctx, struct ast *prev);
 static struct ast *parse_expr_compound(struct context *ctx, struct ast *prev);
+static struct ast *parse_expr_catch(struct context *ctx, struct ast *call);
 
 static inline union token_value get_token_value(struct context *ctx, struct token *token) {
 	bassert(token && token->value_index < arrlenu(ctx->tokens->values));
@@ -561,11 +562,14 @@ struct ast *parse_hash_directive(struct context *ctx, s32 expected_mask, enum ha
 	case HD_ENABLE_IF: {
 		struct ast *expr = parse_expr(ctx);
 		if (!expr) {
-			report_error(
-			    INVALID_DIRECTIVE, tok_directive, CARET_AFTER, "Expected comptime expression.");
+			report_error(INVALID_DIRECTIVE, tok_directive, CARET_AFTER, "Expected comptime expression.");
 			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_directive, scope_get(ctx)));
 		}
 		return_zone(expr);
+	}
+
+	case HD_ERR: {
+		return_zone(ast_create_node(ctx->ast_arena, AST_EXPR_ERR, tok_directive, scope_get(ctx)));
 	}
 	}
 INVALID:
@@ -1331,9 +1335,10 @@ struct ast *parse_expr_primary(struct context *ctx) {
 	case SYM_NULL:
 		expr = parse_expr_null(ctx);
 		break;
-	case SYM_HASH:
-		expr = parse_hash_directive(ctx, HD_FILE | HD_LINE | HD_IMPORT, NULL, true);
+	case SYM_HASH: {
+		expr = parse_hash_directive(ctx, HD_FILE | HD_LINE | HD_IMPORT | HD_ERR, NULL, true);
 		break;
+	}
 	case SYM_FN:
 		if ((expr = parse_expr_lit_fn(ctx))) break;
 		expr = parse_expr_lit_fn_group(ctx);
@@ -2298,8 +2303,7 @@ struct ast *parse_expr_call(struct context *ctx, struct ast *prev) {
 	struct token *tok            = tokens_consume_if(ctx->tokens, SYM_LPAREN);
 	if (!tok) return_zone(NULL);
 	if (location_token && location_token->sym != SYM_IDENT) location_token = tok;
-	struct ast *call =
-	    ast_create_node(ctx->ast_arena, AST_EXPR_CALL, location_token, scope_get(ctx));
+	struct ast *call         = ast_create_node(ctx->ast_arena, AST_EXPR_CALL, location_token, scope_get(ctx));
 	call->data.expr_call.ref = prev;
 	// parse args
 	bool        rq = false;
@@ -2334,7 +2338,27 @@ arg:
 		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok, scope_get(ctx)));
 	}
 
-	return_zone(call);
+	// catch block
+
+	struct ast *result = parse_expr_catch(ctx, call);
+	if (!result) result = call;
+
+	return_zone(result);
+}
+
+struct ast *parse_expr_catch(struct context *ctx, struct ast *call) {
+	bassert(call);
+	struct token *tok_catch = tokens_consume_if(ctx->tokens, SYM_CATCH);
+	if (!tok_catch) return NULL;
+
+	struct ast *block = parse_block(ctx, SCOPE_LEXICAL);
+	bassert(block); // @Incomplete 2025-02-18: Handle error!
+
+	struct ast *catch            = ast_create_node(ctx->ast_arena, AST_EXPR_CATCH, tok_catch, scope_get(ctx));
+	catch->data.expr_catch.call  = call;
+	catch->data.expr_catch.block = block;
+
+	return catch;
 }
 
 struct ast *parse_expr_null(struct context *ctx) {

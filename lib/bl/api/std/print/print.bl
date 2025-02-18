@@ -406,7 +406,7 @@ print_any :: fn (buf: *?T, cur: *s32, any: *Any) {
 			// Error
 			err := @ cast(**_Error) any.data;
 			if !err {
-				print_string(buf, cur, "null");
+				print_string(buf, cur, "OK");
 				return;
 			}
 			if err.code != ERR_UNKNOWN {

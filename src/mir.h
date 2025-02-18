@@ -26,6 +26,8 @@ vm_stack_ptr_t _mir_cev_read(struct mir_const_expr_value *value);
 #define MIR_CEV_READ_AS(T, src)        (*((T *)_mir_cev_read(src)))
 #define MIR_CEV_WRITE_AS(T, dest, src) (*((T *)(dest)->data) = (src))
 
+#define UNROLL_LAST_INDEX -1
+
 struct assembly;
 struct builder;
 struct unit;
