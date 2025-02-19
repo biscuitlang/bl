@@ -11,7 +11,6 @@ print_file_content :: fn (filepath: string_view) Error {
 	return OK;
 }
 
-
 div :: fn (a: s32, b: s32) (s32, Error) {
 	if b == 0 {
 		// Return error with message.
@@ -22,20 +21,20 @@ div :: fn (a: s32, b: s32) (s32, Error) {
 }
 
 
-
 main :: fn () s32 {
 
 	print_file_content("some_invalid_file_path") catch {
 		print_err($);
 	};
 
-	// loop i := -5; i <= 5; i += 1 {
-	// 	result, error :: div(10, i);
-	// 	if error {
-	// 		print("Error: %.\n", error);
-	// 	} else {
-	// 		print("Result is %.\n", result);
-	// 	}
-	// }
+	print_file_content(#file) catch {
+		print_err($);
+	};
+
+	result := div(10, 0) catch {
+		print_err($);
+	};
+	print("result = %\n", result);
+
 	return 0;
 }

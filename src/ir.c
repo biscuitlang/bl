@@ -1813,17 +1813,24 @@ enum state emit_instr_member_ptr(struct context *ctx, struct mir_instr_member_pt
 }
 
 enum state emit_instr_unroll(struct context *ctx, struct mir_instr_unroll *unroll) {
+	// @Incomplete 2025-02-19: Explain
+	const bool is_composit = mir_is_composite_type(mir_deref_type(unroll->src->value.type));
+
 	LLVMValueRef llvm_src_ptr = unroll->src->llvm_value;
 	bassert(llvm_src_ptr);
 
-	bassert(unroll->index >= 0);
-	const unsigned int index = (const unsigned int)unroll->index;
-	unroll->base.llvm_value =
-	    LLVMBuildStructGEP2(ctx->llvm_builder,
-	                        get_type(ctx, mir_deref_type(unroll->src->value.type)),
-	                        llvm_src_ptr,
-	                        index,
-	                        "");
+	if (is_composit) {
+		bassert(unroll->index >= 0);
+		const unsigned int index = (const unsigned int)unroll->index;
+		unroll->base.llvm_value =
+		    LLVMBuildStructGEP2(ctx->llvm_builder,
+		                        get_type(ctx, mir_deref_type(unroll->src->value.type)),
+		                        llvm_src_ptr,
+		                        index,
+		                        "");
+	} else {
+		unroll->base.llvm_value = llvm_src_ptr;
+	}
 	return STATE_PASSED;
 }
 

@@ -392,7 +392,7 @@ static void              append_current_block(struct context *ctx, struct mir_in
 static struct mir_instr *append_instr_designator(struct context *ctx, struct ast *node, struct ast *ident, struct mir_instr *value);
 static struct mir_instr *append_instr_arg(struct context *ctx, struct ast *node, unsigned i);
 static struct mir_instr *append_instr_using(struct context *ctx, struct ast *node, struct scope *owner_scope, struct mir_instr *scope_expr);
-static struct mir_instr *append_instr_unroll(struct context *ctx, struct ast *node, struct mir_instr *src, struct mir_instr *prev_dest, s32 index);
+static struct mir_instr *append_instr_unroll(struct context *ctx, struct ast *node, struct mir_instr *src, struct mir_instr *prev_dest, s32 index, bool force_call_tmp);
 static struct mir_instr *append_instr_set_initializer(struct context *ctx, struct ast *node, struct mir_instr *dest, struct mir_instr *src);
 static struct mir_instr *append_instr_compound(struct context *ctx, struct ast *node, struct mir_instr *type, mir_instrs_t *values, bool is_multiple_return_value);
 static struct mir_instr *append_instr_compound_impl(struct context *ctx, struct ast *node, struct mir_type *type, mir_instrs_t *values);
@@ -644,6 +644,7 @@ static const analyze_stage_fn_t analyze_slot_conf_default[] = {
 
 static const analyze_stage_fn_t analyze_slot_conf_full[] = {
     analyze_stage_propagate_compound_type,
+    analyze_stage_unroll,
     analyze_stage_set_volatile_expr,
     analyze_stage_set_null,
     analyze_stage_set_auto,
@@ -3368,13 +3369,14 @@ struct mir_instr *append_instr_arg(struct context *ctx, struct ast *node, unsign
 	return &tmp->base;
 }
 
-struct mir_instr *append_instr_unroll(struct context *ctx, struct ast *node, struct mir_instr *src, struct mir_instr *prev, s32 index) {
+struct mir_instr *append_instr_unroll(struct context *ctx, struct ast *node, struct mir_instr *src, struct mir_instr *prev, s32 index, bool force_call_tmp) {
 	bassert(index >= 0 || index == UNROLL_LAST_INDEX);
 	bassert(src);
 	struct mir_instr_unroll *tmp = create_instr(ctx, MIR_INSTR_UNROLL, node);
 	tmp->src                     = ref_instr(src);
 	tmp->prev                    = ref_instr(prev);
 	tmp->index                   = index;
+	tmp->force_call_tmp          = force_call_tmp;
 	append_current_block(ctx, &tmp->base);
 	return &tmp->base;
 }
@@ -4613,11 +4615,17 @@ struct result analyze_instr_unroll(struct context *ctx, struct mir_instr_unroll 
 	struct mir_type *src_type = src->value.type;
 	struct mir_type *type     = src_type;
 
-	if (mir_is_composite_type(src_type) && src_type->data.strct.is_multiple_return_type) {
-		if (index == UNROLL_LAST_INDEX) index = (s32)sarrlen(src_type->data.strct.members) - 1;
+	const bool is_composit    = mir_is_composite_type(src_type);
+	const bool is_multireturn = src_type->data.strct.is_multiple_return_type;
+	const bool has_tmp_var    = src->kind == MIR_INSTR_CALL && ((struct mir_instr_call *)src)->tmp_var;
+
+	if ((is_composit && is_multireturn) || unroll->force_call_tmp || has_tmp_var) {
+		if (index == UNROLL_LAST_INDEX) {
+			index = is_composit ? ((s32)sarrlen(src_type->data.strct.members) - 1) : 0;
+		}
 		bassert(index >= 0);
 
-		if (index >= (s32)sarrlen(src_type->data.strct.members)) {
+		if (mir_is_composite_type(src_type) && index >= (s32)sarrlen(src_type->data.strct.members)) {
 			report_error(INVALID_MEMBER_ACCESS, unroll->base.node, "Expected more return values.");
 			return_zone(FAIL);
 		}
@@ -4641,16 +4649,16 @@ struct result analyze_instr_unroll(struct context *ctx, struct mir_instr_unroll 
 			insert_instr_before(&unroll->base, tmp_var);
 			analyze_instr_rq(ctx, tmp_var);
 			unroll->src = ref_instr(tmp_var);
-			type        = create_type_ptr(ctx, mir_get_struct_elem_type(src_type, index));
+			if (!is_composit) unroll->remove = true; // @Incomplete 2025-02-19: Explain.
 		} else if (src->kind == MIR_INSTR_CONST) {
 			src = unref_instr(src);
 			if (src->ref_count == 0) {
 				erase_instr(src);
 			}
-			type = create_type_ptr(ctx, mir_get_struct_elem_type(src_type, index));
 		} else {
 			babort("Invalid unroll source instruction!");
 		}
+		type = create_type_ptr(ctx, is_composit ? mir_get_struct_elem_type(src_type, index) : src_type);
 	} else {
 		unroll->remove = true;
 		index          = 0;
@@ -6328,11 +6336,10 @@ static enum stage_state analyze_stage_check_catch(struct context *ctx, struct mi
 	struct mir_type *input_type = (*input)->value.type;
 	bassert(input_type);
 	bassert(parent_instr && parent_instr->kind == MIR_INSTR_COND_BR);
-
 	if (mir_type_cmp(input_type, ctx->builtin_types->t__Error_ptr)) return ANALYZE_STAGE_CONTINUE;
 
-	error_types(ctx, input_type, ctx->builtin_types->t__Error_ptr, parent_instr->node, "Invalid error value of type '%s' captured by catch statement; type of the last returned value from the function must be '%s' aka 'Error'.");
-
+	error_types(ctx, input_type, ctx->builtin_types->t__Error_ptr, parent_instr->node, "Invalid error value of type '%s' captured by catch statement; "
+	                                                                                   "type of the last returned value from the function must be '%s' aka 'Error'.");
 	return ANALYZE_STAGE_FAILED;
 }
 
@@ -10482,7 +10489,7 @@ struct mir_instr *ast_expr_catch(struct context *ctx, struct ast *catch) {
 	ctx->ast.current_catched_call            = call;
 
 	// Optional custom condition.
-	struct mir_instr *cond = append_instr_unroll(ctx, catch, &call->base, NULL, UNROLL_LAST_INDEX);
+	struct mir_instr *cond = append_instr_unroll(ctx, catch, &call->base, NULL, UNROLL_LAST_INDEX, true);
 
 	struct mir_instr_block *catch_block    = append_block(ctx, fn, cstr("catch"), is_unreachable);
 	struct mir_instr_block *continue_block = append_block(ctx, fn, cstr("catch_continue"), is_unreachable);
@@ -10512,7 +10519,7 @@ struct mir_instr *ast_expr_err(struct context *ctx, struct ast *err) {
 		report_error(INVALID_EXPR, err, "Error capture cannot be used outside of error handling block or expression introduced by 'catch' statement.");
 		return NULL;
 	}
-	return append_instr_unroll(ctx, err, &catched_call->base, NULL, UNROLL_LAST_INDEX);
+	return append_instr_unroll(ctx, err, &catched_call->base, NULL, UNROLL_LAST_INDEX, true);
 }
 
 struct mir_instr *ast_expr_elem(struct context *ctx, struct ast *elem) {
@@ -11034,7 +11041,7 @@ static void ast_decl_var_local(struct context *ctx, struct ast *ast_local) {
 		enum builtin_id_kind builtin_id = BUILTIN_ID_NONE;
 		if (is_compiler) builtin_id = check_symbol_marked_compiler(ctx, ast_current_name);
 		if (is_unroll) {
-			current_value = append_instr_unroll(ctx, ast_current_name, value, prev_var, index++);
+			current_value = append_instr_unroll(ctx, ast_current_name, value, prev_var, index++, false);
 		} else if (prev_var) {
 			current_value = append_instr_decl_direct_ref(ctx, NULL, prev_var);
 		}
@@ -11124,7 +11131,7 @@ static void ast_decl_var_global_or_struct(struct context *ctx, struct ast *ast_g
 			set_current_block(ctx, init_block);
 			struct mir_instr *current_init = init_value;
 			if (is_unroll) {
-				current_init = append_instr_unroll(ctx, ast_current_name, current_init, NULL, index++);
+				current_init = append_instr_unroll(ctx, ast_current_name, current_init, NULL, index++, false);
 			}
 			append_instr_set_initializer(ctx, ast_current_name, decl, current_init);
 			set_current_block(ctx, prev_block);

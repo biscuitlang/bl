@@ -44,9 +44,12 @@ foo :: fn (n: s32) Error {
 
 
 main :: fn () s32 {
-	foo(10) catch {
-		print("%\n", $);
+	err :: foo(10) catch {
+		print_err($);
+		// print("%\n", $);
 	};
+
+	print_err(err);
 
 	// b := false;
 	// if b then b else a := 20;
@@ -61,11 +64,12 @@ main :: fn () s32 {
 
 	// open_file("fasda") catch;
 
-	// open_file returns Stream, Error
-	// stream :: open_file("fasda") catch {
-	// 	print("%\n", @typeinfo($));
-	// };
-	// defer close_file(&stream);
+	stream :: open_file("fasda") catch {
+		// print("%\n", $);
+		print_err($);
+	};
+
+	close_file(&stream);
 
 	// stream2 :: open_file("fasda") catch panic($);
 	// defer close_file(&stream2);
