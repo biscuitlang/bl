@@ -10418,6 +10418,7 @@ struct mir_instr *ast_expr_call(struct context *ctx, struct ast *call) {
 struct mir_instr *ast_expr_catch(struct context *ctx, struct ast *catch) {
 	struct ast *ast_call        = catch->data.expr_catch.call;
 	struct ast *ast_catch_block = catch->data.expr_catch.block;
+	struct ast *ast_cond        = catch->data.expr_catch.cond;
 	bassert(ast_call);
 	bassert(ast_catch_block);
 
@@ -10433,7 +10434,13 @@ struct mir_instr *ast_expr_catch(struct context *ctx, struct ast *catch) {
 	struct mir_instr_call *prev_catched_call = ctx->ast.current_catched_call;
 	ctx->ast.current_catched_call            = call;
 
-	struct mir_instr *cond = append_instr_unroll(ctx, catch, &call->base, NULL, UNROLL_LAST_INDEX);
+	// Optional custom condition.
+	struct mir_instr *cond = NULL;
+	if (ast_cond) {
+		cond = ast(ctx, ast_cond);
+	} else {
+		cond = append_instr_unroll(ctx, catch, &call->base, NULL, UNROLL_LAST_INDEX);
+	}
 
 	struct mir_instr_block *catch_block    = append_block(ctx, fn, cstr("catch"), is_unreachable);
 	struct mir_instr_block *continue_block = append_block(ctx, fn, cstr("catch_continue"), is_unreachable);

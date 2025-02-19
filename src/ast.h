@@ -334,6 +334,7 @@ struct ast_expr_call {
 
 struct ast_expr_catch {
 	struct ast *call;
+	struct ast *cond; // optional
 	struct ast *block;
 };
 

@@ -1339,6 +1339,12 @@ struct ast *parse_expr_primary(struct context *ctx) {
 		expr = parse_hash_directive(ctx, HD_FILE | HD_LINE | HD_IMPORT | HD_ERR, NULL, true);
 		break;
 	}
+	case SYM_LAST: {
+		// @Cleanup 2025-02-19
+		struct token *tok = tokens_consume_if(ctx->tokens, SYM_LAST);
+		expr              = ast_create_node(ctx->ast_arena, AST_EXPR_ERR, tok, scope_get(ctx));
+		break;
+	}
 	case SYM_FN:
 		if ((expr = parse_expr_lit_fn(ctx))) break;
 		expr = parse_expr_lit_fn_group(ctx);
@@ -2116,8 +2122,7 @@ NEXT:
 		if (tmp->kind != AST_TYPE_FN) {
 			// This check is important, when we decide to remove this, validation should
 			// be handled in MIR.
-			builder_msg(
-			    MSG_ERR, ERR_INVALID_TYPE, tmp->location, CARET_WORD, "Expected function type.");
+			builder_msg(MSG_ERR, ERR_INVALID_TYPE, tmp->location, CARET_WORD, "Expected function type.");
 		}
 		sarrput(variants, tmp);
 		goto NEXT;
@@ -2351,11 +2356,14 @@ struct ast *parse_expr_catch(struct context *ctx, struct ast *call) {
 	struct token *tok_catch = tokens_consume_if(ctx->tokens, SYM_CATCH);
 	if (!tok_catch) return NULL;
 
+	struct ast *cond = parse_expr(ctx);
+
 	struct ast *block = parse_block(ctx, SCOPE_LEXICAL);
 	bassert(block); // @Incomplete 2025-02-18: Handle error!
 
 	struct ast *catch            = ast_create_node(ctx->ast_arena, AST_EXPR_CATCH, tok_catch, scope_get(ctx));
 	catch->data.expr_catch.call  = call;
+	catch->data.expr_catch.cond  = cond;
 	catch->data.expr_catch.block = block;
 
 	return catch;

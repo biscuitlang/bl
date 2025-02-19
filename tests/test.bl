@@ -38,22 +38,39 @@ open_file :: fn (filepath: string_view) (handle: s32, err: !FileError) {
 // 	return i, OK;
 // }
 
+foo :: fn (n: s32) s32 {
+	return n;
+}
+
+
 main :: fn () s32 {
 
 	// n, err :: open_file2(#file, 0) catch {
 	// 	panic(#err);
 	// };
 
-	// open_file(#file, 1) catch {
-	// 	panic("A");
-	// };
+	stream :: open_file("fasda") catch {
+		panic($);
+	};
+	defer close_file(&stream);
 
-
-	stream :: open_file("blabla") catch {
-		print_err(#err);
+	file_exist("hodef") catch($ == false) {
+		print_err("File not found.");
 	};
 
-	defer close_file(&stream);
+
+	// stream :: open_file("fasda") catch then panic($)
+	// defer close_file(&stream);
+
+
+	// foo(-1) catch then print_err("Invalid value!");
+
+
+
+	// stream :: open_file("fads") catch {
+	// 	print_err($);
+	// };
+
 
 	print("Done!\n");
 
