@@ -52,4 +52,6 @@ struct mir_type *t_TestCase;
 struct mir_type *t_TestCases_slice;
 struct mir_type *t_CodeLocation;
 struct mir_type *t_CodeLocation_ptr;
+struct mir_type *t__Error;
+struct mir_type *t__Error_ptr;
 #endif

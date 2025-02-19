@@ -38,25 +38,43 @@ open_file :: fn (filepath: string_view) (handle: s32, err: !FileError) {
 // 	return i, OK;
 // }
 
-foo :: fn (n: s32) s32 {
-	return n;
+foo :: fn (n: s32) Error {
+	return error("kokot");
 }
 
 
 main :: fn () s32 {
+	foo(10) catch {
+		print("%\n", $);
+	};
+
+	// b := false;
+	// if b then b else a := 20;
+
+	// to tests ERR_UNEXPECTED_DECL
+	// b := false;
+	// if b then a := 10 else a := 20;
 
 	// n, err :: open_file2(#file, 0) catch {
 	// 	panic(#err);
 	// };
 
-	stream :: open_file("fasda") catch {
-		panic($);
-	};
-	defer close_file(&stream);
+	// open_file("fasda") catch;
 
-	file_exist("hodef") catch($ == false) {
-		print_err("File not found.");
-	};
+	// open_file returns Stream, Error
+	// stream :: open_file("fasda") catch {
+	// 	print("%\n", @typeinfo($));
+	// };
+	// defer close_file(&stream);
+
+	// stream2 :: open_file("fasda") catch panic($);
+	// defer close_file(&stream2);
+
+	// Fix next!
+	// ptr: *u8;
+	// ptr = realloc(ptr, 0, 0) catch {
+	// 	panic($);
+	// };
 
 
 	// stream :: open_file("fasda") catch then panic($)
@@ -72,7 +90,7 @@ main :: fn () s32 {
 	// };
 
 
-	print("Done!\n");
+	// print("Done!\n");
 
 	/*
 	a, err1 :: open_file(#file, 0);

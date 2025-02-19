@@ -145,7 +145,7 @@ enum stage_state {
 	ANALYZE_STAGE_FAILED,
 };
 
-typedef enum stage_state (*analyze_stage_fn_t)(struct context *, struct mir_instr **, struct mir_type *, bool);
+typedef enum stage_state (*analyze_stage_fn_t)(struct context *, struct mir_instr *, struct mir_instr **, struct mir_type *, bool);
 
 // Arena destructor for functions.
 static void fn_dtor(struct mir_fn *fn) {
@@ -187,6 +187,7 @@ static struct id *lookup_builtins_rtti(struct context *ctx);
 static struct id *lookup_builtins_any(struct context *ctx);
 static struct id *lookup_builtins_test_cases(struct context *ctx);
 static struct id *lookup_builtins_code_loc(struct context *ctx);
+static struct id *lookup_builtins_error(struct context *ctx);
 
 // Lookup member in composite structure type. Searching also in base types. When 'out_base_type' is
 // set to base member type if entry was found in parent.
@@ -600,23 +601,23 @@ static struct result        analyze_var(struct context *ctx, struct mir_var *var
 static struct result        analyze_instr(struct context *ctx, struct mir_instr *instr);
 static struct result        analyze_resolve_compound_type(struct context *ctx, struct mir_instr *instr, struct mir_type *type);
 
-#define analyze_slot(ctx, conf, input, slot_type) _analyze_slot((ctx), (conf), (input), (slot_type), false)
+#define analyze_slot(ctx, conf, input, slot_type)                     _analyze_slot((ctx), (conf), NULL, (input), (slot_type), false)
+#define analyze_slot_with_parent(ctx, conf, parent, input, slot_type) _analyze_slot((ctx), (conf), (parent), (input), (slot_type), false)
+#define analyze_slot_initializer(ctx, conf, input, slot_type)         _analyze_slot((ctx), (conf), NULL, (input), (slot_type), true)
 
-#define analyze_slot_initializer(ctx, conf, input, slot_type) _analyze_slot((ctx), (conf), (input), (slot_type), true)
+static enum result_state _analyze_slot(struct context *ctx, const analyze_stage_fn_t *conf, struct mir_instr *parent_instr, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
 
-static enum result_state _analyze_slot(struct context *ctx, const analyze_stage_fn_t *conf, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
-
-static enum stage_state analyze_stage_load(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
-static enum stage_state analyze_stage_toany(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
-static enum stage_state analyze_stage_arrtoslice(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
-static enum stage_state analyze_stage_toslice(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
-static enum stage_state analyze_stage_implicit_cast(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
-static enum stage_state analyze_stage_report_type_mismatch(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
-static enum stage_state analyze_stage_unroll(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
-static enum stage_state analyze_stage_set_volatile_expr(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
-static enum stage_state analyze_stage_set_null(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
-static enum stage_state analyze_stage_set_auto(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
-static enum stage_state analyze_stage_propagate_compound_type(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
+static enum stage_state analyze_stage_load(struct context *ctx, struct mir_instr *parent_instr, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
+static enum stage_state analyze_stage_toany(struct context *ctx, struct mir_instr *parent_instr, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
+static enum stage_state analyze_stage_arrtoslice(struct context *ctx, struct mir_instr *parent_instr, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
+static enum stage_state analyze_stage_toslice(struct context *ctx, struct mir_instr *parent_instr, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
+static enum stage_state analyze_stage_implicit_cast(struct context *ctx, struct mir_instr *parent_instr, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
+static enum stage_state analyze_stage_report_type_mismatch(struct context *ctx, struct mir_instr *parent_instr, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
+static enum stage_state analyze_stage_unroll(struct context *ctx, struct mir_instr *parent_instr, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
+static enum stage_state analyze_stage_set_volatile_expr(struct context *ctx, struct mir_instr *parent_instr, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
+static enum stage_state analyze_stage_set_null(struct context *ctx, struct mir_instr *parent_instr, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
+static enum stage_state analyze_stage_set_auto(struct context *ctx, struct mir_instr *parent_instr, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
+static enum stage_state analyze_stage_propagate_compound_type(struct context *ctx, struct mir_instr *parent_instr, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer);
 
 static const analyze_stage_fn_t analyze_slot_conf_dummy[] = {NULL};
 
@@ -1305,9 +1306,9 @@ static inline void set_current_block(struct context *ctx, struct mir_instr_block
 	ctx->ast.current_block = block;
 }
 
-static inline void error_types(struct context *ctx, struct mir_instr *instr, struct mir_type *from, struct mir_type *to, struct ast *node, const char *msg) {
+static inline void error_types(struct context *ctx, struct mir_type *from, struct mir_type *to, struct ast *node, const char *msg) {
 	bassert(from && to);
-	if (!msg) msg = "No implicit cast for type '%s' and '%s'.";
+	if (!msg) msg = "No implicit cast for type given: '%s' and required: '%s'.";
 	str_buf_t tmp_from = mir_type2str(from, /* prefer_name */ true);
 	str_buf_t tmp_to   = mir_type2str(to, /* prefer_name */ true);
 	report_error(INVALID_TYPE, node, msg, str_buf_to_c(tmp_from), str_buf_to_c(tmp_to));
@@ -1636,6 +1637,17 @@ struct id *lookup_builtins_any(struct context *ctx) {
 		return &builtin_ids[BUILTIN_ID_ANY];
 	}
 	ctx->builtin_types->t_Any_ptr    = create_type_ptr(ctx, ctx->builtin_types->t_Any);
+	ctx->builtin_types->is_any_ready = true;
+	return NULL;
+}
+
+struct id *lookup_builtins_error(struct context *ctx) {
+	if (ctx->builtin_types->is_error_ready) return NULL;
+	ctx->builtin_types->t__Error = lookup_builtin_type(ctx, BUILTIN_ID_ERROR);
+	if (!ctx->builtin_types->t__Error) {
+		return &builtin_ids[BUILTIN_ID_ERROR];
+	}
+	ctx->builtin_types->t__Error_ptr = create_type_ptr(ctx, ctx->builtin_types->t__Error);
 	ctx->builtin_types->is_any_ready = true;
 	return NULL;
 }
@@ -4646,7 +4658,10 @@ struct result analyze_instr_unroll(struct context *ctx, struct mir_instr_unroll 
 	bassert(type);
 	bassert(index >= 0);
 
-	unroll->index                  = index; // @Incomplete 2025-02-18: comment.
+	// 2025-02-19: In case the original index use UNROLL_LAST_INDEX value, it's replaced with valid last
+	//             index in this fuction, so we update the original value; thus there is no need to handle
+	//             UNROLL_LAST_INDEX later in the code.
+	unroll->index                  = index;
 	unroll->base.value.type        = type;
 	unroll->base.value.is_comptime = src->value.is_comptime;
 	unroll->base.value.addr_mode   = src->value.addr_mode;
@@ -5548,14 +5563,14 @@ struct result analyze_instr_cast(struct context *ctx, struct mir_instr_cast *cas
 	struct mir_type *expr_type = cast->expr->value.type;
 
 	// Setup const int type.
-	if (analyze_stage_set_volatile_expr(ctx, &cast->expr, dest_type, false) == ANALYZE_STAGE_BREAK) {
+	if (analyze_stage_set_volatile_expr(ctx, NULL, &cast->expr, dest_type, false) == ANALYZE_STAGE_BREAK) {
 		cast->op = MIR_CAST_NONE;
 		goto DONE;
 	}
 
 	cast->op = get_cast_op(expr_type, dest_type);
 	if (cast->op == MIR_CAST_INVALID) {
-		error_types(ctx, &cast->base, expr_type, dest_type, cast->base.node, "Invalid cast from '%s' to '%s'.");
+		error_types(ctx, expr_type, dest_type, cast->base.node, "Invalid cast from '%s' to '%s'.");
 		return_zone(FAIL);
 	}
 
@@ -6025,7 +6040,7 @@ struct result analyze_instr_fn_proto(struct context *ctx, struct mir_instr_fn_pr
 			if (result.state != ANALYZE_PASSED) return_zone(result);
 
 			if (!mir_type_cmp(fn_type, user_fn_type)) {
-				error_types(ctx, &fn_proto->base, fn_type, user_fn_type, fn_proto->user_type->node, NULL);
+				error_types(ctx, fn_type, user_fn_type, fn_proto->user_type->node, NULL);
 			}
 		}
 
@@ -6309,14 +6324,47 @@ FINALLY:
 	return_zone(result);
 }
 
+static enum stage_state analyze_stage_check_catch(struct context *ctx, struct mir_instr *parent_instr, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
+	struct mir_type *input_type = (*input)->value.type;
+	bassert(input_type);
+	bassert(parent_instr && parent_instr->kind == MIR_INSTR_COND_BR);
+
+	if (mir_type_cmp(input_type, ctx->builtin_types->t__Error_ptr)) return ANALYZE_STAGE_CONTINUE;
+
+	error_types(ctx, input_type, ctx->builtin_types->t__Error_ptr, parent_instr->node, "Invalid error value of type '%s' captured by catch statement; type of the last returned value from the function must be '%s' aka 'Error'.");
+
+	return ANALYZE_STAGE_FAILED;
+}
+
 struct result analyze_instr_cond_br(struct context *ctx, struct mir_instr_cond_br *br) {
 	zone();
 	bassert(br->cond && br->then_block && br->else_block);
 	bassert(br->cond->state == MIR_IS_COMPLETE);
 
-	if (analyze_slot(ctx, analyze_slot_conf_default, &br->cond, ctx->builtin_types->t_bool) != ANALYZE_PASSED) {
+	// 2025-02-19: Because the catch error feature does not have any representation in MIR and is purely syntax-sugar we should
+	//             use this custom analyze configuration to provide better errors for user. We expect the break expression to
+	//             be of Error type; thus we cannot allow implicit casting of anything to bool here (as it would be with default
+	//             analyzer.
+	//             Reported issues also need to point to the catch itself, not to value source.
+	const analyze_stage_fn_t analyze_slot_conf_catch[] = {
+	    analyze_stage_unroll,
+	    analyze_stage_load,
+	    analyze_stage_check_catch,   // Custom check for valid *Error type.
+	    analyze_stage_implicit_cast, // Cast to bool (should never fail).
+	    NULL,
+	};
+
+	if (br->is_catch) {
+		// 2025-02-19: Error compiler marked type is neeeded to check the incomming expression in case break is used in
+		//             context of catch statement.
+		struct id *missing_error = lookup_builtins_error(ctx);
+		if (missing_error) return_zone(WAIT(missing_error->hash));
+	}
+
+	if (analyze_slot_with_parent(ctx, br->is_catch ? analyze_slot_conf_catch : analyze_slot_conf_default, &br->base, &br->cond, ctx->builtin_types->t_bool) != ANALYZE_PASSED) {
 		return_zone(FAIL);
 	}
+
 	const bool is_condition_comptime = mir_is_comptime(br->cond);
 	if (br->is_static && !is_condition_comptime) {
 		report_error(EXPECTED_COMPTIME, br->cond->node, "Static if expression is supposed to be known in compile-time.");
@@ -7250,7 +7298,7 @@ struct result analyze_instr_binop(struct context *ctx, struct mir_instr_binop *b
 				return_zone(FAIL);
 
 			if (lhs_is_null) {
-				if (analyze_stage_set_null(ctx, &binop->lhs, binop->rhs->value.type, false) != ANALYZE_STAGE_BREAK) return_zone(FAIL);
+				if (analyze_stage_set_null(ctx, NULL, &binop->lhs, binop->rhs->value.type, false) != ANALYZE_STAGE_BREAK) return_zone(FAIL);
 			}
 		}
 	}
@@ -7262,7 +7310,7 @@ struct result analyze_instr_binop(struct context *ctx, struct mir_instr_binop *b
 	const bool lhs_valid = is_type_valid_for_binop(lhs->value.type, binop->op);
 	const bool rhs_valid = is_type_valid_for_binop(rhs->value.type, binop->op);
 	if (!(lhs_valid && rhs_valid)) {
-		error_types(ctx, &binop->base, lhs->value.type, rhs->value.type, binop->base.node, "Invalid operation for %s type.");
+		error_types(ctx, lhs->value.type, rhs->value.type, binop->base.node, "Invalid operation for %s type.");
 		return_zone(FAIL);
 	}
 
@@ -8599,10 +8647,10 @@ struct result analyze_instr_block(struct context *ctx, struct mir_instr_block *b
 	return_zone(PASS);
 }
 
-enum result_state _analyze_slot(struct context *ctx, const analyze_stage_fn_t *conf, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
+enum result_state _analyze_slot(struct context *ctx, const analyze_stage_fn_t *conf, struct mir_instr *parent_instr, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
 	s32 index = 0;
 	while (conf[index]) {
-		enum stage_state state = conf[index++](ctx, input, slot_type, is_initializer);
+		enum stage_state state = conf[index++](ctx, parent_instr, input, slot_type, is_initializer);
 		switch (state) {
 		case ANALYZE_STAGE_BREAK:
 			return ANALYZE_PASSED;
@@ -8615,7 +8663,7 @@ enum result_state _analyze_slot(struct context *ctx, const analyze_stage_fn_t *c
 	return ANALYZE_PASSED;
 }
 
-enum stage_state analyze_stage_load(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
+enum stage_state analyze_stage_load(struct context *ctx, struct mir_instr *parent_instr, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
 	if (is_load_needed(*input)) {
 		*input = insert_instr_load(ctx, *input);
 
@@ -8626,7 +8674,7 @@ enum stage_state analyze_stage_load(struct context *ctx, struct mir_instr **inpu
 	return ANALYZE_STAGE_CONTINUE;
 }
 
-enum stage_state analyze_stage_unroll(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
+enum stage_state analyze_stage_unroll(struct context *ctx, struct mir_instr *parent_instr, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
 	struct mir_instr_unroll *unroll = (*input)->kind == MIR_INSTR_UNROLL ? ((struct mir_instr_unroll *)*input) : NULL;
 	if (!unroll) return ANALYZE_STAGE_CONTINUE;
 	// Erase unroll instruction in case it's marked for remove.
@@ -8645,7 +8693,7 @@ enum stage_state analyze_stage_unroll(struct context *ctx, struct mir_instr **in
 	return ANALYZE_STAGE_CONTINUE;
 }
 
-enum stage_state analyze_stage_set_null(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
+enum stage_state analyze_stage_set_null(struct context *ctx, struct mir_instr *parent_instr, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
 	bassert(slot_type);
 	struct mir_instr *_input = *input;
 
@@ -8671,7 +8719,7 @@ enum stage_state analyze_stage_set_null(struct context *ctx, struct mir_instr **
 	return ANALYZE_STAGE_FAILED;
 }
 
-enum stage_state analyze_stage_set_auto(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
+enum stage_state analyze_stage_set_auto(struct context *ctx, struct mir_instr *parent_instr, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
 	bassert(slot_type);
 	if ((*input)->kind != MIR_INSTR_CAST) return ANALYZE_STAGE_CONTINUE;
 	struct mir_instr_cast *cast = (struct mir_instr_cast *)*input;
@@ -8692,7 +8740,7 @@ enum stage_state analyze_stage_set_auto(struct context *ctx, struct mir_instr **
 	return ANALYZE_STAGE_BREAK;
 }
 
-enum stage_state analyze_stage_toany(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
+enum stage_state analyze_stage_toany(struct context *ctx, struct mir_instr *parent_instr, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
 	bassert(slot_type);
 
 	// check any
@@ -8725,7 +8773,7 @@ static void analyze_make_tmp_var(struct context *ctx, struct mir_instr **input, 
 	*input = tmp_ref;
 }
 
-enum stage_state analyze_stage_toslice(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
+enum stage_state analyze_stage_toslice(struct context *ctx, struct mir_instr *parent_instr, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
 	// Cast from dynamic array to slice can be done by bitcast from pointer to dynamic array to
 	// slice pointer, both structures have the same data layout of first two members.
 	bassert(slot_type);
@@ -8757,7 +8805,7 @@ enum stage_state analyze_stage_toslice(struct context *ctx, struct mir_instr **i
 	return ANALYZE_STAGE_BREAK;
 }
 
-enum stage_state analyze_stage_arrtoslice(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
+enum stage_state analyze_stage_arrtoslice(struct context *ctx, struct mir_instr *parent_instr, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
 	// Produce implicit cast from array type to slice. This will create implicit compound
 	// initializer representing array length and pointer to array data.
 	bassert(slot_type);
@@ -8807,7 +8855,7 @@ enum stage_state analyze_stage_arrtoslice(struct context *ctx, struct mir_instr 
 	return ANALYZE_STAGE_BREAK;
 }
 
-enum stage_state analyze_stage_set_volatile_expr(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
+enum stage_state analyze_stage_set_volatile_expr(struct context *ctx, struct mir_instr *parent_instr, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
 	bassert(slot_type);
 	if (slot_type->kind != MIR_TYPE_INT) return ANALYZE_STAGE_CONTINUE;
 	if (!is_instr_type_volatile(*input)) return ANALYZE_STAGE_CONTINUE;
@@ -8823,7 +8871,7 @@ enum stage_state analyze_stage_set_volatile_expr(struct context *ctx, struct mir
 	return ANALYZE_STAGE_BREAK;
 }
 
-enum stage_state analyze_stage_implicit_cast(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
+enum stage_state analyze_stage_implicit_cast(struct context *ctx, struct mir_instr *parent_instr, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
 	if (mir_type_cmp((*input)->value.type, slot_type)) return ANALYZE_STAGE_BREAK;
 	if (!can_impl_cast((*input)->value.type, slot_type)) return ANALYZE_STAGE_CONTINUE;
 	*input          = insert_instr_cast(ctx, *input, slot_type);
@@ -8832,12 +8880,12 @@ enum stage_state analyze_stage_implicit_cast(struct context *ctx, struct mir_ins
 	return ANALYZE_STAGE_BREAK;
 }
 
-enum stage_state analyze_stage_report_type_mismatch(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
-	error_types(ctx, *input, (*input)->value.type, slot_type, (*input)->node, NULL);
+enum stage_state analyze_stage_report_type_mismatch(struct context *ctx, struct mir_instr *parent_instr, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
+	error_types(ctx, (*input)->value.type, slot_type, (*input)->node, NULL);
 	return ANALYZE_STAGE_FAILED;
 }
 
-enum stage_state analyze_stage_propagate_compound_type(struct context *ctx, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
+enum stage_state analyze_stage_propagate_compound_type(struct context *ctx, struct mir_instr *parent_instr, struct mir_instr **input, struct mir_type *slot_type, bool is_initializer) {
 	struct mir_instr *instr = *input;
 	if (instr->kind != MIR_INSTR_COMPOUND || instr->state != MIR_IS_PENDING) {
 		return ANALYZE_STAGE_CONTINUE;
@@ -10416,11 +10464,10 @@ struct mir_instr *ast_expr_call(struct context *ctx, struct ast *call) {
 }
 
 struct mir_instr *ast_expr_catch(struct context *ctx, struct ast *catch) {
-	struct ast *ast_call        = catch->data.expr_catch.call;
-	struct ast *ast_catch_block = catch->data.expr_catch.block;
-	struct ast *ast_cond        = catch->data.expr_catch.cond;
+	struct ast *ast_call                = catch->data.expr_catch.call;
+	struct ast *ast_catch_block_or_expr = catch->data.expr_catch.block_or_expr;
 	bassert(ast_call);
-	bassert(ast_catch_block);
+	bassert(ast_catch_block_or_expr);
 
 	struct mir_fn          *fn         = ast_current_fn(ctx);
 	struct mir_instr_block *root_block = ast_current_block(ctx);
@@ -10435,21 +10482,17 @@ struct mir_instr *ast_expr_catch(struct context *ctx, struct ast *catch) {
 	ctx->ast.current_catched_call            = call;
 
 	// Optional custom condition.
-	struct mir_instr *cond = NULL;
-	if (ast_cond) {
-		cond = ast(ctx, ast_cond);
-	} else {
-		cond = append_instr_unroll(ctx, catch, &call->base, NULL, UNROLL_LAST_INDEX);
-	}
+	struct mir_instr *cond = append_instr_unroll(ctx, catch, &call->base, NULL, UNROLL_LAST_INDEX);
 
 	struct mir_instr_block *catch_block    = append_block(ctx, fn, cstr("catch"), is_unreachable);
 	struct mir_instr_block *continue_block = append_block(ctx, fn, cstr("catch_continue"), is_unreachable);
 
-	append_instr_cond_br(ctx, catch, cond, catch_block, continue_block, false);
+	struct mir_instr_cond_br *br = (struct mir_instr_cond_br *)append_instr_cond_br(ctx, catch, cond, catch_block, continue_block, false);
+	br->is_catch                 = true;
 
 	// catch block
 	set_current_block(ctx, catch_block);
-	ast(ctx, ast_catch_block);
+	ast(ctx, ast_catch_block_or_expr);
 	struct mir_instr_block *last_block = ast_current_block(ctx);
 
 	if (!is_block_terminated(last_block)) {
@@ -10465,7 +10508,10 @@ struct mir_instr *ast_expr_catch(struct context *ctx, struct ast *catch) {
 
 struct mir_instr *ast_expr_err(struct context *ctx, struct ast *err) {
 	struct mir_instr_call *catched_call = ctx->ast.current_catched_call;
-	bassert(catched_call); // @Incomplete 2025-02-18: convert to error!
+	if (!catched_call) {
+		report_error(INVALID_EXPR, err, "Error capture cannot be used outside of error handling block or expression introduced by 'catch' statement.");
+		return NULL;
+	}
 	return append_instr_unroll(ctx, err, &catched_call->base, NULL, UNROLL_LAST_INDEX);
 }
 

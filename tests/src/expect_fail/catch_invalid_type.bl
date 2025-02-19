@@ -1,0 +1,6 @@
+// @ERR_INVALID_TYPE@
+foo :: fn () s32 { return 0; }
+main :: fn () s32 {
+	foo() catch {};
+	return 0;
+}

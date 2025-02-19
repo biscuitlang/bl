@@ -1,4 +1,16 @@
 #import "std/print"
+#import "std/fs"
+
+// This function will load provided file and tries to print its content. Error is returned
+// in case of any failure.
+print_file_content :: fn (filepath: string_view) Error {
+	content :: read_entire_file(filepath) catch return $;
+	defer free_slice(&content);
+	print(content);
+
+	return OK;
+}
+
 
 div :: fn (a: s32, b: s32) (s32, Error) {
 	if b == 0 {
@@ -9,14 +21,21 @@ div :: fn (a: s32, b: s32) (s32, Error) {
 	return a / b, OK;
 }
 
+
+
 main :: fn () s32 {
-	loop i := -5; i <= 5; i += 1 {
-		result, error :: div(10, i);
-		if error {
-			print("Error: %.\n", error);
-		} else {
-			print("Result is %.\n", result);
-		}
-	}
+
+	print_file_content("some_invalid_file_path") catch {
+		print_err($);
+	};
+
+	// loop i := -5; i <= 5; i += 1 {
+	// 	result, error :: div(10, i);
+	// 	if error {
+	// 		print("Error: %.\n", error);
+	// 	} else {
+	// 		print("Result is %.\n", result);
+	// 	}
+	// }
 	return 0;
 }

@@ -257,6 +257,7 @@ struct assembly {
 		bool is_rtti_ready;
 		bool is_any_ready;
 		bool is_test_cases_ready;
+		bool is_error_ready;
 	} builtin_types;
 
 	// These are just cached from the builder and valid only in case the assembly is

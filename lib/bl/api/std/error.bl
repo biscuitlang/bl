@@ -58,7 +58,7 @@
 //! where we need to free some memory or do any kind of resource cleanup before the failing function
 //! returns the error state.
 
-_Error :: struct {
+_Error :: struct #compiler {
 	msg: string_view;
 	code: s32;
 }

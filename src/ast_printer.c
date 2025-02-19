@@ -463,8 +463,7 @@ void print_expr_call(struct ast *call, s32 pad, FILE *stream) {
 void print_expr_catch(struct ast *catch, s32 pad, FILE *stream) {
 	print_head(catch, pad, stream);
 	print_node(catch->data.expr_catch.call, pad + 1, stream);
-	print_node(catch->data.expr_catch.cond, pad + 1, stream);
-	print_node(catch->data.expr_catch.block, pad + 1, stream);
+	print_node(catch->data.expr_catch.block_or_expr, pad + 1, stream);
 }
 
 void print_expr_compound(struct ast *expr_compound, s32 pad, FILE *stream) {

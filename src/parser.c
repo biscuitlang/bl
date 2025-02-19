@@ -119,6 +119,7 @@ static struct ast *parse_expr_lit(struct context *ctx);
 static struct ast *parse_expr_lit_fn(struct context *ctx);
 static struct ast *parse_expr_lit_fn_group(struct context *ctx);
 static struct ast *parse_expr_test_cases(struct context *ctx);
+static struct ast *parse_expr_capture_last(struct context *ctx);
 static inline bool parse_semicolon(struct context *ctx);
 static inline bool parse_semicolon_rq(struct context *ctx);
 static inline bool hash_directive_to_flags(enum hash_directive_flags hd, u32 *out_flags);
@@ -567,10 +568,6 @@ struct ast *parse_hash_directive(struct context *ctx, s32 expected_mask, enum ha
 		}
 		return_zone(expr);
 	}
-
-	case HD_ERR: {
-		return_zone(ast_create_node(ctx->ast_arena, AST_EXPR_ERR, tok_directive, scope_get(ctx)));
-	}
 	}
 INVALID:
 	report_error(UNEXPECTED_DIRECTIVE, tok_directive, CARET_WORD, "Unknown directive.");
@@ -635,6 +632,12 @@ struct ast *parse_expr_test_cases(struct context *ctx) {
 	struct ast *tc =
 	    ast_create_node(ctx->ast_arena, AST_EXPR_TEST_CASES, tok_begin, scope_get(ctx));
 	return_zone(tc);
+}
+
+struct ast *parse_expr_capture_last(struct context *ctx) {
+	struct token *tok = tokens_consume_if(ctx->tokens, SYM_LAST);
+	if (!tok) return NULL;
+	return ast_create_node(ctx->ast_arena, AST_EXPR_ERR, tok, scope_get(ctx));
 }
 
 struct ast *parse_expr_cast_auto(struct context *ctx) {
@@ -1336,13 +1339,7 @@ struct ast *parse_expr_primary(struct context *ctx) {
 		expr = parse_expr_null(ctx);
 		break;
 	case SYM_HASH: {
-		expr = parse_hash_directive(ctx, HD_FILE | HD_LINE | HD_IMPORT | HD_ERR, NULL, true);
-		break;
-	}
-	case SYM_LAST: {
-		// @Cleanup 2025-02-19
-		struct token *tok = tokens_consume_if(ctx->tokens, SYM_LAST);
-		expr              = ast_create_node(ctx->ast_arena, AST_EXPR_ERR, tok, scope_get(ctx));
+		expr = parse_hash_directive(ctx, HD_FILE | HD_LINE | HD_IMPORT, NULL, true);
 		break;
 	}
 	case SYM_FN:
@@ -1356,6 +1353,7 @@ struct ast *parse_expr_primary(struct context *ctx) {
 		break;
 	}
 	if (expr) return expr;
+	if ((expr = parse_expr_capture_last(ctx))) return expr;
 	if ((expr = parse_expr_lit(ctx))) return expr;
 	if ((expr = parse_expr_type(ctx))) return expr;
 	return NULL;
@@ -2356,15 +2354,19 @@ struct ast *parse_expr_catch(struct context *ctx, struct ast *call) {
 	struct token *tok_catch = tokens_consume_if(ctx->tokens, SYM_CATCH);
 	if (!tok_catch) return NULL;
 
-	struct ast *cond = parse_expr(ctx);
+	struct ast *block_or_expr = parse_single_block_stmt_or_expr(ctx, NULL);
+	if (!block_or_expr) {
+		struct token *tok_err = tokens_consume(ctx->tokens);
+		report_error(EXPECTED_STMT,
+		             tok_err,
+		             CARET_WORD,
+		             "Expected statement, expression or block handling catched error.");
+		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_catch, scope_get(ctx)));
+	}
 
-	struct ast *block = parse_block(ctx, SCOPE_LEXICAL);
-	bassert(block); // @Incomplete 2025-02-18: Handle error!
-
-	struct ast *catch            = ast_create_node(ctx->ast_arena, AST_EXPR_CATCH, tok_catch, scope_get(ctx));
-	catch->data.expr_catch.call  = call;
-	catch->data.expr_catch.cond  = cond;
-	catch->data.expr_catch.block = block;
+	struct ast *catch                    = ast_create_node(ctx->ast_arena, AST_EXPR_CATCH, tok_catch, scope_get(ctx));
+	catch->data.expr_catch.call          = call;
+	catch->data.expr_catch.block_or_expr = block_or_expr;
 
 	return catch;
 }

@@ -61,6 +61,7 @@
     BUILTIN_ID_BLC_VER_MAJOR,
     BUILTIN_ID_BLC_VER_MINOR,
     BUILTIN_ID_BLC_VER_PATCH,
+    BUILTIN_ID_ERROR,
     BUILTIN_ID_SIZEOF, /* first reserved */
     BUILTIN_ID_ALIGNOF,
     BUILTIN_ID_TYPEOF,
@@ -132,6 +133,7 @@
     {.str.ptr = "BLC_VER_MAJOR"         , .str.len = 13 },
     {.str.ptr = "BLC_VER_MINOR"         , .str.len = 13 },
     {.str.ptr = "BLC_VER_PATCH"         , .str.len = 13 },
+    {.str.ptr = "_Error"                , .str.len = 6  },
     {.str.ptr = "sizeof"                , .str.len = 6  },
     {.str.ptr = "alignof"               , .str.len = 7  },
     {.str.ptr = "typeof"                , .str.len = 6  },

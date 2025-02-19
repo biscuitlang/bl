@@ -212,7 +212,7 @@ void blc(void) {
 		           "-DBL_VERSION_PATCH=" STR(BL_VERSION_PATCH),
 		           "-DYAML_DECLARE_STATIC");
 #ifdef __APPLE__
-		cmd_append(&cmd, "-arch", "arm64", "-isysroot", MACOS_SDK);
+		cmd_append(&cmd, "-fcolor-diagnostics", "-arch", "arm64", "-isysroot", MACOS_SDK);
 		if (IS_DEBUG) {
 			cmd_append(&cmd, "-O0", "-g", "-DBL_DEBUG");
 		} else {

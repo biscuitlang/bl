@@ -1,0 +1,88 @@
+#scope_private
+
+fn1 :: fn (v: bool) Error {
+	if v {
+		return error("Test error.");
+	}
+	return OK;
+}
+
+fn2 :: fn (v: bool, n: s32) (s32, Error) {
+	if v {
+		return n, error("Test error.");
+	}
+	return n, OK;
+}
+
+simple_catch :: fn () #test {
+	handled := false;
+	fn1(false) catch {
+		handled = true;
+	};
+
+	test_false(handled);
+}
+
+simple_catch_inline :: fn () #test {
+	handled := false;
+	fn1(false) catch handled = true;
+	test_false(handled);
+}
+
+simple_catch2 :: fn () #test {
+	handled := false;
+	fn1(true) catch {
+		handled = true;
+	};
+
+	test_true(handled);
+}
+
+simple_catch_capture_error :: fn () #test {
+	handled := false;
+	err :: fn1(true) catch {
+		handled = true;
+	};
+
+	test_true(handled);
+	test_not_ok(err);
+}
+
+simple_catch_multi :: fn () #test {
+	handled := false;
+	fn2(false, 10) catch {
+		handled = true;
+	};
+
+	test_false(handled);
+}
+
+simple_catch_multi2 :: fn () #test {
+	handled := false;
+	fn2(true, 10) catch {
+		handled = true;
+	};
+
+	test_true(handled);
+}
+
+simple_catch_capture_multi :: fn () #test {
+	handled := false;
+	n :: fn2(false, 10) catch {
+		handled = true;
+	};
+
+	test_false(handled);
+	test_eq(n, 10);
+}
+
+simple_catch_capture_multi_with_error :: fn () #test {
+	handled := false;
+	n, err :: fn2(false, 10) catch {
+		handled = true;
+	};
+
+	test_false(handled);
+	test_ok(err);
+	test_eq(n, 10);
+}

@@ -859,6 +859,8 @@ struct mir_instr_cond_br {
 	bool keep_stack_value;
 	// Conditional break generated from static if.
 	bool is_static;
+	// Set in case this instruction is used implicitly in catch for error handling.
+	bool is_catch;
 };
 
 struct mir_instr_br {
