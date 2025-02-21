@@ -44,8 +44,10 @@ foo :: fn (n: s32) Error {
 
 
 main :: fn () s32 {
+	a := false;
+
 	err :: foo(10) catch {
-		print_err($);
+		if a then print_err($);
 		// print("%\n", $);
 	};
 

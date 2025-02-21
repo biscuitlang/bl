@@ -2354,6 +2354,9 @@ struct ast *parse_expr_catch(struct context *ctx, struct ast *call) {
 	struct token *tok_catch = tokens_consume_if(ctx->tokens, SYM_CATCH);
 	if (!tok_catch) return NULL;
 
+	const bool prev_is_inside_expression = ctx->is_inside_expression;
+	ctx->is_inside_expression            = false;
+
 	struct ast *block_or_expr = parse_single_block_stmt_or_expr(ctx, NULL);
 	if (!block_or_expr) {
 		struct token *tok_err = tokens_consume(ctx->tokens);
@@ -2363,6 +2366,8 @@ struct ast *parse_expr_catch(struct context *ctx, struct ast *call) {
 		             "Expected statement, expression or block handling catched error.");
 		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_catch, scope_get(ctx)));
 	}
+
+	ctx->is_inside_expression = prev_is_inside_expression;
 
 	struct ast *catch                    = ast_create_node(ctx->ast_arena, AST_EXPR_CATCH, tok_catch, scope_get(ctx));
 	catch->data.expr_catch.call          = call;

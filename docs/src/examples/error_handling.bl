@@ -31,7 +31,7 @@ main :: fn () s32 {
 		print_err($);
 	};
 
-	result := div(10, 0) catch {
+	result :: div(10, 0) catch {
 		print_err($);
 	};
 	print("result = %\n", result);
