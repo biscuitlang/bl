@@ -1342,6 +1342,8 @@ prepare_atlas :: fn (font: *Font, face: *ft2.Face) {
 gen_glyphs :: fn (font: *Font, face: *ft2.Face) {
 	ox, oy: u32;
 	max_height, max_base_offset_y: f32;
+	
+	max_height = font.size;
 
 	gl.BindTexture(GL_TEXTURE_2D, font.atlas.handle);
 
@@ -1392,8 +1394,8 @@ gen_glyphs :: fn (font: *Font, face: *ft2.Face) {
 
 		if char_code < 127 {
 			max_base_offset_y = math.max(cast(f32) (face.glyph.metrics.horiBearingY >> 6), max_base_offset_y);
+			max_height        = math.max(cast(f32) (face.glyph.metrics.height >> 6), max_height);
 		}
-		max_height        = math.max(cast(f32) (face.glyph.metrics.height >> 6), max_height);
 		ox += width;
 	}
 

@@ -27,97 +27,15 @@ open_file :: fn (filepath: string_view) (handle: s32, err: !FileError) {
 #import "std/fs"
 #import "std/io"
 
-// open_file :: fn (_: string_view, i: s32) Error #inline {
-// 	return if i == 0 then error("Cannot open file!") else OK;
-// }
-
-// open_file2 :: fn (_: string_view, i: s32) (n: s32, err: Error) #inline {
-// 	if i == 0 {
-// 		return i, error("Cannot open file!");
-// 	}
-// 	return i, OK;
-// }
-
 foo :: fn (n: s32) Error {
 	return error("kokot");
 }
 
-
 main :: fn () s32 {
-	a := false;
-
+	err_addr: *Error;
 	err :: foo(10) catch {
-		if a then print_err($);
-		// print("%\n", $);
+		err_addr = &$;
 	};
-
-	print_err(err);
-
-	// b := false;
-	// if b then b else a := 20;
-
-	// to tests ERR_UNEXPECTED_DECL
-	// b := false;
-	// if b then a := 10 else a := 20;
-
-	// n, err :: open_file2(#file, 0) catch {
-	// 	panic(#err);
-	// };
-
-	// open_file("fasda") catch;
-
-	stream :: open_file("fasda") catch {
-		// print("%\n", $);
-		print_err($);
-	};
-
-	close_file(&stream);
-
-	// stream2 :: open_file("fasda") catch panic($);
-	// defer close_file(&stream2);
-
-	// Fix next!
-	// ptr: *u8;
-	// ptr = realloc(ptr, 0, 0) catch {
-	// 	panic($);
-	// };
-
-
-	// stream :: open_file("fasda") catch then panic($)
-	// defer close_file(&stream);
-
-
-	// foo(-1) catch then print_err("Invalid value!");
-
-
-
-	// stream :: open_file("fads") catch {
-	// 	print_err($);
-	// };
-
-
-	// print("Done!\n");
-
-	/*
-	a, err1 :: open_file(#file, 0);
-	a       :: open_file(#file, 0);
-	_, err2 :: open_file(#file, 0);
-
-	err2 catch {
-		return false;
-	};
-
-	a :: open_file(#file, 0) catch;
-
-	a :: open_file(#file, 0) catch {
-		print_err(#err);
-		return #err;
-	};
-
-	a :: open_file(#file, 0) catch #err < 0;
-	a :: open_file(#file, 0) catch !#err {
-	};
-	*/
 
 	return 0;
 }
