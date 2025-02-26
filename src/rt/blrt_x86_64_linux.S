@@ -6,9 +6,6 @@ _start:
     leaq 	8(%rsp),%rsi
     leaq 	8(%rsp,%rdi,8),%rdx
     call	__os_start
-    movq 	%rax,%rdi
-    movl 	$60,%eax
-    syscall
     int3
 
 .section .note.GNU-stack,"",@progbits

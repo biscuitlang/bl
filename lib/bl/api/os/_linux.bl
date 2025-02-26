@@ -166,6 +166,7 @@ __os_start :: fn (argc: s64, argv: **u8, _: **u8) s32 #entry {
 		C.free(auto command_line_arguments.ptr);
 	}
 	temporary_release();
+	C.exit(out);
 	return out;
 }
 
