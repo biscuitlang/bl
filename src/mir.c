@@ -4671,8 +4671,8 @@ struct result analyze_instr_unroll(struct context *ctx, struct mir_instr_unroll 
 	//             UNROLL_LAST_INDEX later in the code.
 	unroll->index                  = index;
 	unroll->base.value.type        = type;
-	unroll->base.value.is_comptime = src->value.is_comptime;
-	unroll->base.value.addr_mode   = src->value.addr_mode;
+	unroll->base.value.is_comptime = unroll->src->value.is_comptime;
+	unroll->base.value.addr_mode   = unroll->src->value.addr_mode;
 
 	return_zone(PASS);
 }
