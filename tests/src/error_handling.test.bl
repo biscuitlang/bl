@@ -9,7 +9,7 @@ fn1 :: fn (v: bool) Error {
 
 fn2 :: fn (v: bool, n: s32) (s32, Error) {
 	if v {
-		return n, error("Test error.");
+		return n, error(n, "Test error.");
 	}
 	return n, OK;
 }
@@ -46,6 +46,53 @@ simple_catch_capture_error :: fn () #test {
 
 	test_true(handled);
 	test_not_ok(err);
+}
+
+error_match :: fn () #test {
+	catched_err: Error;
+	err :: fn1(true) catch {
+		catched_err = $;
+	};
+	test_eq(err, catched_err);
+}
+
+addrof_capture :: fn () #test {
+	a: *Error;
+	b :: fn1(true) catch {
+		a = &$;
+	};
+	test_eq(b, @a);
+}
+
+deref_capture :: fn () #test {
+	err: _Error;
+	fn2(true, 10) catch {
+		err = @$;
+	};
+
+	test_eq(err.code, 10);
+}
+
+capture_to_initializer :: fn () #test {
+	d: struct {
+		a: Error;
+	};
+
+	fn2(true, 10) catch {
+		d = .{$};
+	};
+	test_eq(d.a.code, 10);
+}
+
+capture_to_field :: fn () #test {
+	d: struct {
+		a: Error;
+	};
+
+	fn2(true, 10) catch {
+		d.a = $;
+	};
+	test_eq(d.a.code, 10);
 }
 
 simple_catch_multi :: fn () #test {

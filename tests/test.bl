@@ -32,9 +32,12 @@ foo :: fn (n: s32) Error {
 }
 
 main :: fn () s32 {
-	err_addr: *Error;
+	d: struct {
+		a: Error;
+	};
+
 	err :: foo(10) catch {
-		err_addr = &$;
+		d = .{$};
 	};
 
 	return 0;

@@ -621,6 +621,11 @@ static enum stage_state analyze_stage_propagate_compound_type(struct context *ct
 
 static const analyze_stage_fn_t analyze_slot_conf_dummy[] = {NULL};
 
+static const analyze_stage_fn_t analyze_slot_conf_minimal[] = {
+	analyze_stage_unroll,
+	NULL,
+};
+
 static const analyze_stage_fn_t analyze_slot_conf_basic[] = {
     analyze_stage_propagate_compound_type,
     analyze_stage_unroll,
@@ -5485,10 +5490,13 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 
 struct result analyze_instr_addrof(struct context *ctx, struct mir_instr_addrof *addrof) {
 	zone();
-	struct mir_instr *src = addrof->src;
-	bassert(src);
-	bassert(src->state != MIR_IS_ERASED && "Taking adress of erased instruction!");
-	if (src->state != MIR_IS_COMPLETE) return_zone(POSTPONE);
+	bassert(addrof->src);
+	bassert(addrof->src->state != MIR_IS_ERASED && "Taking adress of erased instruction!");
+	if (addrof->src->state != MIR_IS_COMPLETE) return_zone(POSTPONE);
+
+	if (analyze_slot(ctx, analyze_slot_conf_minimal, &addrof->src, NULL) != ANALYZE_PASSED) return_zone(FAIL);
+
+	struct mir_instr                 *src           = addrof->src;
 	const enum mir_value_address_mode src_addr_mode = src->value.addr_mode;
 
 	struct mir_type *type = src->value.type;
@@ -6495,6 +6503,8 @@ struct result analyze_instr_switch(struct context *ctx, struct mir_instr_switch 
 struct result analyze_instr_load(struct context *ctx, struct mir_instr_load *load) {
 	zone();
 	bassert(load->src);
+
+	if (analyze_slot(ctx, analyze_slot_conf_minimal, &load->src, NULL) != ANALYZE_PASSED) return_zone(FAIL);
 
 	struct mir_instr *src      = load->src;
 	struct mir_type  *err_type = src->value.type;
