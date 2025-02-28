@@ -23,7 +23,10 @@ div :: fn (a: s32, b: s32) (s32, Error) {
 
 main :: fn () s32 {
 
+	// Call print_file_content, the catch branch is executed in case there is an
+	// error returned by the function.
 	print_file_content("some_invalid_file_path") catch {
+		// Use $ builtin symbol to access the captured error.
 		print_err($);
 	};
 
@@ -31,6 +34,8 @@ main :: fn () s32 {
 		print_err($);
 	};
 
+	// In case of multi-return value, error is expected to be last in the return
+	// list.
 	result :: div(10, 0) catch {
 		print_err($);
 	};

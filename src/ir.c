@@ -1813,7 +1813,6 @@ enum state emit_instr_member_ptr(struct context *ctx, struct mir_instr_member_pt
 }
 
 enum state emit_instr_unroll(struct context *ctx, struct mir_instr_unroll *unroll) {
-	// @Incomplete 2025-02-19: Explain
 	bassert(mir_is_composite_type(mir_deref_type(unroll->src->value.type)));
 
 	LLVMValueRef llvm_src_ptr = unroll->src->llvm_value;

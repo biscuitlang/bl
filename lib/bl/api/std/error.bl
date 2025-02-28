@@ -31,8 +31,8 @@
 //! Available by default.
 //!
 //! There is no support for *exceptions* of any kind in BL, however, there are a few features in the
-//! language helping with error handling such as [defer](/book/control_flow/#defer) and
-//! [multiple return values](/book/functions/#return-value). In general, every possibly failing
+//! language helping with error handling such as [defer](manual.html#Defer) and
+//! [multiple return values](manual.html#Return-Value). In general, every possibly failing
 //! function should return an error state in case of failure containing an error code and some
 //! message describing the problem. This style is widely adopted by the *standard library* and may
 //! be used in the *user* code as well.
@@ -48,13 +48,37 @@
 //! Error :: *_Error;
 //! ```
 //!
+//! Where `Error` is just pointer to thread-local allocated storage (shared for all error states) used
+//! as temporary storage for the actual `_Error` data.
+//!
+//! The `null` pointer to `Error` means *no* error, we can use `OK` constant instead typing `null` every
+//! time.
+//!
+//! ### Catch
+//!
+//! You can grab the error value as any other returned value on a function call-side and check if
+//! error is present by a simple `if` statement.
+//!
+//! ```bl
+//! err :: open_file(filepath);
+//! if err then print_err(err);
+//!
+//! // Or invoke panic?
+//! if err then panic(err);
+//! ```
+//!
+//! Other option to handle error on call-side is using the `catch` statement, which implicitly does
+//! error presence check for you. The error value is captured in `$` builtin variable. The `catch` statement
+//! checks the last member in returned value; meaning, when function returns multiple values, the
+//! error state is supposed to be the last.
+//!
 //! ### Example
 //!
 //! ```bl
 //! @@@examples/error_handling.bl
 //! ```
 //!
-//! As already mentioned, the [defer](/book/control_flow/#defer) statement may be helpful in situations
+//! As already mentioned, the [defer](manual.html#Defer) statement may be helpful in situations
 //! where we need to free some memory or do any kind of resource cleanup before the failing function
 //! returns the error state.
 

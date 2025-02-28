@@ -924,7 +924,7 @@ struct mir_instr_unroll {
 	struct mir_instr *prev;
 	s32               index;
 	bool              remove;
-	bool              force_call_tmp; // @Incomplete 2025-02-19: explain
+	bool              force_call_tmp;
 };
 
 struct mir_instr_using {

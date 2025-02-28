@@ -4,20 +4,20 @@
 #import "std/string"
 
 main :: fn () s32 {
-	stream, open_err :: open_file(#file);
-	defer close_file(&stream);
-	if open_err {
-		print_err(open_err);
+	stream :: open_file(#file) catch {
+		print_err($);
 		return 1;
-	}
+	};
+	defer close_file(&stream);
 
 	str: string;
 	defer str_terminate(&str);
-	read_bytes, read_err :: read_string(&stream, &str);
-	if read_err {
-		print_err(read_err);
+
+	read_bytes :: read_string(&stream, &str) catch {
+		print_err($);
 		return 2;
-	}
+	};
+
 	print("read % bytes\n", read_bytes);
 	print("%\n", str);
 	return 0;

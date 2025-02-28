@@ -622,8 +622,8 @@ static enum stage_state analyze_stage_propagate_compound_type(struct context *ct
 static const analyze_stage_fn_t analyze_slot_conf_dummy[] = {NULL};
 
 static const analyze_stage_fn_t analyze_slot_conf_minimal[] = {
-	analyze_stage_unroll,
-	NULL,
+    analyze_stage_unroll,
+    NULL,
 };
 
 static const analyze_stage_fn_t analyze_slot_conf_basic[] = {

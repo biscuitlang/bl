@@ -2259,6 +2259,10 @@ main :: fn () s32 {
 }
 ```
 
+## Error Handling
+
+See [error module](modules_error.html)
+
 # Modules
 
 A module in BL is a chunk of reusable code bundled with a configuration file in a single module *root* directory. See the following example of the *thread* module.

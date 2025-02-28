@@ -1338,10 +1338,9 @@ struct ast *parse_expr_primary(struct context *ctx) {
 	case SYM_NULL:
 		expr = parse_expr_null(ctx);
 		break;
-	case SYM_HASH: {
+	case SYM_HASH:
 		expr = parse_hash_directive(ctx, HD_FILE | HD_LINE | HD_IMPORT, NULL, true);
 		break;
-	}
 	case SYM_FN:
 		if ((expr = parse_expr_lit_fn(ctx))) break;
 		expr = parse_expr_lit_fn_group(ctx);

@@ -749,7 +749,7 @@ BL_KEYWORDS :: [_]string_view.{
 	"loop", "if", "switch", "continue", "else", "defer", "struct",
 	"enum", "union", "fn", "return", "cast", "auto", "default", "using", "break", "unreachable",
 	"panic", "assert", "sizeof", "alignof", "typeinfo", "compiler_error", "compiler_warning",
-	"typeof", "then",
+	"typeof", "then", "catch"
 };
 
 BL_DIRECTIVES :: [_]string_view.{

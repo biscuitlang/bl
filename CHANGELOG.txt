@@ -111,6 +111,14 @@ master
   command line argument or in `BuilderOptions.error_limit`.
 - Fix cyclic dependency detection for unresolved symbols.
 
+- Add a new way to handle errors on a function call-side. The catch statement might be used to catch
+  an error returned by a function. We might implement separate branch invoked only in case an error
+  appears.
+
+	open_file() catch {
+		print_err($);
+	};
+
 [Modules]
 - Add math module.
 
@@ -149,6 +157,7 @@ os/linux/sys/ptrace:
   github.
 - Fix syntax highlight issues caused by multiline comments in generated documentation.
 - Fix warnings in examples.
+- Improve error handling documentation.
 
 [Deprecated]
 
