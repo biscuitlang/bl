@@ -33,6 +33,7 @@ OsStdIoStream :: struct #base io.Stream {
 OS_NAME :: "Linux";
 
 OS_PATH_MAX :: 1024;
+OS_NAME_MAX :: 255;
 
 ERR_UNKNOWN        :: -1;
 ERR_NOT_FOUND      :: C.ENOENT;

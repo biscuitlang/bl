@@ -24,21 +24,17 @@ open_file :: fn (filepath: string_view) (handle: s32, err: !FileError) {
 */
 
 #import "std/print"
-#import "std/fs"
-#import "std/io"
-
-foo :: fn (n: s32) Error {
-	return error("kokot");
-}
+#import "extra/filewatch"
 
 main :: fn () s32 {
-	d: struct {
-		a: Error;
-	};
+	fw :: new_filewatch() catch panic($);
+	defer delete_filewatch(fw);
 
-	err :: foo(10) catch {
-		d = .{$};
-	};
+	watch_changes(fw, "/home/travis/develop/test") catch panic($);
+
+	loop {
+		os_sleep_ms(200);
+	}
 
 	return 0;
 }
