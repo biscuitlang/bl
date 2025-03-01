@@ -133,3 +133,43 @@ simple_catch_capture_multi_with_error :: fn () #test {
 	test_ok(err);
 	test_eq(n, 10);
 }
+
+
+num_called := 0;
+counter :: fn () {
+	num_called += 1;
+}
+
+defer_test_explicit_block :: fn (fail: bool) {
+	defer counter();
+
+	fn1(fail) catch {
+		return;
+	};
+
+	return;
+}
+
+defer_test_implicit_block :: fn (fail: bool) {
+	defer counter();
+	fn1(fail) catch return;
+	return;
+}
+
+test_defer :: fn () #test {
+	defer_test_explicit_block(true);
+	test_eq(num_called, 1);
+	num_called = 0;
+
+	defer_test_explicit_block(false);
+	test_eq(num_called, 1);
+	num_called = 0;
+
+	defer_test_implicit_block(true);
+	test_eq(num_called, 1);
+	num_called = 0;
+
+	defer_test_implicit_block(false);
+	test_eq(num_called, 1);
+	num_called = 0;
+}

@@ -24,21 +24,20 @@ open_file :: fn (filepath: string_view) (handle: s32, err: !FileError) {
 */
 
 #import "std/print"
-#import "std/fs"
-#import "std/io"
 
-foo :: fn (n: s32) Error {
+foo :: fn () Error {
 	return error("kokot");
 }
 
-main :: fn () s32 {
-	d: struct {
-		a: Error;
-	};
+bar :: fn () {}
 
-	err :: foo(10) catch {
-		d = .{$};
-	};
+main :: fn () s32 {
+	defer bar();
+
+	foo() catch return 1;
+
+	// a := false;
+	// if a then return 1;
 
 	return 0;
 }
