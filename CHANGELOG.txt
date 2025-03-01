@@ -119,6 +119,9 @@ master
 		print_err($);
 	};
 
+- Fix defer issues caused by catch statement. Defer was not correctly called in all blocks in
+  case catch was present. This situation is now covered by tests too.
+
 [Modules]
 - Add math module.
 

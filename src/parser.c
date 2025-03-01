@@ -1281,8 +1281,7 @@ struct ast *parse_stmt_defer(struct context *ctx) {
 	expr             = parse_expr(ctx);
 
 	if (!expr) {
-		report_error(
-		    EXPECTED_EXPR, tok, CARET_WORD, "Expected expression after 'defer' statement.");
+		report_error(EXPECTED_EXPR, tok, CARET_WORD, "Expected expression after 'defer' statement.");
 		struct token *tok_err = tokens_peek(ctx->tokens);
 		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
 	}
@@ -2356,7 +2355,19 @@ struct ast *parse_expr_catch(struct context *ctx, struct ast *call) {
 	const bool prev_is_inside_expression = ctx->is_inside_expression;
 	ctx->is_inside_expression            = false;
 
-	struct ast *block_or_expr = parse_single_block_stmt_or_expr(ctx, NULL);
+	struct ast *block_or_expr = parse_block(ctx, SCOPE_LEXICAL);
+	if (!block_or_expr) {
+		struct scope *scope = scope_create(ctx->scope_thread_local, SCOPE_LEXICAL, scope_get(ctx), &tok_catch->location);
+		scope_push(ctx, scope);
+		struct ast *block       = ast_create_node(ctx->ast_arena, AST_BLOCK, tok_catch, scope_get(ctx));
+		block->data.block.nodes = arena_alloc(ctx->sarr_arena);
+		block_push(ctx, block);
+		block_or_expr = parse_single_block_stmt_or_expr(ctx, NULL);
+		sarrput(block->data.block.nodes, block_or_expr);
+		block_pop(ctx);
+		scope_pop(ctx);
+	}
+
 	if (!block_or_expr) {
 		struct token *tok_err = tokens_consume(ctx->tokens);
 		report_error(EXPECTED_STMT,
