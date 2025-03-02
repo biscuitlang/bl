@@ -29,7 +29,7 @@ get_file_timestamp :: fn (filepath: string_view) (t: u64, err: Error) {
 	return 0, os_get_last_error2();
 }
 
-process_watch_dir :: fn (w: *Watch, path: string_view) Error {
+process_watch_dir :: fn (_: *FileWatch, w: *Watch, path: string_view) Error {
 	using WatchEvent.kind;
 
 	if !file_exist(path) {

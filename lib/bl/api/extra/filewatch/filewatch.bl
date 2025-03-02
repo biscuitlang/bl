@@ -171,7 +171,7 @@ process_watch :: fn (fw: *FileWatch, w: *Watch, path: string_view) Error {
 
 	switch w.kind {
 		DIR {
-			process_watch_dir(w, path) catch return $;
+			process_watch_dir(fw, w, path) catch return $;
 
 			if w.data.dir.event != IGNORE {
 				if (os_tick_ms() - w.data.dir.timeout) > 1000 {
