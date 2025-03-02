@@ -1,102 +1,25 @@
-FileWatch :: struct {
-	thread:  Thread;
-	pool:    PoolAllocator;
-	watches: Table(string_view, Watch);
-	lock:    Mutex;
-
-	stop: bool;
-}
-
-new_filewatch :: fn () (*FileWatch, Error) {
-	fw :: new(FileWatch) catch return null, $;
-	fw.pool = pool_make();
-
-	mutex_init(&fw.lock) catch {
-		free(auto fw);
-		return null, $;
-	};
-
-	tbl_init(&fw.watches, 256, &fw.pool);
-
-	thread :: thread_create(auto &worker, auto fw) catch {
-		free(auto fw);
-		mutex_terminate(&fw.lock);
-		release_allocator(&fw.pool);
-		return null, $;
-	};
-
-	fw.thread = thread;
-
-	return fw, OK;
-}
-
-delete_filewatch :: fn (fw: *FileWatch) {
-	if !fw then return;
-
-	watches : []Watch : fw.watches.values;
-	loop i := 0; i < watches.len; i += 1 {
-		terminate_watch(&watches[i]);
-	}
-
-	fw.stop = true;
-	thread_join(fw.thread);
-	release_allocator(&fw.pool);
-	mutex_terminate(&fw.lock);
-
-	free(auto fw);
-}
-
-watch_changes :: fn (fw: *FileWatch, path: string_view) Error {
-	mutex_lock(&fw.lock);
-	defer mutex_unlock(&fw.lock);
-
-	normalized_path := str_make(path, application_context.temporary_allocator);
-	path_normalize(&normalized_path) catch return $;
-
-	if tbl_contains(&fw.watches, normalized_path) then return error("File '%' is already watched.", normalized_path);
-
-	isdir :: is_directory(normalized_path) catch {
-		return $;
-	};
-
-	if isdir {
-		w: Watch;
-		init_dir_watch(&w, normalized_path) catch return $;
-		tbl_insert(&fw.watches, str_make(normalized_path, &fw.pool), w);
-	} else {
-		// @Incomeplete
-	}
-
-	return OK;
-}
-
-poll_file_changes :: fn (fw: *FileWatch) {
-}
-
 #scope_module
 
 Watch :: struct {
 	kind: enum { FILE; DIR; };
 	data: union {
 		file: struct {
-			_: u8;
+			timestamp: u64;
 		};
 
 		dir: struct {
-			nfd:  s32;
+			wfds: [..]s32;
+			nfd:      s32;
+			event:    WatchEvent.kind;
+			timeout:  u64;
+			dirty:    bool;
 		};
 	};
+	is_removed: bool;
 }
 
 C :: #import "libc";
 #import "os/linux/sys/inotify"
-#import "std/fs"
-#import "std/array"
-#import "std/table"
-#import "std/string"
-#import "std/thread"
-#import "std/sync"
-#import "std/pool"
 
 init_dir_watch :: fn (w: *Watch, dirpath: string_view) Error {
 	w.kind = Watch.kind.DIR;
@@ -105,7 +28,8 @@ init_dir_watch :: fn (w: *Watch, dirpath: string_view) Error {
 	if nfd < 0 then return os_get_last_error2();
 	C.fcntl(nfd, C.F_SETFL, C.O_NONBLOCK);
 
-	w.data.dir.nfd = nfd;
+	w.data.dir.nfd   = nfd;
+	w.data.dir.dirty = true;
 
 	install_dir_recursive(w, dirpath) catch {
 		C.close(nfd);
@@ -115,83 +39,164 @@ init_dir_watch :: fn (w: *Watch, dirpath: string_view) Error {
 	return OK;
 }
 
-terminate_watch :: fn (w: *Watch) {
-	using Watch.kind;
-	switch w.kind {
-		DIR {
-			nfd :: w.data.dir.nfd;
-			inotify_rm_watch(nfd, -1); // flush all
-			C.close(nfd);
-		}
-
-		FILE {
-		}
-	}
+init_file_watch :: fn (w: *Watch, dirpath: string_view) Error {
+	w.kind = Watch.kind.FILE;
+	timestamp :: get_file_timestamp(dirpath) catch return $;
+	w.data.file.timestamp = timestamp;
+	return OK;
 }
 
-DIR_WATCH_MASK :: IDMask.MOVE | IDMask.CREATE | IDMask.DELETE | IDMask.DELETE_SELF | IDMask.MOVE_SELF;
+terminate_dir_watch :: fn (w: *Watch) {
+	flush_wfds(w);
+	C.close(w.data.dir.nfd);
+	array_terminate(&w.data.dir.wfds);
+}
+
+terminate_file_watch :: fn (_: *Watch) {}
+
+DIR_WATCH_MASK :: IDMask.MOVE | IDMask.CREATE | IDMask.DELETE | IDMask.DONT_FOLLOW;
 
 install_dir_recursive :: fn (w: *Watch, dirpath: string_view) Error {
+	// measure_elapsed_ms_begin();
+	// defer measure_elapsed_ms_end();
+
+	assert(w.data.dir.dirty);
+	w.data.dir.dirty = false;
+
+	flush_wfds(w);
+
 	nfd :: w.data.dir.nfd;
-	inotify_rm_watch(nfd, -1); // flush all
-
 	fd :: inotify_add_watch(nfd, strtoc(dirpath), DIR_WATCH_MASK);
-	if fd < 0 then return os_get_last_error2();
+	if fd < 0 then return error("Unable to install watch for '%'.", dirpath);
+	array_push(&w.data.dir.wfds, fd);
 
-	visit_err :: visit_files(dirpath, VisitOpt.{ recursive = true }, &nfd, &fn (info: *FileVisitInfo, nfd: *s32) Error {
+	visit_err :: visit_files(dirpath, VisitOpt.{ recursive = true }, w, &fn (info: *FileVisitInfo, w: *Watch) Error {
 			if !info.is_directory then return OK;
-			print_log("Watch: %", info.filepath);
 
-			fd :: inotify_add_watch(@nfd, strtoc(info.filepath), DIR_WATCH_MASK);
-			if fd < 0 then return os_get_last_error2();
+			nfd :: w.data.dir.nfd;
+			fd :: inotify_add_watch(nfd, strtoc(info.filepath), DIR_WATCH_MASK);
+			if fd < 0 then return error("Unable to install watch for '%'.", info.filepath);
 
+			array_push(&w.data.dir.wfds, fd);
 			return OK;
 		});
 
 	if visit_err {
-		inotify_rm_watch(nfd, -1); // flush all
+		flush_wfds(w);
 		return visit_err;
 	}
 
 	return OK;
 }
 
-process_watch :: fn (w: *Watch, path: string_view) Error {
+process_watch :: fn (fw: *FileWatch, w: *Watch, path: string_view) Error {
 	using Watch.kind;
+	using WatchEvent.kind;
+
+	event: WatchEvent;
+
+	schedule_dir_event :: fn (w: *Watch, kind: WatchEvent.kind) {
+		assert(kind != WatchEvent.kind.IGNORE);
+		w.data.dir.event   = kind;
+		w.data.dir.timeout = os_tick_ms();
+	};
+
 	switch w.kind {
 		DIR {
-			buf: [(OS_NAME_MAX + auto sizeof(inotify_event)) * 256]s8 #noinit;
-			rebuild := false;
-
-			length :: C.read(w.data.dir.nfd, buf.ptr, auto buf.len);
-			if (length < 0) {
-				err :: os_get_last_error2();
-				if err.code == C.EAGAIN || err.code == C.EWOULDBLOCK {
-					return OK; // Wait
-				}
-				return err;
+			if w.data.dir.dirty {
+				install_dir_recursive(w, path) catch return $;
 			}
 
-			loop i : s64 = 0; i < length; {
-				event :: cast(*inotify_event)&buf[i];
-				print_log("% %", event.mask, inotify_event_name(event));
-				i += auto (event.len + sizeof(inotify_event));
+			if !file_exist(path) {
+				if !w.is_removed {
+					flush_wfds(w);
 
-				using IDMask;
-				if is_flag(event.mask, ISDIR) {
-					rebuild = true;
+					w.is_removed = true;
+					schedule_dir_event(w, DIR_REMOVED);
+				}
+			} else if w.is_removed {
+				w.is_removed     = false;
+				w.data.dir.dirty = true;
+				schedule_dir_event(w, DIR_CHANGED);
+			} else {
+				assert(!w.is_removed);
+
+				buf: [(OS_NAME_MAX + auto sizeof(inotify_event)) * 256]s8 #noinit;
+
+				loop !fw.stop {
+
+					length :: C.read(w.data.dir.nfd, buf.ptr, auto buf.len);
+					if (length < 0) {
+						err :: os_get_last_error2();
+						if err.code == C.EAGAIN || err.code == C.EWOULDBLOCK {
+							break; // Wait
+						}
+						return err;
+					}
+
+					loop i : s64 = 0; i < length; {
+						using IDMask;
+
+						event :: cast(*inotify_event)&buf[i];
+						// name  :: inotify_event_name(event);
+						// print_log("% %", @event, name);
+						i += auto (event.len + sizeof(inotify_event));
+
+						if is_flag(event.mask, IGNORED) then continue;
+
+						schedule_dir_event(w, DIR_CHANGED);
+						if is_flag(event.mask, ISDIR) {
+							w.data.dir.dirty = true;
+						}
+					}
 				}
 			}
 
-			if rebuild {
-				return install_dir_recursive(w, path);
+			if w.data.dir.event != IGNORE {
+				if (os_tick_ms() - w.data.dir.timeout) > 1000 {
+					event.kind = w.data.dir.event;
+
+					w.data.dir.event   = IGNORE;
+					w.data.dir.timeout = 0;
+				}
 			}
 		}
 
 		FILE {
+			timestamp, timestamp_err :: get_file_timestamp(path);
+			if timestamp_err {
+				if !w.is_removed {
+					event.kind = FILE_REMOVED;
+					w.data.file.timestamp = -1;
+					w.is_removed = true;
+				}
+			} else if timestamp != w.data.file.timestamp {
+				event.kind            = FILE_CHANGED;
+				event.timestamp       = timestamp;
+				w.data.file.timestamp = timestamp;
+				w.is_removed          = false;
+			}
 		}
 	}
 
+	if event.kind == IGNORE then return OK;
+
+	{
+		mutex_lock(&fw.events_lock);
+		defer mutex_unlock(&fw.events_lock);
+
+		loop fw.events.len + 1 > fw.events.data.len {
+			if fw.stop then return OK;
+
+			// Give chance to consume events in case the queue is full.
+			mutex_unlock(&fw.events_lock);
+			os_sleep_ms(200);
+			mutex_lock(&fw.events_lock);
+		}
+
+		event.path = path;
+		sarray_push(&fw.events, event);
+	}
 	return OK;
 }
 
@@ -200,20 +205,49 @@ worker :: fn (fw: *FileWatch) s32 {
 	loop !fw.stop {
 
 		{
-			mutex_lock(&fw.lock);
-			defer mutex_unlock(&fw.lock);
+			mutex_lock(&fw.watches_lock);
+			defer mutex_unlock(&fw.watches_lock);
 
-			watches : []Watch       : fw.watches.values;
-			paths   : []string_view : fw.watches.keys;
+			watches : []Watch  : fw.watches.values;
+			paths   : []string : fw.watches.keys;
 
-			loop i := 0; i < watches.len; i += 1 {
-				process_watch(&watches[i], paths[i]);
+			loop i := 0; i < watches.len && !fw.stop; i += 1 {
+				process_watch(fw, &watches[i], paths[i]) catch {
+					print_err($);
+				};
 			}
 		}
 
+		temporary_reset();
 		os_sleep_ms(200);
 	}
+
+	temporary_release();
 
 	return 0;
 }
 
+get_file_timestamp :: fn (filepath: string_view) (t: u64, err: Error) {
+	using C;
+	file_stat: stat_t #noinit;
+	if stat(strtoc(filepath), &file_stat) == -1 {
+		return 0, os_get_last_error2();
+	}
+
+	s  :: cast(u64) file_stat.st_mtim.tv_sec;
+	ns :: cast(u64) file_stat.st_mtim.tv_nsec;
+
+	t :: s * 1000 + ns / 1000000;
+	return t, OK;
+}
+
+flush_wfds :: fn (w: *Watch) {
+	assert(w.kind == Watch.kind.DIR);
+
+	nfd :: w.data.dir.nfd;
+	// flush all
+	loop i := 0; i < w.data.dir.wfds.len; i += 1 {
+		inotify_rm_watch(nfd, w.data.dir.wfds[i]);
+	}
+	w.data.dir.wfds.len = 0;
+}

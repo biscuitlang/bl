@@ -1,0 +1,147 @@
+FileWatch :: struct {
+	events:      StaticArray(WatchEvent, 512);
+	events_lock: Mutex;
+
+	thread: Thread;
+
+	watches:      Table(string, Watch);
+	watches_lock: Mutex;
+
+	stop: bool;
+}
+
+WatchEvent :: struct {
+	kind: enum {
+		IGNORE;
+		DIR_CHANGED;
+		FILE_CHANGED;
+		DIR_REMOVED;
+		FILE_REMOVED;
+	};
+	path:      string_view;
+	timestamp: u64;
+}
+
+new_filewatch :: fn () (*FileWatch, Error) {
+	fw :: new(FileWatch) catch return null, $;
+
+	mutex_init(&fw.watches_lock) catch {
+		free(auto fw);
+		return null, $;
+	};
+
+	mutex_init(&fw.events_lock) catch {
+		free(auto fw);
+		return null, $;
+	};
+
+	thread :: thread_create(auto &worker, auto fw) catch {
+		free(auto fw);
+		mutex_terminate(&fw.watches_lock);
+		return null, $;
+	};
+
+	fw.thread = thread;
+
+	return fw, OK;
+}
+
+delete_filewatch :: fn (fw: *FileWatch) {
+	if !fw then return;
+
+	fw.stop = true;
+	thread_join(fw.thread);
+
+	paths   : []string : fw.watches.keys;
+	watches : []Watch  : fw.watches.values;
+	loop i := 0; i < watches.len; i += 1 {
+		using Watch.kind;
+		switch watches[i].kind {
+			DIR {
+				terminate_dir_watch(&watches[i]);
+			}
+			FILE {
+				terminate_file_watch(&watches[i]);
+			}
+		}
+
+		str_terminate(&paths[i]);
+	}
+
+	tbl_terminate(&fw.watches);
+
+	mutex_terminate(&fw.watches_lock);
+	mutex_terminate(&fw.events_lock);
+
+	free(auto fw);
+}
+
+watch_changes :: fn (fw: *FileWatch, path: string_view) Error {
+	mutex_lock(&fw.watches_lock);
+	defer mutex_unlock(&fw.watches_lock);
+
+	if !file_exist(path) then return error("File '%' not found.", path);
+	if tbl_contains(&fw.watches, .{ path.len, path.ptr }) then return error("File '%' is already watched.", path);
+
+	isdir :: is_directory(path) catch {
+		return $;
+	};
+
+	w: Watch;
+	if isdir {
+		init_dir_watch(&w, path) catch return $;
+	} else {
+		init_file_watch(&w, path) catch return $;
+	}
+	tbl_insert(&fw.watches, str_make(path), w);
+
+	return OK;
+}
+
+unwatch_changes :: fn (fw: *FileWatch, path: string_view) Error {
+	mutex_lock(&fw.watches_lock);
+	defer mutex_unlock(&fw.watches_lock);
+
+	index :: tbl_lookup_index(&fw.watches, .{ path.len, path.ptr });
+	if index == -1 then return error("File '%' is not tracked by the file watcher.", path);
+
+	using Watch.kind;
+	switch fw.watches.values[index].kind {
+		DIR {
+			terminate_dir_watch(&fw.watches.values[index]);
+		}
+		FILE {
+			terminate_file_watch(&fw.watches.values[index]);
+		}
+	}
+
+	key :: fw.watches.keys[index];
+	tbl_erase(&fw.watches, key);
+	str_terminate(&key);
+
+	return OK;
+}
+
+is_watched :: fn (fw: *FileWatch, path: string_view) bool #inline {
+	mutex_lock(&fw.watches_lock);
+	defer mutex_unlock(&fw.watches_lock);
+
+	return tbl_contains(&fw.watches, .{ path.len, path.ptr });
+}
+
+poll_file_changes :: fn (fw: *FileWatch, event: *WatchEvent) bool {
+	mutex_lock(&fw.events_lock);
+	defer mutex_unlock(&fw.events_lock);
+
+	return sarray_pop(&fw.events, event);
+}
+
+#scope_module
+
+#import "std/fs"
+#import "std/thread"
+#import "std/sync"
+#import "std/static_array"
+#import "std/table"
+#import "std/string"
+#import "std/array"

@@ -219,11 +219,11 @@ _normalize :: fn (filepath: *string) Error {
 	buf : [OS_PATH_MAX]s8 #noinit;
 	if GetFullPathNameA(strtoc(@filepath), auto buf.len, buf.ptr, null) == 0 {
 		ec, estr :: os_get_last_error();
-		return error(ec, "Cannot normalize '%': %", @filepath, estr);
+		return error(ec, "Cannot resolve '%': %", @filepath, estr);
 	}
 	if PathFileExistsA(strtoc(@filepath)) == 0 {
 		ec, estr :: os_get_last_error();
-		return error(ec, "Cannot normalize '%': %", @filepath, estr);
+		return error(ec, "Cannot resolve '%': %", @filepath, estr);
 	}
 	filepath.len = 0;
 	str_append(filepath, ctostr(buf.ptr));

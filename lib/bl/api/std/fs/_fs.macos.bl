@@ -218,7 +218,7 @@ _normalize :: fn (filepath: *string) Error {
 	}
 	if !C.realpath(auto in_buf.ptr, auto buf.ptr) {
 		ec, estr :: os_get_last_error();
-		return error(ec, "Cannot normalize '%': %.", @filepath, estr);
+		return error(ec, "Cannot resolve '%': %.", @filepath, estr);
 	}
 	filepath.len = 0;
 	str_append(filepath, ctostr(auto buf.ptr));
