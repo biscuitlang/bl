@@ -1,6 +1,9 @@
 version: 1
-supported: "x86_64-pc-linux-gnu, x86_64-unknown-linux-gnu"
+supported: "x86_64-pc-linux-gnu, x86_64-unknown-linux-gnu, x86_64-pc-windows-msvc"
 src: "filewatch.bl"
+
+x86_64-pc-windows-msvc:
+  src: "_filewatch.win32.bl"
 
 x86_64-pc-linux-gnu:
   src: "_filewatch.linux.bl"

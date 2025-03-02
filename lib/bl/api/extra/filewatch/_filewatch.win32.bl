@@ -8,32 +8,18 @@ Watch :: struct {
 		};
 
 		dir: struct {
-			wfds: [..]s32;
-			nfd:      s32;
+			handle:   HANDLE;
 			event:    WatchEvent.kind;
 			timeout:  u64;
-			dirty:    bool;
 		};
 	};
 	is_removed: bool;
 }
 
+
 init_dir_watch :: fn (w: *Watch, dirpath: string_view) Error {
 	w.kind = Watch.kind.DIR;
-
-	nfd :: inotify_init();
-	if nfd < 0 then return os_get_last_error2();
-	C.fcntl(nfd, C.F_SETFL, C.O_NONBLOCK);
-
-	w.data.dir.nfd   = nfd;
-	w.data.dir.dirty = true;
-
-	install_dir_recursive(w, dirpath) catch {
-		C.close(nfd);
-		return $;
-	};
-
-	return OK;
+	return install_dir_recursive(w, dirpath);
 }
 
 init_file_watch :: fn (w: *Watch, dirpath: string_view) Error {
@@ -44,49 +30,21 @@ init_file_watch :: fn (w: *Watch, dirpath: string_view) Error {
 }
 
 terminate_dir_watch :: fn (w: *Watch) {
-	flush_wfds(w);
-	C.close(w.data.dir.nfd);
-	array_terminate(&w.data.dir.wfds);
+	FindCloseChangeNotification(w.data.dir.handle);
 }
 
 terminate_file_watch :: fn (_: *Watch) {}
 
 #scope_private
+#import "os/windows"
 
-C :: #import "libc";
-#import "os/linux/sys/inotify"
-
-DIR_WATCH_MASK :: IDMask.MOVE | IDMask.CREATE | IDMask.DELETE | IDMask.DONT_FOLLOW;
+WATCH_FLAGS :: FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME;
 install_dir_recursive :: fn (w: *Watch, dirpath: string_view) Error {
-	// measure_elapsed_ms_begin();
-	// defer measure_elapsed_ms_end();
-
-	assert(w.data.dir.dirty);
-	w.data.dir.dirty = false;
-
-	flush_wfds(w);
-
-	nfd :: w.data.dir.nfd;
-	fd :: inotify_add_watch(nfd, strtoc(dirpath), DIR_WATCH_MASK);
-	if fd < 0 then return error("Unable to install watch for '%'.", dirpath);
-	array_push(&w.data.dir.wfds, fd);
-
-	visit_err :: visit_files(dirpath, VisitOpt.{ recursive = true }, w, &fn (info: *FileVisitInfo, w: *Watch) Error {
-			if !info.is_directory then return OK;
-
-			nfd :: w.data.dir.nfd;
-			fd :: inotify_add_watch(nfd, strtoc(info.filepath), DIR_WATCH_MASK);
-			if fd < 0 then return error("Unable to install watch for '%'.", info.filepath);
-
-			array_push(&w.data.dir.wfds, fd);
-			return OK;
-		});
-
-	if visit_err {
-		flush_wfds(w);
-		return visit_err;
+	handle :: FindFirstChangeNotificationA(strtoc(dirpath), TRUE, auto WATCH_FLAGS);
+	if handle == INVALID_HANDLE {
+		return os_get_last_error2();
 	}
-
+	w.data.dir.handle = handle;
 	return OK;
 }
 
@@ -104,51 +62,24 @@ process_watch :: fn (fw: *FileWatch, w: *Watch, path: string_view) Error {
 
 	switch w.kind {
 		DIR {
-			if w.data.dir.dirty {
-				install_dir_recursive(w, path) catch return $;
-			}
-
 			if !file_exist(path) {
 				if !w.is_removed {
-					flush_wfds(w);
+					FindCloseChangeNotification(w.data.dir.handle);
 
 					w.is_removed = true;
 					schedule_dir_event(w, DIR_REMOVED);
 				}
 			} else if w.is_removed {
-				w.is_removed     = false;
-				w.data.dir.dirty = true;
+				w.is_removed = false;
+				install_dir_recursive(w, path) catch return $;
 				schedule_dir_event(w, DIR_CHANGED);
 			} else {
 				assert(!w.is_removed);
 
-				buf: [(OS_NAME_MAX + auto sizeof(inotify_event)) * 256]s8 #noinit;
-
-				loop !fw.stop {
-
-					length :: C.read(w.data.dir.nfd, buf.ptr, auto buf.len);
-					if (length < 0) {
-						err :: os_get_last_error2();
-						if err.code == C.EAGAIN || err.code == C.EWOULDBLOCK {
-							break; // Wait
-						}
-						return err;
-					}
-
-					loop i : s64 = 0; i < length; {
-						using IDMask;
-
-						event :: cast(*inotify_event)&buf[i];
-						// name  :: inotify_event_name(event);
-						// print_log("% %", @event, name);
-						i += auto (event.len + sizeof(inotify_event));
-
-						if is_flag(event.mask, IGNORED) then continue;
-
-						schedule_dir_event(w, DIR_CHANGED);
-						if is_flag(event.mask, ISDIR) {
-							w.data.dir.dirty = true;
-						}
+				if WaitForSingleObject(w.data.dir.handle, 0) == auto WAIT_OBJECT_0 {
+					schedule_dir_event(w, DIR_CHANGED);
+					if FindNextChangeNotification(w.data.dir.handle) == FALSE {
+						return os_get_last_error2();
 					}
 				}
 			}
@@ -201,29 +132,18 @@ process_watch :: fn (fw: *FileWatch, w: *Watch, path: string_view) Error {
 	return OK;
 }
 
-flush_wfds :: fn (w: *Watch) {
-	assert(w.kind == Watch.kind.DIR);
-
-	nfd :: w.data.dir.nfd;
-	// flush all
-	loop i := 0; i < w.data.dir.wfds.len; i += 1 {
-		inotify_rm_watch(nfd, w.data.dir.wfds[i]);
-	}
-	w.data.dir.wfds.len = 0;
-}
-
 get_file_timestamp :: fn (filepath: string_view) (t: u64, err: Error) {
-	using C;
-	file_stat: stat_t #noinit;
-	if stat(strtoc(filepath), &file_stat) == -1 {
-		return 0, os_get_last_error2();
+	attributes: WIN32_FILE_ATTRIBUTE_DATA;
+	if GetFileAttributesExA(strtoc(filepath), GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard, auto &attributes) == TRUE {
+		tmp: union {
+			wt: FILETIME;
+			t: u64;
+		};
+		tmp.wt = attributes.ftLastWriteTime;
+		return tmp.t, OK;
 	}
 
-	s  :: cast(u64) file_stat.st_mtim.tv_sec;
-	ns :: cast(u64) file_stat.st_mtim.tv_nsec;
-
-	t :: s * 1000 + ns / 1000000;
-	return t, OK;
+	return 0, os_get_last_error2();
 }
 
 #scope_module
@@ -253,4 +173,3 @@ worker :: fn (fw: *FileWatch) s32 {
 
 	return 0;
 }
-

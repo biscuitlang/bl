@@ -31,10 +31,10 @@ main :: fn () s32 {
 	fw :: new_filewatch() catch panic($);
 	defer delete_filewatch(fw);
 
-	watch_changes(fw, "/home/travis/develop/bl") catch panic($);
-	watch_changes(fw, "/home/travis/develop/test") catch panic($);
+	watch_changes(fw, "C:/develop/bl") catch panic($);
+	watch_changes(fw, "C:/develop/test") catch panic($);
 	watch_changes(fw, #file) catch panic($);
-	watch_changes(fw, "/home/travis/develop/test/New Document.txt") catch panic($);
+	watch_changes(fw, "C:/develop/test/file.txt") catch panic($);
 
 	loop {
 		event: WatchEvent;
