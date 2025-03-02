@@ -1,135 +1,18 @@
 #scope_module
 
-Watch :: struct {
-	kind: enum { FILE; DIR; };
-	data: union {
-		file: struct {
-			timestamp: u64;
-		};
-
-		dir: struct {
-			handle:   HANDLE;
-			event:    WatchEvent.kind;
-			timeout:  u64;
-		};
-	};
-	is_removed: bool;
+WatchDirData :: struct {
+	handle:   HANDLE;
+	event:    WatchEvent.kind;
+	timeout:  u64;
 }
-
 
 init_dir_watch :: fn (w: *Watch, dirpath: string_view) Error {
 	w.kind = Watch.kind.DIR;
 	return install_dir_recursive(w, dirpath);
 }
 
-init_file_watch :: fn (w: *Watch, dirpath: string_view) Error {
-	w.kind = Watch.kind.FILE;
-	timestamp :: get_file_timestamp(dirpath) catch return $;
-	w.data.file.timestamp = timestamp;
-	return OK;
-}
-
 terminate_dir_watch :: fn (w: *Watch) {
 	FindCloseChangeNotification(w.data.dir.handle);
-}
-
-terminate_file_watch :: fn (_: *Watch) {}
-
-#scope_private
-#import "os/windows"
-
-WATCH_FLAGS :: FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME;
-install_dir_recursive :: fn (w: *Watch, dirpath: string_view) Error {
-	handle :: FindFirstChangeNotificationA(strtoc(dirpath), TRUE, auto WATCH_FLAGS);
-	if handle == INVALID_HANDLE {
-		return os_get_last_error2();
-	}
-	w.data.dir.handle = handle;
-	return OK;
-}
-
-process_watch :: fn (fw: *FileWatch, w: *Watch, path: string_view) Error {
-	using Watch.kind;
-	using WatchEvent.kind;
-
-	event: WatchEvent;
-
-	schedule_dir_event :: fn (w: *Watch, kind: WatchEvent.kind) {
-		assert(kind != WatchEvent.kind.IGNORE);
-		w.data.dir.event   = kind;
-		w.data.dir.timeout = os_tick_ms();
-	};
-
-	switch w.kind {
-		DIR {
-			if !file_exist(path) {
-				if !w.is_removed {
-					FindCloseChangeNotification(w.data.dir.handle);
-
-					w.is_removed = true;
-					schedule_dir_event(w, DIR_REMOVED);
-				}
-			} else if w.is_removed {
-				w.is_removed = false;
-				install_dir_recursive(w, path) catch return $;
-				schedule_dir_event(w, DIR_CHANGED);
-			} else {
-				assert(!w.is_removed);
-
-				if WaitForSingleObject(w.data.dir.handle, 0) == auto WAIT_OBJECT_0 {
-					schedule_dir_event(w, DIR_CHANGED);
-					if FindNextChangeNotification(w.data.dir.handle) == FALSE {
-						return os_get_last_error2();
-					}
-				}
-			}
-
-			if w.data.dir.event != IGNORE {
-				if (os_tick_ms() - w.data.dir.timeout) > 1000 {
-					event.kind = w.data.dir.event;
-
-					w.data.dir.event   = IGNORE;
-					w.data.dir.timeout = 0;
-				}
-			}
-		}
-
-		FILE {
-			timestamp, timestamp_err :: get_file_timestamp(path);
-			if timestamp_err {
-				if !w.is_removed {
-					event.kind = FILE_REMOVED;
-					w.data.file.timestamp = -1;
-					w.is_removed = true;
-				}
-			} else if timestamp != w.data.file.timestamp {
-				event.kind            = FILE_CHANGED;
-				event.timestamp       = timestamp;
-				w.data.file.timestamp = timestamp;
-				w.is_removed          = false;
-			}
-		}
-	}
-
-	if event.kind == IGNORE then return OK;
-
-	{
-		mutex_lock(&fw.events_lock);
-		defer mutex_unlock(&fw.events_lock);
-
-		loop fw.events.len + 1 > fw.events.data.len {
-			if fw.stop then return OK;
-
-			// Give chance to consume events in case the queue is full.
-			mutex_unlock(&fw.events_lock);
-			os_sleep_ms(200);
-			mutex_lock(&fw.events_lock);
-		}
-
-		event.path = path;
-		sarray_push(&fw.events, event);
-	}
-	return OK;
 }
 
 get_file_timestamp :: fn (filepath: string_view) (t: u64, err: Error) {
@@ -146,30 +29,42 @@ get_file_timestamp :: fn (filepath: string_view) (t: u64, err: Error) {
 	return 0, os_get_last_error2();
 }
 
-#scope_module
-worker :: fn (fw: *FileWatch) s32 {
+process_watch_dir :: fn (w: *Watch, path: string_view) Error {
+	using WatchEvent.kind;
 
-	loop !fw.stop {
+	if !file_exist(path) {
+		if !w.is_removed {
+			FindCloseChangeNotification(w.data.dir.handle);
 
-		{
-			mutex_lock(&fw.watches_lock);
-			defer mutex_unlock(&fw.watches_lock);
+			w.is_removed = true;
+			schedule_dir_event(w, DIR_REMOVED);
+		}
+	} else if w.is_removed {
+		w.is_removed = false;
+		install_dir_recursive(w, path) catch return $;
+		schedule_dir_event(w, DIR_CHANGED);
+	} else {
+		assert(!w.is_removed);
 
-			watches : []Watch  : fw.watches.values;
-			paths   : []string : fw.watches.keys;
-
-			loop i := 0; i < watches.len && !fw.stop; i += 1 {
-				process_watch(fw, &watches[i], paths[i]) catch {
-					print_err($);
-				};
+		if WaitForSingleObject(w.data.dir.handle, 0) == auto WAIT_OBJECT_0 {
+			schedule_dir_event(w, DIR_CHANGED);
+			if FindNextChangeNotification(w.data.dir.handle) == FALSE {
+				return os_get_last_error2();
 			}
 		}
-
-		temporary_reset();
-		os_sleep_ms(200);
 	}
+	return OK;
+}
 
-	temporary_release();
+#scope_private
+#import "os/windows"
 
-	return 0;
+WATCH_FLAGS :: FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME;
+install_dir_recursive :: fn (w: *Watch, dirpath: string_view) Error {
+	handle :: FindFirstChangeNotificationA(strtoc(dirpath), TRUE, auto WATCH_FLAGS);
+	if handle == INVALID_HANDLE {
+		return os_get_last_error2();
+	}
+	w.data.dir.handle = handle;
+	return OK;
 }

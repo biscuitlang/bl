@@ -145,3 +145,116 @@ poll_file_changes :: fn (fw: *FileWatch, event: *WatchEvent) bool {
 #import "std/table"
 #import "std/string"
 #import "std/array"
+
+Watch :: struct {
+	kind: enum { FILE; DIR; };
+	data: union {
+		file: struct {
+			timestamp: u64;
+		};
+		dir: WatchDirData;
+	};
+	is_removed: bool;
+}
+
+schedule_dir_event :: fn (w: *Watch, kind: WatchEvent.kind) {
+	assert(kind != WatchEvent.kind.IGNORE);
+	w.data.dir.event   = kind;
+	w.data.dir.timeout = os_tick_ms();
+}
+
+process_watch :: fn (fw: *FileWatch, w: *Watch, path: string_view) Error {
+	using Watch.kind;
+	using WatchEvent.kind;
+
+	event: WatchEvent;
+
+	switch w.kind {
+		DIR {
+			process_watch_dir(w, path) catch return $;
+
+			if w.data.dir.event != IGNORE {
+				if (os_tick_ms() - w.data.dir.timeout) > 1000 {
+					event.kind = w.data.dir.event;
+
+					w.data.dir.event   = IGNORE;
+					w.data.dir.timeout = 0;
+				}
+			}
+		}
+
+		FILE {
+			timestamp, timestamp_err :: get_file_timestamp(path);
+			if timestamp_err {
+				if !w.is_removed {
+					event.kind = FILE_REMOVED;
+					w.data.file.timestamp = -1;
+					w.is_removed = true;
+				}
+			} else if timestamp != w.data.file.timestamp {
+				event.kind            = FILE_CHANGED;
+				event.timestamp       = timestamp;
+				w.data.file.timestamp = timestamp;
+				w.is_removed          = false;
+			}
+		}
+	}
+
+	if event.kind == IGNORE then return OK;
+
+	{
+		mutex_lock(&fw.events_lock);
+		defer mutex_unlock(&fw.events_lock);
+
+		loop fw.events.len + 1 > fw.events.data.len {
+			if fw.stop then return OK;
+
+			// Give chance to consume events in case the queue is full.
+			mutex_unlock(&fw.events_lock);
+			os_sleep_ms(200);
+			mutex_lock(&fw.events_lock);
+		}
+
+		event.path = path;
+		sarray_push(&fw.events, event);
+	}
+	return OK;
+}
+
+#scope_private
+
+init_file_watch :: fn (w: *Watch, dirpath: string_view) Error {
+	w.kind = Watch.kind.FILE;
+	timestamp :: get_file_timestamp(dirpath) catch return $;
+	w.data.file.timestamp = timestamp;
+	return OK;
+}
+
+terminate_file_watch :: fn (_: *Watch) {}
+
+worker :: fn (fw: *FileWatch) s32 {
+
+	loop !fw.stop {
+
+		{
+			mutex_lock(&fw.watches_lock);
+			defer mutex_unlock(&fw.watches_lock);
+
+			watches : []Watch  : fw.watches.values;
+			paths   : []string : fw.watches.keys;
+
+			loop i := 0; i < watches.len && !fw.stop; i += 1 {
+				process_watch(fw, &watches[i], paths[i]) catch {
+					print_err($);
+				};
+			}
+		}
+
+		temporary_reset();
+		os_sleep_ms(200);
+	}
+
+	temporary_release();
+
+	return 0;
+}
