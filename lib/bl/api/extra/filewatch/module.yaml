@@ -1,5 +1,5 @@
 version: 1
-supported: "x86_64-pc-linux-gnu, x86_64-unknown-linux-gnu, x86_64-pc-windows-msvc"
+supported: "x86_64-pc-linux-gnu, x86_64-unknown-linux-gnu, x86_64-pc-windows-msvc, x86_64-apple-darwin, arm64-apple-darwin"
 src: "filewatch.bl"
 
 x86_64-pc-windows-msvc:
@@ -10,3 +10,9 @@ x86_64-pc-linux-gnu:
 
 x86_64-unknown-linux-gnu:
   src: "_filewatch.linux.bl"
+
+x86_64-apple-darwin:
+  src: "_filewatch.macos.bl"
+
+arm64-apple-darwin:
+  src: "_filewatch.macos.bl"

@@ -1,0 +1,164 @@
+FileWatch :: struct #base FileWatchBase {
+	loop_mode: CFStringRef;
+}
+
+#scope_module
+
+WatchDirData :: struct {
+	stream:       FSEventStreamRef;
+	ctx:         *CallbackContext;
+	is_first_run: bool;
+}
+
+init_dir_watch :: fn (_: *FileWatch, w: *Watch, _: string_view) Error {
+	w.kind = Watch.kind.DIR;
+	w.data.dir.is_first_run = true;
+	return OK;
+}
+
+terminate_dir_watch :: fn (w: *Watch) {
+	uninstall_dir_recursive(w);
+}
+
+get_file_timestamp :: fn (filepath: string_view) (t: u64, err: Error) {
+	using C;
+	file_stat: stat_t #noinit;
+	if stat(strtoc(filepath), &file_stat) == -1 {
+		return 0, os_get_last_error2();
+	}
+
+	s  :: cast(u64) file_stat.st_mtimespec.tv_sec;
+	ns :: cast(u64) file_stat.st_mtimespec.tv_nsec;
+
+	return s * 1000 + ns / 1000000, OK;
+}
+
+worker_on_init :: fn (fw: *FileWatch) {
+	fw.loop_mode = CFStringCreateWithCString(null, auto strtoc("kCFRunLoopDefaultMode"), CFStringEncoding.UTF8);
+}
+
+worker_on_terminate :: fn (fw: *FileWatch) {
+	CFRelease(fw.loop_mode);
+}
+
+poll_event_loop :: fn (fw: *FileWatch) {
+	CFRunLoopRunInMode(fw.loop_mode, 0., 0);
+}
+
+process_watch_dir :: fn (fw: *FileWatch, w: *Watch, path: string_view) Error {
+	using WatchEvent.kind;
+
+	if !file_exist(path) {
+		if !w.is_removed {
+			w.is_removed = true;
+			uninstall_dir_recursive(w);
+
+			schedule_event(w, DIR_REMOVED);
+		}
+	} else if w.data.dir.is_first_run {
+		w.data.dir.is_first_run = false;
+		install_dir_recursive(fw, w, path) catch return $;
+	} else if w.is_removed {
+		w.is_removed     = false;
+		install_dir_recursive(fw, w, path) catch return $;
+
+		schedule_event(w, DIR_CHANGED);
+	} else {
+		assert(!w.is_removed);
+
+
+		ctx :: w.data.dir.ctx;
+		assert(ctx);
+
+		if ctx.has_changes {
+			ctx.has_changes = false;
+			schedule_event(w, DIR_CHANGED);
+		}
+	}
+
+	return OK;
+}
+
+#scope_private
+
+C :: #import "libc";
+#import "os/macos"
+
+CallbackContext :: struct {
+	has_changes: bool;
+}
+
+install_dir_recursive :: fn (fw: *FileWatch, w: *Watch, dirpath: string_view) Error {
+	uninstall_dir_recursive(w);
+
+	path :: CFStringCreateWithBytes(kCFAllocatorDefault, auto dirpath.ptr, dirpath.len, CFStringEncoding.UTF8, 0);
+	paths   :: CFArrayCreate(null, &path, 1, null);
+	latency :: 1.0;
+
+	ctx :: new(CallbackContext);
+	w.data.dir.ctx = ctx;
+
+	callback_ctx :: FSEventStreamContext.{
+		info = auto ctx,
+	};
+
+	change_callback :: fn (
+		_: ConstFSEventStreamRef,
+		ctx: *CallbackContext,
+		num_events: usize,
+		_: *u8,
+		flags: *FSEventStreamEventFlags,
+		_: *FSEventStreamEventId
+	) {
+		event_flags :: []FSEventStreamEventFlags.{ auto num_events, flags };
+		loop i := 0; i < event_flags.len; i += 1 {
+
+			// print_log("%", fmt_int(event_flags[i], FmtIntBase.HEX));
+
+			if is_flag(event_flags[i], kFSEventStreamEventFlagItemCreated | kFSEventStreamEventFlagItemIsFile) {
+				ctx.has_changes = true;
+			}
+			if is_flag(event_flags[i], kFSEventStreamEventFlagItemCreated | kFSEventStreamEventFlagItemIsDir) {
+				ctx.has_changes = true;
+			}
+			if is_flag(event_flags[i], kFSEventStreamEventFlagItemRemoved | kFSEventStreamEventFlagItemIsFile) {
+				ctx.has_changes = true;
+			}
+			if is_flag(event_flags[i], kFSEventStreamEventFlagItemRemoved | kFSEventStreamEventFlagItemIsDir) {
+				ctx.has_changes = true;
+			}
+			if is_flag(event_flags[i], kFSEventStreamEventFlagItemRenamed | kFSEventStreamEventFlagItemIsFile) {
+				ctx.has_changes = true;
+			}
+			if is_flag(event_flags[i], kFSEventStreamEventFlagItemRenamed | kFSEventStreamEventFlagItemIsDir) {
+				ctx.has_changes = true;
+			}
+
+			if ctx.has_changes then break;
+		}
+	};
+
+	stream :: FSEventStreamCreate(null, auto &change_callback, &callback_ctx, paths, kFSEventStreamEventIdSinceNow, latency, kFSEventStreamCreateFlagFileEvents);
+
+	FSEventStreamScheduleWithRunLoop(stream, CFRunLoopGetCurrent(), fw.loop_mode);
+	FSEventStreamStart(stream);
+
+	w.data.dir.stream = stream;
+	return OK;
+}
+
+uninstall_dir_recursive :: fn (w: *Watch) Error {
+	assert(w.kind == Watch.kind.DIR);
+	if !w.data.dir.ctx then return OK;
+
+	stream :: w.data.dir.stream;
+
+	FSEventStreamStop(stream);
+	FSEventStreamInvalidate(stream);
+	FSEventStreamRelease(stream);
+
+	free(auto w.data.dir.ctx);
+	w.data.dir.ctx = null;
+
+	return OK;
+}

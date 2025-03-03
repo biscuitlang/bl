@@ -1,3 +1,5 @@
+FileWatch :: FileWatchBase;
+
 #scope_module
 
 WatchDirData :: struct {
@@ -8,7 +10,7 @@ WatchDirData :: struct {
 	dirty:    bool;
 }
 
-init_dir_watch :: fn (w: *Watch, dirpath: string_view) Error {
+init_dir_watch :: fn (_: *FileWatch, w: *Watch, dirpath: string_view) Error {
 	w.kind = Watch.kind.DIR;
 
 	nfd :: inotify_init();
@@ -46,6 +48,12 @@ get_file_timestamp :: fn (filepath: string_view) (t: u64, err: Error) {
 	return t, OK;
 }
 
+worker_on_init :: fn (_: *FileWatch) {}
+
+worker_on_terminate :: fn (_: *FileWatch) {}
+
+poll_event_loop :: fn (_: *FileWatch) {)
+
 process_watch_dir :: fn (fw: *FileWatch, w: *Watch, path: string_view) Error {
 	using WatchEvent.kind;
 
@@ -58,12 +66,12 @@ process_watch_dir :: fn (fw: *FileWatch, w: *Watch, path: string_view) Error {
 			flush_wfds(w);
 
 			w.is_removed = true;
-			schedule_dir_event(w, DIR_REMOVED);
+			schedule_event(w, DIR_REMOVED);
 		}
 	} else if w.is_removed {
 		w.is_removed     = false;
 		w.data.dir.dirty = true;
-		schedule_dir_event(w, DIR_CHANGED);
+		schedule_event(w, DIR_CHANGED);
 	} else {
 		assert(!w.is_removed);
 
@@ -90,7 +98,7 @@ process_watch_dir :: fn (fw: *FileWatch, w: *Watch, path: string_view) Error {
 
 				if is_flag(event.mask, IGNORED) then continue;
 
-				schedule_dir_event(w, DIR_CHANGED);
+				schedule_event(w, DIR_CHANGED);
 				if is_flag(event.mask, ISDIR) {
 					w.data.dir.dirty = true;
 				}

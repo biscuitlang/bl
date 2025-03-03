@@ -123,6 +123,15 @@ CFRunLoopGetCurrent :: fn () CFRunLoopRef #extern "CFRunLoopGetCurrent";
 CFRunLoopCopyCurrentMode :: fn (rl: CFRunLoopRef) CFRunLoopMode #extern "CFRunLoopCopyCurrentMode";
 CFRelease :: fn (cf: CFTypeRef) #extern "CFRelease";
 
+CFRunLoopRunResult :: enum  {
+	kCFRunLoopRunFinished = 1;
+	kCFRunLoopRunStopped = 2;
+	kCFRunLoopRunTimedOut = 3;
+	kCFRunLoopRunHandledSource = 4;
+};
+
+CFRunLoopRunInMode :: fn (mode: CFRunLoopMode, seconds: CFTimeInterval, returnAfterSourceHandled: Boolean) CFRunLoopRunResult #extern "CFRunLoopRunInMode";
+
 CFStringCreateWithCString :: fn (
 	alloc: CFAllocatorRef,
 	cStr: *u8,
@@ -191,6 +200,7 @@ CFURLCreateWithString :: fn (allocator: CFAllocatorRef, URLString: CFStringRef, 
 CFURLCopyFileSystemPath :: fn (anURL: CFURLRef, pathStyle: CFURLPathStyle) CFStringRef #extern "CFURLCopyFileSystemPath";
 
 CFStringGetCString :: fn (theString: CFStringRef, buffer: *C.char, bufferSize: CFIndex, encoding: CFStringEncoding) Boolean #extern "CFStringGetCString";
+CFRunLoopRun :: fn () #extern "CFRunLoopRun";
 
 #scope_private
 C :: #import "libc";

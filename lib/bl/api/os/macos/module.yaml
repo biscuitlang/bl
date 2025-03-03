@@ -1,4 +1,5 @@
 version: 20220923
+linker_opt: "-framework CoreServices"
 
 x86_64-apple-darwin:
   src: "macos.bl"
