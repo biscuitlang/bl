@@ -47,24 +47,54 @@ static inline u32 add_token_value(struct context *ctx, union token_value value) 
 	return index;
 }
 
-bool scan_comment(struct context *ctx, struct token *tok, const char *term) {
+#define report_error2(ctx, code, ln, cl, len, cursor_position, format, ...)                                      \
+	{                                                                                                            \
+		_report((ctx), MSG_ERR, ERR_##code, (ln), (cl), (s32)(len), (cursor_position), (format), ##__VA_ARGS__); \
+		longjmp((ctx)->jmp_error, ERR_##code);                                                                   \
+	}                                                                                                            \
+	(void)0
+
+static inline void _report(struct context *ctx, enum builder_msg_type type, s32 code, s32 ln, s32 cl, s32 len, enum builder_cur_pos cursor_position, const char *format, ...) {
+	struct location loc = {
+	    .line = ln,
+	    .col  = cl,
+	    .len  = len,
+	    .unit = ctx->unit,
+	};
+	va_list args;
+	va_start(args, format);
+	builder_vmsg(type, code, &loc, cursor_position, format, args);
+	va_end(args);
+}
+
+bool scan_comment(struct context *ctx, struct token *tok, const char *termminator) {
 	if (tok->sym == SYM_SHEBANG && ctx->line != 1) {
-		report_error(INVALID_TOKEN, STR_FMT " %d:%d Shebang is allowed only on the first line of the file.", STR_ARG(ctx->unit->name), ctx->line, ctx->col);
+		report_error2(ctx, INVALID_TOKEN, ctx->line, ctx->col, 1, CARET_WORD, "Shebang is allowed only on the first line of the file.");
 	}
-	const usize len = strlen(term);
+
+	const s32 start_ln = ctx->line;
+	const s32 start_cl = ctx->col;
+
+	const usize terminator_len = strlen(termminator);
+
 	while (true) {
 		if (*ctx->c == '\n') {
 			ctx->line++;
 			ctx->col = 1;
-		} else if (*ctx->c == '\0' && strcmp(term, "\n") != 0) {
-			// Unterminated comment
-			report_error(UNTERMINATED_COMMENT, STR_FMT " %d:%d unterminated comment block.", STR_ARG(ctx->unit->name), ctx->line, ctx->col);
+		} else if (*ctx->c == SYM_EOF) {
+			if (strcmp(termminator, "\n") == 0) {
+				return true;
+			}
+
+			report_error2(ctx, UNTERMINATED_COMMENT, start_ln, start_cl, 1, CARET_WORD, "Unterminated comment block starting here:");
 		}
-		if (*ctx->c == SYM_EOF) return true;
-		if (strncmp(ctx->c, term, len) == 0) break;
+
+		if (strncmp(ctx->c, termminator, terminator_len) == 0) break;
+
 		ctx->c++;
 	}
-	ctx->c += len;
+
+	ctx->c += terminator_len;
 	return true;
 }
 
@@ -176,8 +206,10 @@ bool scan_ident(struct context *ctx, struct token *tok) {
 	return_zone(true);
 }
 
-static char scan_specch(struct context *ctx, u32 *len) {
-	*len += 1;
+static char scan_specch(struct context *ctx) {
+	++ctx->col;
+	s32 start_col = ctx->col;
+
 	const char c = *ctx->c++;
 	switch (c) {
 	case 'n':
@@ -194,38 +226,48 @@ static char scan_specch(struct context *ctx, u32 *len) {
 		return '\\';
 	case 'x':
 	case '0': {
-		u16       v    = 0;
-		const s32 base = c == 'x' ? 16 : 8;
+		u64       v                = 0;
+		const s32 base             = c == 'x' ? 16 : 8;
+		bool      is_out_of_bounds = false;
 
 		while (true) {
 			const s32 d = c_to_number(*ctx->c, base);
 			if (d == -1) break;
 			v = v * base + d;
-			if (v > 0xFF) {
-				if (base == 16) {
-					report_error(
-					    NUM_LIT_OVERFLOW,
-					    STR_FMT " %d:%d hex character notation overflow, maximum possible value is 0xFF, provided value is 0x%X.",
-					    STR_ARG(ctx->unit->name),
-					    ctx->line,
-					    ctx->col,
-					    v);
-				} else if (base == 8) {
-					report_error(
-					    NUM_LIT_OVERFLOW,
-					    STR_FMT " %d:%d octal character notation overflow, maximum possible value is 0377, provided value is 0%o.",
-					    STR_ARG(ctx->unit->name),
-					    ctx->line,
-					    ctx->col,
-					    v);
-				} else {
-					babort("Invalid number base.");
-				}
+			if (v > 0xFF && !is_out_of_bounds) {
+				is_out_of_bounds = true;
 			}
 			++ctx->c;
-			++*len;
+			++ctx->col;
 		}
 
+		if (is_out_of_bounds) {
+			const s32 len = ctx->col - start_col;
+
+			if (base == 16) {
+				report_error2(
+				    ctx,
+				    NUM_LIT_OVERFLOW,
+				    ctx->line,
+				    start_col,
+				    len,
+				    CARET_WORD,
+				    "Hexadecimal character notation overflow, maximum possible value is 0xFF.",
+				    v);
+			} else if (base == 8) {
+				report_error2(
+				    ctx,
+				    NUM_LIT_OVERFLOW,
+				    ctx->line,
+				    start_col,
+				    len,
+				    CARET_WORD,
+				    "Octal character notation overflow, maximum possible value is 0377.",
+				    v);
+			} else {
+				babort("Invalid number base.");
+			}
+		}
 		return (char)v;
 	}
 
@@ -236,44 +278,50 @@ static char scan_specch(struct context *ctx, u32 *len) {
 
 bool scan_string(struct context *ctx, struct token *tok) {
 	if (*ctx->c != '\"') return false;
+
 	zone();
 	sarrclear(&ctx->strtmp);
 	tok->location.line = ctx->line;
 	tok->location.col  = ctx->col;
 	tok->sym           = SYM_STRING;
 	char c;
-	u32  len = 0;
+
+	s32 start_col = ctx->col;
 
 	// eat "
-	ctx->c++;
+	++ctx->c;
+	++ctx->col;
+
 	while (true) {
 		switch (*ctx->c) {
 		case '\"': {
-			ctx->c++;
+			++ctx->col;
+			++ctx->c;
 			goto DONE;
 		}
-		case '\0': {
+		case SYM_EOF: {
 			report_error(UNTERMINATED_STRING, STR_FMT " %d:%d unterminated string.", STR_ARG(ctx->unit->name), ctx->line, ctx->col);
 		}
 		case '\\':
 			++ctx->c; // Eat backslash.
-			++len;
-			c = scan_specch(ctx, &len);
+			++ctx->col;
+			c = scan_specch(ctx);
 			break;
 
 		default:
 			c = *ctx->c;
-			len++;
-			ctx->c++;
+			++ctx->col;
+			++ctx->c;
 		}
 		sarrput(&ctx->strtmp, c);
 	}
+
 DONE: {
 	str_t str         = scdup2(ctx->string_cache, make_str(sarrdata(&ctx->strtmp), sarrlenu(&ctx->strtmp)));
 	tok->value_index  = add_token_value(ctx, (union token_value){.str = str});
-	tok->location.len = len;
-	tok->location.col += 1;
-	ctx->col += len + 2;
+	tok->location.len = ctx->col - start_col;
+	// tok->location.col += 1;
+	// ctx->col += len + 2;
 	return_zone(true);
 }
 }
@@ -300,7 +348,7 @@ bool scan_char(struct context *ctx, struct token *tok) {
 		++ctx->c; // Eat backslash.
 		++tok->location.len;
 		tok->value_index = add_token_value(ctx, (union token_value){
-		                                            .character = scan_specch(ctx, &tok->location.len),
+		                                            .character = scan_specch(ctx),
 		                                        });
 		break;
 	default:
