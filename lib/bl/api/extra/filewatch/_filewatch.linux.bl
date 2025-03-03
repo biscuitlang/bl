@@ -52,7 +52,7 @@ worker_on_init :: fn (_: *FileWatch) {}
 
 worker_on_terminate :: fn (_: *FileWatch) {}
 
-poll_event_loop :: fn (_: *FileWatch) {)
+poll_event_loop :: fn (_: *FileWatch) {}
 
 process_watch_dir :: fn (fw: *FileWatch, w: *Watch, path: string_view) Error {
 	using WatchEvent.kind;
