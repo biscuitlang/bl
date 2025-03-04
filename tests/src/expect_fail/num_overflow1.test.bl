@@ -1,0 +1,5 @@
+// @ERR_NUM_LIT_OVERFLOW@
+main :: fn () s32 {
+	n :: 0x1FFFFFFFFFFFFFFFF;
+	return 0;
+}

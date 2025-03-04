@@ -300,7 +300,7 @@ bool scan_string(struct context *ctx, struct token *tok) {
 			goto DONE;
 		}
 		case SYM_EOF: {
-			report_error(UNTERMINATED_STRING, STR_FMT " %d:%d unterminated string.", STR_ARG(ctx->unit->name), ctx->line, ctx->col);
+			report_error2(ctx, UNTERMINATED_STRING, ctx->line, start_col, 1, CARET_WORD, "Unterminated string.");
 		}
 		case '\\':
 			++ctx->c; // Eat backslash.
@@ -320,8 +320,6 @@ DONE: {
 	str_t str         = scdup2(ctx->string_cache, make_str(sarrdata(&ctx->strtmp), sarrlenu(&ctx->strtmp)));
 	tok->value_index  = add_token_value(ctx, (union token_value){.str = str});
 	tok->location.len = ctx->col - start_col;
-	// tok->location.col += 1;
-	// ctx->col += len + 2;
 	return_zone(true);
 }
 }
@@ -330,38 +328,45 @@ bool scan_char(struct context *ctx, struct token *tok) {
 	if (*ctx->c != '\'') return false;
 	tok->location.line = ctx->line;
 	tok->location.col  = ctx->col;
-	tok->location.len  = 0;
+	tok->location.len  = 1;
 	tok->sym           = SYM_CHAR;
 
 	// eat '
-	ctx->c++;
+	++ctx->c;
+	++ctx->col;
 
 	switch (*ctx->c) {
 	case '\'': {
-		report_error(EMPTY, STR_FMT " %d:%d expected character in ''.", STR_ARG(ctx->unit->name), ctx->line, ctx->col);
+		report_error2(ctx, EMPTY, ctx->line, ctx->col, 2, CARET_WORD, "Expected character in quotes.");
 	}
 	case '\0': {
-		report_error(UNTERMINATED_STRING, STR_FMT " %d:%d unterminated character.", STR_ARG(ctx->unit->name), ctx->line, ctx->col);
+		report_error2(ctx, UNTERMINATED_STRING, ctx->line, ctx->col, 1, CARET_WORD, "Unterminated character.");
 	}
 	case '\\':
 		// special character
+		s32 start_col = ctx->col;
+
 		++ctx->c; // Eat backslash.
-		++tok->location.len;
+		++ctx->col;
+
 		tok->value_index = add_token_value(ctx, (union token_value){
 		                                            .character = scan_specch(ctx),
 		                                        });
+
+		tok->location.len += ctx->col - start_col;
 		break;
 	default:
-		tok->value_index  = add_token_value(ctx, (union token_value){.character = *ctx->c});
-		tok->location.len = 1;
+		tok->value_index = add_token_value(ctx, (union token_value){.character = *ctx->c});
+		tok->location.len += 1;
 		ctx->c++;
 	}
 
 	// eat '
 	if (*ctx->c != '\'') {
-		report_error(UNTERMINATED_STRING, STR_FMT " %d:%d unterminated character expected '.", STR_ARG(ctx->unit->name), ctx->line, ctx->col);
+		report_error2(ctx, UNTERMINATED_STRING, ctx->line, ctx->col, 1, CARET_WORD, "Unterminated character.");
 	}
-	ctx->c++;
+	tok->location.len += 1;
+	++ctx->c;
 
 	return true;
 }
@@ -407,85 +412,91 @@ bool scan_number(struct context *ctx, struct token *tok) {
 	tok->location.line = ctx->line;
 	tok->location.col  = ctx->col;
 
-	u64 n = 0, prev_n = 0;
-	s32 len  = 0;
+	s32 start_col = ctx->col;
+
+	u64 n    = 0;
 	s32 base = 10;
 	s32 buf  = 0;
 
 	if (strncmp(ctx->c, "0x", 2) == 0) {
 		base = 16;
 		ctx->c += 2;
-		len += 2;
+		ctx->col += 2;
 	} else if (strncmp(ctx->c, "0b", 2) == 0) {
 		base = 2;
 		ctx->c += 2;
-		len += 2;
+		ctx->col += 2;
 	}
 
 	bool overflow = false;
+
+	const u64 max_base = ULLONG_MAX / base;
 
 	while (true) {
 		if (*(ctx->c) == '.') {
 
 			if (base != 10) {
-				report_error(INVALID_TOKEN, STR_FMT " %d:%d invalid suffix.", STR_ARG(ctx->unit->name), ctx->line, ctx->col + len);
+				report_error2(ctx, INVALID_TOKEN, ctx->line, ctx->col, 1, CARET_WORD, "Unexpected decimal point in number.");
 			}
 
-			len++;
-			ctx->c++;
+			++ctx->c;
+			++ctx->col;
 			goto SCAN_DOUBLE;
 		}
 
 		buf = c_to_number(*(ctx->c), base);
-		if (buf == -1) {
-			break;
+		if (buf == -1) break;
+
+		if (n > max_base || (n == max_base && (u64)buf > ULLONG_MAX % base)) {
+			n        = ULLONG_MAX;
+			overflow = true;
+		} else {
+			n = n * base + buf;
 		}
 
-		prev_n = n;
-		n      = n * base + buf;
-
-		len++;
-		ctx->c++;
-		if (n < prev_n) overflow = true;
+		++ctx->c;
+		++ctx->col;
 	}
 
-	if (len == 0) return false;
+	const s32 len = ctx->col - start_col;
+	if (len < 1) return false;
 
 	tok->location.len = len;
-	ctx->col += len;
-	tok->sym         = SYM_NUM;
-	tok->value_index = add_token_value(ctx, (union token_value){.number = n});
+	tok->sym          = SYM_NUM;
+	tok->value_index  = add_token_value(ctx, (union token_value){.number = n});
 
 	if (overflow) {
-		builder_msg(MSG_ERR, ERR_NUM_LIT_OVERFLOW, &tok->location, CARET_WORD, "Number value overflow.");
+		builder_msg(MSG_ERR, ERR_NUM_LIT_OVERFLOW, &tok->location, CARET_WORD, "Number literal exceeds 64bit boundary.");
 	}
 
 	return true;
 
 SCAN_DOUBLE: {
-	u64 e = 1;
+	u64 e      = 1;
+	u64 prev_n = 0;
 
 	while (true) {
 		buf = c_to_number(*(ctx->c), 10);
-		if (buf == -1) {
-			break;
-		}
+		if (buf == -1) break;
 
 		prev_n = n;
 		n      = n * 10 + buf;
 		e *= 10;
-		len++;
-		ctx->c++;
+
+		++ctx->c;
+		++ctx->col;
 
 		if (n < prev_n) overflow = true;
 	}
 
 	// valid d. or .d -> minimal 2 characters
+	const s32 len = ctx->col - start_col;
 	if (len < 2) return false;
 
 	if (*(ctx->c) == 'f') {
-		len++;
-		ctx->c++;
+		++ctx->c;
+		++ctx->col;
+
 		tok->sym = SYM_FLOAT;
 	} else {
 		tok->sym = SYM_DOUBLE;
