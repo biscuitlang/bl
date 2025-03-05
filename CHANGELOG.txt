@@ -121,9 +121,16 @@ master
 
 - Fix defer issues caused by catch statement. Defer was not correctly called in all blocks in
   case catch was present. This situation is now covered by tests too.
+- Unified lexer error reports with the rest of the compiler reported errors.
+- Fixed u64 literal overflow detection.
+- Add exponent parsing for f32 and f64. For example `15.2e+3` of `15.2e-3`.
+- Add lexer support for octal literals (starting with 0).
 
 [Modules]
 - Add math module.
+
+std/math:
+- Add limits for f32 and f64
 
 std/sync:
 - Mutex now can be explicitly initialized as recursive or non-recursive.

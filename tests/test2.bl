@@ -1,9 +1,4 @@
 main :: fn () s32 {
-	// c :: "\x1FF"; b = 0;
-	// c :: "\0477"; b = 0;
-	foo("Hello \012 world");
 	return 0;
 }
-
-foo :: fn (n: s32) {}
 

@@ -1,0 +1,9 @@
+#scope_private
+
+parsing :: fn () #test {
+	test_eq(01, 1);
+	test_eq(001, 1);
+	test_eq(0666, 438);
+	test_eq(-01, -1);
+	test_eq(-0666, -438);
+}
