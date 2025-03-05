@@ -12,13 +12,6 @@
 
 #define is_ident(c) (isalnum(c) || (c) == '_')
 
-#define report_error(code, format, ...)                                              \
-	{                                                                                \
-		builder_msg(MSG_ERR, ERR_##code, NULL, CARET_NONE, (format), ##__VA_ARGS__); \
-		longjmp((ctx)->jmp_error, ERR_##code);                                       \
-	}                                                                                \
-	(void)0
-
 struct context {
 	struct assembly      *assembly;
 	struct unit          *unit;
@@ -47,7 +40,7 @@ static inline u32 add_token_value(struct context *ctx, union token_value value) 
 	return index;
 }
 
-#define report_error2(ctx, code, ln, cl, len, cursor_position, format, ...)                                      \
+#define report_error(ctx, code, ln, cl, len, cursor_position, format, ...)                                       \
 	{                                                                                                            \
 		_report((ctx), MSG_ERR, ERR_##code, (ln), (cl), (s32)(len), (cursor_position), (format), ##__VA_ARGS__); \
 		longjmp((ctx)->jmp_error, ERR_##code);                                                                   \
@@ -69,7 +62,7 @@ static inline void _report(struct context *ctx, enum builder_msg_type type, s32 
 
 bool scan_comment(struct context *ctx, struct token *tok, const char *termminator) {
 	if (tok->sym == SYM_SHEBANG && ctx->line != 1) {
-		report_error2(ctx, INVALID_TOKEN, ctx->line, ctx->col, 1, CARET_WORD, "Shebang is allowed only on the first line of the file.");
+		report_error(ctx, INVALID_TOKEN, ctx->line, ctx->col, 1, CARET_WORD, "Shebang is allowed only on the first line of the file.");
 	}
 
 	const s32 start_ln = ctx->line;
@@ -86,7 +79,7 @@ bool scan_comment(struct context *ctx, struct token *tok, const char *termminato
 				return true;
 			}
 
-			report_error2(ctx, UNTERMINATED_COMMENT, start_ln, start_cl, 1, CARET_WORD, "Unterminated comment block starting here:");
+			report_error(ctx, UNTERMINATED_COMMENT, start_ln, start_cl, 1, CARET_WORD, "Unterminated comment block starting here:");
 		}
 
 		if (strncmp(ctx->c, termminator, terminator_len) == 0) break;
@@ -245,7 +238,7 @@ static char scan_specch(struct context *ctx) {
 			const s32 len = ctx->col - start_col;
 
 			if (base == 16) {
-				report_error2(
+				report_error(
 				    ctx,
 				    NUM_LIT_OVERFLOW,
 				    ctx->line,
@@ -255,7 +248,7 @@ static char scan_specch(struct context *ctx) {
 				    "Hexadecimal character notation overflow, maximum possible value is 0xFF.",
 				    v);
 			} else if (base == 8) {
-				report_error2(
+				report_error(
 				    ctx,
 				    NUM_LIT_OVERFLOW,
 				    ctx->line,
@@ -300,7 +293,7 @@ bool scan_string(struct context *ctx, struct token *tok) {
 			goto DONE;
 		}
 		case SYM_EOF: {
-			report_error2(ctx, UNTERMINATED_STRING, ctx->line, start_col, 1, CARET_WORD, "Unterminated string.");
+			report_error(ctx, UNTERMINATED_STRING, ctx->line, start_col, 1, CARET_WORD, "Unterminated string.");
 		}
 		case '\\':
 			++ctx->c; // Eat backslash.
@@ -337,12 +330,12 @@ bool scan_char(struct context *ctx, struct token *tok) {
 
 	switch (*ctx->c) {
 	case '\'': {
-		report_error2(ctx, EMPTY, ctx->line, ctx->col, 2, CARET_WORD, "Expected character in quotes.");
+		report_error(ctx, EMPTY, ctx->line, ctx->col, 2, CARET_WORD, "Expected character in quotes.");
 	}
 	case '\0': {
-		report_error2(ctx, UNTERMINATED_STRING, ctx->line, ctx->col, 1, CARET_WORD, "Unterminated character.");
+		report_error(ctx, UNTERMINATED_STRING, ctx->line, ctx->col, 1, CARET_WORD, "Unterminated character.");
 	}
-	case '\\':
+	case '\\': {
 		// special character
 		s32 start_col = ctx->col;
 
@@ -355,6 +348,7 @@ bool scan_char(struct context *ctx, struct token *tok) {
 
 		tok->location.len += ctx->col - start_col;
 		break;
+	}
 	default:
 		tok->value_index = add_token_value(ctx, (union token_value){.character = *ctx->c});
 		tok->location.len += 1;
@@ -363,7 +357,7 @@ bool scan_char(struct context *ctx, struct token *tok) {
 
 	// eat '
 	if (*ctx->c != '\'') {
-		report_error2(ctx, UNTERMINATED_STRING, ctx->line, ctx->col, 1, CARET_WORD, "Unterminated character.");
+		report_error(ctx, UNTERMINATED_STRING, ctx->line, ctx->col, 1, CARET_WORD, "Unterminated character.");
 	}
 	tok->location.len += 1;
 	++ctx->c;
@@ -408,112 +402,181 @@ inline s32 c_to_number(char c, s32 base) {
 #endif
 }
 
+static bool is_real(char *c) {
+	while (*c != SYM_EOF) {
+		if (*c == '.') return true;
+		if (!isdigit(*c)) return false;
+		++c;
+	}
+	return false;
+}
+
 bool scan_number(struct context *ctx, struct token *tok) {
 	tok->location.line = ctx->line;
 	tok->location.col  = ctx->col;
 
 	s32 start_col = ctx->col;
 
-	u64 n    = 0;
-	s32 base = 10;
-	s32 buf  = 0;
+	// Prescan to findout if we deal with floating point number.
+	const bool is_floating_point = is_real(ctx->c);
 
-	if (strncmp(ctx->c, "0x", 2) == 0) {
-		base = 16;
-		ctx->c += 2;
-		ctx->col += 2;
-	} else if (strncmp(ctx->c, "0b", 2) == 0) {
-		base = 2;
-		ctx->c += 2;
-		ctx->col += 2;
-	}
+	if (is_floating_point) {
 
-	bool overflow = false;
+		double n        = 0.0;
+		double fraction = 0.0;
+		double divider  = 1.0;
 
-	const u64 max_base = ULLONG_MAX / base;
+		if (!isdigit(*(ctx->c)) && *(ctx->c) != '.') {
+			return false;
+		}
 
-	while (true) {
-		if (*(ctx->c) == '.') {
+		// Integral part.
+		while (true) {
+			s32 d = c_to_number(*(ctx->c), 10);
+			if (d == -1) break;
+			n = n * 10.0 + (double)d;
+			++ctx->c;
+			++ctx->col;
+		}
 
-			if (base != 10) {
-				report_error2(ctx, INVALID_TOKEN, ctx->line, ctx->col, 1, CARET_WORD, "Unexpected decimal point in number.");
+		bassert(*(ctx->c) == '.' && "Expected floating point dot character!");
+		++ctx->c;
+		++ctx->col;
+
+		// Fractional part.
+		while (true) {
+			s32 d = c_to_number(*(ctx->c), 10);
+			if (d == -1) break;
+
+			fraction = fraction * 10.0 + (double)d;
+			divider *= 10.0;
+			++ctx->c;
+			++ctx->col;
+		}
+
+		// Exponent.
+		s32 exp_sign = 0;
+		u64 exp      = 0;
+
+		if (*(ctx->c) == 'e' || *(ctx->c) == 'E') {
+			++ctx->c;
+			++ctx->col;
+
+			if (*(ctx->c) == '-') {
+				exp_sign = -1;
+			} else if (*(ctx->c) == '+') {
+				exp_sign = 1;
+			} else {
+				report_error(ctx, INVALID_TOKEN, ctx->line, ctx->col, 1, CARET_WORD, "Expected sign of floating point number exponent.");
 			}
 
 			++ctx->c;
 			++ctx->col;
-			goto SCAN_DOUBLE;
+
+			bool      overflow = false;
+			const u64 max_div  = ULLONG_MAX / 10;
+			const u64 max_mod  = ULLONG_MAX % 10;
+
+			const s32 exp_start_col = ctx->col;
+
+			while (true) {
+				s32 d = c_to_number(*(ctx->c), 10);
+				if (d == -1) break;
+
+				if (exp > max_div || (exp == max_div && (u64)d > max_mod)) {
+					exp      = 1;
+					overflow = true;
+				} else {
+					exp = exp * 10 + d;
+				}
+
+				++ctx->c;
+				++ctx->col;
+			}
+
+			const s32 exp_len = ctx->col - exp_start_col;
+			if (exp_len < 1) {
+				report_error(ctx, INVALID_TOKEN, ctx->line, exp_start_col, 1, CARET_WORD, "Expected floating point exponent value.");
+			}
+
+			if (overflow) {
+				report_error(ctx, NUM_LIT_OVERFLOW, ctx->line, exp_start_col, exp_len, CARET_WORD, "Exponent value is too big.");
+			}
 		}
 
-		buf = c_to_number(*(ctx->c), base);
-		if (buf == -1) break;
+		// Suffix.
+		if (*(ctx->c) == 'f') {
+			++ctx->c;
+			++ctx->col;
 
-		if (n > max_base || (n == max_base && (u64)buf > ULLONG_MAX % base)) {
-			n        = ULLONG_MAX;
-			overflow = true;
+			tok->sym = SYM_FLOAT;
 		} else {
-			n = n * base + buf;
+			tok->sym = SYM_DOUBLE;
 		}
 
-		++ctx->c;
-		++ctx->col;
-	}
+		double number = n + fraction / divider;
+		if (exp_sign != 0) {
+			number *= pow(10.0, (double)exp_sign * (double)exp);
+		}
+		tok->value_index = add_token_value(ctx, (union token_value){.double_number = number});
 
-	const s32 len = ctx->col - start_col;
-	if (len < 1) return false;
+		tok->location.len = ctx->col - start_col;
 
-	tok->location.len = len;
-	tok->sym          = SYM_NUM;
-	tok->value_index  = add_token_value(ctx, (union token_value){.number = n});
+		return true;
 
-	if (overflow) {
-		builder_msg(MSG_ERR, ERR_NUM_LIT_OVERFLOW, &tok->location, CARET_WORD, "Number literal exceeds 64bit boundary.");
-	}
-
-	return true;
-
-SCAN_DOUBLE: {
-	u64 e      = 1;
-	u64 prev_n = 0;
-
-	while (true) {
-		buf = c_to_number(*(ctx->c), 10);
-		if (buf == -1) break;
-
-		prev_n = n;
-		n      = n * 10 + buf;
-		e *= 10;
-
-		++ctx->c;
-		++ctx->col;
-
-		if (n < prev_n) overflow = true;
-	}
-
-	// valid d. or .d -> minimal 2 characters
-	const s32 len = ctx->col - start_col;
-	if (len < 2) return false;
-
-	if (*(ctx->c) == 'f') {
-		++ctx->c;
-		++ctx->col;
-
-		tok->sym = SYM_FLOAT;
 	} else {
-		tok->sym = SYM_DOUBLE;
+
+		s32 base = 10;
+
+		if (strncmp(ctx->c, "0x", 2) == 0) {
+			base = 16;
+			ctx->c += 2;
+			ctx->col += 2;
+		} else if (strncmp(ctx->c, "0b", 2) == 0) {
+			base = 2;
+			ctx->c += 2;
+			ctx->col += 2;
+		} else if (*ctx->c == '0') {
+			base = 8;
+			++ctx->c;
+			++ctx->col;
+		}
+
+		bool      overflow = false;
+		const u64 max_div  = ULLONG_MAX / base;
+
+		u64 n = 0;
+
+		while (true) {
+			s32 d = c_to_number(*(ctx->c), base);
+			if (d == -1) break;
+
+			if (n > max_div || (n == max_div && (u64)d > ULLONG_MAX % base)) {
+				n        = ULLONG_MAX;
+				overflow = true;
+			} else {
+				n = n * base + d;
+			}
+
+			++ctx->c;
+			++ctx->col;
+		}
+
+		const s32 len = ctx->col - start_col;
+		if (len < 1) return false;
+
+		tok->location.len = len;
+		tok->sym          = SYM_NUM;
+		tok->value_index  = add_token_value(ctx, (union token_value){.number = n});
+
+		if (overflow) {
+			builder_msg(MSG_ERR, ERR_NUM_LIT_OVERFLOW, &tok->location, CARET_WORD, "Number literal is too big for u64 type.");
+		}
+
+		return true;
 	}
 
-	const double number = n / (f64)e;
-	if (number > FLT_MAX) overflow = true;
-	if (overflow) {
-		builder_msg(MSG_ERR, ERR_NUM_LIT_OVERFLOW, &tok->location, CARET_WORD, "Number value overflow.");
-	}
-	tok->value_index = add_token_value(ctx, (union token_value){.double_number = number});
-
-	tok->location.len = len;
-	ctx->col += len;
-
-	return true;
-}
+	return false;
 }
 
 void scan(struct context *ctx) {
@@ -587,7 +650,7 @@ SCAN:
 				scan_comment(ctx, &tok, sym_strings[SYM_RBCOMMENT]);
 				goto SCAN;
 			case SYM_RBCOMMENT: {
-				report_error(INVALID_TOKEN, STR_FMT " %d:%d unexpected token.", STR_ARG(ctx->unit->name), ctx->line, ctx->col);
+				report_error(ctx, INVALID_TOKEN, ctx->line, ctx->col, 1, CARET_WORD, "Unexpected end of the comment block.");
 			}
 			default:
 				ctx->col += (s32)len;
@@ -606,7 +669,7 @@ SCAN:
 	if (scan_char(ctx, &tok)) goto PUSH_TOKEN;
 
 	// When symbol is unknown report error
-	report_error(INVALID_TOKEN, STR_FMT " %d:%d Unexpected token '%c' (%d)", STR_ARG(ctx->unit->name), ctx->line, ctx->col, *ctx->c, *ctx->c);
+	report_error(ctx, INVALID_TOKEN, ctx->line, ctx->col, 1, CARET_WORD, "Unexpected symbol.");
 PUSH_TOKEN:
 	tok.location.unit = ctx->unit;
 	tokens_push(ctx->tokens, tok);

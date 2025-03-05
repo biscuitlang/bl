@@ -1,0 +1,99 @@
+#scope_private
+
+simple_double_parsing :: fn () #test {
+	0.;
+	1.;
+	123456789.;
+	0.1;
+	0.123456789;
+	123456789.123456789;
+	-0.;
+	-1.;
+	-123456789.;
+	-0.1;
+	-0.123456789;
+	-123456789.123456789;
+}
+
+simple_float_parsing :: fn () #test {
+	0.f;
+	1.f;
+	123456789.f;
+	0.1f;
+	0.123456789f;
+	123456789.123456789f;
+	-0.f;
+	-1.f;
+	-123456789.f;
+	-0.1f;
+	-0.123456789f;
+	-123456789.123456789f;
+}
+
+double_with_exponent :: fn () #test {
+	test_eq(1.e+0, 1.);
+	test_eq(1.e+1, 10.);
+	test_eq(1.e+10, 10000000000.);
+
+	test_eq(-1.e+0, -1.);
+	test_eq(-1.e+1, -10.);
+	test_eq(-1.e+10, -10000000000.);
+
+	test_eq(0.1e+0, 0.1);
+	test_eq(0.1e+1, 1.);
+	test_eq(0.1e+10, 1000000000.);
+
+	test_eq(10.e+0, 10.);
+	test_eq(10.e+1, 100.);
+	test_eq(10.e+10, 100000000000.);
+
+	test_eq(1.e-0, 1.);
+	test_eq(1.e-1, 0.1);
+	test_eq(1.e-5, 0.00001);
+
+	test_eq(1.e-0, 1.);
+	test_eq(1.e-1, 0.1);
+	test_eq(1.e-5, 0.00001);
+
+	test_eq(0.1e-0, 0.1);
+	test_eq(0.1e-1, 0.01);
+	test_eq(0.1e-5, 0.000001);
+
+	test_eq(10.e-0, 10.);
+	test_eq(10.e-1, 1.0);
+	test_eq(10.e-5, 0.0001);
+}
+
+float_with_exponent :: fn () #test {
+	test_eq(1.e+0f, 1.f);
+	test_eq(1.e+1f, 10.f);
+	test_eq(1.e+10f, 10000000000.f);
+
+	test_eq(-1.e+0f, -1.f);
+	test_eq(-1.e+1f, -10.f);
+	test_eq(-1.e+10f, -10000000000.f);
+
+	test_eq(0.1e+0f, 0.1f);
+	test_eq(0.1e+1f, 1.f);
+	test_eq(0.1e+10f, 1000000000.f);
+
+	test_eq(10.e+0f, 10.f);
+	test_eq(10.e+1f, 100.f);
+	test_eq(10.e+10f, 100000000000.f);
+
+	test_eq(1.e-0f, 1.f);
+	test_eq(1.e-1f, 0.1f);
+	test_eq(1.e-5f, 0.00001f);
+
+	test_eq(1.e-0f, 1.f);
+	test_eq(1.e-1f, 0.1f);
+	test_eq(1.e-5f, 0.00001f);
+
+	test_eq(0.1e-0f, 0.1f);
+	test_eq(0.1e-1f, 0.01f);
+	test_eq(0.1e-5f, 0.000001f);
+
+	test_eq(10.e-0f, 10.f);
+	test_eq(10.e-1f, 1.0f);
+	test_eq(10.e-5f, 0.0001f);
+}

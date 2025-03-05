@@ -37,3 +37,25 @@ check_inf :: fn () #test {
 	v2 :: 1./0.;
 	test_true(is_inf(v2));
 }
+
+float_minmax :: fn () #test {
+	{
+		n :: F32_MAX;
+		test_eq(@cast(*u32)&n, 0x7f7fffff);
+	}
+	{
+		n :: F32_MIN;
+		test_eq(@cast(*u32)&n, 0x800000);
+	}
+}
+
+double_minmax :: fn () #test {
+	{
+		n :: F64_MAX;
+		test_eq(@cast(*u64)&n, 0x7fefffffffffffff);
+	}
+	{
+		n :: F64_MIN;
+		test_eq(@cast(*u64)&n, 0x10000000000000);
+	}
+}
