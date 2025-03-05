@@ -56,7 +56,7 @@ _mutex_lock :: fn (mutex: *_Mutex) Error #inline {
 }
 
 _mutex_try_lock :: fn (mutex: *_Mutex) (bool, Error) #inline {
-	state :: pthread_mutex_lock(mutex);
+	state :: pthread_mutex_trylock(mutex);
 	if state == 0 {
 		return true, OK;
 	}
