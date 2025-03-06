@@ -78,7 +78,7 @@ void find_llvm(void) {
 		exit(1);
 	}
 
-	nob_log(NOB_INFO, "LLVM " STR(LLVM_REQUIRED) " config found: %s", llvm_config);
+	nob_log(NOB_INFO, "LLVM config found: %s", llvm_config);
 
 	// version
 	cmd_append(&cmd, llvm_config, "--version");
