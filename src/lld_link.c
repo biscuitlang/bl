@@ -64,7 +64,7 @@ static void append_lib_paths(struct assembly *assembly, str_buf_t *buf) {
 static void append_libs(struct assembly *assembly, str_buf_t *buf) {
 	for (usize i = 0; i < arrlenu(assembly->libs); ++i) {
 		struct native_lib *lib = &assembly->libs[i];
-		if (lib->is_internal) continue;
+		if ((lib->flags & NATIVE_LIB_FLAG_RUNTIME) == 0) continue;
 		if (!lib->user_name.len) continue;
 		str_buf_append_fmt(buf, "{str}.{s} ", lib->user_name, LIB_EXT);
 	}

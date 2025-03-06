@@ -263,8 +263,8 @@ play_sound :: fn (directory: string_view, filename: string_view) #inline {
 start_game :: fn () {
 	score = 0;
 	random_seed_time();
-	array_clear(&bullets);
-	array_clear(&stones);
+	bullets.len = 0;
+	stones.len = 0;
 	ship.position = v2.{ auto (WINDOW_WIDTH / 2), auto (WINDOW_HEIGHT - 100) };
 	ship.power    = 1.f;
 

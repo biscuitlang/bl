@@ -95,6 +95,13 @@ struct target_triple {
 	enum environment      env;
 };
 
+enum native_lib_flags {
+	// Library is used only internally during compilation and VM execution.
+	NATIVE_LIB_FLAG_RUNTIME = 1 << 0,
+	// Library is used only in runtime (passed to native platform linker).
+	NATIVE_LIB_FLAG_COMPTIME = 2 << 0,
+};
+
 struct native_lib {
 	hash_t        hash;
 	DLLib        *handle;
@@ -103,10 +110,8 @@ struct native_lib {
 	str_t         filename;
 	str_t         filepath;
 	str_t         dir;
-	// Disable appending of this library to the linker options.
-	bool is_internal;
-	// Library may be loaded only in runtime.
-	bool runtime_only;
+
+	enum native_lib_flags flags;
 };
 
 struct module {
@@ -288,10 +293,10 @@ void             assembly_delete(struct assembly *assembly);
 void             assembly_add_unit(struct assembly *assembly, const str_t filepath, struct token *load_from, struct scope *parent_scope, struct module *module);
 void             assembly_add_lib_path(struct assembly *assembly, const char *path);
 void             assembly_append_linker_options(struct assembly *assembly, const char *opt);
-void             assembly_add_native_lib(struct assembly *assembly,
-                                         const char      *lib_name,
-                                         struct token    *link_token,
-                                         bool             runtime_only);
+void             assembly_add_native_lib(struct assembly      *assembly,
+                                         const char           *lib_name,
+                                         struct token         *link_token,
+                                         enum native_lib_flags flags);
 struct module   *assembly_import_module(struct assembly *assembly,
                                         str_t            modulepath,
                                         struct token    *import_from,

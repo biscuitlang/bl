@@ -171,8 +171,7 @@ bool x86_64_pc_windows_msvc(struct context *ctx) {
 		builder_error("Configuration failed!");
 		goto FAILED;
 	}
-	ctx->linker_lib_path =
-	    scprint(&ctx->cache, "{str};{str};{str}", wbs->ucrt_path, wbs->um_path, wbs->msvc_lib_path);
+	ctx->linker_lib_path = scprint(&ctx->cache, "{str};{str};{str};{str}/System32", wbs->ucrt_path, wbs->um_path, wbs->msvc_lib_path, wbs->windir_path);
 
 	wbsfree(wbs);
 	return true;

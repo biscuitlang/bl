@@ -2325,14 +2325,15 @@ The *global* options are applied to the module on all target platforms.
 All the following options may be applied globally or just for a specific target platform.
 
 - `src: "<FILE1[,FILE2,...]>"` - List of source file paths relative to the module *root* directory separated by comma.
-- `linker_opt: "<OPTIONS>"` - Additional runtime linker options.
+- `linker_opt: "<OPTIONS>"` - Additional options passed directly into native platform linker executable.
 - `linker_lib_path: "<DIR1,[DIR2,...]>"` - Additional linker lookup directories relative to the module *root* directory.
-- `link: "<LIB1[,LIB2,...]>` - Libraries to link. Note that libraries listed here are dynamically loaded during compilation (may be executed in compile-time).
+- `link: "<LIB1[,LIB2,...]>` - Dynamic libraries used in runtime and compile time.
+- `link_runtime: "<LIB1[,LIB2,...]>` - Dynamic libraries used only in runtime.
+- `link_comptime: "<LIB1[,LIB2,...]>` - Dynamic libraries used only in complile time.
+
+**Example**
 
 ```yaml
-# The version is required to be global.
-version: 20221021
-
 # Load this file on all platforms.
 src: "my_file_imported_everytime.bl"
 
@@ -2344,6 +2345,27 @@ x86_64-pc-windows-msvc:
 x86_64-pc-linux-gnu:
   src: "my_file_only_for_linux.bl"
   linker_opt: "-lc -lm" # link these only on linux
+```
+
+**Runtime vs Compile-time Linking**
+
+You may notice that we have multiple options for how to handle dynamic library linking (`link`, `link_runtime`, `link_comptime`). In some cases we may want to link a library statically to the final executable; however, we cannot use statically linked libraries when a module is used in compile-time or during VM execution. Thus we have an explicit option to link the dynamic version in both environments by `link` (runtime and compile-time), only in runtime by `link_runtime` or only in compile time by `link_comptime`.
+
+Consider the following example where we link *glfw3*; the final native binary using this module will use the static version of *glfw3*, but in case the program is executed directly by `blc -run`, or the module is used in compile-time, the dynamic version is used instead.
+
+```yaml
+src: "glfw3.bl"
+
+x86_64-pc-windows-msvc:
+  # All libs and dlls are located in 'win32' directory next to the module
+  # configuration file.
+  linker_lib_path: "win32"
+  
+  # Use static library when compiling native code.
+  linker_opt: "glfw3_static.lib"
+  
+  # Use dynamic version (dll) when module is used in VM or compile-time.
+  link_comptime: "glfw3"
 ```
 
 ## Additional Module Assets

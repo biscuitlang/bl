@@ -18,7 +18,7 @@ static void copy_user_libs(struct assembly *assembly) {
 	const str_t          out_dir   = str_buf_view(target->out_dir);
 	for (usize i = 0; i < arrlenu(assembly->libs); ++i) {
 		struct native_lib *lib = &assembly->libs[i];
-		if (lib->is_internal) continue;
+		if ((lib->flags & NATIVE_LIB_FLAG_RUNTIME) == 0) continue;
 		if (!lib->user_name.len) continue;
 
 		str_buf_clr(&dest_path);

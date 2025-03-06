@@ -176,8 +176,7 @@ static void llvm_terminate(struct assembly *assembly) {
 }
 
 static void native_lib_terminate(struct native_lib *lib) {
-	if (lib->handle) dlFreeLibrary(lib->handle);
-	if (lib->is_internal) return;
+	dlFreeLibrary(lib->handle);
 }
 
 // Create directory tree and set out_path to full path.
@@ -506,7 +505,7 @@ struct assembly *assembly_new(const struct target *target) {
 
 		// Duplicate default libs
 		for (usize i = 0; i < arrlenu(target->default_libs); ++i)
-			assembly_add_native_lib(assembly, target->default_libs[i], NULL, false);
+			assembly_add_native_lib(assembly, target->default_libs[i], NULL, NATIVE_LIB_FLAG_RUNTIME);
 
 		// Append custom linker options
 		assembly_append_linker_options(assembly, str_buf_to_c(target->default_custom_linker_opt));
@@ -606,10 +605,10 @@ void assembly_add_unit(struct assembly *assembly, const str_t filepath, struct t
 	return_zone();
 }
 
-void assembly_add_native_lib(struct assembly *assembly,
-                             const char      *lib_name,
-                             struct token    *link_token,
-                             bool             runtime_only) {
+void assembly_add_native_lib(struct assembly      *assembly,
+                             const char           *lib_name,
+                             struct token         *link_token,
+                             enum native_lib_flags flags) {
 	const u32 thread_index = get_worker_index();
 
 	spl_lock(&assembly->libs_lock);
@@ -624,7 +623,7 @@ void assembly_add_native_lib(struct assembly *assembly,
 	lib.hash              = hash;
 	lib.user_name         = scdup2(&assembly->thread_local_contexts[thread_index].string_cache, make_str_from_c(lib_name));
 	lib.linked_from       = link_token;
-	lib.runtime_only      = runtime_only;
+	lib.flags             = flags;
 	arrput(assembly->libs, lib);
 DONE:
 	spl_unlock(&assembly->libs_lock);
@@ -660,7 +659,17 @@ static void import_lib_path(import_elem_context_t *ctx, const char *dirpath) {
 }
 
 static void import_link(import_elem_context_t *ctx, const char *lib) {
-	assembly_add_native_lib(ctx->assembly, lib, NULL, false);
+	assembly_add_native_lib(ctx->assembly, lib, NULL, NATIVE_LIB_FLAG_RUNTIME | NATIVE_LIB_FLAG_COMPTIME);
+}
+
+// Links library only for runtime usage (native one).
+static void import_link_runtime(import_elem_context_t *ctx, const char *lib) {
+	assembly_add_native_lib(ctx->assembly, lib, NULL, NATIVE_LIB_FLAG_RUNTIME);
+}
+
+// Links library only for comptime usage (in VM and during compilation).
+static void import_link_comptime(import_elem_context_t *ctx, const char *lib) {
+	assembly_add_native_lib(ctx->assembly, lib, NULL, NATIVE_LIB_FLAG_COMPTIME);
 }
 
 static void validate_module_target(import_elem_context_t *ctx, const char *triple_str) {
@@ -734,6 +743,8 @@ static struct module *import_module(struct assembly *assembly, str_t module_path
 	               (process_tokens_fn_t)&import_lib_path);
 
 	process_tokens(&ctx, confreads(config, "/link", ""), CONFIG_SEPARATOR, (process_tokens_fn_t)&import_link);
+	process_tokens(&ctx, confreads(config, "/link_runtime", ""), CONFIG_SEPARATOR, (process_tokens_fn_t)&import_link_runtime);
+	process_tokens(&ctx, confreads(config, "/link_comptime", ""), CONFIG_SEPARATOR, (process_tokens_fn_t)&import_link_comptime);
 
 	// This is optional configuration entry, this way we might limit supported platforms of this module. In case the
 	// entry is missing from the config file, module is supposed to run anywhere.
@@ -769,6 +780,14 @@ static struct module *import_module(struct assembly *assembly, str_t module_path
 	               read_config(config, assembly->target, "link", ""),
 	               CONFIG_SEPARATOR,
 	               (process_tokens_fn_t)&import_link);
+	process_tokens(&ctx,
+	               read_config(config, assembly->target, "link_runtime", ""),
+	               CONFIG_SEPARATOR,
+	               (process_tokens_fn_t)&import_link_runtime);
+	process_tokens(&ctx,
+	               read_config(config, assembly->target, "link_comptime", ""),
+	               CONFIG_SEPARATOR,
+	               (process_tokens_fn_t)&import_link_comptime);
 
 	return module;
 }

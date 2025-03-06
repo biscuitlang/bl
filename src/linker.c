@@ -86,8 +86,8 @@ static bool link_lib(struct context *ctx, struct native_lib *lib) {
 	if (!search_library(ctx, lib->user_name, &lib->filename, &lib->dir, &lib->filepath)) {
 		return false;
 	}
-	if (lib->runtime_only) {
-		builder_log("- Library with 'runtime_only' flag '" STR_FMT "' skipped.", STR_ARG(lib->user_name));
+	if ((lib->flags & NATIVE_LIB_FLAG_COMPTIME) == 0) {
+		builder_log("- Library without 'NATIVE_LIB_FLAG_COMPTIME' flag '" STR_FMT "' skipped.", STR_ARG(lib->user_name));
 		return true;
 	}
 	str_buf_t tmp_path = get_tmp_str();
@@ -102,7 +102,7 @@ static bool link_working_environment(struct context *ctx, const char *lib_name) 
 
 	struct native_lib native_lib = {0};
 	native_lib.handle            = handle;
-	native_lib.is_internal       = true;
+	native_lib.flags |= NATIVE_LIB_FLAG_COMPTIME;
 
 	arrput(ctx->assembly->libs, native_lib);
 	return true;

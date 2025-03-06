@@ -22,6 +22,7 @@
 
 struct wbs {
 	bool      is_valid;
+	str_buf_t windir_path;
 	str_buf_t program_files_path;
 	str_buf_t vs_path;
 	str_buf_t windows_sdk_path;
@@ -62,14 +63,26 @@ static bool _listdir(struct wbs *ctx, const str_buf_t dirpath, array(char *) * o
 static bool _lookup_program_files(struct wbs *ctx) {
 	char *program_files_path = getenv("ProgramFiles(x86)");
 	if (!program_files_path || !strlen(program_files_path)) {
-		builder_error(
-		    "The 'ProgramFiles(x86)' environment variable not found or not set properly!");
+		builder_error("The 'ProgramFiles(x86)' environment variable not found or not set properly!");
 		return false;
 	}
 
 	str_buf_t dup = str_buf_dup(make_str_from_c(program_files_path));
 	win_path_to_unix(str_buf_view(dup));
 	ctx->program_files_path = dup;
+	return true;
+}
+
+static bool _lookup_windows_dir(struct wbs *ctx) {
+	char *windir_path = getenv("SystemRoot");
+	if (!windir_path || !strlen(windir_path)) {
+		builder_error("The 'SystemRoot' environment variable not found or not set properly!");
+		return false;
+	}
+
+	str_buf_t dup = str_buf_dup(make_str_from_c(windir_path));
+	win_path_to_unix(str_buf_view(dup));
+	ctx->windir_path = dup;
 	return true;
 }
 
@@ -223,6 +236,7 @@ static bool _lookup_um(struct wbs *ctx) {
 struct wbs *wbslookup(void) {
 	struct wbs *wbs = bmalloc(sizeof(struct wbs));
 	memset(wbs, 0, sizeof(struct wbs));
+	if (!_lookup_windows_dir(wbs)) goto FAILED;
 	if (!_lookup_program_files(wbs)) goto FAILED;
 	if (!_lookup_vs(wbs)) goto FAILED;
 	if (!_lookup_windows_sdk(wbs)) goto FAILED;
@@ -237,6 +251,7 @@ FAILED:
 
 void wbsfree(struct wbs *wbs) {
 	if (!wbs) return;
+	str_buf_free(&wbs->windir_path);
 	str_buf_free(&wbs->msvc_lib_path);
 	str_buf_free(&wbs->program_files_path);
 	str_buf_free(&wbs->ucrt_path);

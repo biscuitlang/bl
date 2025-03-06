@@ -125,6 +125,13 @@ master
 - Fixed u64 literal overflow detection.
 - Add exponent parsing for f32 and f64. For example `15.2e+3` of `15.2e-3`.
 - Add lexer support for octal literals (starting with 0).
+- Add new module configuration entries to handle runtime vs compiletime dynamic library
+  linking explicitly:
+  
+	`link_runtime: "<LIB1[,LIB2,...]>` - Dynamic libraries used only in runtime.
+	`link_comptime: "<LIB1[,LIB2,...]>` - Dynamic libraries used only in complile time.
+	
+- Add `Windows/System32` into default library search path on windows.
 
 [Modules]
 - Add math module.
