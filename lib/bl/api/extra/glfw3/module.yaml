@@ -4,8 +4,9 @@ version: 20230806
 src: "glfw3.bl"
 
 x86_64-pc-windows-msvc:
-  linker_lib_path: "win32_static"
-  linker_opt: "glfw3.lib"
+  linker_lib_path: "win32"
+  linker_opt: "glfw3_static.lib"
+  link_comptime: "glfw3"
 
 x86_64-pc-linux-gnu:
   linker_opt: "-lglfw"

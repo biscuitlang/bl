@@ -94,9 +94,7 @@ __gl_get_proc :: fn (proc_name: string_view) *u8 {
 	if ip != 0 && ip != 0x1 && ip != 0x2 && ip != 0x3 { return p; }
 
 	// @Performance: open for each symbol???
-	// @Performance: open for each symbol???
-	// @Performance: open for each symbol???
-	module, err1 :: library_open("opengl32");
+	module, err1 :: library_open("opengl32.dll");
 	if err1 {
 		panic("[GL]: %", err1);
 		return null;

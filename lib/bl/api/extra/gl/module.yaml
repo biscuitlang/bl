@@ -4,6 +4,7 @@ src: "gl.bl"
 x86_64-pc-windows-msvc:
   src: "_gl.win32.bl"
   linker_opt: "opengl32.lib"
+  link_comptime: "opengl32"
 
 x86_64-pc-linux-gnu:
   src: "_gl.posix.bl"
