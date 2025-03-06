@@ -128,10 +128,10 @@ master
 - Add new module configuration entries to handle runtime vs compiletime dynamic library
   linking explicitly:
   
-	`link_runtime: "<LIB1[,LIB2,...]>` - Dynamic libraries used only in runtime.
-	`link_comptime: "<LIB1[,LIB2,...]>` - Dynamic libraries used only in complile time.
+	`link_runtime: "<LIB1[,LIB2,...]>"` - Dynamic libraries used only in runtime.
+	`link_comptime: "<LIB1[,LIB2,...]>"` - Dynamic libraries used only in complile time.
 	
-- Add `Windows/System32` into default library search path on windows.
+- Add `Windows/System32` into default library search path on windows. Run `blc --configure`.
 
 [Modules]
 - Add math module.

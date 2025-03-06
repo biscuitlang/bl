@@ -2328,8 +2328,8 @@ All the following options may be applied globally or just for a specific target 
 - `linker_opt: "<OPTIONS>"` - Additional options passed directly into native platform linker executable.
 - `linker_lib_path: "<DIR1,[DIR2,...]>"` - Additional linker lookup directories relative to the module *root* directory.
 - `link: "<LIB1[,LIB2,...]>` - Dynamic libraries used in runtime and compile time.
-- `link_runtime: "<LIB1[,LIB2,...]>` - Dynamic libraries used only in runtime.
-- `link_comptime: "<LIB1[,LIB2,...]>` - Dynamic libraries used only in complile time.
+- `link_runtime: "<LIB1[,LIB2,...]>"` - Dynamic libraries used only in runtime.
+- `link_comptime: "<LIB1[,LIB2,...]>"` - Dynamic libraries used only in complile time.
 
 **Example**
 
