@@ -27,7 +27,7 @@ custom_enum_values :: fn () #test {
 		C
 	};
 	test_eq(E.A, cast(E) 10);
-	test_eq(E.B, cast(E) 20);    
+	test_eq(E.B, cast(E) 20);
 	test_eq(E.C, cast(E) 21);
 };
 
@@ -47,7 +47,7 @@ enum_negative :: fn () #test {
 		A = -1;
 		B = -2;
 		C = -3;
-	};        
+	};
 	test_eq(E.A, cast(E) -1);
 	test_eq(E.B, cast(E) -2);
 	test_eq(E.C, cast(E) -3);
@@ -58,7 +58,7 @@ enum_negative_2 :: fn () #test {
 		A = -1;
 		B;
 		C;
-	};        
+	};
 	test_eq(E.A, cast(E) -1);
 	test_eq(E.B, cast(E) 0);
 	test_eq(E.C, cast(E) 1);
@@ -182,4 +182,12 @@ enum_nested :: fn () #test {
 		B {}
 		C {}
 	}
+}
+
+C :: #import "libc";
+
+resolve_base_type_in_namespace :: fn () #test {
+	E: enum C.char { A; };
+	info :: cast(*TypeInfoEnum) typeinfo(E);
+	test_eq(info.base_type, typeinfo(C.char));
 }

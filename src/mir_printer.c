@@ -769,8 +769,13 @@ void print_instr_decl_variant(struct context *ctx, struct mir_instr_decl_variant
 	const str_t name = variant->id->str;
 	fprintf(ctx->stream, STR_FMT, STR_ARG(name));
 
+	if (var->base_type) {
+		fprintf(ctx->stream, " : ");
+		print_comptime_value_or_id(ctx, var->base_type);
+	}
+
 	if (var->value) {
-		fprintf(ctx->stream, " :: ");
+		fprintf(ctx->stream, " : ");
 		print_comptime_value_or_id(ctx, var->value);
 	}
 }

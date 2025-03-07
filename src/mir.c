@@ -3871,7 +3871,7 @@ append_instr_decl_variant(struct context *ctx, struct ast *node, struct mir_inst
 	tmp->base.value.addr_mode          = MIR_VAM_LVALUE_CONST;
 	tmp->base.ref_count                = MIR_NO_REF_COUNTING;
 	tmp->value                         = value;
-	tmp->base_type                     = base_type;
+	tmp->base_type                     = ref_instr(base_type);
 	tmp->prev_variant                  = prev_variant;
 	tmp->is_flags                      = is_flags;
 
@@ -11443,8 +11443,7 @@ struct mir_instr *ast_type_enum(struct context *ctx, struct ast *type_enum) {
 		return NULL;
 	}
 
-	// @Incomplete: Enum should probably use type resolver as well?
-	struct mir_instr *base_type = ast(ctx, ast_base_type);
+	struct mir_instr *base_type = ast_base_type ? ast_create_type_resolver_call(ctx, ast_base_type) : NULL;
 
 	struct scope *scope    = type_enum->data.type_enm.scope;
 	mir_instrs_t *variants = arena_alloc(ctx->small_array_arena);

@@ -127,11 +127,14 @@ master
 - Add lexer support for octal literals (starting with 0).
 - Add new module configuration entries to handle runtime vs compiletime dynamic library
   linking explicitly:
-  
+
 	`link_runtime: "<LIB1[,LIB2,...]>"` - Dynamic libraries used only in runtime.
 	`link_comptime: "<LIB1[,LIB2,...]>"` - Dynamic libraries used only in complile time.
-	
+
 - Add `Windows/System32` into default library search path on windows. Run `blc --configure`.
+- Fix issues with namespaced types used as enum base types. For example:
+
+	Foo :: enum C.int {}
 
 [Modules]
 - Add math module.
