@@ -8,11 +8,17 @@ x86_64-pc-windows-msvc:
   linker_opt: "glfw3_static.lib"
   link_comptime: "glfw3"
 
-x86_64-pc-linux-gnu:
-  linker_opt: "-lglfw"
-
 x86_64-unknown-linux-gnu:
-  linker_opt: "-lglfw"
+  linker_lib_path: "linux"
+  linker_opt: "-l:libglfw3.a"
+  link: "X11, Xau, Xdmcp, xcb"
+  link_comptime: "glfw"
+
+x86_64-pc-linux-gnu:
+  linker_lib_path: "linux"
+  linker_opt: "-l:libglfw3.a"
+  link: "X11, Xau, Xdmcp, xcb"
+  link_comptime: "glfw"
 
 x86_64-apple-darwin:
   link: "glfw"

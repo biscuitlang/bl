@@ -5,14 +5,21 @@ supported: "x86_64-pc-windows-msvc, x86_64-pc-linux-gnu, x86_64-unknown-linux-gn
 src: "freetype.bl"
 
 x86_64-pc-windows-msvc:
-  linker_lib_path: "win32_static"
+  linker_lib_path: "win32"
   linker_opt: "freetype.lib"
+  link_comptime: "freetype"
 
 x86_64-pc-linux-gnu:
-  linker_opt: "-lfreetype"
+  linker_lib_path: "linux"
+  linker_opt: "-l:libfreetype.a"
+  link: "z, bz2"
+  link_comptime: "freetype"
 
 x86_64-unknown-linux-gnu:
-  linker_opt: "-lfreetype"
+  linker_lib_path: "linux"
+  linker_opt: "-l:libfreetype.a"
+  link: "z, bz2"
+  link_comptime: "freetype"
 
 x86_64-apple-darwin:
   link: "freetype"
