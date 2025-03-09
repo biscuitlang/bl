@@ -136,6 +136,8 @@ master
 
 	Foo :: enum C.int {}
 
+- Add support for LD script linking on linux + resolving of library symlinks.
+
 [Modules]
 - Add math module.
 

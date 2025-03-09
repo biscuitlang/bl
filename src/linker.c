@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include "builder.h"
 #include "common.h"
 #include "conf.h"
@@ -15,6 +16,94 @@
 struct context {
 	struct assembly *assembly;
 };
+
+#if BL_PLATFORM_LINUX
+
+//
+// @Note 2025-03-09
+//
+// On linux systems, the dynamic library may point to the thing so called LD script; which is essentially
+// text file containing mapping to real libraries.
+//
+// Here we try to detect if pointed file is actual ELF binary, in case it's not, we assume it's LD script
+// and try to parse it.
+//
+// Note that we currently take only the first ELF binary found in the LD script file (there might be more
+// of them). Also we assume the first ELF file is dynamic library (which might not be true).
+//
+// Improve this in future!
+//
+
+#define ELF_MAGIC "\x7f" \
+	              "ELF"
+
+static FILE *try_open_ld_script(const str_t filepath) {
+	str_buf_t tmp  = get_tmp_str();
+	FILE     *file = fopen(str_to_c(&tmp, filepath), "rb");
+	put_tmp_str(tmp);
+
+	if (!file) {
+		builder_log("  Could not open: '" STR_FMT "'", STR_ARG(filepath));
+		return NULL;
+	}
+	char buffer[4] = {0};
+	if (fread(buffer, 1, 4, file) != 4) {
+		builder_log("  Could not read whole magic header: '" STR_FMT "'", STR_ARG(filepath));
+		fclose(file);
+		return NULL;
+	}
+	if (memcmp(buffer, ELF_MAGIC, 4) == 0) {
+		fclose(file);
+		return NULL;
+	}
+	fseek(file, 0, SEEK_SET);
+	return file;
+}
+
+static bool is_elf(const str_t filepath) {
+	FILE *file = try_open_ld_script(filepath);
+	if (file) {
+		fclose(file);
+		return false;
+	}
+	return true;
+}
+
+static bool parse_ld_script(FILE *file, str_buf_t *filepath) {
+#define MAX_LINE 1024
+
+	char line[MAX_LINE];
+	while (fgets(line, sizeof(line), file)) {
+		if (strstr(line, "GROUP") || strstr(line, "INPUT")) {
+			char *p = strchr(line, '(');
+			if (!p) continue;
+			p++;
+
+			while (*p) {
+				while (isspace((unsigned char)*p))
+					p++;
+				if (*p == ')') break; // End of group
+
+				char path[MAX_LINE];
+				s32  len = 0;
+				while (*p && !isspace((unsigned char)*p) && *p != ')') {
+					path[len++] = *p++;
+				}
+
+				if (is_elf(make_str(path, len))) {
+					str_buf_clr(filepath);
+					str_buf_append(filepath, make_str(path, len));
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+
+#undef MAX_LINE
+}
+
+#endif
 
 static bool search_library(struct context *ctx,
                            str_t           lib_name,
@@ -37,14 +126,31 @@ static bool search_library(struct context *ctx,
 		str_buf_clr(&lib_filepath);
 		str_buf_append_fmt(&lib_filepath, "{s}/{str}", dir, lib_platform_name);
 
-		if (file_exists(lib_filepath)) {
+		if (normalize_path(&lib_filepath)) {
 			builder_log("  Found: '" STR_FMT "'", STR_ARG(lib_filepath));
 
+#if BL_PLATFORM_LINUX
+			FILE *ld_script = try_open_ld_script(str_buf_view(lib_filepath));
+			if (ld_script) {
+				builder_log("  Loading LD script: '" STR_FMT "'", STR_ARG(lib_filepath));
+
+				if (!parse_ld_script(ld_script, &lib_filepath)) {
+					builder_log("  Unable to parse LD script: '" STR_FMT "'", STR_ARG(lib_filepath));
+					fclose(ld_script);
+					continue;
+				}
+				fclose(ld_script);
+
+				builder_log("  Redirected to: '" STR_FMT "'", STR_ARG(lib_filepath));
+			}
+
+#endif
+
 			if (out_lib_name) {
-				(*out_lib_name) = scdup2(string_cache, lib_platform_name);
+				(*out_lib_name) = scdup2(string_cache, get_filename_from_filepath(lib_filepath));
 			}
 			if (out_lib_dir) {
-				(*out_lib_dir) = scdup2(string_cache, make_str_from_c(dir));
+				(*out_lib_dir) = scdup2(string_cache, get_dir_from_filepath(lib_filepath));
 			}
 			if (out_lib_filepath) {
 				(*out_lib_filepath) = scdup2(string_cache, lib_filepath);
@@ -55,7 +161,7 @@ static bool search_library(struct context *ctx,
 	}
 
 DONE:
-	if (!found) builder_log("  Not found: '" STR_FMT "'", STR_ARG(lib_filepath));
+	if (!found) builder_log("  Not loaded: '" STR_FMT "'", STR_ARG(lib_filepath));
 	put_tmp_str(lib_platform_name);
 	put_tmp_str(lib_filepath);
 
