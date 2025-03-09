@@ -3,10 +3,10 @@
  Package: dyncall
  Library: dynload
  File: dynload/dynload_unix.c
- Description: 
+ Description:
  License:
 
-   Copyright (c) 2007-2018 Daniel Adler <dadler@uni-goettingen.de>, 
+   Copyright (c) 2007-2018 Daniel Adler <dadler@uni-goettingen.de>,
                            Tassilo Philipp <tphilipp@potion-studios.com>
 
    Permission to use, copy, modify, and distribute this software for any
@@ -55,7 +55,7 @@
 
 DLLib* dlLoadLibrary(const char* libPath)
 {
-  return (DLLib*)dlopen(libPath, RTLD_NOW|RTLD_GLOBAL); //@@@ should use RTLD_LAZY, maybe?
+  return (DLLib*)dlopen(libPath, RTLD_LAZY); //@@@ should use RTLD_LAZY, maybe?
 }
 
 
