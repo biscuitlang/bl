@@ -1,3 +1,10 @@
+.section .bss
+    .global __dso_handle
+    .align 8
+__dso_handle:
+    .quad 0
+
+.section .text
     .globl 	_start
 
 _start:
