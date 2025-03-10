@@ -1,0 +1,6 @@
+// @ERR_UNEXPECTED_DECL@
+Foo :: #import "std/print";
+main :: fn () s32 {
+	if true then return 0 else using Foo;
+	return 0;
+}

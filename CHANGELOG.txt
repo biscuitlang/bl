@@ -142,7 +142,10 @@ master
   the system.
 - Fallback to linking ncurses_g.a in case libtinfo.a was not found on linux.
 - Fix various extra modules linking on linux to respect comptime vs runtime linking.
+- Add check for unexpected statements after `then`, `else` and `catch` in case the related code
+  block is implicit. Example:
 
+	if true then a :: 10; // This is not possible, variable would be useless.
 
 [Modules]
 - Add math module.

@@ -948,6 +948,35 @@ NEXT:
 	return_zone(ret);
 }
 
+// @Note 2025-03-10: This check is used for if - then and catch expression being inlined right after
+//                   target statement. We should not allow declarations and other concepts there.
+static void check_valid_inline_branch_node(struct ast *node) {
+	bassert(node);
+	bassert(node->location);
+	const char *what = NULL;
+	switch (node->kind) {
+	case AST_DECL_ENTITY:
+		what = "Declaration";
+		break;
+	case AST_STMT_DEFER:
+		what = "Defer statement";
+		break;
+	case AST_STMT_USING:
+		what = "Using statement";
+		break;
+	default:
+		break;
+	}
+
+	if (!what) return;
+	builder_msg(MSG_ERR,
+	            ERR_UNEXPECTED_DECL,
+	            node->location,
+	            CARET_WORD,
+	            "%s is not allowed here.",
+	            what);
+}
+
 struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 	zone();
 
@@ -994,7 +1023,9 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 			true_branch = NULL;
 		} else if (is_expression) {
 			true_branch = parse_single_block_stmt_or_expr(ctx, NULL);
+			if (true_branch) check_valid_inline_branch_node(true_branch);
 		} else {
+			// @Note 2025-03-10: Create implicit scope and block so defer will work correctly.
 			struct scope *scope = scope_create(ctx->scope_thread_local, SCOPE_LEXICAL, scope_get(ctx), &tok_then->location);
 			scope_push(ctx, scope);
 			struct ast *block       = ast_create_node(ctx->ast_arena, AST_BLOCK, tok_then, scope_get(ctx));
@@ -1004,6 +1035,8 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 			sarrput(block->data.block.nodes, true_branch);
 			block_pop(ctx);
 			scope_pop(ctx);
+
+			if (true_branch) check_valid_inline_branch_node(true_branch);
 			true_branch = block;
 		}
 	}
@@ -1039,6 +1072,7 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 				false_branch = NULL;
 			} else if (is_expression) {
 				false_branch = parse_single_block_stmt_or_expr(ctx, NULL);
+				if (false_branch) check_valid_inline_branch_node(false_branch);
 			} else {
 				struct scope *scope = scope_create(ctx->scope_thread_local, SCOPE_LEXICAL, scope_get(ctx), &tok_then->location);
 				scope_push(ctx, scope);
@@ -1049,6 +1083,8 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 				sarrput(block->data.block.nodes, false_branch);
 				block_pop(ctx);
 				scope_pop(ctx);
+
+				if (false_branch) check_valid_inline_branch_node(false_branch);
 				false_branch = block;
 			}
 		}
@@ -2366,6 +2402,8 @@ struct ast *parse_expr_catch(struct context *ctx, struct ast *call) {
 		sarrput(block->data.block.nodes, block_or_expr);
 		block_pop(ctx);
 		scope_pop(ctx);
+
+		if (block_or_expr) check_valid_inline_branch_node(block_or_expr);
 	}
 
 	if (!block_or_expr) {

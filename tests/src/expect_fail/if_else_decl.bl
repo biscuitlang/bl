@@ -1,0 +1,5 @@
+// @ERR_UNEXPECTED_DECL@
+main :: fn () s32 {
+	if true then return 0 else a :: 10;
+	return 0;
+}

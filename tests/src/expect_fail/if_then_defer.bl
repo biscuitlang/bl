@@ -1,0 +1,6 @@
+// @ERR_UNEXPECTED_DECL@
+foo :: fn () {}
+main :: fn () s32 {
+	if true then defer foo();
+	return 0;
+}

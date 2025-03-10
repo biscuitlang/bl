@@ -159,11 +159,11 @@
 
       If only few specific names create conflicts for you, you can just #undef those names after the
       `#include <nob.h>` since they are macros anyway.
-   
+
    # Other options
- 
+
       The NOB_NO_ECHO, if defined disables echo (printing) of the executed commads via nob_cmd_run_* functions.
-      
+
       ```c
       #define NOB_NO_ECHO
       #define NOB_IMPLEMENTATION
@@ -785,7 +785,7 @@ Nob_Proc nob_cmd_run_async_redirect(Nob_Cmd cmd, Nob_Cmd_Redirect redirect)
 #ifndef NOB_NO_ECHO
 	nob_cmd_print(cmd);
 #endif
-	
+
 	Nob_String_Builder sb = {0};
 
 #ifdef _WIN32
@@ -1059,7 +1059,7 @@ bool nob_proc_wait(Nob_Proc proc)
     }
 
     if (exit_status != 0) {
-        nob_log(NOB_ERROR, "Command exited with exit code %lu.", exit_status);
+        // nob_log(NOB_ERROR, "Command exited with exit code %lu.", exit_status);
         return false;
     }
 
@@ -1077,7 +1077,7 @@ bool nob_proc_wait(Nob_Proc proc)
         if (WIFEXITED(wstatus)) {
             int exit_status = WEXITSTATUS(wstatus);
             if (exit_status != 0) {
-                nob_log(NOB_ERROR, "Command exited with exit code %d.", exit_status);
+                // nob_log(NOB_ERROR, "Command exited with exit code %d.", exit_status);
                 return false;
             }
 

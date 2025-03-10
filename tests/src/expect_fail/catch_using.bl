@@ -1,0 +1,7 @@
+// @ERR_UNEXPECTED_DECL@
+Foo :: #import "std/print";
+foo :: fn () Error { return OK; }
+main :: fn () s32 {
+	foo() catch using Foo;
+	return 0;
+}

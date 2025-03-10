@@ -1,0 +1,6 @@
+// @ERR_UNEXPECTED_DECL@
+foo :: fn () Error { return OK; }
+main :: fn () s32 {
+	foo() catch a :: 10;
+	return 0;
+}
