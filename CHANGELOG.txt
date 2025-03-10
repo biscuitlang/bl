@@ -141,6 +141,8 @@ master
   we might point to locally compiled LLVM or any other LLVM location not available by default in
   the system.
 - Fallback to linking ncurses_g.a in case libtinfo.a was not found on linux.
+- Fix various extra modules linking on linux to respect comptime vs runtime linking.
+
 
 [Modules]
 - Add math module.

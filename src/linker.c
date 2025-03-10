@@ -86,7 +86,7 @@ static bool parse_ld_script(FILE *file, str_buf_t *filepath) {
 
 				char path[MAX_LINE];
 				s32  len = 0;
-				while (*p && !isspace((unsigned char)*p) && *p != ')') {
+				while (*p && !isspace((unsigned char)*p) && *p != ')' && len <= MAX_LINE) {
 					path[len++] = *p++;
 				}
 
