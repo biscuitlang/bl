@@ -137,6 +137,10 @@ master
 	Foo :: enum C.int {}
 
 - Add support for LD script linking on linux + resolving of library symlinks.
+- Add LLVM_CONFIG option on Linux and masOS to customize path to llvm-config executable. This way
+  we might point to locally compiled LLVM or any other LLVM location not available by default in
+  the system.
+- Fallback to linking ncurses_g.a in case libtinfo.a was not found on linux.
 
 [Modules]
 - Add math module.

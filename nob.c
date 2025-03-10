@@ -107,6 +107,8 @@ void check_compiler(void);
 void run_tests(void);
 void docs(void);
 
+const char *llvm_config = "";
+
 #include "deps/dyncall-1.2/nob.c"
 #include "deps/libyaml-0.2.5/nob.c"
 #include "src/nob/nob.c"
@@ -147,6 +149,9 @@ void print_help(void) {
 	printf("\trelease    Build bl compiler in release mode (default).\n");
 	printf("\truntime    Build compiler runtime.\n");
 	printf("\ttest       Run tests.\n");
+#ifndef _WIN32
+	printf("\tLLVM_CONFIG <PATH> Customize path to llvm-config executable.\n");
+#endif
 }
 
 void parse_command_line_arguments(int argc, char *argv[]) {
@@ -178,6 +183,15 @@ void parse_command_line_arguments(int argc, char *argv[]) {
 		} else if (strcmp(arg, "clean") == 0) {
 			cleanup();
 			exit(0);
+#ifndef _WIN32
+		} else if (strcmp(arg, "LLVM_CONFIG") == 0) {
+			if (argc < 1) {
+				nob_log(NOB_ERROR, "Expected path to llvm config file!");
+				exit(1);
+			} else {
+				llvm_config = shift_args(&argc, &argv);
+			}
+#endif
 		} else if (strcmp(arg, "help") == 0) {
 			print_help();
 			exit(0);

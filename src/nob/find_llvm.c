@@ -6,7 +6,7 @@ const char *LLVM_LIBS        = "";
 void find_llvm(void) {
 	nob_log(NOB_INFO, "Looking for LLVM " STR(LLVM_REQUIRED) "...");
 
-#if _WIN32
+#ifdef _WIN32
 	LLVM_VERSION = "18.1.8";
 
 	nob_log(NOB_INFO, "Using bundled LLVM package.");
@@ -28,21 +28,21 @@ void find_llvm(void) {
 	Cmd            cmd = {0};
 	String_Builder sb  = {0};
 
-	const char *llvm_config = "";
-
 #ifdef __APPLE__
 	// Try brew on mac...
-	cmd_append(&cmd, SHELL, "brew --prefix llvm@" STR(LLVM_REQUIRED) " 2>/dev/null");
-	cmd_run_sync_read_and_reset(&cmd, &sb);
-	const char *brew_prefix = trim_and_dup(sb);
-	sb.count                = 0;
-
-	if (strlen(brew_prefix)) {
-		nob_log(NOB_INFO, "Brew prefix: '%s'.", brew_prefix);
-		cmd_append(&cmd, SHELL, temp_sprintf("command -v %s/bin/llvm-config", brew_prefix));
+	if (!strlen(llvm_config)) {
+		cmd_append(&cmd, SHELL, "brew --prefix llvm@" STR(LLVM_REQUIRED) " 2>/dev/null");
 		cmd_run_sync_read_and_reset(&cmd, &sb);
-		llvm_config = trim_and_dup(sb);
-		sb.count    = 0;
+		const char *brew_prefix = trim_and_dup(sb);
+		sb.count                = 0;
+
+		if (strlen(brew_prefix)) {
+			nob_log(NOB_INFO, "Brew prefix: '%s'.", brew_prefix);
+			cmd_append(&cmd, SHELL, temp_sprintf("command -v %s/bin/llvm-config", brew_prefix));
+			cmd_run_sync_read_and_reset(&cmd, &sb);
+			llvm_config = trim_and_dup(sb);
+			sb.count    = 0;
+		}
 	}
 #endif
 
@@ -78,7 +78,7 @@ void find_llvm(void) {
 		exit(1);
 	}
 
-	nob_log(NOB_INFO, "LLVM config found: %s", llvm_config);
+	nob_log(NOB_INFO, "Using LLVM config: %s", llvm_config);
 
 	// version
 	cmd_append(&cmd, llvm_config, "--version");
