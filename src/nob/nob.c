@@ -341,13 +341,14 @@ void find_deps(void) {
 	LIBTINFO = shell("find " LIB_PATH " -name \"libtinfo.a\" -print -quit 2>/dev/null");
 	if (!strok(LIBTINFO)) {
 		nob_log(NOB_WARNING, "Unable to find 'libtinfo.a' in non of following paths: '" LIB_PATH "'. Try to use ncurses.");
-		// exit(1);
+
+		LIBTINFO = shell("find " LIB_PATH " -name \"libncurses_g.a\" -print -quit 2>/dev/null");
+		if (!strok(LIBTINFO)) {
+			nob_log(NOB_ERROR, "Unable to find 'libncurses_g.a' in non of following paths: '" LIB_PATH "'.");
+			exit(1);
+		}
 	}
-	LIBTINFO = shell("find " LIB_PATH " -name \"libncurses_g.a\" -print -quit 2>/dev/null");
-	if (!strok(LIBTINFO)) {
-		nob_log(NOB_ERROR, "Unable to find 'libncurses_g.a' in non of following paths: '" LIB_PATH "'.");
-		exit(1);
-	}
+
 	nob_log(NOB_INFO, "Using 'libtinfo' '%s'.", LIBTINFO);
 }
 
