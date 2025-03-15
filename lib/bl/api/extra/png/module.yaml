@@ -7,7 +7,7 @@ x86_64-pc-windows-msvc:
 
 x86_64-pc-linux-gnu:
   linker_lib_path: "linux"
-  linker_opt: "-l:libpng16.a"
+  linker_opt: "-l:libpng16.a -lz"
   link: "z, bz2"
   link_comptime: "png16"
 

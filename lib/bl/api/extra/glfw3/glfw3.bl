@@ -263,6 +263,7 @@ CONTEXT_RELEASE_BEHAVIOR :: 0x00022009;
 CONTEXT_NO_ERROR       :: 0x0002200A;
 CONTEXT_CREATION_API   :: 0x0002200B;
 SCALE_TO_MONITOR       :: 0x0002200C;
+SCALE_FRAMEBUFFER      :: 0x0002200D;
 
 COCOA_RETINA_FRAMEBUFFER :: 0x00023001;
 COCOA_FRAME_NAME         :: 0x00023002;
@@ -312,7 +313,16 @@ CONNECTED              :: 0x00040001;
 DISCONNECTED           :: 0x00040002;
 JOYSTICK_HAT_BUTTONS   :: 0x00050001;
 COCOA_CHDIR_RESOURCES  :: 0x00051001;
+PLATFORM               :: 0x00050003;
 COCOA_MENUBAR          :: 0x00051002;
+
+ANY_PLATFORM ::           0x00060000;
+PLATFORM_WIN32 ::         0x00060001;
+PLATFORM_COCOA ::         0x00060002;
+PLATFORM_WAYLAND ::       0x00060003;
+PLATFORM_X11 ::           0x00060004;
+PLATFORM_NULL ::          0x00060005;
+
 DONT_CARE              :: -1;
 
 Window :: u8;
@@ -376,6 +386,7 @@ GetVersion :: fn (major: *s32, minor: *s32, rev: *s32)  #extern "glfwGetVersion"
 GetVersionString :: fn () *u8 #extern "glfwGetVersionString";
 GetError :: fn (description: **u8) s32 #extern "glfwGetError";
 SetErrorCallback :: fn (cbfun: ErrorFun) ErrorFun #extern "glfwSetErrorCallback";
+GetPlatform :: fn () s32 #extern "glfwGetPlatform";
 GetMonitors :: fn (count: *s32) **Monitor #extern "glfwGetMonitors";
 GetPrimaryMonitor :: fn () *Monitor #extern "glfwGetPrimaryMonitor";
 GetMonitorPos :: fn (monitor: *Monitor, xpos: *s32, ypos: *s32)  #extern "glfwGetMonitorPos";

@@ -11,13 +11,13 @@ x86_64-pc-windows-msvc:
 
 x86_64-pc-linux-gnu:
   linker_lib_path: "linux"
-  linker_opt: "-l:libfreetype.a"
+  linker_opt: "-l:libfreetype.a -l:libpng16.a"
   link: "z, bz2"
   link_comptime: "freetype"
 
 x86_64-unknown-linux-gnu:
   linker_lib_path: "linux"
-  linker_opt: "-l:libfreetype.a"
+  linker_opt: "-l:libfreetype.a -l:libpng16.a"
   link: "z, bz2"
   link_comptime: "freetype"
 

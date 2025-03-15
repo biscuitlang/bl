@@ -1,4 +1,5 @@
 version: 20220923
+supported: "arm64-apple-darwin"
 linker_opt: "-framework CoreServices"
 
 x86_64-apple-darwin:

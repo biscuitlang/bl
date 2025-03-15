@@ -1,6 +1,6 @@
 # Vulkan renderer API version: 1.3.231.1 
 version: 20221205
-supported: "x86_64-pc-windows-msvc, arm64-apple-darwin"
+supported: "x86_64-pc-windows-msvc, arm64-apple-darwin, x86_64-pc-linux-gnu, x86_64-unknown-linux-gnu"
 src: "vulkan.bl"
 
 x86_64-pc-windows-msvc:
@@ -8,4 +8,10 @@ x86_64-pc-windows-msvc:
   linker_opt: "vulkan-1.lib"
 
 arm64-apple-darwin:
+  link: "vulkan"
+
+x86_64-pc-linux-gnu:
+  link: "vulkan"
+
+x86_64-unknown-linux-gnu:
   link: "vulkan"

@@ -1,5 +1,5 @@
 version: 20240617
-supported: "x86_64-pc-windows-msvc"
+supported: "x86_64-pc-windows-msvc, x86_64-pc-linux-gnu, x86_64-unknown-linux-gnu"
 src: "ui.bl"
 
 x86_64-pc-windows-msvc:
