@@ -1,4 +1,5 @@
-version: 20220923
+version: 16
+supported: "x86_64-pc-windows-msvc, x86_64-pc-linux-gnu, x86_64-unknown-linux-gnu, arm64-apple-darwin"
 src: "png.bl"
 
 x86_64-pc-windows-msvc:
@@ -17,8 +18,6 @@ x86_64-unknown-linux-gnu:
   link: "z, bz2"
   link_comptime: "png16"
 
-x86_64-apple-darwin:
-  linker_opt: "-lpng -lz -lbz2"
-
 arm64-apple-darwin:
-  linker_opt: "-lpng -lz -lbz2"
+  linker_lib_path: "macos"
+  link: "png16"

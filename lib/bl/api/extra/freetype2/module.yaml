@@ -1,7 +1,7 @@
 # FreeType2 2.9
 
 version: 20230806
-supported: "x86_64-pc-windows-msvc, x86_64-pc-linux-gnu, x86_64-unknown-linux-gnu, x86_64-apple-darwin, arm64-apple-darwin"
+supported: "x86_64-pc-windows-msvc, x86_64-pc-linux-gnu, x86_64-unknown-linux-gnu, arm64-apple-darwin"
 src: "freetype.bl"
 
 x86_64-pc-windows-msvc:
@@ -21,9 +21,7 @@ x86_64-unknown-linux-gnu:
   link: "z, bz2"
   link_comptime: "freetype"
 
-x86_64-apple-darwin:
-  link: "freetype"
-
 arm64-apple-darwin:
+  linker_lib_path: "macos"
   link: "freetype"
 

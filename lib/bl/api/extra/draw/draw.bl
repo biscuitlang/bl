@@ -468,12 +468,12 @@ png_load_from_file :: fn (filepath: string_view, out_data: **u8, out_width: *u32
 	return png_load_from_stream(&stream, out_data, out_width, out_height, out_bit_depth, out_format);
 }
 
-png_load_from_memory :: fn (data: []u8, out_data: **u8, out_width: *u32, out_height: *u32, out_bit_depth: *u8, out_format: *TextureFormat) Error {
+png_load_from_memory :: fn (data: []u8, out_data: **u8, out_width: *u32, out_height: *u32, out_bit_depth: *u8, out_format: *TextureFormat, out_stride: *u32 = null) Error {
 	stream :: make_data_stream(data);
-	return png_load_from_stream(&stream, out_data, out_width, out_height, out_bit_depth, out_format);
+	return png_load_from_stream(&stream, out_data, out_width, out_height, out_bit_depth, out_format, out_stride);
 }
 
-png_load_from_stream :: fn (stream: *io.Stream, out_data: **u8, out_width: *u32, out_height: *u32, out_bit_depth: *u8, out_format: *TextureFormat) Error {
+png_load_from_stream :: fn (stream: *io.Stream, out_data: **u8, out_width: *u32, out_height: *u32, out_bit_depth: *u8, out_format: *TextureFormat, out_stride: *u32 = null) Error {
 	assert(stream);
 	err_sig :: png_validate_signature(stream);
 	if err_sig { return err_sig; }
@@ -530,6 +530,8 @@ png_load_from_stream :: fn (stream: *io.Stream, out_data: **u8, out_width: *u32,
 
 	assert(out_data);
 	(@out_data) = image_data;
+	
+	if (out_stride) then @out_stride = rowbytes;
 
 	return OK;
 }

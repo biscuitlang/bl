@@ -46,7 +46,11 @@
 #define FLAG_LIBPATH "-L"
 #define FLAG_LIB     "-l"
 #define FLAG_OUT     "-o"
+#ifdef BL_PLATFORM_MACOS
+#define FLAG_RPATH   "-rpath"
+#else
 #define FLAG_RPATH   "--rpath"
+#endif
 
 // Wrapper for ld linker on Unix platforms.
 static const char *get_out_extension(struct assembly *assembly) {

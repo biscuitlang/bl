@@ -1,0 +1,35 @@
+#!../../../../../bin/blc -silent-run
+
+#import "std/fs";
+
+main :: fn () s32 {
+	os_execute("unzip libpng-1.6.37.zip");
+
+	rootdir :: get_cwd();
+
+	create_dir("libpng-1.6.37/build");
+	set_cwd("libpng-1.6.37/build");
+
+	using Platform;
+	switch PLATFORM {
+		WINDOWS {
+			panic("Incomplete");
+		}
+		LINUX {
+			panic("Incomplete");
+		}
+		DARWIN {
+			os_execute("cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 -DBUILD_SHARED_LIBS=ON -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DPNG_ARM_NEON=on");
+			os_execute("cmake --build . --config Release");
+			set_cwd(rootdir);
+			create_dir("macos");
+			os_execute("cp -f libpng-1.6.37/build/*.dylib macos/");
+			os_execute("cp -f libpng-1.6.37/build/*.a macos/");
+		}
+	}
+
+	set_cwd(rootdir);
+	os_execute("rm -rf libpng-1.6.37");
+
+	return 0;
+}
