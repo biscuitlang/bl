@@ -1,0 +1,74 @@
+#load "../build-lib-common.bl"
+
+build :: fn () #build_entry {
+	tmpdir :: get_temporary();
+	unzip("libclipboard-1.1.zip");
+
+	rootdir :: get_cwd();
+	create_dir("libclipboard-1.1/build");
+
+	using Platform;
+	switch PLATFORM {
+		WINDOWS {
+			set_cwd("libclipboard-1.1/build");
+			cmake(
+				"..",
+				"--fresh",
+				"-DBUILD_SHARED_LIBS=OFF",
+				"-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
+				"-DCMAKE_POLICY_VERSION_MINIMUM=3.5",
+				tprint("-DCMAKE_INSTALL_PREFIX=%", tmpdir),
+			);
+			cmake("--build", ".", "--config=Release", "--target=Install");
+
+			set_cwd(rootdir);
+			create_dir("win32");
+			copy_file(tprint("%/lib/clipboard.lib", tmpdir), tprint("%/lib/clipboard_static.lib", tmpdir), true);
+			remove_file(tprint("%/lib/clipboard.lib", tmpdir));
+			copy_file(tprint("%/lib/clipboard_static.lib", tmpdir), "win32/clipboard_static.lib", true);
+
+			set_cwd("libclipboard-1.1/build");
+			cmake(
+				"..",
+				"--fresh",
+				"-DBUILD_SHARED_LIBS=ON",
+				"-DCMAKE_POLICY_VERSION_MINIMUM=3.5",
+				tprint("-DCMAKE_INSTALL_PREFIX=%", tmpdir),
+			);
+			cmake("--build", ".", "--config=Release", "--target=Install");
+
+			set_cwd(rootdir);
+			create_dir("win32");
+			copy_file(tprint("%/bin/clipboard.dll", tmpdir), "win32/clipboard.dll", true);
+			copy_file(tprint("%/lib/clipboard.lib", tmpdir), "win32/clipboard.lib", true);
+		}
+
+		LINUX {
+			panic("Incomplete");
+		}
+
+		DARWIN {
+			panic("Incomplete");
+			// os_execute("unzip freetype_2.9.zip");
+			// rootdir :: get_cwd();
+			// create_dir("freetype_2.9/build");
+
+			// set_cwd("freetype_2.9/build");
+			// os_execute("cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_MACOSX_RPATH=ON");
+			// os_execute("cmake --build . --config Release");
+			// os_execute("cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 -DBUILD_SHARED_LIBS=ON -DCMAKE_MACOSX_RPATH=ON");
+			// os_execute("cmake --build . --config Release");
+			// set_cwd(rootdir);
+			// create_dir("macos");
+			// os_execute("cp -f freetype_2.9/build/*.dylib macos/");
+			// os_execute("cp -f freetype_2.9/build/*.a macos/");
+
+			// set_cwd(rootdir);
+			// os_execute("rm -rf freetype_2.9");
+		}
+		default;
+	}
+
+	set_cwd(rootdir);
+	os_execute("rm -rf libclipboard-1.1");
+}

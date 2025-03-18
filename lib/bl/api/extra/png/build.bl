@@ -1,0 +1,50 @@
+#load "../build-lib-common.bl"
+
+build :: fn () #build_entry {
+	tmpdir :: get_temporary();
+	unzip("libpng-1.6.37.zip");
+
+	rootdir :: get_cwd();
+	create_dir("libpng-1.6.37/build");
+
+	using Platform;
+	switch PLATFORM {
+		WINDOWS {
+			set_cwd("libpng-1.6.37/build");
+			cmake(
+				"..",
+				"--fresh",
+				"-DBUILD_SHARED_LIBS=ON",
+				"-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
+				"-DCMAKE_POLICY_VERSION_MINIMUM=3.5",
+				tprint("-DCMAKE_INSTALL_PREFIX=%", tmpdir),
+				tprint("-DZLIB_INCLUDE_DIR=%/include", tmpdir),
+				tprint("-DZLIB_LIBRARY=%/lib/zlibstatic.lib", tmpdir),
+			);
+			cmake("--build", ".", "--config=Release", "--target=Install");
+
+			set_cwd(rootdir);
+			create_dir("win32");
+			copy_file(tprint("%/bin/libpng16.dll", tmpdir), "win32/libpng16.dll", true);
+			copy_file(tprint("%/lib/libpng16.lib", tmpdir), "win32/libpng16.lib", true);
+			copy_file(tprint("%/lib/libpng16_static.lib", tmpdir), "win32/libpng16_static.lib", true);
+		}
+		LINUX {
+			panic("Incomplete");
+		}
+		DARWIN {
+			panic("Incomplete");
+			// set_cwd("libpng-1.6.37/build");
+			// os_execute("cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 -DBUILD_SHARED_LIBS=ON -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DPNG_ARM_NEON=on");
+			// os_execute("cmake --build . --config Release");
+			// set_cwd(rootdir);
+			// create_dir("macos");
+			// os_execute("cp -f libpng-1.6.37/build/*.dylib macos/");
+			// os_execute("cp -f libpng-1.6.37/build/*.a macos/");
+		}
+		default;
+	}
+
+	set_cwd(rootdir);
+	os_execute("rm -rf libpng-1.6.37");
+}

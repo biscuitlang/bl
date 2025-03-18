@@ -1,0 +1,31 @@
+C  :: #import "libc";
+
+#import "std/fs";
+#import "std/string";
+#import "std/print";
+
+TMP_DIR      :: "tmp";
+ROOT_DIR: string_view;
+
+MODULES :: [_]string_view.{
+	"lib/bl/api/extra/zlib",
+	"lib/bl/api/extra/png",
+	"lib/bl/api/extra/glfw3",
+	"lib/bl/api/extra/freetype2",
+	"lib/bl/api/extra/clipboard",
+};
+
+main :: fn () s32 {
+	ROOT_DIR = get_cwd();
+	create_dir(TMP_DIR);
+
+	tmp :: str_make(TMP_DIR);
+	path_normalize(&tmp);
+
+	loop i := 0; i < MODULES.len; i += 1 {
+		print("\033[32mBUILD: %\033[0m\n", MODULES[i]);
+		os_execute(tprint("blc --work-dir=\"%\" -build %", MODULES[i], tmp));
+	}
+
+	return 0;
+}

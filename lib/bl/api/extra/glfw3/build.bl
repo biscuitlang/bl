@@ -1,0 +1,66 @@
+#load "../build-lib-common.bl"
+
+build :: fn () #build_entry {
+	tmpdir :: get_temporary();
+	unzip("glfw-3.4.zip");
+
+	rootdir :: get_cwd();
+	create_dir("glfw-3.4/build");
+
+	using Platform;
+	switch PLATFORM {
+		WINDOWS {
+			set_cwd("glfw-3.4/build");
+			cmake("..",
+				"-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
+				"-DBUILD_SHARED_LIBS=OFF",
+				"-DGLFW_BUILD_EXAMPLES=OFF",
+				"-DGLFW_BUILD_TESTS=OFF",
+				"-DGLFW_BUILD_DOCS=OFF",
+				tprint("-DCMAKE_INSTALL_PREFIX=%", tmpdir),
+			);
+			cmake("--build", ".", "--config=Release", "--target=Install");
+
+			set_cwd(rootdir);
+			create_dir("win32");
+			copy_file(tprint("%/lib/glfw3.lib", tmpdir), "win32/glfw3_static.lib", true);
+
+
+			set_cwd("glfw-3.4/build");
+			cmake("..",
+				"-DBUILD_SHARED_LIBS=ON",
+				"-DGLFW_BUILD_EXAMPLES=OFF",
+				"-DGLFW_BUILD_TESTS=OFF",
+				"-DGLFW_BUILD_DOCS=OFF",
+				tprint("-DCMAKE_INSTALL_PREFIX=%", tmpdir),
+			);
+			cmake("--build", ".", "--config=Release", "--target=Install");
+
+			set_cwd(rootdir);
+			create_dir("win32");
+			copy_file(tprint("%/bin/glfw3.dll", tmpdir), "win32/glfw3.dll", true);
+			copy_file(tprint("%/lib/glfw3dll.lib", tmpdir), "win32/glfw3.lib", true);
+		}
+
+		LINUX {
+			panic("Incomplete");
+		}
+		DARWIN {
+			panic("Incomplete");
+			// set_cwd("glfw-3.4/build");
+			// os_execute("cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DBUILD_SHARED_LIBS=OFF -DGLFW_BUILD_EXAMPLES=OFF -DGLFW_BUILD_TESTS=OFF -DGLFW_BUILD_DOCS=OFF");
+			// os_execute("cmake --build . --config Release");
+			// os_execute("cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 -DBUILD_SHARED_LIBS=ON -DGLFW_BUILD_EXAMPLES=OFF -DGLFW_BUILD_TESTS=OFF -DGLFW_BUILD_DOCS=OFF");
+			// os_execute("cmake --build . --config Release");
+			// set_cwd(rootdir);
+			// create_dir("macos");
+			// os_execute("cp -f glfw-3.4/build/src/*.dylib macos/");
+			// os_execute("cp -f glfw-3.4/build/src/*.a macos/");
+			// os_execute("rm -rf __MACOSX");
+		}
+		default;
+	}
+
+	set_cwd(rootdir);
+	os_execute("rm -rf glfw-3.4");
+}
