@@ -124,6 +124,13 @@ sprint :: fn (format: string_view, args: ...) string {
 	return buf;
 }
 
+sprint_with_allocator :: fn (allocator: *Allocator, format: string_view, args: ...) string {
+	buf: string;
+	str_init(&buf, format.len, allocator);
+	_print_impl(&buf, format, args);
+	return buf;
+}
+
 /// Structure to hold information about custom real print formatting. Use [fmt_real](#fmt_real)
 /// function to create formatted printable value.
 FmtReal :: struct {

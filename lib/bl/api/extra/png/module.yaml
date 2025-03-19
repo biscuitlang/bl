@@ -5,6 +5,7 @@ src: "png.bl"
 x86_64-pc-windows-msvc:
   linker_lib_path: "win32"
   linker_opt: "libpng16_static.lib"
+  link_comptime: "libpng16"
 
 x86_64-pc-linux-gnu:
   linker_lib_path: "linux"

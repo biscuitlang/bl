@@ -148,6 +148,9 @@ master
 	if true then a :: 10; // This is not possible, variable would be useless.
 
 - Build option `copy_deps` now copy only non-system dependencies.
+- rpath is now set for all libraries comming from module dependencies on Linux.
+- Extra module dependencies are now dynamically linked on Linux to prevent linking issues and
+  collisions. This might change in the future.
 
 [Modules]
 - Add math module.
@@ -182,6 +185,9 @@ os/posix/syscall:
 
 os/linux/sys/ptrace:
 - Added.
+
+extra/glfw3:
+- Upgraded to version 3.4.
 
 [Documentation]
 - Improved "Libraries" section in documentation.
