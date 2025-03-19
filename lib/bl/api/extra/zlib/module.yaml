@@ -1,22 +1,18 @@
 version: 131
-supported: "x86_64-pc-windows-msvc"
+supported: "x86_64-pc-windows-msvc, x86_64-pc-linux-gnu, x86_64-unknown-linux-gnu"
 
 x86_64-pc-windows-msvc:
   linker_lib_path: "win32"
   linker_opt: "zlib_static.lib"
   link_comptime: "zlib"
 
-#x86_64-pc-linux-gnu:
-#  linker_lib_path: "linux"
-#  linker_opt: "-l:libpng16.a -lz"
-#  link: "z, bz2"
-#  link_comptime: "png16"
+x86_64-pc-linux-gnu:
+  linker_lib_path: "linux"
+  link: "z"
 
-#x86_64-unknown-linux-gnu:
-#  linker_lib_path: "linux"
-#  linker_opt: "-l:libpng16.a"
-#  link: "z, bz2"
-#  link_comptime: "png16"
+x86_64-unknown-linux-gnu:
+  linker_lib_path: "linux"
+  link: "z"
 
 #arm64-apple-darwin:
 #  linker_lib_path: "macos"

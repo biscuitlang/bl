@@ -30,7 +30,21 @@ build :: fn () #build_entry {
 			copy_file(tprint("%/lib/libpng16_static.lib", tmpdir), "win32/libpng16_static.lib", true);
 		}
 		LINUX {
-			panic("Incomplete");
+			set_cwd("libpng-1.6.37/build");
+			cmake(
+				"..",
+				"--fresh",
+				"-DBUILD_SHARED_LIBS=ON",
+				"-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
+				tprint("-DCMAKE_INSTALL_PREFIX=%", tmpdir),
+				tprint("-DZLIB_INCLUDE_DIR=%/include", tmpdir),
+				tprint("-DZLIB_LIBRARY=%/lib/libz.so", tmpdir),
+			);
+			make("install");
+
+			set_cwd(rootdir);
+			create_dir("linux");
+			os_execute(tprint("cp -d %/lib/libpng* linux/", tmpdir));
 		}
 		DARWIN {
 			panic("Incomplete");

@@ -10,15 +10,11 @@ x86_64-pc-windows-msvc:
 
 x86_64-unknown-linux-gnu:
   linker_lib_path: "linux"
-  linker_opt: "-l:libglfw3.a"
-  link: "X11, Xau, Xdmcp, xcb"
-  link_comptime: "glfw"
+  link: "glfw3, X11, Xau, Xdmcp, xcb"
 
 x86_64-pc-linux-gnu:
   linker_lib_path: "linux"
-  linker_opt: "-l:libglfw3.a"
-  link: "X11, Xau, Xdmcp, xcb"
-  link_comptime: "glfw"
+  link: "glfw3, X11, Xau, Xdmcp, xcb"
 
 x86_64-apple-darwin:
   link: "glfw"

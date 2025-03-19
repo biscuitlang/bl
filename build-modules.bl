@@ -27,5 +27,7 @@ main :: fn () s32 {
 		os_execute(tprint("blc --work-dir=\"%\" -build %", MODULES[i], tmp));
 	}
 
+	print("DONE\n");
+
 	return 0;
 }

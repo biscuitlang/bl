@@ -44,7 +44,32 @@ build :: fn () #build_entry {
 		}
 
 		LINUX {
-			panic("Incomplete");
+			set_cwd("libclipboard-1.1/build");
+			cmake(
+				"..",
+				"--fresh",
+				"-DBUILD_SHARED_LIBS=OFF",
+				"-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
+				tprint("-DCMAKE_INSTALL_PREFIX=%", tmpdir),
+			);
+			make("install");
+
+			set_cwd(rootdir);
+			create_dir("linux");
+			copy_file(tprint("%/lib/libclipboard.a", tmpdir), "linux/libclipboard.a", true);
+
+			set_cwd("libclipboard-1.1/build");
+			cmake(
+				"..",
+				"--fresh",
+				"-DBUILD_SHARED_LIBS=ON",
+				tprint("-DCMAKE_INSTALL_PREFIX=%", tmpdir),
+			);
+			make("install");
+
+			set_cwd(rootdir);
+			create_dir("linux");
+			copy_file(tprint("%/lib/libclipboard.so", tmpdir), "linux/libclipboard.so", true);
 		}
 
 		DARWIN {

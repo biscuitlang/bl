@@ -43,7 +43,30 @@ build :: fn () #build_entry {
 		}
 
 		LINUX {
-			panic("Incomplete");
+			set_cwd("glfw-3.4/build");
+			cmake("..",
+				"-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
+				"-DBUILD_SHARED_LIBS=OFF",
+				"-DGLFW_BUILD_EXAMPLES=OFF",
+				"-DGLFW_BUILD_TESTS=OFF",
+				"-DGLFW_BUILD_DOCS=OFF",
+				tprint("-DCMAKE_INSTALL_PREFIX=%", tmpdir),
+			);
+			make("install");
+
+			set_cwd("glfw-3.4/build");
+			cmake("..",
+				"-DBUILD_SHARED_LIBS=ON",
+				"-DGLFW_BUILD_EXAMPLES=OFF",
+				"-DGLFW_BUILD_TESTS=OFF",
+				"-DGLFW_BUILD_DOCS=OFF",
+				tprint("-DCMAKE_INSTALL_PREFIX=%", tmpdir),
+			);
+			make("install");
+
+			set_cwd(rootdir);
+			create_dir("linux");
+			os_execute(tprint("cp -d %/lib/libglfw3* linux/", tmpdir));
 		}
 		DARWIN {
 			panic("Incomplete");

@@ -35,3 +35,15 @@ cmake :: fn (args: ...string_view) {
 	print_info(tmp);
 	os_execute(tmp);
 }
+
+make :: fn (args: ...string_view) {
+	tmp: string;
+	str_append(&tmp, "make -j32");
+	loop i := 0; i < args.len; i += 1 {
+		str_append(&tmp, " ");
+		str_append(&tmp, args[i]);
+	}
+
+	print_info(tmp);
+	os_execute(tmp);
+}

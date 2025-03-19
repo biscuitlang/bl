@@ -2,7 +2,7 @@
 
 build :: fn () #build_entry {
 	tmpdir :: get_temporary();
-	// rootdir :: get_cwd();
+	rootdir :: get_cwd();
 
 	using Platform;
 	switch PLATFORM {
@@ -15,7 +15,34 @@ build :: fn () #build_entry {
 		}
 
 		LINUX {
-			panic("Incomplete");
+			unzip("freetype_2.9.zip");
+			create_dir("freetype_2.9/build");
+
+			set_cwd("freetype_2.9/build");
+			cmake(
+				"..",
+				"--fresh",
+				"-DBUILD_SHARED_LIBS=OFF",
+				"-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
+				tprint("-DCMAKE_INSTALL_PREFIX=%", tmpdir),
+			);
+			make("install");
+
+			set_cwd("freetype_2.9/build");
+			cmake(
+				"..",
+				"--fresh",
+				"-DBUILD_SHARED_LIBS=ON",
+				tprint("-DCMAKE_INSTALL_PREFIX=%", tmpdir),
+			);
+			make("install");
+
+			set_cwd(rootdir);
+			create_dir("linux");
+			os_execute(tprint("cp -d %/lib/libfreetype* linux/", tmpdir));
+
+			set_cwd(rootdir);
+			os_execute("rm -rf freetype_2.9");
 		}
 
 		DARWIN {
