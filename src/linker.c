@@ -146,15 +146,10 @@ static bool search_library(struct context *ctx,
 
 #endif
 
-			if (out_lib_name) {
-				(*out_lib_name) = scdup2(string_cache, get_filename_from_filepath(lib_filepath));
-			}
-			if (out_lib_dir) {
-				(*out_lib_dir) = scdup2(string_cache, get_dir_from_filepath(lib_filepath));
-			}
-			if (out_lib_filepath) {
-				(*out_lib_filepath) = scdup2(string_cache, lib_filepath);
-			}
+			(*out_lib_name)     = scdup2(string_cache, get_filename_from_filepath(lib_filepath));
+			(*out_lib_dir)      = scdup2(string_cache, get_dir_from_filepath(lib_filepath));
+			(*out_lib_filepath) = scdup2(string_cache, lib_filepath);
+
 			found = true;
 			goto DONE;
 		}
@@ -186,6 +181,15 @@ static void set_lib_paths(struct context *ctx) {
 	process_tokens(ctx, lib_path, ENVPATH_SEPARATOR, (process_tokens_fn_t)&add_lib_path);
 }
 
+static bool is_system_library(struct context *ctx, str_t libpath) {
+	const str_t default_module_dir = builder_get_lib_dir();
+	if (strncmp(default_module_dir.ptr, libpath.ptr, MIN(default_module_dir.len, libpath.len)) == 0) {
+		return false;
+	}
+	const str_t custom_module_dir = str_buf_view(ctx->assembly->target->module_dir);
+	return strncmp(custom_module_dir.ptr, libpath.ptr, MIN(custom_module_dir.len, libpath.len));
+}
+
 static bool link_lib(struct context *ctx, struct native_lib *lib) {
 	if (!lib) babort("invalid lib");
 	if (!lib->user_name.len) babort("invalid lib name");
@@ -195,6 +199,10 @@ static bool link_lib(struct context *ctx, struct native_lib *lib) {
 	if ((lib->flags & NATIVE_LIB_FLAG_COMPTIME) == 0) {
 		builder_log("- Library without 'NATIVE_LIB_FLAG_COMPTIME' flag '" STR_FMT "' skipped.", STR_ARG(lib->user_name));
 		return true;
+	}
+	if (is_system_library(ctx, lib->dir)) {
+		builder_log("- Library '" STR_FMT "' marked as system library.", STR_ARG(lib->user_name));
+		lib->flags |= NATIVE_LIB_IS_SYSTEM;
 	}
 	str_buf_t tmp_path = get_tmp_str();
 	lib->handle        = dlLoadLibrary(str_to_c(&tmp_path, lib->filepath));

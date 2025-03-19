@@ -147,6 +147,8 @@ master
 
 	if true then a :: 10; // This is not possible, variable would be useless.
 
+- Build option `copy_deps` now copy only non-system dependencies.
+
 [Modules]
 - Add math module.
 

@@ -19,6 +19,7 @@ static void copy_user_libs(struct assembly *assembly) {
 	for (usize i = 0; i < arrlenu(assembly->libs); ++i) {
 		struct native_lib *lib = &assembly->libs[i];
 		if ((lib->flags & NATIVE_LIB_FLAG_RUNTIME) == 0) continue;
+		if ((lib->flags & NATIVE_LIB_IS_SYSTEM) == NATIVE_LIB_IS_SYSTEM) continue;
 		if (!lib->user_name.len) continue;
 
 		str_buf_clr(&dest_path);

@@ -46,11 +46,7 @@
 #define FLAG_LIBPATH "-L"
 #define FLAG_LIB     "-l"
 #define FLAG_OUT     "-o"
-#ifdef BL_PLATFORM_MACOS
 #define FLAG_RPATH   "-rpath"
-#else
-#define FLAG_RPATH   "--rpath"
-#endif
 
 // Wrapper for ld linker on Unix platforms.
 static const char *get_out_extension(struct assembly *assembly) {
@@ -87,7 +83,9 @@ static void append_libs(struct assembly *assembly, str_buf_t *buf) {
 		if ((lib->flags & NATIVE_LIB_FLAG_RUNTIME) == 0) continue;
 		if (!lib->user_name.len) continue;
 		str_buf_append_fmt(buf, "{s}{str} ", FLAG_LIB, lib->user_name);
-		str_buf_append_fmt(buf, "{s} {str} ", FLAG_RPATH, lib->dir);
+		if ((lib->flags & NATIVE_LIB_IS_SYSTEM) == 0) {
+			str_buf_append_fmt(buf, "{s} {str} ", FLAG_RPATH, lib->dir);
+		}
 	}
 }
 
