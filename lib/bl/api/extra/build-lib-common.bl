@@ -19,6 +19,11 @@ get_temporary :: fn () string_view {
 	return dirpath;
 }
 
+get_module_root :: fn () string_view {
+	dirpath :: cmd_read_stdout("blc --where-is-api") catch panic($);
+	return dirpath;
+}
+
 unzip :: fn (filepath: string_view) {
 	print_info("Unzipping: '%'", filepath);
 	os_execute(tprint("unzip -o -q \"%\"", filepath));
@@ -46,4 +51,29 @@ make :: fn (args: ...string_view) {
 
 	print_info(tmp);
 	os_execute(tmp);
+}
+
+#scope_private
+
+C :: #import "libc";
+
+cmd_read_stdout :: fn (fmt: string_view, args: ...) (out: string_view, err: Error) {
+	cmd :: tprint(fmt, args);
+
+	tmp  := str_make(128, application_context.temporary_allocator);
+	pipe :: C.popen(strtoc(cmd), strtoc("r"));
+	defer C.pclose(pipe);
+
+	if !pipe then return "", error("Command '%' failed!", cmd);
+
+	buffer: [128]C.char #noinit;
+	loop C.fgets(auto buffer.ptr, auto buffer.len, pipe) {
+		str_append(&tmp, ctostr(buffer.ptr));
+	}
+
+	if (tmp.len > 0 && tmp[tmp.len - 1] == '\n') {
+		tmp.len -= 1;
+	}
+
+	return tmp, OK;
 }

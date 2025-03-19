@@ -204,8 +204,10 @@ static bool link_lib(struct context *ctx, struct native_lib *lib) {
 		builder_log("- Library '" STR_FMT "' marked as system library.", STR_ARG(lib->user_name));
 		lib->flags |= NATIVE_LIB_IS_SYSTEM;
 	}
-	str_buf_t tmp_path = get_tmp_str();
-	lib->handle        = dlLoadLibrary(str_to_c(&tmp_path, lib->filepath));
+	str_buf_t   tmp_path  = get_tmp_str();
+	const char *clib_name = str_to_c(&tmp_path, lib->filepath);
+	blog("Load: '%s'", clib_name);
+	lib->handle = dlLoadLibrary(clib_name);
 	put_tmp_str(tmp_path);
 	return lib->handle;
 }

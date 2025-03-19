@@ -1,4 +1,4 @@
-#GLFW 3.3.2
+#GLFW 3.4
 
 version: 20230806
 src: "glfw3.bl"

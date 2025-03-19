@@ -2,6 +2,7 @@
 
 build :: fn () #build_entry {
 	tmpdir :: get_temporary();
+	moduledir :: get_module_root();
 	unzip("libpng-1.6.37.zip");
 
 	rootdir :: get_cwd();
@@ -37,8 +38,8 @@ build :: fn () #build_entry {
 				"-DBUILD_SHARED_LIBS=ON",
 				"-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
 				tprint("-DCMAKE_INSTALL_PREFIX=%", tmpdir),
-				tprint("-DZLIB_INCLUDE_DIR=%/include", tmpdir),
-				tprint("-DZLIB_LIBRARY=%/lib/libz.so", tmpdir),
+				tprint("-DZLIB_LIBRARY=%/extra/zlib/linux/libz.so", moduledir),
+				tprint("-DCMAKE_INSTALL_RPATH=%/extra/zlib/linux", moduledir),
 			);
 			make("install");
 
@@ -47,14 +48,25 @@ build :: fn () #build_entry {
 			os_execute(tprint("cp -d %/lib/libpng* linux/", tmpdir));
 		}
 		DARWIN {
-			panic("Incomplete");
-			// set_cwd("libpng-1.6.37/build");
-			// os_execute("cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 -DBUILD_SHARED_LIBS=ON -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DPNG_ARM_NEON=on");
-			// os_execute("cmake --build . --config Release");
-			// set_cwd(rootdir);
-			// create_dir("macos");
-			// os_execute("cp -f libpng-1.6.37/build/*.dylib macos/");
-			// os_execute("cp -f libpng-1.6.37/build/*.a macos/");
+			set_cwd("libpng-1.6.37/build");
+			cmake(
+				"..",
+				"--fresh",
+				"-DBUILD_SHARED_LIBS=ON",
+				"-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
+				"-DCMAKE_OSX_DEPLOYMENT_TARGET=12.0",
+				"-DCMAKE_MACOSX_RPATH=ON",
+				"-DPNG_ARM_NEON=on",
+				tprint("-DCMAKE_INSTALL_PREFIX=%", tmpdir),
+				tprint("-DZLIB_INCLUDE_DIR=%/include", tmpdir),
+				tprint("-DZLIB_LIBRARY=%/extra/zlib/macos/libz.dylib", moduledir),
+				tprint("-DCMAKE_INSTALL_RPATH=%/extra/zlib/macos", moduledir),
+			);
+			make("install");
+
+			set_cwd(rootdir);
+			create_dir("macos");
+			os_execute(tprint("cp -P %/lib/libpng* macos/", tmpdir));
 		}
 		default;
 	}
