@@ -99,7 +99,9 @@ enum native_lib_flags {
 	// Library is used only internally during compilation and VM execution.
 	NATIVE_LIB_FLAG_RUNTIME = 1 << 0,
 	// Library is used only in runtime (passed to native platform linker).
-	NATIVE_LIB_FLAG_COMPTIME = 2 << 0,
+	NATIVE_LIB_FLAG_COMPTIME = 1 << 1,
+	// Library is not comming from modules.
+	NATIVE_LIB_IS_SYSTEM = 1 << 2,
 };
 
 struct native_lib {

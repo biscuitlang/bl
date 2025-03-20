@@ -1,0 +1,66 @@
+#load "../build-lib-common.bl"
+
+build :: fn () #build_entry {
+	tmpdir :: get_temporary();
+	unzip("zlib-1.3.1.zip");
+
+	rootdir :: get_cwd();
+	create_dir("zlib-1.3.1/build");
+
+	using Platform;
+	switch PLATFORM {
+		WINDOWS {
+			set_cwd("zlib-1.3.1/build");
+			cmake(
+				"..",
+				"--fresh",
+				"-DBUILD_SHARED_LIBS=ON",
+				"-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
+				"-DCMAKE_POLICY_VERSION_MINIMUM=3.5",
+				tprint("-DCMAKE_INSTALL_PREFIX=%", tmpdir)
+			);
+			cmake("--build", ".", "--config=Release", "--target=Install");
+
+			set_cwd(rootdir);
+			create_dir("win32");
+			copy_file(tprint("%/bin/zlib1.dll", tmpdir), "win32/zlib.dll", true);
+			copy_file(tprint("%/lib/zlib.lib", tmpdir), "win32/zlib.lib", true);
+			copy_file(tprint("%/lib/zlibstatic.lib", tmpdir), "win32/zlib_static.lib", true);
+		}
+		LINUX {
+			set_cwd("zlib-1.3.1/build");
+			cmake(
+				"..",
+				"--fresh",
+				"-DBUILD_SHARED_LIBS=ON",
+				"-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
+				tprint("-DCMAKE_INSTALL_PREFIX=%", tmpdir)
+			);
+			make("install");
+
+			set_cwd(rootdir);
+			create_dir("linux");
+			os_execute(tprint("cp -d %/lib/libz* linux/", tmpdir));
+		}
+		DARWIN {
+			set_cwd("zlib-1.3.1/build");
+			cmake(
+				"..",
+				"--fresh",
+				"-DBUILD_SHARED_LIBS=ON",
+				"-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
+				"-DCMAKE_OSX_DEPLOYMENT_TARGET=12.0",
+				tprint("-DCMAKE_INSTALL_PREFIX=%", tmpdir)
+			);
+			make("install");
+
+			set_cwd(rootdir);
+			create_dir("macos");
+			os_execute(tprint("cp -P %/lib/libz* macos/", tmpdir));
+		}
+		default;
+	}
+
+	set_cwd(rootdir);
+	os_execute("rm -rf zlib-1.3.1");
+}

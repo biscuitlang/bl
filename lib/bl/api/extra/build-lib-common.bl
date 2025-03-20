@@ -1,0 +1,79 @@
+#import "std/string"
+#import "std/print"
+#import "std/fs"
+
+get_temporary :: fn () string_view {
+	args :: command_line_arguments;
+	dirpath: string;
+	if args.len < 1 {
+		str_append(&dirpath, "./tmp");
+	} else {
+		str_append(&dirpath, command_line_arguments[0]);
+	}
+	if !file_exist(dirpath) {
+		print_log("Creating temporary directory: '%'.", dirpath);
+		create_dir(dirpath);
+	}
+
+	path_normalize(&dirpath) catch panic($);
+	return dirpath;
+}
+
+get_module_root :: fn () string_view {
+	dirpath :: cmd_read_stdout("blc --where-is-api") catch panic($);
+	return dirpath;
+}
+
+unzip :: fn (filepath: string_view) {
+	print_info("Unzipping: '%'", filepath);
+	os_execute(tprint("unzip -o -q \"%\"", filepath));
+}
+
+cmake :: fn (args: ...string_view) {
+	tmp: string;
+	str_append(&tmp, "cmake");
+	loop i := 0; i < args.len; i += 1 {
+		str_append(&tmp, " ");
+		str_append(&tmp, args[i]);
+	}
+
+	print_info(tmp);
+	os_execute(tmp);
+}
+
+make :: fn (args: ...string_view) {
+	tmp: string;
+	str_append(&tmp, "make -j32");
+	loop i := 0; i < args.len; i += 1 {
+		str_append(&tmp, " ");
+		str_append(&tmp, args[i]);
+	}
+
+	print_info(tmp);
+	os_execute(tmp);
+}
+
+#scope_private
+
+C :: #import "libc";
+
+cmd_read_stdout :: fn (fmt: string_view, args: ...) (out: string_view, err: Error) {
+	cmd :: tprint(fmt, args);
+
+	tmp  := str_make(128, application_context.temporary_allocator);
+	pipe :: C.popen(strtoc(cmd), strtoc("r"));
+	defer C.pclose(pipe);
+
+	if !pipe then return "", error("Command '%' failed!", cmd);
+
+	buffer: [128]C.char #noinit;
+	loop C.fgets(auto buffer.ptr, auto buffer.len, pipe) {
+		str_append(&tmp, ctostr(buffer.ptr));
+	}
+
+	if (tmp.len > 0 && tmp[tmp.len - 1] == '\n') {
+		tmp.len -= 1;
+	}
+
+	return tmp, OK;
+}

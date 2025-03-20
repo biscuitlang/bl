@@ -1,0 +1,84 @@
+#load "../build-lib-common.bl"
+
+build :: fn () #build_entry {
+	tmpdir :: get_temporary();
+	rootdir :: get_cwd();
+
+	using Platform;
+	switch PLATFORM {
+		WINDOWS {
+			print_warn("Downloaded prebuild libraries are currently used. Freetype requires MinGW to build shared version on Windows.");
+
+			copy_file("win32/freetype.dll", tprint("%/bin/freetype.dll", tmpdir), true);
+			copy_file("win32/freetype.lib", tprint("%/lib/freetype.lib", tmpdir), true);
+			copy_file("win32/freetype_static.lib", tprint("%/lib/freetype_static.lib", tmpdir), true);
+		}
+
+		LINUX {
+			unzip("freetype_2.9.zip");
+			create_dir("freetype_2.9/build");
+
+			set_cwd("freetype_2.9/build");
+			cmake(
+				"..",
+				"--fresh",
+				"-DBUILD_SHARED_LIBS=OFF",
+				"-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
+				tprint("-DCMAKE_INSTALL_PREFIX=%", tmpdir),
+			);
+			make("install");
+
+			set_cwd("freetype_2.9/build");
+			cmake(
+				"..",
+				"--fresh",
+				"-DBUILD_SHARED_LIBS=ON",
+				tprint("-DCMAKE_INSTALL_PREFIX=%", tmpdir),
+			);
+			make("install");
+
+			set_cwd(rootdir);
+			create_dir("linux");
+			os_execute(tprint("cp -d %/lib/libfreetype* linux/", tmpdir));
+
+			set_cwd(rootdir);
+			os_execute("rm -rf freetype_2.9");
+		}
+
+		DARWIN {
+			unzip("freetype_2.9.zip");
+			create_dir("freetype_2.9/build");
+
+			set_cwd("freetype_2.9/build");
+			cmake(
+				"..",
+				"--fresh",
+				"-DBUILD_SHARED_LIBS=OFF",
+				"-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
+				"-DCMAKE_OSX_DEPLOYMENT_TARGET=12.0",
+				"-DCMAKE_MACOSX_RPATH=ON",
+				tprint("-DCMAKE_INSTALL_PREFIX=%", tmpdir),
+			);
+			make("install");
+
+			set_cwd("freetype_2.9/build");
+			cmake(
+				"..",
+				"--fresh",
+				"-DBUILD_SHARED_LIBS=ON",
+				"-DCMAKE_OSX_DEPLOYMENT_TARGET=12.0",
+				"-DCMAKE_MACOSX_RPATH=ON",
+				tprint("-DCMAKE_INSTALL_PREFIX=%", tmpdir),
+			);
+			make("install");
+
+			set_cwd(rootdir);
+			create_dir("macos");
+			os_execute(tprint("cp -P %/lib/libfreetype* macos/", tmpdir));
+
+			set_cwd(rootdir);
+			os_execute("rm -rf freetype_2.9");
+		}
+		default;
+	}
+}

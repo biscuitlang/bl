@@ -1,24 +1,20 @@
-version: 20220923
+version: 16
+supported: "x86_64-pc-windows-msvc, x86_64-pc-linux-gnu, x86_64-unknown-linux-gnu, arm64-apple-darwin"
 src: "png.bl"
 
 x86_64-pc-windows-msvc:
   linker_lib_path: "win32"
-  linker_opt: "libpng16_static.lib zlibstatic.lib"
+  linker_opt: "libpng16_static.lib"
+  link_comptime: "libpng16"
 
 x86_64-pc-linux-gnu:
   linker_lib_path: "linux"
-  linker_opt: "-l:libpng16.a"
-  link: "z, bz2"
-  link_comptime: "png16"
+  link: "png16, bz2"
 
 x86_64-unknown-linux-gnu:
   linker_lib_path: "linux"
-  linker_opt: "-l:libpng16.a"
-  link: "z, bz2"
-  link_comptime: "png16"
-
-x86_64-apple-darwin:
-  linker_opt: "-lpng -lz -lbz2"
+  link: "png16, bz2"
 
 arm64-apple-darwin:
-  linker_opt: "-lpng -lz -lbz2"
+  linker_lib_path: "macos"
+  link: "png16"

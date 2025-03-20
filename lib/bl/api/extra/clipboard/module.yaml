@@ -4,7 +4,8 @@ src: "clipboard.bl"
 
 x86_64-pc-windows-msvc:
   linker_lib_path: "win32"
-  linker_opt: "clipboard.lib"
+  linker_opt: "clipboard_static.lib"
+  link_comptime: "clipboard"
 
 x86_64-pc-linux-gnu:
   linker_lib_path: "linux"

@@ -890,7 +890,7 @@ tstrtoc :: fn (str: string_view) *C.char #inline #obsolete "Since 0.13.0; Use 's
 /// Converts C string into string view. The `len` argument is optional and is used as string length if
 /// it's greater than -1, otherwise the `C.strlen` is used.
 ///
-/// Empty string view is returned when the input C string is null.
+/// Empty string view is returned when the input C string is null or contains just null terminator.
 ctostr :: fn (cstr: *C.char, len : s64 = -1) string_view #inline {
 	l := len;
 	if !cstr { return str_view_empty; }
