@@ -384,7 +384,11 @@ char **builder_get_supported_targets(void) {
 }
 
 str_t builder_get_lib_dir(void) {
-	return make_str_from_c(confreads(builder.config, CONF_LIB_DIR_KEY, NULL));
+	return make_str_from_c(builder_get_lib_dir_cstr());
+}
+
+const char *builder_get_lib_dir_cstr(void) {
+	return confreads(builder.config, CONF_LIB_DIR_KEY, NULL);
 }
 
 str_t builder_get_exec_dir(void) {

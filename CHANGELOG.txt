@@ -147,6 +147,8 @@ master
 
 	if true then a :: 10; // This is not possible, variable would be useless.
 
+- Fix "assume macOS" linker warning on Mac (run `blc --configure`).
+
 [Modules]
 - Add math module.
 
@@ -169,6 +171,8 @@ build.bl:
   platform and use append_linker_options to adjust linker arguments.
 - Add link_framework. For linking of macOS frameworks.
 - Add add_framework_path. For adding search path for macOS framewors.
+- Add `get_default_module_dir` function to resolve default location of modules shipped with
+  the compiler.
 
 std/string:
 - Strings are no longer zero terminated. The string type is now only wrapper over dynamic

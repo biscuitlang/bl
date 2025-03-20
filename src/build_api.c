@@ -80,6 +80,10 @@ BL_EXPORT const char *__get_module_dir(struct target *target) {
 	return target->module_dir.len > 0 ? str_buf_to_c(target->module_dir) : NULL;
 }
 
+BL_EXPORT const char *__get_default_module_dir(struct target *target) {
+	return builder_get_lib_dir_cstr();
+}
+
 BL_EXPORT void __get_default_triple(struct target_triple *triple) {
 	target_init_default_triple(triple);
 }

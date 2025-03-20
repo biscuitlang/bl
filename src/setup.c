@@ -371,8 +371,8 @@ static bool arm64_apple_darwin(struct context *ctx) {
 			builder_warning("Cannot parse macOS product version, provided string is '" STR_FMT "'!", STR_ARG(osver));
 		}
 
-		str_buf_append_fmt(&optexec, "-macos_version_min {str} ", osver);
-		str_buf_append_fmt(&optshared, "-macos_version_min {str} ", osver);
+		str_buf_append_fmt(&optexec, "-macos_version_min {str} -ld_classic", osver);
+		str_buf_append_fmt(&optshared, "-macos_version_min {str} -ld_classic", osver);
 	}
 
 	str_buf_append(&optexec, LINKER_OPT_EXEC);
