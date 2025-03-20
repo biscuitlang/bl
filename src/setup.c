@@ -371,8 +371,11 @@ static bool arm64_apple_darwin(struct context *ctx) {
 			builder_warning("Cannot parse macOS product version, provided string is '" STR_FMT "'!", STR_ARG(osver));
 		}
 
-		str_buf_append_fmt(&optexec, "-macos_version_min {str} -ld_classic ", osver);
-		str_buf_append_fmt(&optshared, "-macos_version_min {str} -ld_classic ", osver);
+		// @Note 2025-03-20: Version 11 is the first for apple silicon, but we might consider allowing per-assembly customization.
+		const s32 default_macos_min_version = major < 11 ? major : 11;
+
+		str_buf_append_fmt(&optexec, "-macos_version_min {s32}.0 -ld_classic ", default_macos_min_version);
+		str_buf_append_fmt(&optshared, "-macos_version_min {s32}.0 -ld_classic ", default_macos_min_version);
 	}
 
 	str_buf_append(&optexec, LINKER_OPT_EXEC);
