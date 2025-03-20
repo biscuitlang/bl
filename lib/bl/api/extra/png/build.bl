@@ -39,7 +39,7 @@ build :: fn () #build_entry {
 				"-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
 				tprint("-DCMAKE_INSTALL_PREFIX=%", tmpdir),
 				tprint("-DZLIB_LIBRARY=%/extra/zlib/linux/libz.so", moduledir),
-				tprint("-DCMAKE_INSTALL_RPATH=%/extra/zlib/linux", moduledir),
+				tprint("-DCMAKE_INSTALL_RPATH=%/extra/zlib/linux"),
 			);
 			make("install");
 
@@ -60,7 +60,7 @@ build :: fn () #build_entry {
 				tprint("-DCMAKE_INSTALL_PREFIX=%", tmpdir),
 				tprint("-DZLIB_INCLUDE_DIR=%/include", tmpdir),
 				tprint("-DZLIB_LIBRARY=%/extra/zlib/macos/libz.dylib", moduledir),
-				tprint("-DCMAKE_INSTALL_RPATH=%/extra/zlib/macos", moduledir),
+				"-DCMAKE_INSTALL_RPATH=@loader_path/../../zlib/macos",
 			);
 			make("install");
 
