@@ -530,7 +530,7 @@ png_load_from_stream :: fn (stream: *io.Stream, out_data: **u8, out_width: *u32,
 
 	assert(out_data);
 	(@out_data) = image_data;
-	
+
 	if (out_stride) then @out_stride = rowbytes;
 
 	return OK;
@@ -577,7 +577,7 @@ font_init_at_size :: fn (font: *Font, directory: string_view, filename: string_v
 		filepath = tprint("%/%", directory, filename);
 	}
 	face: *ft2.Face;
-	err :: ft2.New_Face(freetype_library, filepath.ptr, 0, &face);
+	err :: ft2.New_Face(freetype_library, auto strtoc(filepath), 0, &face);
 	defer ft2.Done_Face(face);
 	if err != 0 {
 		return error("Cannot load font % with error %!", filepath, err);
@@ -1344,7 +1344,7 @@ prepare_atlas :: fn (font: *Font, face: *ft2.Face) {
 gen_glyphs :: fn (font: *Font, face: *ft2.Face) {
 	ox, oy: u32;
 	max_height, max_base_offset_y: f32;
-	
+
 	max_height = font.size;
 
 	gl.BindTexture(GL_TEXTURE_2D, font.atlas.handle);
