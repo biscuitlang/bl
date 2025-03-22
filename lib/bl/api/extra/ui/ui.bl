@@ -56,6 +56,8 @@ init :: fn (info: *InitInfo) {
 }
 
 terminate :: fn () {
+	current_style = null;
+
 	release_allocator(&context_pool);
 	array_terminate(&nodes);
 	array_terminate(&edit_lines_tmp);
