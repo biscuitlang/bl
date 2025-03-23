@@ -801,6 +801,7 @@ LLVMValueRef emit_fn_proto(struct context *ctx, struct mir_fn *fn, bool schedule
 		bassert(fn->is_global && "Exported function is supposed to be global!");
 		LLVMSetVisibility(fn->llvm_value, LLVMDefaultVisibility);
 		LLVMSetDLLStorageClass(fn->llvm_value, LLVMDLLExportStorageClass);
+		LLVMSetLinkage(fn->llvm_value, LLVMExternalLinkage);
 	} else if (isnotflag(fn->flags, FLAG_EXTERN) && isnotflag(fn->flags, FLAG_INTRINSIC)) {
 		LLVMSetVisibility(fn->llvm_value, LLVMHiddenVisibility);
 	}

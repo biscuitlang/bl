@@ -26,6 +26,9 @@ BL_EXPORT void *__dlib_symbol(void *lib, const char *symname) {
 #include <dlfcn.h>
 
 BL_EXPORT void *__dlib_open(const char *libname) {
+	if (!libname || strlen(libname) == 0) {
+		return dlopen(NULL, RTLD_LAZY);
+	}
 	return dlopen(libname, RTLD_LAZY);
 }
 

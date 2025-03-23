@@ -183,7 +183,7 @@ FAILED:
 
 bool x86_64_pc_linux_gnu(struct context *ctx) {
 	const str_t RUNTIME_PATH      = cstr("lib/bl/rt/blrt_x86_64_linux.o");
-	const str_t LINKER_OPT_EXEC   = cstr("-dynamic-linker /lib64/ld-linux-x86-64.so.2 -e _start");
+	const str_t LINKER_OPT_EXEC   = cstr("-dynamic-linker /lib64/ld-linux-x86-64.so.2 -e _start --export-dynamic");
 	const str_t LINKER_OPT_SHARED = cstr("--shared");
 
 	const str_t LINKER_LIB_PATHS[] = {
