@@ -1,0 +1,22 @@
+version: 3
+supported: "x86_64-pc-windows-msvc, arm64-apple-darwin, x86_64-pc-linux-gnu, x86_64-unknown-linux-gnu"
+
+src: "sdl3.bl"
+
+x86_64-pc-windows-msvc:
+  linker_lib_path: "win32"
+  linker_opt: "SDL3_static.lib"
+  link_comptime: "SDL3"
+  link: "winmm, Advapi32, Ole32, SetupAPI, OleAut32, Version, Imm32"
+
+x86_64-unknown-linux-gnu:
+  linker_lib_path: "linux"
+  link: "SDL3"
+
+x86_64-pc-linux-gnu:
+  linker_lib_path: "linux"
+  link: "SDL3"
+
+arm64-apple-darwin:
+  linker_lib_path: "macos"
+  link: "SDL3"

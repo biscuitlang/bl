@@ -192,6 +192,9 @@ os/linux/sys/ptrace:
 extra/glfw3:
 - Upgraded to version 3.4.
 
+extra/sdl3:
+- Add incomplete SDL3 binding module.
+
 [Documentation]
 - Improved "Libraries" section in documentation.
 - Improved documentation of library linking.

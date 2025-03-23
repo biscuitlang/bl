@@ -13,6 +13,7 @@ MODULES :: [_]string_view.{
 	"lib/bl/api/extra/glfw3",
 	"lib/bl/api/extra/freetype2",
 	"lib/bl/api/extra/clipboard",
+	"lib/bl/api/extra/sdl3",
 };
 
 main :: fn () s32 {
