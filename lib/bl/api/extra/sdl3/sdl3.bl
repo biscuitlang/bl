@@ -1294,6 +1294,57 @@ AddEventWatch :: fn (filter: EventFilter, userdata: *u8 = null) bool #extern "SD
 CreateSurfaceFrom :: fn (width: s32, height: s32, format: PixelFormat, pixels: *u8, pitch: s32) *Surface #extern "SDL_CreateSurfaceFrom";
 DestroySurface :: fn (surface: *Surface) #extern "SDL_DestroySurface";
 SetWindowIcon :: fn (window: *Window, icon: *Surface) bool #extern "SDL_SetWindowIcon";
+ShowCursor :: fn () bool #extern "SDL_ShowCursor";
+HideCursor :: fn () bool #extern "SDL_HideCursor";
+SetWindowRelativeMouseMode :: fn (window: *Window, enabled: bool) bool #extern "SDL_SetWindowRelativeMouseMode";
+
+MessageBoxFlags :: u32;
+
+MESSAGEBOX_ERROR : MessageBoxFlags :                    0x00000010; /**< error dialog */
+MESSAGEBOX_WARNING : MessageBoxFlags :                  0x00000020; /**< warning dialog */
+MESSAGEBOX_INFORMATION : MessageBoxFlags :              0x00000040; /**< informational dialog */
+MESSAGEBOX_BUTTONS_LEFT_TO_RIGHT : MessageBoxFlags :    0x00000080; /**< buttons placed left to right */
+MESSAGEBOX_BUTTONS_RIGHT_TO_LEFT : MessageBoxFlags :    0x00000100; /**< buttons placed right to left */
+
+MessageBoxButtonFlags :: u32;
+
+SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT : MessageBoxButtonFlags : 0x00000001; /**< Marks the default button when return is hit */
+SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT : MessageBoxButtonFlags : 0x00000002; /**< Marks the default button when escape is hit */
+
+MessageBoxButtonData :: struct {
+	flags: MessageBoxButtonFlags;
+	buttonID: s32;       /**< User defined button id (value returned via SDL_ShowMessageBox) */
+	text: *C.char;       /**< The UTF-8 button text */
+}
+
+MessageBoxColorScheme :: u8; // @Incomplete 2025-03-23
+
+MessageBoxData :: struct {
+	flags: MessageBoxFlags;
+	window: *Window;                 /**< Parent window, can be NULL */
+	title: *C.char;                  /**< UTF-8 title */
+	message: *C.char;                /**< UTF-8 message text */
+
+	numbuttons: s32;
+	buttons: *MessageBoxButtonData;
+
+	colorScheme: *MessageBoxColorScheme;   /**< SDL_MessageBoxColorScheme, can be NULL to use system settings */
+}
+
+ShowSimpleMessageBox :: fn (flags: MessageBoxFlags, title: *C.char, message: *C.char, window: *Window) bool #extern "SDL_ShowSimpleMessageBox";
+ShowMessageBox :: fn (messageboxdata: *MessageBoxData, buttonid: *s32) bool #extern "SDL_ShowMessageBox";
+
+//
+// Vulkan
+//
+
+VkInstance :: *u8;
+VkAllocationCallbacks :: u8;
+VkSurfaceKHR :: *u8;
+
+Vulkan_CreateSurface :: fn (window: *Window, instance: VkInstance, allocator: *VkAllocationCallbacks, surface: *VkSurfaceKHR) bool #extern "SDL_Vulkan_CreateSurface";
+Vulkan_DestroySurface :: fn (instance: VkInstance, surface: VkSurfaceKHR, allocator: *VkAllocationCallbacks) #extern "SDL_Vulkan_DestroySurface";
+Vulkan_GetInstanceExtensions :: fn (count: *u32) **C.char #extern "SDL_Vulkan_GetInstanceExtensions";
 
 #scope_module
 C :: #import "libc";
