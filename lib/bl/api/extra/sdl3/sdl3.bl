@@ -9,9 +9,11 @@ Cursor :: u8;
 KeyboardID :: u32;
 MouseID :: u32;
 Surface :: u8;
+DisplayID :: u32;
 
 HINT_VIDEO_DRIVER :: "SDL_VIDEO_DRIVER";
 HINT_VIDEO_WAYLAND_PREFER_LIBDECOR :: "SDL_VIDEO_WAYLAND_PREFER_LIBDECOR";
+HINT_MOUSE_RELATIVE_MODE_CENTER :: "SDL_MOUSE_RELATIVE_MODE_CENTER";
 
 InitFlags :: u32;
 
@@ -23,6 +25,11 @@ INIT_GAMEPAD : InitFlags :    0x00002000;
 INIT_EVENTS : InitFlags :     0x00004000;
 INIT_SENSOR : InitFlags :     0x00008000;
 INIT_CAMERA : InitFlags :     0x00010000;
+
+Rect :: struct {
+	x: s32; y: s32;
+	w: s32; h: s32;
+}
 
 WindowFlags :: u64;
 
@@ -795,6 +802,7 @@ Event :: union {
 	button: MouseButtonEvent;
 	wheel: MouseWheelEvent;
 	drop: DropEvent;
+	motion: MouseMotionEvent;
 	_: [128]u8;
 }
 
@@ -880,6 +888,19 @@ DropEvent :: struct {
 	y: f32;            /**< Y coordinate, relative to window (not on begin) */
 	source: *C.char; /**< The source app that sent this drop event, or NULL if that isn't available */
 	data: *C.char;   /**< The text for SDL_EVENT_DROP_TEXT and the file name for SDL_EVENT_DROP_FILE, NULL for other events */
+}
+
+MouseMotionEvent :: struct {
+	type: EventType;
+	reserved: u32;
+	timestamp: u64;      /**< In nanoseconds, populated using SDL_GetTicksNS() */
+	windowID: WindowID;  /**< The window with keyboard focus, if any */
+	which: MouseID;  /**< The mouse instance id in relative mode, SDL_TOUCH_MOUSEID for touch events, or 0 */
+	state: MouseButtonFlags;       /**< The current button state */
+	x: f32;            /**< X coordinate, relative to window */
+	y: f32;            /**< Y coordinate, relative to window */
+	xrel: f32;         /**< The relative motion in the X direction */
+	yrel: f32;         /**< The relative motion in the Y direction */
 }
 
 EventType :: enum u32 {
@@ -1287,6 +1308,7 @@ StartTextInput :: fn (window: *Window) bool #extern "SDL_StartTextInput";
 StopTextInput :: fn (window: *Window) bool #extern "SDL_StopTextInput";
 GetModState :: fn () Keymod #extern "SDL_GetModState";
 GetMouseState :: fn (x: *f32, y: *f32) MouseButtonFlags #extern "SDL_GetMouseState";
+GetRelativeMouseState :: fn (x: *f32, y: *f32) MouseButtonFlags #extern "SDL_GetRelativeMouseState";
 
 EventFilter :: *fn (userdata: *u8, event: *Event) bool;
 AddEventWatch :: fn (filter: EventFilter, userdata: *u8 = null) bool #extern "SDL_AddEventWatch";
@@ -1333,6 +1355,12 @@ MessageBoxData :: struct {
 
 ShowSimpleMessageBox :: fn (flags: MessageBoxFlags, title: *C.char, message: *C.char, window: *Window) bool #extern "SDL_ShowSimpleMessageBox";
 ShowMessageBox :: fn (messageboxdata: *MessageBoxData, buttonid: *s32) bool #extern "SDL_ShowMessageBox";
+GetDisplays :: fn (count: *s32) *DisplayID #extern "SDL_GetDisplays";
+GetDisplayBounds :: fn (displayID: DisplayID, rect: *Rect) bool #extern "SDL_GetDisplayBounds";
+GetPrimaryDisplay :: fn () DisplayID #extern "SDL_GetPrimaryDisplay";
+SetWindowPosition :: fn (window: *Window, x: s32, y: s32) bool #extern "SDL_SetWindowPosition";
+SetWindowMouseGrab :: fn (window: *Window, grabbed: bool) bool #extern "SDL_SetWindowMouseGrab";
+ShowWindow :: fn (window: *Window) bool #extern "SDL_ShowWindow";
 
 //
 // Vulkan
