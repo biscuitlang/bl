@@ -1361,6 +1361,7 @@ GetPrimaryDisplay :: fn () DisplayID #extern "SDL_GetPrimaryDisplay";
 SetWindowPosition :: fn (window: *Window, x: s32, y: s32) bool #extern "SDL_SetWindowPosition";
 SetWindowMouseGrab :: fn (window: *Window, grabbed: bool) bool #extern "SDL_SetWindowMouseGrab";
 ShowWindow :: fn (window: *Window) bool #extern "SDL_ShowWindow";
+CreateColorCursor :: fn (surface: *Surface, hot_x: s32, hot_y: s32) *Cursor #extern "SDL_CreateColorCursor";
 
 //
 // Vulkan
