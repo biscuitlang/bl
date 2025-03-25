@@ -23,6 +23,7 @@ BL_EXPORT void *__dlib_symbol(void *lib, const char *symname) {
 
 #else
 
+#include <string.h>
 #include <dlfcn.h>
 
 BL_EXPORT void *__dlib_open(const char *libname) {
