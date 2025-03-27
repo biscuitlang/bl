@@ -1278,6 +1278,8 @@ Quit :: fn () #extern "SDL_Quit";
 CreateWindow :: fn (title: *C.char, w: s32, h: s32, flags: WindowFlags) *Window #extern "SDL_CreateWindow";
 DestroyWindow :: fn (window: *Window) #extern "SDL_DestroyWindow";
 PollEvent :: fn (event: *Event) bool #extern "SDL_PollEvent";
+PushEvent :: fn (event: *Event) bool #extern "SDL_PushEvent";
+RegisterEvents :: fn (numevents: s32) u32 #extern "SDL_RegisterEvents";
 WaitEventTimeout :: fn (event: *Event, timeoutMS: s32) bool #extern "SDL_WaitEventTimeout";
 SetHint :: fn (name: *C.char, value: *C.char) bool #extern "SDL_SetHint";
 GL_SetAttribute :: fn (attr: GLAttr, value: s32) bool #extern "SDL_GL_SetAttribute";
@@ -1362,6 +1364,16 @@ SetWindowPosition :: fn (window: *Window, x: s32, y: s32) bool #extern "SDL_SetW
 SetWindowMouseGrab :: fn (window: *Window, grabbed: bool) bool #extern "SDL_SetWindowMouseGrab";
 ShowWindow :: fn (window: *Window) bool #extern "SDL_ShowWindow";
 CreateColorCursor :: fn (surface: *Surface, hot_x: s32, hot_y: s32) *Cursor #extern "SDL_CreateColorCursor";
+
+DialogFileCallback :: *fn (userdata: *u8, filelist: **C.char, filter: s32);
+
+DialogFileFilter :: struct {
+	name: *C.char;
+	pattern: *C.char;
+}
+
+ShowOpenFileDialog :: fn (callback: DialogFileCallback, userdata: *u8, window: *Window, filters: *DialogFileFilter, nfilters: s32, default_location: *C.char, allow_many: bool) #extern "SDL_ShowOpenFileDialog";
+
 
 //
 // Vulkan

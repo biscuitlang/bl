@@ -49,8 +49,6 @@ struct context {
 
 	// Used for the 1st pass.
 	queue_t(struct mir_instr *) queue;
-	// Used for the 2nd pass.
-	queue_t(struct mir_instr *) incomplete_queue;
 
 	llvm_context_ref_t llvm_cnt;
 	LLVMModuleRef      llvm_module;
@@ -266,7 +264,19 @@ static void process_queue(struct context *ctx) {
 	while (qmaybeswap(&ctx->queue)) {
 		instr = qpop_front(&ctx->queue);
 		bassert(instr);
-		emit_instr(ctx, instr);
+
+		while (instr) {
+			struct mir_instr_block *bb = instr->owner_block;
+			if (bb && !mir_is_global_block(bb)) {
+				LLVMBasicBlockRef llvm_bb = LLVMValueAsBasicBlock(bb->base.llvm_value);
+				LLVMPositionBuilderAtEnd(ctx->llvm_builder, llvm_bb);
+			}
+			if (emit_instr(ctx, instr) == STATE_POSTPONE) {
+				qpush_back(&ctx->queue, instr);
+				break;
+			}
+			instr = instr->next;
+		}
 	}
 }
 
@@ -1836,10 +1846,8 @@ enum state emit_instr_load(struct context *ctx, struct mir_instr_load *load) {
 	LLVMValueRef llvm_src = load->src->llvm_value;
 	bassert(llvm_src);
 
-	// Check if we deal with global constant, in such case no load is needed, LLVM
-	// global
-	// constants are referenced by value, so we need to fetch initializer instead of
-	// load. */
+	// Check if we deal with global constant, in such case no load is needed, LLVM global
+	// constants are referenced by value, so we need to fetch initializer instead of load.
 	if (mir_is_global(load->src)) {
 		// When we try to create comptime constant composition and load value,
 		// initializer is needed. But loaded value could be in incomplete state
@@ -1853,8 +1861,7 @@ enum state emit_instr_load(struct context *ctx, struct mir_instr_load *load) {
 		return STATE_PASSED;
 	}
 	DI_LOCATION_SET(&load->base);
-	load->base.llvm_value =
-	    LLVMBuildLoad2(ctx->llvm_builder, get_type(ctx, load->base.value.type), llvm_src, "");
+	load->base.llvm_value = LLVMBuildLoad2(ctx->llvm_builder, get_type(ctx, load->base.value.type), llvm_src, "");
 	DI_LOCATION_RESET();
 	const unsigned alignment = (const unsigned)load->base.value.type->alignment;
 	LLVMSetAlignment(load->base.llvm_value, alignment);
@@ -2906,7 +2913,7 @@ enum state emit_instr_block(struct context *ctx, struct mir_instr_block *block) 
 	while (instr) {
 		const enum state s = emit_instr(ctx, instr);
 		if (s == STATE_POSTPONE) {
-			qpush_back(&ctx->incomplete_queue, instr);
+			qpush_back(&ctx->queue, instr);
 			goto SKIP;
 		}
 		instr = instr->next;
@@ -2915,26 +2922,6 @@ enum state emit_instr_block(struct context *ctx, struct mir_instr_block *block) 
 SKIP:
 	LLVMPositionBuilderAtEnd(ctx->llvm_builder, llvm_prev_block);
 	return STATE_PASSED;
-}
-
-void emit_incomplete(struct context *ctx) {
-	LLVMBasicBlockRef prev_bb = LLVMGetInsertBlock(ctx->llvm_builder);
-	while (qmaybeswap(&ctx->incomplete_queue)) {
-		struct mir_instr *instr = qpop_front(&ctx->incomplete_queue);
-		while (instr) {
-			struct mir_instr_block *bb = instr->owner_block;
-			if (!mir_is_global_block(bb)) {
-				LLVMBasicBlockRef llvm_bb = LLVMValueAsBasicBlock(bb->base.llvm_value);
-				LLVMPositionBuilderAtEnd(ctx->llvm_builder, llvm_bb);
-			}
-			if (emit_instr(ctx, instr) == STATE_POSTPONE) {
-				qpush_back(&ctx->incomplete_queue, instr);
-				break;
-			}
-			instr = instr->next;
-		}
-	}
-	LLVMPositionBuilderAtEnd(ctx->llvm_builder, prev_bb);
 }
 
 void emit_allocas(struct context *ctx, struct mir_fn *fn) {
@@ -3230,8 +3217,7 @@ void ir_run(struct assembly *assembly) {
 	ctx.llvm_td      = assembly->llvm.TD;
 	ctx.llvm_builder = llvm_create_builder_in_context(ctx.llvm_cnt);
 
-	qsetcap(&ctx.incomplete_queue, 256);
-	qsetcap(&ctx.queue, 256);
+	qsetcap(&ctx.queue, 1024 * 8);
 
 	tbl_init(ctx.gstring_cache, 2048);
 	tbl_init(ctx.llvm_fn_cache, 2048);
@@ -3250,7 +3236,7 @@ void ir_run(struct assembly *assembly) {
 		qpush_back(&ctx.queue, assembly->mir.exported_instrs[i]);
 	}
 	process_queue(&ctx);
-	emit_incomplete(&ctx);
+	// emit_incomplete(&ctx);
 
 	if (ctx.generate_debug_info) {
 		DI_complete_types(&ctx);
@@ -3280,7 +3266,6 @@ void ir_run(struct assembly *assembly) {
 	}
 
 	qfree(&ctx.queue);
-	qfree(&ctx.incomplete_queue);
 	arrfree(ctx.incomplete_rtti);
 	tbl_free(ctx.gstring_cache);
 	tbl_free(ctx.llvm_fn_cache);

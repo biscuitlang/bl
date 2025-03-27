@@ -1,10 +1,5 @@
 #import "std/print"
 
 main :: fn () s32 {
-	print("%\n", 01);
-	print("%\n", 0666);
-	print("%\n", -01);
-	print("%\n", -0666);
-
 	return 0;
 }
