@@ -1836,10 +1836,8 @@ enum state emit_instr_load(struct context *ctx, struct mir_instr_load *load) {
 	LLVMValueRef llvm_src = load->src->llvm_value;
 	bassert(llvm_src);
 
-	// Check if we deal with global constant, in such case no load is needed, LLVM
-	// global
-	// constants are referenced by value, so we need to fetch initializer instead of
-	// load. */
+	// Check if we deal with global constant, in such case no load is needed, LLVM global
+	// constants are referenced by value, so we need to fetch initializer instead of load.
 	if (mir_is_global(load->src)) {
 		// When we try to create comptime constant composition and load value,
 		// initializer is needed. But loaded value could be in incomplete state
@@ -1853,8 +1851,7 @@ enum state emit_instr_load(struct context *ctx, struct mir_instr_load *load) {
 		return STATE_PASSED;
 	}
 	DI_LOCATION_SET(&load->base);
-	load->base.llvm_value =
-	    LLVMBuildLoad2(ctx->llvm_builder, get_type(ctx, load->base.value.type), llvm_src, "");
+	load->base.llvm_value = LLVMBuildLoad2(ctx->llvm_builder, get_type(ctx, load->base.value.type), llvm_src, "");
 	DI_LOCATION_RESET();
 	const unsigned alignment = (const unsigned)load->base.value.type->alignment;
 	LLVMSetAlignment(load->base.llvm_value, alignment);
@@ -2918,9 +2915,13 @@ SKIP:
 }
 
 void emit_incomplete(struct context *ctx) {
-	LLVMBasicBlockRef prev_bb = LLVMGetInsertBlock(ctx->llvm_builder);
+	// LLVMBasicBlockRef prev_bb = LLVMGetInsertBlock(ctx->llvm_builder);
+#if BL_ASSERT_ENABLE
+	struct mir_instr *last_pushed_instr = NULL;
+#endif
 	while (qmaybeswap(&ctx->incomplete_queue)) {
 		struct mir_instr *instr = qpop_front(&ctx->incomplete_queue);
+		bassert(last_pushed_instr != instr);
 		while (instr) {
 			struct mir_instr_block *bb = instr->owner_block;
 			if (!mir_is_global_block(bb)) {
@@ -2929,12 +2930,15 @@ void emit_incomplete(struct context *ctx) {
 			}
 			if (emit_instr(ctx, instr) == STATE_POSTPONE) {
 				qpush_back(&ctx->incomplete_queue, instr);
+#if BL_ASSERT_ENABLE
+				last_pushed_instr = instr;
+#endif
 				break;
 			}
 			instr = instr->next;
 		}
 	}
-	LLVMPositionBuilderAtEnd(ctx->llvm_builder, prev_bb);
+	// LLVMPositionBuilderAtEnd(ctx->llvm_builder, prev_bb);
 }
 
 void emit_allocas(struct context *ctx, struct mir_fn *fn) {
