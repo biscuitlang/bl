@@ -152,6 +152,7 @@ master
 - Extra module dependencies are now dynamically linked on Linux to prevent linking issues and
   collisions. This might change in the future.
 - Fix "assume macOS" linker warning on Mac (run `blc --configure`).
+- Fix endless looping caused by deeper nesting of dependencies in LLVM IR generator.
 
 [Modules]
 - Add math module.
