@@ -196,6 +196,10 @@ extra/glfw3:
 extra/sdl3:
 - Add incomplete SDL3 binding module.
 
+extra/glm:
+- Add `mat4_remove_scale` function.
+- Fix scale extraction from mat4.
+
 [Documentation]
 - Improved "Libraries" section in documentation.
 - Improved documentation of library linking.

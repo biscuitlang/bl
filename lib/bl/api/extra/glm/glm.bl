@@ -315,15 +315,25 @@ mat4_scale :: fn (m: *mat4, v: v3) #inline {
 /// Gets the scale from the `m` matrix.
 mat4_get_scale :: fn (m: *mat4) v3 {
 	ret: v3 #noinit;
-	tmp_vec := v3.{ (@m)[0][0], (@m)[1][0], (@m)[2][0] };
+	tmp_vec := v3.{ (@m)[0][0], (@m)[0][1], (@m)[0][2] };
 	ret.x = length(tmp_vec);
 
-	tmp_vec = v3.{ (@m)[0][1], (@m)[1][1], (@m)[2][1] };
+	tmp_vec = v3.{ (@m)[1][0], (@m)[1][1], (@m)[1][2] };
 	ret.y = length(tmp_vec);
 
-	tmp_vec = v3.{ (@m)[0][2], (@m)[1][2], (@m)[2][2] };
+	tmp_vec = v3.{ (@m)[2][0], (@m)[1][2], (@m)[2][2] };
 	ret.z = length(tmp_vec);
 	return ret;
+}
+
+mat4_remove_scale :: fn (m: *mat4) {
+	x :: normalize(v3.{ (@m)[0][0], (@m)[0][1], (@m)[0][2] });
+	y :: normalize(v3.{ (@m)[1][0], (@m)[1][1], (@m)[1][2] });
+	z :: normalize(v3.{ (@m)[2][0], (@m)[2][1], (@m)[2][2] });
+
+	(@m)[0][0] = x.x; (@m)[0][1] = x.y; (@m)[0][2] = x.z;
+	(@m)[1][0] = y.x; (@m)[1][1] = y.y; (@m)[1][2] = y.z;
+	(@m)[2][0] = z.x; (@m)[2][1] = z.y; (@m)[2][2] = z.z;
 }
 
 /// Initialize rotation matrix `m` from quaternion `q`.
