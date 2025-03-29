@@ -54,10 +54,17 @@ typedef enum tokens_lookahead_state (*token_cmp_func_t)(struct token *curr);
 #define tokens_current_is(tokens, s)     (tokens_peek(tokens)->sym == (s))
 #define tokens_current_is_not(tokens, s) (tokens_peek(tokens)->sym != (s))
 
+// Consume all symbols until 'sym' is hit. The 'sym' is not consumed.
 static inline void tokens_consume_till(struct tokens *tokens, enum sym sym) {
 	while (tokens_current_is_not(tokens, sym) && tokens_current_is_not(tokens, SYM_EOF)) {
 		tokens_consume(tokens);
 	}
+}
+
+// Consume all symbols until 'sym' is hit. The 'sym' is consumed too.
+static inline void tokens_consume_after(struct tokens *tokens, enum sym sym) {
+	tokens_consume_till(tokens, sym);
+	tokens_consume(tokens);
 }
 
 static inline void tokens_consume_till2(struct tokens *tokens, usize argc, enum sym *args) {

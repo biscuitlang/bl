@@ -133,6 +133,21 @@ static inline union token_value get_token_value(struct context *ctx, struct toke
 	return ctx->tokens->values[token->value_index];
 }
 
+// Tries to move the current token cursor to the next closing symbol on current nesting.
+static inline void find_restore_point(struct context *ctx, enum sym openning, enum sym closing) {
+	s32 nesting_level = 0;
+	while (tokens_current_is_not(ctx->tokens, SYM_EOF)) {
+		struct token *tok = tokens_peek(ctx->tokens);
+		if (tok->sym == closing) {
+			if (nesting_level == 0) return;
+			--nesting_level;
+		} else if (tok->sym == openning) {
+			++nesting_level;
+		}
+		tokens_consume(ctx->tokens);
+	}
+}
+
 #define parse_ident(ctx) (tokens_peek((ctx)->tokens)->sym == SYM_IDENT ? _parse_ident(ctx) : NULL)
 static inline struct ast *_parse_ident(struct context *ctx) {
 	zone();
@@ -376,7 +391,7 @@ struct ast *parse_hash_directive(struct context *ctx, s32 expected_mask, enum ha
 			report_error(INVALID_DIRECTIVE,
 			             tok_err,
 			             CARET_WORD,
-			             "Expected path \"some/path\" after 'load' directive.");
+			             "Expected path pointing to valid BL source file after 'load' directive.");
 			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_directive, scope_get(ctx)));
 		}
 
@@ -400,7 +415,7 @@ struct ast *parse_hash_directive(struct context *ctx, s32 expected_mask, enum ha
 			report_error(INVALID_DIRECTIVE,
 			             tok_err,
 			             CARET_WORD,
-			             "Expected path \"some/path\" after 'import' directive.");
+			             "Expected path pointing to valid BL module after 'import' directive.");
 			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_directive, current_scope));
 		}
 
@@ -578,18 +593,12 @@ INVALID:
 struct ast *parse_expr_compound(struct context *ctx, struct ast *prev) {
 	zone();
 	if (!tokens_is_seq(ctx->tokens, 2, SYM_DOT, SYM_LBLOCK)) return_zone(NULL);
-	// eat .
-	tokens_consume(ctx->tokens);
-	// eat {
-	struct token *tok_begin = tokens_consume(ctx->tokens);
-
-	struct ast *type = prev;
-
-	struct ast *compound              = ast_create_node(ctx->ast_arena, AST_EXPR_COMPOUND, tok_begin, scope_get(ctx));
+	tokens_consume(ctx->tokens);                                     // eat .
+	struct token *tok_begin           = tokens_consume(ctx->tokens); // eat {
+	struct ast   *type                = prev;
+	struct ast   *compound            = ast_create_node(ctx->ast_arena, AST_EXPR_COMPOUND, tok_begin, scope_get(ctx));
 	compound->data.expr_compound.type = type;
-
 	// parse values
-	bool        rq = false;
 	struct ast *tmp;
 
 NEXT:
@@ -598,30 +607,18 @@ NEXT:
 		if (!compound->data.expr_compound.values) {
 			compound->data.expr_compound.values = arena_alloc(ctx->sarr_arena);
 		}
-
 		sarrput(compound->data.expr_compound.values, tmp);
-
-		if (tokens_consume_if(ctx->tokens, SYM_COMMA)) {
-			rq = true;
-			goto NEXT;
-		}
-	} else if (rq) {
-		struct token *tok_err = tokens_peek(ctx->tokens);
-		if (tokens_peek_2nd(ctx->tokens)->sym == SYM_RBLOCK) {
-			report_error(EXPECTED_NAME, tok_err, CARET_WORD, "Expected expression after comma ','.");
-			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_begin, scope_get(ctx)));
-		}
+		if (tokens_consume_if(ctx->tokens, SYM_COMMA)) goto NEXT;
 	}
 
-	struct token *tok = tokens_consume(ctx->tokens);
+	struct token *tok = tokens_peek(ctx->tokens);
 	if (tok->sym != SYM_RBLOCK) {
-		report_error(MISSING_BRACKET,
-		             tok,
-		             CARET_WORD,
-		             "Expected end of initialization list '}' or another expression "
-		             "separated by comma.");
-		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_begin, scope_get(ctx)));
+		report_error(MISSING_BRACKET, tok, CARET_WORD, "Expected end of initializer list block '}' or another expression separated by comma ','.");
+		report_note(tok_begin, CARET_WORD, "Block starting here.");
+		find_restore_point(ctx, SYM_LBLOCK, SYM_RBLOCK);
 	}
+
+	tokens_consume_if(ctx->tokens, SYM_RBLOCK);
 	return_zone(compound);
 }
 
@@ -629,8 +626,7 @@ struct ast *parse_expr_test_cases(struct context *ctx) {
 	zone();
 	struct token *tok_begin = tokens_consume_if(ctx->tokens, SYM_TESTCASES);
 	if (!tok_begin) return_zone(NULL);
-	struct ast *tc =
-	    ast_create_node(ctx->ast_arena, AST_EXPR_TEST_CASES, tok_begin, scope_get(ctx));
+	struct ast *tc = ast_create_node(ctx->ast_arena, AST_EXPR_TEST_CASES, tok_begin, scope_get(ctx));
 	return_zone(tc);
 }
 
@@ -651,7 +647,7 @@ struct ast *parse_expr_cast_auto(struct context *ctx) {
 	cast->data.expr_cast.next = _parse_expr(ctx, token_prec(tok_begin).priority);
 	if (!cast->data.expr_cast.next) {
 		struct token *tok = tokens_peek(ctx->tokens);
-		report_error(EXPECTED_EXPR, tok, CARET_WORD, "Expected expression after auto cast.");
+		report_error(EXPECTED_EXPR, tok_begin, CARET_AFTER, "Expected expression after auto cast.");
 		tokens_consume_till(ctx->tokens, SYM_SEMICOLON);
 		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok, scope_get(ctx)));
 	}
@@ -766,23 +762,15 @@ struct ast *parse_decl_arg(struct context *ctx, bool named) {
 		            ERR_EXPECTED_NAME,
 		            &tok_err->location,
 		            CARET_AFTER,
-		            "Expected argument name followed by colon.");
+		            "Invalid function argument declaration. Expected is format is '<name>: <type>' or '<name> : [type] = <value>'.");
 
 		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
 	}
 	type = parse_type(ctx);
 	// Parse optional default value expression.
-	if (tokens_current_is(ctx->tokens, SYM_COLON)) {
-		struct token *tok_err = tokens_consume(ctx->tokens);
-		builder_msg(MSG_ERR,
-		            ERR_INVALID_MUTABILITY,
-		            &tok_err->location,
-		            CARET_WORD,
-		            "Function argument cannot be constant (this maybe shoule be possible "
-		            "in future).");
-		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
-	}
-	if (tokens_consume_if(ctx->tokens, SYM_ASSIGN)) {
+	//
+	// @Note 2025-03-29: We currently support both :: and := and we should remove := in future since function arguments are immutable.
+	if (tokens_consume_if(ctx->tokens, SYM_ASSIGN) || tokens_consume_if(ctx->tokens, SYM_COLON)) {
 		value = parse_hash_directive(ctx, HD_CALL_LOC, NULL, false);
 		if (!value) value = parse_expr(ctx);
 		if (!value) {
@@ -858,10 +846,9 @@ bool parse_semicolon(struct context *ctx) {
 
 bool parse_semicolon_rq(struct context *ctx) {
 	struct token *tok = tokens_consume_if(ctx->tokens, SYM_SEMICOLON);
-	if (!tok && builder.errorc == 0) {
+	if (!tok) {
 		tok = tokens_peek_prev(ctx->tokens);
 		report_error(MISSING_SEMICOLON, tok, CARET_AFTER, "Expected semicolon ';'.");
-		// consume_till(ctx->tokens, SYM_IDENT, SYM_RBLOCK); 2024-07-29 We don't want this everytime...
 		return false;
 	}
 	return true;
@@ -926,8 +913,8 @@ struct ast *parse_stmt_return(struct context *ctx) {
 	ret->data.stmt_return.fn_decl = decl_get(ctx);
 	tok_begin                     = tokens_peek(ctx->tokens);
 
-	struct ast *expr;
-	bool        rq = false;
+	struct ast   *expr;
+	struct token *tok_comma = NULL;
 NEXT:
 	expr = parse_expr(ctx);
 	if (expr) {
@@ -935,15 +922,12 @@ NEXT:
 			ret->data.stmt_return.exprs = arena_alloc(ctx->sarr_arena);
 		}
 		sarrput(ret->data.stmt_return.exprs, expr);
-		if (tokens_consume_if(ctx->tokens, SYM_COMMA)) {
-			rq = true;
-			goto NEXT;
-		}
-	} else if (rq) {
-		struct token *tok_err = tokens_peek(ctx->tokens);
-		report_error(EXPECTED_EXPR, tok_err, CARET_WORD, "Expected expression after comma ','.");
+		tok_comma = tokens_consume_if(ctx->tokens, SYM_COMMA);
+		if (tok_comma) goto NEXT;
+	} else if (tok_comma) {
+		report_error(EXPECTED_EXPR, tok_comma, CARET_AFTER, "Expected another return value expression after comma ','.");
 		consume_till(ctx->tokens, SYM_SEMICOLON, SYM_RBLOCK, SYM_IDENT);
-		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
+		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_begin, scope_get(ctx)));
 	}
 	return_zone(ret);
 }
@@ -990,18 +974,13 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 	stmt_if->data.stmt_if.is_expression = is_expression;
 	stmt_if->data.stmt_if.test          = parse_expr(ctx);
 	if (!stmt_if->data.stmt_if.test) {
-		struct token *tok_err = tokens_consume(ctx->tokens);
-		report_error(
-		    EXPECTED_EXPR, tok_err, CARET_WORD, "Expected expression for the if statement.");
-		tokens_consume_till(ctx->tokens, SYM_SEMICOLON);
-		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
+		report_error(EXPECTED_EXPR, tok_begin, CARET_AFTER, "Expected expression after if statement in format 'if <expr> {...}'.");
 	}
 
 	struct token *tok_then = tokens_consume_if(ctx->tokens, SYM_THEN);
 	if (!tok_then && is_expression) {
 		struct token *tok_err = tokens_peek(ctx->tokens);
 		report_error(INVALID_EXPR, tok_err, CARET_WORD, "Expected 'then' keyword after ternary if statement expression.");
-		tokens_consume_till(ctx->tokens, SYM_SEMICOLON);
 		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
 	}
 
@@ -1112,9 +1091,7 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 
 	stmt_if->data.stmt_if.false_stmt = false_branch;
 
-	if (is_semicolon_required) {
-		parse_semicolon_rq(ctx);
-	}
+	if (is_semicolon_required) parse_semicolon_rq(ctx);
 	return_zone(stmt_if);
 }
 
@@ -1144,6 +1121,7 @@ struct ast *parse_stmt_switch(struct context *ctx) {
 NEXT:
 	stmt_case = parse_stmt_case(ctx);
 	if (AST_IS_OK(stmt_case)) {
+		bassert(stmt_case->kind == AST_STMT_CASE);
 		if (stmt_case->data.stmt_case.is_default) {
 			if (default_case) {
 				builder_msg(MSG_ERR,
@@ -1161,6 +1139,8 @@ NEXT:
 
 		sarrput(cases, stmt_case);
 		if (tokens_current_is_not(ctx->tokens, SYM_RBLOCK)) goto NEXT;
+	} else {
+		find_restore_point(ctx, SYM_LBLOCK, SYM_RBLOCK);
 	}
 
 	tok = tokens_consume_if(ctx->tokens, SYM_RBLOCK);
@@ -1183,41 +1163,41 @@ struct ast *parse_stmt_case(struct context *ctx) {
 	ast_nodes_t *exprs = NULL;
 	struct ast  *block = NULL;
 	struct ast  *expr  = NULL;
-	bool         rq    = false;
 
 	if (tokens_current_is(ctx->tokens, SYM_RBLOCK)) return_zone(NULL);
 
 	struct token *tok_case = tokens_consume_if(ctx->tokens, SYM_DEFAULT);
 	if (tok_case) goto SKIP_EXPRS;
 
-	tok_case = tokens_peek(ctx->tokens);
-	exprs    = arena_alloc(ctx->sarr_arena);
+	struct token *tok_comma = NULL;
+	tok_case                = tokens_peek(ctx->tokens);
+	exprs                   = arena_alloc(ctx->sarr_arena);
 NEXT:
 	expr = parse_expr(ctx);
 	if (expr) {
+		if (AST_IS_BAD(expr)) return_zone(expr);
 		sarrput(exprs, expr);
-
-		if (tokens_consume_if(ctx->tokens, SYM_COMMA)) {
-			rq = true;
-			goto NEXT;
-		}
-	} else if (rq) {
-		struct token *tok_err = tokens_peek(ctx->tokens);
-		report_error(EXPECTED_NAME, tok_err, CARET_WORD, "Expected expression after comma.");
-		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
+		tok_comma = tokens_consume_if(ctx->tokens, SYM_COMMA);
+		if (tok_comma) goto NEXT;
+	} else if (tok_comma) {
+		report_error(EXPECTED_NAME, tok_comma, CARET_AFTER, "Expected case value expression after comma.");
+		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_case, scope_get(ctx)));
 	}
 
 SKIP_EXPRS:
 	block = parse_block(ctx, SCOPE_LEXICAL);
-	if (!block && !parse_semicolon_rq(ctx)) {
-		struct token *tok_err = tokens_peek(ctx->tokens);
-		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
-	} else {
-		parse_semicolon(ctx);
+	if (!block) {
+		struct token *tok_semicolon = tokens_consume_if(ctx->tokens, SYM_SEMICOLON);
+		if (!tok_semicolon) {
+			struct token *tok_err = tokens_peek_prev(ctx->tokens);
+			report_error(MISSING_SEMICOLON, tok_err, CARET_AFTER, "Expected semicolon ';', comma ',' or block handling switch case. Use ';' "
+			                                                      "when you don't want to handle this case, use ',' in case you need just "
+			                                                      "fall-through or specify case handling block in curly braces.");
+			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
+		}
 	}
 
-	struct ast *stmt_case =
-	    ast_create_node(ctx->ast_arena, AST_STMT_CASE, tok_case, scope_get(ctx));
+	struct ast *stmt_case                = ast_create_node(ctx->ast_arena, AST_STMT_CASE, tok_case, scope_get(ctx));
 	stmt_case->data.stmt_case.exprs      = exprs;
 	stmt_case->data.stmt_case.is_default = !exprs;
 	stmt_case->data.stmt_case.block      = block;
@@ -1464,9 +1444,7 @@ struct ast *parse_expr_addrof(struct context *ctx) {
 	addrof->data.expr_addrof.next = _parse_expr(ctx, token_prec(tok).priority);
 
 	if (addrof->data.expr_addrof.next == NULL) {
-		struct token *err_tok = tokens_peek(ctx->tokens);
-		report_error(EXPECTED_EXPR, err_tok, CARET_WORD, "Expected expression after '&' operator.");
-		tokens_consume_till(ctx->tokens, SYM_SEMICOLON);
+		report_error(EXPECTED_EXPR, tok, CARET_AFTER, "Expected expression after '&' address of operator.");
 		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok, scope_get(ctx)));
 	}
 
@@ -1483,12 +1461,7 @@ struct ast *parse_expr_deref(struct context *ctx) {
 	deref->data.expr_deref.next = _parse_expr(ctx, token_prec(tok).priority);
 
 	if (deref->data.expr_deref.next == NULL) {
-		struct token *err_tok = tokens_peek(ctx->tokens);
-		report_error(EXPECTED_EXPR,
-		             err_tok,
-		             CARET_WORD,
-		             "Expected expression after '@' pointer dereference operator.");
-		tokens_consume_till(ctx->tokens, SYM_SEMICOLON);
+		report_error(EXPECTED_EXPR, tok, CARET_AFTER, "Expected expression after '@' pointer dereference operator.");
 		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok, scope_get(ctx)));
 	}
 
@@ -1674,8 +1647,7 @@ struct ast *parse_expr_nested(struct context *ctx) {
 	struct token *tok_end = tokens_consume_if(ctx->tokens, SYM_RPAREN);
 	if (!tok_end) {
 		struct token *tok_err = tokens_peek(ctx->tokens);
-		report_error(
-		    MISSING_BRACKET, tok_err, CARET_WORD, "Unterminated sub-expression, missing ')'.");
+		report_error(MISSING_BRACKET, tok_err, CARET_WORD, "Unterminated sub-expression, missing ')'.");
 		report_note(tok_begin, CARET_WORD, "starting here");
 		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_begin, scope_get(ctx)));
 	}
@@ -1738,13 +1710,8 @@ struct ast *parse_type_ptr(struct context *ctx) {
 	struct ast *ptr      = ast_create_node(ctx->ast_arena, AST_TYPE_PTR, tok_begin, scope_get(ctx));
 	struct ast *sub_type = parse_type(ctx);
 	if (!sub_type) {
-		struct token *tok_err = tokens_peek(ctx->tokens);
-		report_error(EXPECTED_TYPE,
-		             tok_err,
-		             CARET_WORD,
-		             "Expected type after '*' pointer type declaration.");
-		consume_till(ctx->tokens, SYM_COLON, SYM_SEMICOLON, SYM_IDENT);
-		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_err, scope_get(ctx)));
+		report_error(EXPECTED_TYPE, tok_begin, CARET_AFTER, "Expected a type name or type declaration after '*' in pointer declaration, '*<type>'.");
+		return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_begin, scope_get(ctx)));
 	}
 	ptr->data.type_ptr.type = sub_type;
 	return_zone(ptr);
@@ -2099,16 +2066,19 @@ struct ast *parse_type_fn(struct context *ctx, bool named_args, bool create_scop
 NEXT:
 	tmp = parse_decl_arg(ctx, named_args);
 	if (tmp) {
-		if (tmp->kind == AST_BAD) return tmp;
-		// Setup argument index -> order in the function type argument list.
-		tmp->data.decl_arg.index = index++;
-		if (!fn->data.type_fn.args) {
-			fn->data.type_fn.args = arena_alloc(ctx->sarr_arena);
-		}
-		sarrput(fn->data.type_fn.args, tmp);
-		if (tokens_consume_if(ctx->tokens, SYM_COMMA)) {
-			rq = true;
-			goto NEXT;
+		if (AST_IS_OK(tmp)) {
+			// Setup argument index -> order in the function type argument list.
+			tmp->data.decl_arg.index = index++;
+			if (!fn->data.type_fn.args) {
+				fn->data.type_fn.args = arena_alloc(ctx->sarr_arena);
+			}
+			sarrput(fn->data.type_fn.args, tmp);
+			if (tokens_consume_if(ctx->tokens, SYM_COMMA)) {
+				rq = true;
+				goto NEXT;
+			}
+		} else {
+			find_restore_point(ctx, SYM_LPAREN, SYM_RPAREN);
 		}
 	} else if (rq) {
 		struct token *tok_err = tokens_peek(ctx->tokens);
@@ -2290,13 +2260,15 @@ struct ast *parse_decl(struct context *ctx) {
 
 		// parse declaration expression
 		decl->data.decl_entity.value = parse_expr(ctx);
+		if (AST_IS_BAD(decl->data.decl_entity.value)) {
+			tokens_consume_till(ctx->tokens, SYM_SEMICOLON);
+			decl_pop(ctx);
+			return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_begin, scope_get(ctx)));
+		}
 
 		if (isnotflag(decl->data.decl.flags, FLAG_EXTERN)) {
 			if (!decl->data.decl_entity.value) {
-				report_error(EXPECTED_INITIALIZATION,
-				             tok_assign,
-				             CARET_AFTER,
-				             "Expected binding of declaration to some value.");
+				report_error(EXPECTED_INITIALIZATION, tok_assign, CARET_AFTER, "Expected binding of declaration to some value.");
 				decl_pop(ctx);
 				return_zone(ast_create_node(ctx->ast_arena, AST_BAD, tok_begin, scope_get(ctx)));
 			}
@@ -2541,7 +2513,7 @@ NEXT:
 
 	// Others
 	if ((tmp = (struct ast *)parse_decl(ctx))) {
-		if (out_require_semicolon && AST_IS_OK(tmp)) *out_require_semicolon = true;
+		if (out_require_semicolon) *out_require_semicolon = true;
 		return tmp;
 	}
 	if ((tmp = parse_expr(ctx))) {
@@ -2576,10 +2548,7 @@ struct ast *parse_block(struct context *ctx, enum scope_kind scope_kind) {
 	bool require_semicolon = false;
 	while ((tmp = parse_single_block_stmt_or_expr(ctx, &require_semicolon))) {
 		sarrput(block->data.block.nodes, tmp);
-		if (require_semicolon && !parse_semicolon_rq(ctx)) {
-			consume_till(ctx->tokens, SYM_RBLOCK, SYM_SEMICOLON);
-			tokens_consume_if(ctx->tokens, SYM_SEMICOLON);
-		}
+		if (require_semicolon) parse_semicolon_rq(ctx);
 	}
 
 	struct token *tok = tokens_consume_if(ctx->tokens, SYM_RBLOCK);

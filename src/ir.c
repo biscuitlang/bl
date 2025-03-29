@@ -47,7 +47,6 @@ struct cache_entry {
 struct context {
 	struct assembly *assembly;
 
-	// Used for the 1st pass.
 	queue_t(struct mir_instr *) queue;
 
 	llvm_context_ref_t llvm_cnt;
