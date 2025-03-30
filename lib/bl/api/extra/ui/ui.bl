@@ -410,6 +410,8 @@ label :: fn {
 
 item_title :: fn (rect: Rect, text: string_view, style: *LabelStyle = null) Rect {
 	assert(current_list);
+	if text.len < 1 then return rect;
+
 	label_rect :: rect_resized(rect, if current_list.title_width == 0.f then rect.w * ITEM_LABEL_RATIO else current_list.title_width, rect.h);
 	value_rect :: make_rect(label_rect.w + ITEM_LABEL_VALUE_GAP, 0.f, rect.w - label_rect.w - ITEM_LABEL_VALUE_GAP, rect.h);
 	label(label_rect, text, style);
@@ -686,6 +688,15 @@ checkbox :: fn {
 variants :: fn {
 	variants_impl;
 	variants_item_impl;
+}
+
+//
+// Index Variants
+//
+
+index_variant :: fn {
+	index_variant_impl;
+	index_variants_item_impl;
 }
 
 //
@@ -1424,33 +1435,13 @@ variants_impl :: fn (rect: Rect, value: Any, _style: *VariantsStyle = null, flag
 		}
 	}
 
-	push(rect);
-	fill_current_rect(style.body_color);
-
-	button_flags := ButtonFlags.DEFAULT;
-	if is_flag(flags, VariantsFlags.READONLY) { button_flags = ButtonFlags.DISABLED; }
-
-	prev_variant_index :: variant_index;
-	if button(make_rect(0.f, 0.f, rect.h, rect.h), icon_utf8(ICON_ARROW_LEFT), button_flags, &style.button, index, loc) {
-		variant_index -= 1;
-	}
-	if button(make_rect(rect.w - rect.h, 0.f, rect.h, rect.h), icon_utf8(ICON_ARROW_RIGHT), button_flags, &style.button, index+1, loc) {
-		variant_index += 1;
-	}
-
-	changed :: prev_variant_index != variant_index;
-	if changed {
+	if index_variant_impl(rect, text, &variant_index, style, flags, index, loc) {
 		if variant_index < 0 { variant_index = auto info.variants.len - 1; }
 		else if variant_index >= info.variants.len { variant_index = 0; }
 		reinterpret_write_any(value, info.variants[variant_index].value);
+		return true;
 	}
-
-	push(make_rect(rect.h, 0.f, rect.w-rect.h*2.f, rect.h));
-
-	label_rect :: peek();
-	label(rect_translated(label_rect), text, &style.label);
-	pop(2);
-	return changed;
+	return false;
 }
 
 variants_item_impl :: fn (name: string_view, value: Any, flags := VariantsFlags.DEFAULT, _style: *VariantsStyle = null, index : u64 = 0, loc := #call_location) bool {
@@ -1464,6 +1455,48 @@ variants_item_impl :: fn (name: string_view, value: Any, flags := VariantsFlags.
 
 	return variants_impl(value_rect, value, style, flags, index, loc);
 }
+
+//
+// Index Variants Impl
+//
+
+index_variant_impl :: fn (rect: Rect, text: string_view, value: *s32, _style: *VariantsStyle = null, flags := VariantsFlags.DEFAULT, index : u64 = 0, loc := #call_location) bool {
+	style :: get_style(_style);
+
+	push(rect);
+	fill_current_rect(style.body_color);
+
+	button_flags := ButtonFlags.DEFAULT;
+	if is_flag(flags, VariantsFlags.READONLY) { button_flags = ButtonFlags.DISABLED; }
+
+	prev_variant_index :: @value;
+	if button(make_rect(0.f, 0.f, rect.h, rect.h), icon_utf8(ICON_ARROW_LEFT), button_flags, &style.button, index, loc) {
+		@value -= 1;
+	}
+	if button(make_rect(rect.w - rect.h, 0.f, rect.h, rect.h), icon_utf8(ICON_ARROW_RIGHT), button_flags, &style.button, index+1, loc) {
+		@value += 1;
+	}
+
+	push(make_rect(rect.h, 0.f, rect.w-rect.h*2.f, rect.h));
+
+	label_rect :: peek();
+	label(rect_translated(label_rect), text, &style.label);
+	pop(2);
+	return prev_variant_index != @value;
+}
+
+index_variants_item_impl :: fn (name: string_view, text: string_view, value: *s32, flags := VariantsFlags.DEFAULT, _style: *VariantsStyle = null, index : u64 = 0, loc := #call_location) bool {
+	style :: get_style(_style);
+
+	list_item_begin();
+	defer list_item_end();
+
+	rect :: peek();
+	value_rect :: item_title(rect_translated(rect), name, &style.name);
+
+	return index_variant_impl(value_rect, text, value, style, flags, index, loc);
+}
+
 
 //
 // Textbox Impl
