@@ -293,6 +293,12 @@ mat4_get_translation :: fn (m: *mat4) v3 #inline {
 	return v3.{ (@m)[3][0], (@m)[3][1], (@m)[3][2] };
 }
 
+mat4_remove_translation :: fn (m: *mat4) {
+	(@m)[3][0] = 0.f;
+	(@m)[3][1] = 0.f;
+	(@m)[3][2] = 0.f;
+}
+
 /// Initialize `m` matrix as scale matrix.
 mat4_init_scale :: fn (m: *mat4, s: v3) #inline {
 	mat4_init(
@@ -314,16 +320,11 @@ mat4_scale :: fn (m: *mat4, v: v3) #inline {
 
 /// Gets the scale from the `m` matrix.
 mat4_get_scale :: fn (m: *mat4) v3 {
-	ret: v3 #noinit;
-	tmp_vec := v3.{ (@m)[0][0], (@m)[0][1], (@m)[0][2] };
-	ret.x = length(tmp_vec);
-
-	tmp_vec = v3.{ (@m)[1][0], (@m)[1][1], (@m)[1][2] };
-	ret.y = length(tmp_vec);
-
-	tmp_vec = v3.{ (@m)[2][0], (@m)[1][2], (@m)[2][2] };
-	ret.z = length(tmp_vec);
-	return ret;
+	return .{
+		length(v3.{ (@m)[0][0], (@m)[0][1], (@m)[0][2] }),
+		length(v3.{ (@m)[1][0], (@m)[1][1], (@m)[1][2] }),
+		length(v3.{ (@m)[2][0], (@m)[2][1], (@m)[2][2] }),
+	};
 }
 
 mat4_remove_scale :: fn (m: *mat4) {
