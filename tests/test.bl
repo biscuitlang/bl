@@ -1,35 +1,12 @@
 #import "std/print"
 
-foo :: fn (a :: 2) {}
+foo :: fn (x: s32, a: s32, b := 0) {
+}
 
 main :: fn () s32 {
 
-	// foo :: Bar.{ aa, Foo.{ bb vv }, dd };
-	// foo :: Bar.{ aa, Foo.{ bb, vv, dd };
-
-
-	a: *    ;
-
-
-	switch x {
-		AAA
-		BBB,
-		CCC {
-			foo;
-		}
-	}
-
-
-	// descriptor :: VkWriteDescriptorSet.{
-	// 	sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-	// 	dstSet          = descriptor_set,
-	// 	dstBinding      = attribute.binding,
-	// 	dstArrayElement = 0,
-	// 	descriptorType  = if attribute.kind == UNIFORM_BLOCK then VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER else VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-	// 	descriptorCount = 1,
-	// 	pBufferInfo     = buffer_info,
-	// };
-	// array_push(&descriptor_writes, descriptor);
+	a := 10;
+	foo(20, if a == 10 then 1 else 2);
 
 	return 0;
 }

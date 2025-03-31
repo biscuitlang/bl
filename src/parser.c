@@ -985,6 +985,7 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 	}
 
 	bool is_semicolon_required = !is_expression;
+	bool has_explicit_true_branch_block = false;
 
 	//
 	// Then branch
@@ -995,6 +996,7 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 			builder_msg(MSG_ERR, ERR_EXPECTED_EXPR, true_branch->location, CARET_WORD, "Blocks cannot be used in ternary if expressions.");
 		}
 		is_semicolon_required = false;
+		has_explicit_true_branch_block = true;
 	}
 
 	if (!true_branch && tok_then) {
@@ -1046,7 +1048,7 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 				builder_msg(MSG_ERR, ERR_EXPECTED_EXPR, false_branch->location, CARET_WORD, "Blocks cannot be used in ternary if expressions.");
 			}
 			is_semicolon_required = false;
-		} else if (true_branch->kind == AST_BLOCK) {
+		} else if (has_explicit_true_branch_block) {
 			report_error(UNEXPECTED_SYMBOL, tok_else, CARET_AFTER, "Expected explicit block for else branch of if statement.");
 		}
 
