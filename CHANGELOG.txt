@@ -153,6 +153,7 @@ master
   collisions. This might change in the future.
 - Fix "assume macOS" linker warning on Mac (run `blc --configure`).
 - Fix endless looping caused by deeper nesting of dependencies in LLVM IR generator.
+- Require explicit block in else if branch in case block is used for true branch.
 
 [Modules]
 - Add math module.

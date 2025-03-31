@@ -1,5 +1,5 @@
-// @ERR_EXPECTED_STMT@
+// @ERR_UNEXPECTED_SYMBOL@
 main :: fn () s32 {
-	if true then {} else;
+	if true {} else;
 	return 0;
 }
