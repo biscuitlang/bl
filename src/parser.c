@@ -1037,7 +1037,8 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 	// Else branch
 	//
 	struct ast *false_branch = NULL;
-	if (tokens_consume_if(ctx->tokens, SYM_ELSE)) {
+	struct token *tok_else = tokens_consume_if(ctx->tokens, SYM_ELSE);
+	if (tok_else) {
 		false_branch = parse_stmt_if(ctx, is_static);
 		if (!false_branch) false_branch = parse_block(ctx, SCOPE_LEXICAL);
 		if (false_branch) {
@@ -1045,7 +1046,10 @@ struct ast *parse_stmt_if(struct context *ctx, bool is_static) {
 				builder_msg(MSG_ERR, ERR_EXPECTED_EXPR, false_branch->location, CARET_WORD, "Blocks cannot be used in ternary if expressions.");
 			}
 			is_semicolon_required = false;
+		} else if (true_branch->kind == AST_BLOCK) {
+			report_error(UNEXPECTED_SYMBOL, tok_else, CARET_AFTER, "Expected explicit block for else branch of if statement.");
 		}
+
 		if (!false_branch) {
 			if (tokens_current_is(ctx->tokens, SYM_SEMICOLON)) {
 				false_branch = NULL;
