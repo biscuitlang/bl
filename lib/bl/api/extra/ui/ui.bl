@@ -939,6 +939,11 @@ get_list_item_height :: fn () f32 {
 	return line_height;
 }
 
+get_parent_rect :: fn () Rect #inline {
+	rect :: peek();
+	return rect_translated(rect);
+}
+
 #scope_module
 #import "std/string"
 #import "std/table"
