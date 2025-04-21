@@ -154,6 +154,8 @@ master
 - Fix "assume macOS" linker warning on Mac (run `blc --configure`).
 - Fix endless looping caused by deeper nesting of dependencies in LLVM IR generator.
 - Require explicit block in else if branch in case block is used for true branch.
+- Fix scope lookup/register race conditions appearing from time to time when private scope
+  contains loading of other units.
 
 [Modules]
 - Add math module.

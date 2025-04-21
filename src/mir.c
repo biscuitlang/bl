@@ -1490,8 +1490,7 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 		return_zone(ctx->analyze->unnamed_entry);
 	}
 
-	const bool is_locked = scope->kind == SCOPE_GLOBAL || scope->kind == SCOPE_MODULE || scope->kind == SCOPE_MODULE_PRIVATE;
-	if (is_locked) scope_lock(scope);
+	scope_lock(scope);
 	const hash_t layer_index = ctx->fn_generate.current_scope_layer;
 
 	scope_lookup_args_t lookup_args = {
@@ -1508,7 +1507,7 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 	}
 
 	if (collision) {
-		if (is_locked) scope_unlock(scope);
+		scope_unlock(scope);
 
 		char *err_msg = (collision->is_builtin || is_builtin) ? "Symbol name collision with compiler builtin '" STR_FMT "'." : "Duplicate symbol";
 		report_error(DUPLICATE_SYMBOL, node, err_msg, STR_ARG(id->str));
@@ -1522,7 +1521,7 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 	struct scope_entry *entry = scope_create_entry(ctx->scope_thread_local, SCOPE_ENTRY_INCOMPLETE, id, node, is_builtin);
 	scope_insert(scope, layer_index, entry);
 
-	if (is_locked) scope_unlock(scope);
+	scope_unlock(scope);
 	return_zone(entry);
 }
 

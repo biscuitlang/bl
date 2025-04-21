@@ -106,8 +106,7 @@ static void search_scope(struct search_context *RESTRICT ctx, struct scope *REST
 		const u64 hash = entry_hash(args->id->hash, layer);
 		layer          = SCOPE_DEFAULT_LAYER;
 
-		const bool is_locked = scope->kind == SCOPE_GLOBAL || scope->kind == SCOPE_MODULE || scope->kind == SCOPE_MODULE_PRIVATE;
-		if (is_locked) scope_lock(scope);
+		scope_lock(scope);
 
 		const s64 index = tbl_lookup_index_with_key(scope->entries, hash, args->id->str);
 		if (index != -1) ctx->found_buf[ctx->found_num++] = scope->entries[index].value;
@@ -118,7 +117,7 @@ static void search_scope(struct search_context *RESTRICT ctx, struct scope *REST
 			tbl_insert(*ctx->queue, (struct scope_lookup_queue_entry){.hash = injected_scope});
 		}
 
-		if (is_locked) scope_unlock(scope);
+		scope_unlock(scope);
 	}
 }
 
@@ -163,17 +162,16 @@ void scope_inject(struct scope *dest, struct scope *src) {
 	bassert(dest != src && "Injecting scope to itself!");
 	// bassert(src->kind == SCOPE_MODULE);
 	// bassert(!scope_is_local(dest) && "Injection destination scope must be global!");
-	const bool is_locked = dest->kind == SCOPE_GLOBAL || dest->kind == SCOPE_MODULE;
-	if (is_locked) scope_lock(dest);
+	scope_lock(dest);
 	for (usize i = 0; i < arrlenu(dest->injected); ++i) {
 		if (src == dest->injected[i]) {
-			if (is_locked) scope_unlock(dest);
+			scope_unlock(dest);
 			return;
 		}
 	}
 	if (arrlen(dest->injected) == 0) arrsetcap(dest->injected, 8); // Preallocate a bit...
 	arrput(dest->injected, src);
-	if (is_locked) scope_unlock(dest);
+	scope_unlock(dest);
 }
 
 bool scope_is_subtree_of_kind(const struct scope *scope, enum scope_kind kind) {
