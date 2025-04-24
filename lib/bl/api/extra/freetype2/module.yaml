@@ -6,7 +6,7 @@ src: "freetype.bl"
 
 x86_64-pc-windows-msvc:
   linker_lib_path: "win32"
-  linker_opt: "freetype.lib"
+  linker_opt: "freetype_static.lib"
   link_comptime: "freetype"
 
 x86_64-pc-linux-gnu:
