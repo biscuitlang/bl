@@ -123,15 +123,35 @@ mat4_zero :: fn (m: *mat4) #inline {
 	zeromem(auto m, sizeof(@m));
 }
 
-// fov = fov y
 mat4_init_perspective :: fn (m: *mat4, fov_rad: f32, aspect: f32, near: f32, far: f32) #inline {
+	mat4_init_perspective_rh_no(m, fov_rad, aspect, near, far);
+}
+
+// fov = fov y
+mat4_init_perspective_rh_no :: fn (m: *mat4, fov_rad: f32, aspect: f32, near: f32, far: f32) #inline {
 	mat4_zero(m);
-	tanHalfFovy :: math.tan(fov_rad / 2.f);
-	(@m)[0][0] = 1.f / (aspect * tanHalfFovy);
-	(@m)[1][1] = 1.f / tanHalfFovy;
-	(@m)[2][2] = - (far + near) / (far - near);
-	(@m)[2][3] = - 1.f;
-	(@m)[3][2] = - (2.f * far * near) / (far - near);
+
+	f  :: 1.0f / math.tan(fov_rad * 0.5f);
+	f2 :: 1.0f / (near - far);
+
+	(@m)[0][0] = f / aspect;
+	(@m)[1][1] = f;
+	(@m)[2][2] = (near + far) * f2;
+	(@m)[2][3] =-1.0f;
+	(@m)[3][2] = 2.0f * near * far * f2;
+}
+
+mat4_init_perspective_rh_zo :: fn (m: *mat4, fov_rad: f32, aspect: f32, near: f32, far: f32) #inline {
+	mat4_zero(m);
+
+	f  :: 1.0f / math.tan(fov_rad * 0.5f);
+	f2 :: 1.0f / (near - far);
+
+	(@m)[0][0] = f / aspect;
+	(@m)[1][1] = f;
+	(@m)[2][2] = far * f2;
+	(@m)[2][3] =-1.0f;
+	(@m)[3][2] = near * far * f2;
 }
 
 mat4_init_ortho :: fn (m: *mat4, left: f32, right: f32, bottom: f32, top: f32, near: f32, far: f32) {
