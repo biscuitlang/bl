@@ -65,6 +65,14 @@ iv3 :: struct {
  */
 mat4 :: [4][4]f32;
 
+/**
+* Matrix layout
+* | m[0][0]  m[1][0]  m[2][0] |
+* | m[0][1]  m[1][1]  m[2][1] |
+* | m[0][2]  m[1][2]  m[2][2] |
+*/
+mat3 :: [3][3]f32;
+
 // quaternion
 quat :: v4;
 
@@ -95,6 +103,10 @@ cross :: fn { v3_cross; }
 round :: fn { v2_round; v3_round; v4_round; }
 floor :: fn { v2_floor; v3_floor; v4_floor; }
 ceil :: fn { v2_ceil; v3_ceil; v4_ceil; }
+
+//
+// Matrix 4x4
+//
 
 mat4_init :: fn (
 	m: *mat4,
@@ -452,6 +464,85 @@ mat4_get_quat :: fn (m: *mat4) quat {
 
 	return out;
 };
+
+//
+// Matrix 3x3
+//
+
+mat3_init :: fn (
+	m: *mat3,
+	m00: f32, m10: f32, m20: f32,
+	m01: f32, m11: f32, m21: f32,
+	m02: f32, m12: f32, m22: f32,
+) #inline {
+	(@m)[0][0] = m00; (@m)[1][0] = m10; (@m)[2][0] = m20;
+	(@m)[0][1] = m01; (@m)[1][1] = m11; (@m)[2][1] = m21;
+	(@m)[0][2] = m02; (@m)[1][2] = m12; (@m)[2][2] = m22;
+}
+
+mat3_identity :: fn (m: *mat3) #inline {
+	mat3_init(
+		m,
+		1.f, 0.f, 0.f,
+		0.f, 1.f, 0.f,
+		0.f, 0.f, 1.f,
+	);
+}
+
+mat4_to_mat3 :: fn (ma: *mat4, mb: *mat3) {
+	mat3_init(
+		mb,
+		(@ma)[0][0], (@ma)[1][0], (@ma)[2][0],
+		(@ma)[0][1], (@ma)[1][1], (@ma)[2][1],
+		(@ma)[0][2], (@ma)[1][2], (@ma)[2][2],
+	);
+}
+
+mat3_transpose :: fn (m: *mat3) {
+	d :: @m;
+	mat3_init(
+		m,
+		d[0][0], d[0][1], d[0][2],
+		d[1][0], d[1][1], d[1][2],
+		d[2][0], d[2][1], d[2][2],
+	);
+}
+
+mat3_inverse :: fn (m: *mat3, result: *mat3) #inline {
+	a :: (@m)[0][0]; b :: (@m)[0][1]; c :: (@m)[0][2];
+	d :: (@m)[1][0]; e :: (@m)[1][1]; f :: (@m)[1][2];
+	g :: (@m)[2][0]; h :: (@m)[2][1]; i :: (@m)[2][2];
+
+	c1 :: e * i - f * h;
+	c2 :: d * i - g * f;
+	c3 :: d * h - g * e;
+	idt :: 1.0f / (a * c1 - b * c2 + c * c3);
+	ndt :: -idt;
+
+	(@result)[0][0] = idt * c1;
+	(@result)[0][1] = ndt * (b * i - h * c);
+	(@result)[0][2] = idt * (b * f - e * c);
+	(@result)[1][0] = ndt * c2;
+	(@result)[1][1] = idt * (a * i - g * c);
+	(@result)[1][2] = ndt * (a * f - d * c);
+	(@result)[2][0] = idt * c3;
+	(@result)[2][1] = ndt * (a * h - g * b);
+	(@result)[2][2] = idt * (a * e - d * b);
+}
+
+mat3_scale_s :: fn (m: *mat3, s: f32) #inline {
+	(@m)[0][0] *= s; (@m)[0][1] *= s; (@m)[0][2] *= s;
+	(@m)[1][0] *= s; (@m)[1][1] *= s; (@m)[1][2] *= s;
+	(@m)[2][0] *= s; (@m)[2][1] *= s; (@m)[2][2] *= s;
+}
+
+mat3_mul_v3 :: fn (mat: *mat3, v: v3) v3 #inline {
+	out: v3 #noinit;
+	out.x = (@mat)[0][0] * v.x + (@mat)[1][0] * v.y + (@mat)[2][0] * v.z;
+	out.y = (@mat)[0][1] * v.x + (@mat)[1][1] * v.y + (@mat)[2][1] * v.z;
+	out.z = (@mat)[0][2] * v.x + (@mat)[1][2] * v.y + (@mat)[2][2] * v.z;
+	return out;
+}
 
 quat_normalize :: fn (q: quat) quat #inline {
 	return normalize(q);
