@@ -202,6 +202,7 @@ extra/sdl3:
 extra/glm:
 - Add `mat4_remove_scale` function.
 - Fix scale extraction from mat4.
+- Add simple mat3 support.
 
 [Documentation]
 - Improved "Libraries" section in documentation.
