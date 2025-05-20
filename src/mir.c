@@ -772,7 +772,7 @@ static inline struct mir_var *add_builtin_global_bool(struct context *ctx, struc
 	return add_global_bool(ctx, id, NULL, is_mutable, true, v);
 }
 
-static inline struct mir_var *add_builtin_global_int(struct context *ctx, struct id *id, bool is_mutable, struct mir_type *type, bool v) {
+static inline struct mir_var *add_builtin_global_int(struct context *ctx, struct id *id, bool is_mutable, struct mir_type *type, s32 v) {
 	return add_global_int(ctx, id, NULL, is_mutable, true, type, v);
 }
 
