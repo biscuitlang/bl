@@ -33,5 +33,6 @@ struct unit *unit_new(struct assembly *assembly, const str_t filepath, const str
 void         unit_delete(struct unit *unit);
 // Returns single line from the unit source code, len does not count last new line char.
 const char *unit_get_src_ln(struct unit *unit, s32 line, long *len);
+hash_t      unit_get_hash(const str_t filepath);
 
 #endif

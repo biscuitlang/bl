@@ -327,12 +327,12 @@ add_lib_path :: fn (target: *Target, path: string_view) {
 	__add_lib_path(target, strtoc(path));
 }
 
-// @Incomplete 2025-05-20: Docs!!!
-add_bool_constant :: fn (target: *Target, name: string_view, value: bool) {
+/// Add new bool immutable variable into global scope of target assembly.
+add_bool_constant :: fn (target: *Target, name: string_view, value: bool, loc := #call_location) {
 	if !target then panic("Invalid target!");
 	if name.len == 0 then panic("Invalid constant name!");
 
-	__add_bool_user_define(target, strtoc(name), value);
+	__add_bool_user_define(target, auto name.ptr, auto name.len, value, auto loc._internal);
 }
 
 /// Link dynamic library. Only name is required (without extension and prefix). Compiler will lookup
@@ -495,7 +495,7 @@ C :: #import "libc";
 
 __add_target :: fn (name: *C.char, kind: C.int) *Target #extern;
 __add_unit :: fn (target: *Target, filepath: *C.char) #extern;
-__add_bool_user_define :: fn (target: *Target, name: *C.char, value: bool) #extern;
+__add_bool_user_define :: fn (target: *Target, sym_name: *C.char, sym_name_len: s32, value: bool, ast_node: *u8) #extern;
 __compile :: fn (target: *Target) C.int #extern;
 __compile_all :: fn () C.int #extern;
 __add_lib_path :: fn (target: *Target, path: *C.char) #extern;

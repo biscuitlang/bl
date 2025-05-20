@@ -32,6 +32,8 @@
 #include "builder.h"
 #include "stb_ds.h"
 
+// @Cleanup 2025-05-21: All functions taking strings should use ptr + len interface style!
+
 BL_EXPORT struct target *__add_target(const char *name, enum assembly_kind kind) {
 	struct target *target = builder_add_target(name);
 	target->kind          = kind;
@@ -46,8 +48,15 @@ BL_EXPORT void __add_lib_path(struct target *target, const char *path) {
 	target_add_lib_path(target, path);
 }
 
-BL_EXPORT void __add_bool_user_define(struct target *target, const char *name, bool value) {
-	target_add_bool_user_define(target, name, value);
+BL_EXPORT void __add_bool_user_define(
+    struct target *target,
+    const char    *name,
+    s32            name_len,
+    bool           value,
+    struct ast    *node) {
+	bassert(name_len);
+	str_t sym_name = make_str(name, name_len);
+	target_add_bool_user_define(target, node, sym_name, value);
 }
 
 BL_EXPORT s32 __compile(struct target *target) {

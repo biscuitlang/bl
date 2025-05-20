@@ -70,3 +70,7 @@ const char *unit_get_src_ln(struct unit *unit, s32 line, long *len) {
 	}
 	return begin;
 }
+
+hash_t unit_get_hash(const str_t filepath) {
+	return strhash(filepath);
+}

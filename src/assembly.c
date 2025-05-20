@@ -382,16 +382,14 @@ s32 target_triple_to_string(const struct target_triple *triple, char *buf, s32 b
 	return len;
 }
 
-void target_add_bool_user_define(struct target *target, const char *name, bool value) {
-	bassert(name);
+void target_add_bool_user_define(struct target *target, struct ast *node, str_t sym_name, bool value) {
 	bassert(target);
-
-	str_t sym_name = make_str_from_c(name);
-	if (sym_name.len < 1) return; // @Incomplete 2025-05-20: Maybe report the fail somehow?
+	bassert(sym_name.len);
 
 	struct assembly_user_define def;
 	id_init(&def.id, sym_name);
 	def.value = (bool)value;
+	def.node  = node;
 
 	arrput(target->user_defines, def);
 }
@@ -602,7 +600,7 @@ void assembly_add_unit(struct assembly *assembly, const str_t filepath, struct t
 		return_zone();
 	}
 
-	const hash_t hash = strhash(tmp_fullpath);
+	const hash_t hash = unit_get_hash(str_buf_view(tmp_fullpath));
 
 	bool submit = false;
 
