@@ -2865,14 +2865,17 @@ enum state emit_instr_call_loc(struct context *ctx, struct mir_instr_call_loc *l
 	LLVMSetLinkage(llvm_var, LLVMPrivateLinkage);
 	LLVMSetGlobalConstant(llvm_var, true);
 
-	LLVMValueRef llvm_vals[4];
-	const str_t  filepath      = loc->call_location->unit->filepath;
-	llvm_vals[0]               = emit_const_string(ctx, filepath);
-	struct mir_type *line_type = mir_get_struct_elem_type(type, 1);
-	llvm_vals[1]               = LLVMConstInt(get_type(ctx, line_type), (u32)loc->call_location->line, true);
-	llvm_vals[2]               = emit_const_string(ctx, loc->function_name);
-	struct mir_type *hash_type = mir_get_struct_elem_type(type, 3);
-	llvm_vals[3]               = LLVMConstInt(get_type(ctx, hash_type), (u32)loc->hash, false);
+	bassert(loc->call_node);
+	struct location *call_location = loc->call_node->location;
+
+	LLVMValueRef llvm_vals[5];
+	const str_t  filepath = call_location->unit->filepath;
+	llvm_vals[0]          = emit_const_string(ctx, filepath);
+	llvm_vals[1]          = LLVMConstInt(get_type(ctx, mir_get_struct_elem_type(type, 1)), (u32)call_location->line, true);
+	llvm_vals[2]          = emit_const_string(ctx, loc->function_name);
+	llvm_vals[3]          = LLVMConstInt(get_type(ctx, mir_get_struct_elem_type(type, 3)), (u32)loc->hash, false);
+	llvm_vals[4]          = LLVMConstNull(get_type(ctx, mir_get_struct_elem_type(type, 4)));
+
 	LLVMValueRef llvm_value =
 	    LLVMConstNamedStruct(get_type(ctx, type), llvm_vals, static_arrlenu(llvm_vals));
 

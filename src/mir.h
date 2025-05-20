@@ -908,8 +908,8 @@ struct mir_instr_test_case {
 
 struct mir_instr_call_loc {
 	struct mir_instr base;
-	struct location *call_location; // Optional call location
-	struct mir_var  *meta_var;      // Optional meta var.
+	struct ast      *call_node; // Optional call node.
+	struct mir_var  *meta_var;  // Optional meta var.
 	str_t            function_name;
 	hash_t           hash;
 };

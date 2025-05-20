@@ -2204,13 +2204,16 @@ static void emit_instr(struct context *ctx, struct thread_context *tctx, struct 
 		const u32 data_offset = add_data(tctx, NULL, (s32)type->store_size_bytes);
 		add_sym(tctx, SECTION_DATA, data_offset, str_buf_view(name), IMAGE_SYM_CLASS_EXTERNAL, 0);
 
+		bassert(loc->call_node);
+		struct location *call_location = loc->call_node->location;
+
 		// Write file
-		const str_t filepath = loc->call_location->unit->filepath;
+		const str_t filepath = call_location->unit->filepath;
 		emit_string_literal(ctx, tctx, data_offset, filepath);
 
 		// Write line
 		const u32 line_member_offset                  = data_offset + (u32)vm_get_struct_elem_offset(assembly, type, 1);
-		*data_ptr_s32(tctx->data, line_member_offset) = loc->call_location->line;
+		*data_ptr_s32(tctx->data, line_member_offset) = call_location->line;
 
 		// Call Location yields pointer to static data...
 		const enum x64_register reg = get_temporary_register(tctx, NULL, 0);

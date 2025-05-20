@@ -156,6 +156,14 @@ master
 - Require explicit block in else if branch in case block is used for true branch.
 - Fix scope lookup/register race conditions appearing from time to time when private scope
   contains loading of other units.
+- Add `add_bool_constant` which might be used in build pipeline to define immutable boolean variables
+  in target assembly global scope. This way the build pipeline might pass configuration flags to the target.
+
+    ```
+    exe := add_executable("test");
+	add_unit(exe, "build_test.bl");
+	add_bool_constant(exe, "FOO", false);
+    ```
 
 [Modules]
 - Add math module.

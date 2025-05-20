@@ -193,10 +193,6 @@ static struct id *lookup_builtins_error(struct context *ctx);
 // set to base member type if entry was found in parent.
 static struct scope_entry *lookup_composit_member(struct context *ctx, struct mir_type *type, struct id *rid, struct mir_type **out_base_type);
 
-static struct mir_var *add_global_variable(struct context *ctx, struct id *id, bool is_mutable, struct mir_instr *initializer);
-static struct mir_var *add_global_bool(struct context *ctx, struct id *id, bool is_mutable, bool v);
-static struct mir_var *add_global_int(struct context *ctx, struct id *id, bool is_mutable, struct mir_type *type, s32 v);
-
 // Create new type. The 'user_id' is optional.
 static struct mir_type *create_type(struct context *ctx, enum mir_type_kind kind, struct id *user_id);
 static struct mir_type *create_type_type(struct context *ctx);
@@ -370,7 +366,7 @@ static struct mir_instr *create_instr_const_placeholder(struct context *ctx, str
 static struct mir_instr *create_instr_addrof(struct context *ctx, struct ast *node, struct mir_instr *src);
 static struct mir_instr *create_instr_vargs_impl(struct context *ctx, struct ast *node, struct mir_type *type, mir_instrs_t *values);
 static struct mir_instr *create_instr_decl_direct_ref(struct context *ctx, struct ast *node, struct mir_instr *ref);
-static struct mir_instr *create_instr_call_loc(struct context *ctx, struct ast *node, struct location *call_location);
+static struct mir_instr *create_instr_call_loc(struct context *ctx, struct ast *node, struct ast *call_node);
 static struct mir_instr *create_instr_compound(struct context *ctx, struct ast *node, struct mir_instr *type, mir_instrs_t *values, bool is_multiple_return_value);
 static struct mir_instr *create_instr_compound_impl(struct context *ctx, struct ast *node, struct mir_type *type, mir_instrs_t *values);
 static struct mir_instr *create_default_value_for_type(struct context *ctx, struct mir_type *type);
@@ -761,6 +757,24 @@ static struct mir_var *rtti_gen_fn_group(struct context *ctx, struct mir_type *t
 #define report_error_after(code, node, format, ...) _report(MSG_ERR, ERR_##code, (node), CARET_AFTER, (format), ##__VA_ARGS__)
 #define report_warning(node, format, ...)           _report(MSG_WARN, 0, (node), CARET_WORD, (format), ##__VA_ARGS__)
 #define report_note(node, format, ...)              _report(MSG_ERR_NOTE, 0, (node), CARET_WORD, (format), ##__VA_ARGS__)
+
+static struct mir_var *add_global_variable(struct context *ctx, struct id *id, struct ast *node, bool is_mutable, bool is_builtin, struct mir_instr *initializer);
+
+static inline struct mir_var *add_global_bool(struct context *ctx, struct id *id, struct ast *node, bool is_mutable, bool is_builtin, bool v) {
+	return add_global_variable(ctx, id, node, is_mutable, is_builtin, create_instr_const_bool(ctx, NULL, v));
+}
+
+static inline struct mir_var *add_global_int(struct context *ctx, struct id *id, struct ast *node, bool is_mutable, bool is_builtin, struct mir_type *type, s32 v) {
+	return add_global_variable(ctx, id, node, is_mutable, is_builtin, create_instr_const_int(ctx, NULL, type, v));
+}
+
+static inline struct mir_var *add_builtin_global_bool(struct context *ctx, struct id *id, bool is_mutable, bool v) {
+	return add_global_bool(ctx, id, NULL, is_mutable, true, v);
+}
+
+static inline struct mir_var *add_builtin_global_int(struct context *ctx, struct id *id, bool is_mutable, struct mir_type *type, bool v) {
+	return add_global_int(ctx, id, NULL, is_mutable, true, type, v);
+}
 
 static inline void analyze_instr_rq(struct context *ctx, struct mir_instr *instr) {
 	const struct result r = analyze_instr(ctx, instr);
@@ -1509,7 +1523,9 @@ struct scope_entry *register_symbol(struct context *ctx, struct ast *node, struc
 	if (collision) {
 		scope_unlock(scope);
 
-		char *err_msg = (collision->is_builtin || is_builtin) ? "Symbol name collision with compiler builtin '" STR_FMT "'." : "Duplicate symbol";
+		char *err_msg = (collision->is_builtin || is_builtin)
+		                    ? "Symbol name reserved by compiler '" STR_FMT "'."
+		                    : "Duplicate symbol '" STR_FMT "' found.";
 		report_error(DUPLICATE_SYMBOL, node, err_msg, STR_ARG(id->str));
 		if (collision->node) {
 			report_note(collision->node, "Previous declaration found here.");
@@ -1703,7 +1719,7 @@ struct scope_entry *lookup_composit_member(struct context *ctx, struct mir_type 
 	return found;
 }
 
-struct mir_var *add_global_variable(struct context *ctx, struct id *id, bool is_mutable, struct mir_instr *initializer) {
+struct mir_var *add_global_variable(struct context *ctx, struct id *id, struct ast *node, bool is_mutable, bool is_builtin, struct mir_instr *initializer) {
 	bassert(initializer);
 	struct scope     *scope    = ctx->assembly->gscope;
 	struct mir_instr *decl_var = append_instr_decl_var(ctx,
@@ -1712,6 +1728,7 @@ struct mir_var *add_global_variable(struct context *ctx, struct id *id, bool is_
 	                                                       .scope      = scope,
 	                                                       .is_mutable = is_mutable,
 	                                                       .builtin_id = BUILTIN_ID_NONE,
+	                                                       .node       = node,
 	                                                   });
 
 	struct mir_instr_block *prev_block = ast_initializer_block_begin(ctx, NULL);
@@ -1722,16 +1739,8 @@ struct mir_var *add_global_variable(struct context *ctx, struct id *id, bool is_
 	ast_initializer_block_end(ctx, prev_block);
 
 	struct mir_var *var = ((struct mir_instr_decl_var *)decl_var)->var;
-	var->entry          = register_symbol(ctx, NULL, id, scope, true);
+	var->entry          = register_symbol(ctx, node, id, scope, is_builtin);
 	return var;
-}
-
-struct mir_var *add_global_bool(struct context *ctx, struct id *id, bool is_mutable, bool v) {
-	return add_global_variable(ctx, id, is_mutable, create_instr_const_bool(ctx, NULL, v));
-}
-
-struct mir_var *add_global_int(struct context *ctx, struct id *id, bool is_mutable, struct mir_type *type, s32 v) {
-	return add_global_variable(ctx, id, is_mutable, create_instr_const_int(ctx, NULL, type, v));
 }
 
 struct mir_type *create_type_type(struct context *ctx) {
@@ -3146,11 +3155,11 @@ struct mir_instr *create_instr_const_ptr(struct context *ctx, struct ast *node, 
 	return tmp;
 }
 
-struct mir_instr *create_instr_call_loc(struct context *ctx, struct ast *node, struct location *call_location) {
+struct mir_instr *create_instr_call_loc(struct context *ctx, struct ast *node, struct ast *call_node) {
 	struct mir_instr_call_loc *tmp = create_instr(ctx, MIR_INSTR_CALL_LOC, node);
 	tmp->base.value.addr_mode      = MIR_VAM_RVALUE;
 	tmp->base.value.is_comptime    = true;
-	tmp->call_location             = call_location;
+	tmp->call_node                 = call_node;
 	return &tmp->base;
 }
 
@@ -7348,7 +7357,7 @@ struct result analyze_instr_call_loc(struct context *ctx, struct mir_instr_call_
 	struct id *missing = lookup_builtins_code_loc(ctx);
 	if (missing) return_zone(WAIT(missing->hash));
 	loc->base.value.type = ctx->builtin_types->t_CodeLocation_ptr;
-	if (!loc->call_location) return_zone(PASS);
+	if (!loc->call_node) return_zone(PASS);
 
 	struct mir_type *type = ctx->builtin_types->t_CodeLocation;
 	struct mir_var  *var  = create_var_impl(ctx,
@@ -7369,8 +7378,12 @@ struct result analyze_instr_call_loc(struct context *ctx, struct mir_instr_call_
 	vm_stack_ptr_t   dest_function      = vm_get_struct_elem_ptr(ctx->assembly, type, dest, 2);
 	struct mir_type *dest_hash_type     = mir_get_struct_elem_type(type, 3);
 	vm_stack_ptr_t   dest_hash          = vm_get_struct_elem_ptr(ctx->assembly, type, dest, 3);
+	struct mir_type *dest_internal_type = mir_get_struct_elem_type(type, 4);
+	vm_stack_ptr_t   dest_internal      = vm_get_struct_elem_ptr(ctx->assembly, type, dest, 4);
 
-	const str_t          filepath = loc->call_location->unit->filepath;
+	struct location *call_location = loc->call_node->location;
+
+	const str_t          filepath = call_location->unit->filepath;
 	const struct mir_fn *owner_fn = mir_instr_owner_fn(&loc->base);
 	loc->function_name            = str_empty;
 	if (owner_fn) {
@@ -7379,14 +7392,15 @@ struct result analyze_instr_call_loc(struct context *ctx, struct mir_instr_call_
 
 	// Generate source location hash.
 	str_buf_t str_hash = get_tmp_str();
-	str_buf_append_fmt(&str_hash, "{str}{u32}", filepath, (u32)loc->call_location->line);
+	str_buf_append_fmt(&str_hash, "{str}{u32}", filepath, (u32)call_location->line);
 	const hash_t hash = strhash(str_hash);
 	put_tmp_str(str_hash);
 
 	vm_write_string(ctx->vm, dest_file_type, dest_file, filepath);
 	vm_write_string(ctx->vm, dest_function_type, dest_function, loc->function_name);
-	vm_write_int(dest_line_type, dest_line, (u64)loc->call_location->line);
+	vm_write_int(dest_line_type, dest_line, (u64)call_location->line);
 	vm_write_int(dest_hash_type, dest_hash, (u64)hash);
+	vm_write_ptr(dest_internal_type, dest_internal, (vm_stack_ptr_t)loc->call_node);
 
 	loc->meta_var = var;
 	loc->hash     = hash;
@@ -7935,7 +7949,7 @@ static inline struct mir_instr *replace_default_argument_placeholder(struct cont
 		bassert(call->base.node);
 		bassert(call->base.node->location);
 		struct ast *orig_node = fn_arg->default_value->node;
-		call_default_arg      = create_instr_call_loc(ctx, orig_node, call->base.node->location);
+		call_default_arg      = create_instr_call_loc(ctx, orig_node, call->base.node);
 	} else {
 		call_default_arg = create_instr_decl_direct_ref(ctx, NULL, fn_arg->default_value);
 	}
@@ -7958,7 +7972,7 @@ static inline struct mir_instr *insert_default_argument_call_value(struct contex
 		bassert(call->base.node);
 		bassert(call->base.node->location);
 		struct ast *orig_node = default_value->node;
-		call_default_arg      = ref_instr(create_instr_call_loc(ctx, orig_node, call->base.node->location));
+		call_default_arg      = ref_instr(create_instr_call_loc(ctx, orig_node, call->base.node));
 	} else {
 		call_default_arg = ref_instr(create_instr_decl_direct_ref(ctx, NULL, default_value));
 	}
@@ -12058,7 +12072,7 @@ static void provide_builtin_arch(struct context *ctx) {
 	                                           });
 
 	provide_builtin_type(ctx, t_arch);
-	add_global_int(ctx, &builtin_ids[BUILTIN_ID_ARCH], false, t_arch, ctx->assembly->target->triple.arch);
+	add_builtin_global_int(ctx, &builtin_ids[BUILTIN_ID_ARCH], false, t_arch, ctx->assembly->target->triple.arch);
 }
 
 static void provide_builtin_os(struct context *ctx) {
@@ -12085,7 +12099,7 @@ static void provide_builtin_os(struct context *ctx) {
 	                                         });
 
 	provide_builtin_type(ctx, t_os);
-	add_global_int(ctx, &builtin_ids[BUILTIN_ID_PLATFORM], false, t_os, ctx->assembly->target->triple.os);
+	add_builtin_global_int(ctx, &builtin_ids[BUILTIN_ID_PLATFORM], false, t_os, ctx->assembly->target->triple.os);
 }
 
 static void provide_builtin_env(struct context *ctx) {
@@ -12111,7 +12125,7 @@ static void provide_builtin_env(struct context *ctx) {
 	                                              .variants  = variants,
 	                                          });
 	provide_builtin_type(ctx, t_env);
-	add_global_int(ctx, &builtin_ids[BUILTIN_ID_ENV], false, t_env, ctx->assembly->target->triple.env);
+	add_builtin_global_int(ctx, &builtin_ids[BUILTIN_ID_ENV], false, t_env, ctx->assembly->target->triple.env);
 }
 
 str_t get_intrinsic(const str_t name) {
@@ -12257,16 +12271,16 @@ static void initialize_builtins(struct assembly *assembly) {
 
 	// Add IS_DEBUG immutable into the global scope to provide information about enabled
 	// debug mode.
-	add_global_bool(&ctx, &builtin_ids[BUILTIN_ID_IS_DEBUG], false, ctx.debug_mode);
+	add_builtin_global_bool(&ctx, &builtin_ids[BUILTIN_ID_IS_DEBUG], false, ctx.debug_mode);
 
 	// Add IS_COMPTIME_RUN immutable into the global scope to provide information about compile
 	// time run.
-	assembly->vm_run.is_comptime_run = add_global_bool(&ctx, &builtin_ids[BUILTIN_ID_IS_COMPTIME_RUN], true, false);
+	assembly->vm_run.is_comptime_run = add_builtin_global_bool(&ctx, &builtin_ids[BUILTIN_ID_IS_COMPTIME_RUN], true, false);
 
 	// Compiler version.
-	add_global_int(&ctx, &builtin_ids[BUILTIN_ID_BLC_VER_MAJOR], false, bt->t_s32, BL_VERSION_MAJOR);
-	add_global_int(&ctx, &builtin_ids[BUILTIN_ID_BLC_VER_MINOR], false, bt->t_s32, BL_VERSION_MINOR);
-	add_global_int(&ctx, &builtin_ids[BUILTIN_ID_BLC_VER_PATCH], false, bt->t_s32, BL_VERSION_PATCH);
+	add_builtin_global_int(&ctx, &builtin_ids[BUILTIN_ID_BLC_VER_MAJOR], false, bt->t_s32, BL_VERSION_MAJOR);
+	add_builtin_global_int(&ctx, &builtin_ids[BUILTIN_ID_BLC_VER_MINOR], false, bt->t_s32, BL_VERSION_MINOR);
+	add_builtin_global_int(&ctx, &builtin_ids[BUILTIN_ID_BLC_VER_PATCH], false, bt->t_s32, BL_VERSION_PATCH);
 
 	// Register all compiler builtin helper functions to report eventual collisions with user
 	// code.
@@ -12353,6 +12367,14 @@ void mir_analyze_run(struct assembly *assembly) {
 	// Analyze pass
 	struct context ctx;
 	init_context(&ctx, assembly);
+
+	// Register user-defined constants.
+	const struct target *target = assembly->target;
+	for (u32 i = 0; i < arrlenu(target->user_defines); ++i) {
+		struct assembly_user_define *def = &target->user_defines[i];
+		add_global_bool(&ctx, &def->id, def->node, false, false, (bool)def->value);
+	}
+	if (builder.errorc) goto DONE;
 
 	analyze(&ctx);
 	if (builder.errorc) goto DONE;

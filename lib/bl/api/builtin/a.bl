@@ -303,6 +303,10 @@ CodeLocation :: struct #compiler {
 	function: string_view;
 	/// File and line combination hash.
 	hash: u32;
+
+	// Internally set to AST node of the call when created with #call_location directive. This value is
+	// internal, available only during compile time execution, and should not be directly used.
+	_internal: *u8;
 }
 
 /// Type of print log function.

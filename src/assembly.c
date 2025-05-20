@@ -271,10 +271,12 @@ void target_delete(struct target *target) {
 	arrfree(target->files);
 	arrfree(target->default_lib_paths);
 	arrfree(target->default_libs);
+	arrfree(target->user_defines);
 	str_buf_free(&target->out_dir);
 	str_buf_free(&target->default_custom_linker_opt);
 	str_buf_free(&target->module_dir);
 	free(target->name);
+	scfree(&target->string_cache);
 	bfree(target);
 }
 
@@ -378,6 +380,18 @@ s32 target_triple_to_string(const struct target_triple *triple, char *buf, s32 b
 		if (buf) snprintf(buf, MIN(buf_len, len), "%s-%s-%s-%s", arch, vendor, os, env);
 	}
 	return len;
+}
+
+void target_add_bool_user_define(struct target *target, struct ast *node, str_t sym_name, bool value) {
+	bassert(target);
+	bassert(sym_name.len);
+
+	struct assembly_user_define def;
+	id_init(&def.id, sym_name);
+	def.value = (bool)value;
+	def.node  = node;
+
+	arrput(target->user_defines, def);
 }
 
 static void thread_local_init(struct assembly *assembly) {
@@ -586,7 +600,7 @@ void assembly_add_unit(struct assembly *assembly, const str_t filepath, struct t
 		return_zone();
 	}
 
-	const hash_t hash = strhash(tmp_fullpath);
+	const hash_t hash = unit_get_hash(str_buf_view(tmp_fullpath));
 
 	bool submit = false;
 
