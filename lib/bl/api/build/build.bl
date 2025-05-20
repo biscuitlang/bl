@@ -327,6 +327,14 @@ add_lib_path :: fn (target: *Target, path: string_view) {
 	__add_lib_path(target, strtoc(path));
 }
 
+// @Incomplete 2025-05-20: Docs!!!
+add_bool_constant :: fn (target: *Target, name: string_view, value: bool) {
+	if !target then panic("Invalid target!");
+	if name.len == 0 then panic("Invalid constant name!");
+
+	__add_bool_user_define(target, strtoc(name), value);
+}
+
 /// Link dynamic library. Only name is required (without extension and prefix). Compiler will lookup
 /// for this library in working directory, system `PATH` and `LINKER_LIB_PATH` variable specified
 /// in `bl.conf` file. You might add custom search locations using `add_lib_path` function.
@@ -487,6 +495,7 @@ C :: #import "libc";
 
 __add_target :: fn (name: *C.char, kind: C.int) *Target #extern;
 __add_unit :: fn (target: *Target, filepath: *C.char) #extern;
+__add_bool_user_define :: fn (target: *Target, name: *C.char, value: bool) #extern;
 __compile :: fn (target: *Target) C.int #extern;
 __compile_all :: fn () C.int #extern;
 __add_lib_path :: fn (target: *Target, path: *C.char) #extern;

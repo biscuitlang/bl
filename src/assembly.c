@@ -271,10 +271,12 @@ void target_delete(struct target *target) {
 	arrfree(target->files);
 	arrfree(target->default_lib_paths);
 	arrfree(target->default_libs);
+	arrfree(target->user_defines);
 	str_buf_free(&target->out_dir);
 	str_buf_free(&target->default_custom_linker_opt);
 	str_buf_free(&target->module_dir);
 	free(target->name);
+	scfree(&target->string_cache);
 	bfree(target);
 }
 
@@ -378,6 +380,20 @@ s32 target_triple_to_string(const struct target_triple *triple, char *buf, s32 b
 		if (buf) snprintf(buf, MIN(buf_len, len), "%s-%s-%s-%s", arch, vendor, os, env);
 	}
 	return len;
+}
+
+void target_add_bool_user_define(struct target *target, const char *name, bool value) {
+	bassert(name);
+	bassert(target);
+
+	str_t sym_name = make_str_from_c(name);
+	if (sym_name.len < 1) return; // @Incomplete 2025-05-20: Maybe report the fail somehow?
+
+	struct assembly_user_define def;
+	id_init(&def.id, sym_name);
+	def.value = (bool)value;
+
+	arrput(target->user_defines, def);
 }
 
 static void thread_local_init(struct assembly *assembly) {

@@ -12274,6 +12274,12 @@ static void initialize_builtins(struct assembly *assembly) {
 		register_symbol(&ctx, NULL, &builtin_ids[i], ctx.assembly->gscope, true);
 	}
 
+	// Register used defined constants.
+	const struct target *target = assembly->target;
+	for (u32 i = 0; i < arrlenu(target->user_defines); ++i) {
+		add_global_bool(&ctx, &target->user_defines[i].id, false, (bool)target->user_defines[i].value);
+	}
+
 	terminate_context(&ctx);
 }
 

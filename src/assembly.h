@@ -123,6 +123,11 @@ struct module {
 	hash_t        hash;
 };
 
+struct assembly_user_define {
+	struct id id;
+	u64       value;
+};
+
 // ABI sync!!! Keep this updated with target representation in build.bl.
 #define TARGET_COPYABLE_CONTENT                        \
 	enum assembly_kind    kind;                        \
@@ -162,6 +167,7 @@ struct target {
 	array(char *) files;
 	array(char *) default_lib_paths;
 	array(char *) default_libs;
+	array(struct assembly_user_define) user_defines;
 	str_buf_t default_custom_linker_opt;
 	str_buf_t out_dir;
 	str_buf_t module_dir;
@@ -170,6 +176,8 @@ struct target {
 		s32    argc;
 		char **argv;
 	} vm;
+
+	struct string_cache *string_cache;
 
 	bmagic_member
 };
@@ -289,6 +297,7 @@ void           target_set_module_dir(struct target *target,
 bool           target_is_triple_valid(struct target_triple *triple);
 bool           target_init_default_triple(struct target_triple *triple);
 s32            target_triple_to_string(const struct target_triple *triple, char *buf, s32 buf_len);
+void           target_add_bool_user_define(struct target *target, const char *name, bool value);
 
 struct assembly *assembly_new(const struct target *target);
 void             assembly_delete(struct assembly *assembly);

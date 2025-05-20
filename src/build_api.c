@@ -46,6 +46,10 @@ BL_EXPORT void __add_lib_path(struct target *target, const char *path) {
 	target_add_lib_path(target, path);
 }
 
+BL_EXPORT void __add_bool_user_define(struct target *target, const char *name, bool value) {
+	target_add_bool_user_define(target, name, value);
+}
+
 BL_EXPORT s32 __compile(struct target *target) {
 	return builder_compile(target);
 }
