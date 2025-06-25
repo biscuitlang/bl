@@ -2008,9 +2008,9 @@ get_style :: fn {
 
 		edit_body :: if use_light_theme then WHITE else rgba(0x101010ff);
 
-		s.focus_color = if use_light_theme then rgba(0x99D9EAFF) else rgba(0x12678fff);
+		s.focus_color = if use_light_theme then rgba(0x99D9EAFF) else rgba(0x276B6BFF);
 
-		s.label.color              = if use_light_theme then rgba(0x505050ff) else rgba(0xBBBBBBFF);
+		s.label.color              = if use_light_theme then rgba(0x505050ff) else rgba(0xDDDDDDFF);
 		s.label.font               = main_font;
 		s.label.vertical_alignment = VerticalAlign.CENTER;
 
