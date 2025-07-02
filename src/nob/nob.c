@@ -219,7 +219,7 @@ void blc(void) {
 			cmd_append(&cmd, "-O3", "-DNDEBUG");
 		}
 #else
-		cmd_append(&cmd, "-fdiagnostics-color=always", "-D_GNU_SOURCE", "-Wall", "-Wno-address", "-Wno-unused-value", "-Wno-unused-function", "-Wno-multistatement-macros");
+		cmd_append(&cmd, "-fdiagnostics-color=always", "-D_GNU_SOURCE", "-Wall", "-Wno-address", "-Wno-unused-value", "-Wno-unused-function", "-Wno-multistatement-macros", "-pthread");
 		if (IS_DEBUG) {
 			cmd_append(&cmd, "-O0", "-ggdb", "-DBL_DEBUG");
 		} else {
@@ -244,7 +244,7 @@ void blc(void) {
 #ifdef __APPLE__
 		cmd_append(&cmd, "c++", "-arch", "arm64", "-lm", "-mmacosx-version-min=14.3");
 #else
-		cmd_append(&cmd, "c++", "-D_GNU_SOURCE", "-lrt", "-ldl", "-lm", "-rdynamic", "-Wl,--export-dynamic");
+		cmd_append(&cmd, "c++", "-D_GNU_SOURCE", "-lrt", "-ldl", "-lm", "-lpthread", "-rdynamic", "-Wl,--export-dynamic");
 #endif
 
 		for (int i = 0; i < files.count; ++i) {
@@ -262,6 +262,7 @@ void blc(void) {
 		cmd_append(&cmd, LIBZ, LIBZSTD, LIBCURSES);
 #else
 		cmd_append(&cmd, LIBZ, LIBZSTD, LIBTINFO);
+                cmd_append(&cmd, "-ldl", "-lm", "-lpthread");
 #endif
 		cmd_append(&cmd, "-o", BIN_DIR "/blc");
 
