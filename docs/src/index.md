@@ -1,16 +1,9 @@
 # Installation
 
-* Use Pre-built Package
 * Download compiler from [Github](https://github.com/biscuitlang/bl/releases/tag/0.13.0).
 * Unpack downloaded file.
-* Optionally add /path/to/blc/bin to your system PATH.
-* Run blc --help.
-
-# Nightly Build
-
-* You might use a nightly release build (created daily from the current master branch) [Github](https://github.com/biscuitlang/bl/actions/workflows/nightly.yml).
-* Note that the nightly versions might be unstable.
-* Make sure you're using [master](https://biscuitlang.org/versions/master/) documentation.
+* Optionally add `/path/to/blc/bin` to your system `PATH`.
+* Run `blc --help`.
 
 # Build from Source Code
 
