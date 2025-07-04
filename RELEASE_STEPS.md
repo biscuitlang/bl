@@ -1,7 +1,7 @@
 # Release Steps
 
 - Create new branch `release/major.minor.patch`
-- Update CHANGELOG.
+- Update CHANGELOG with master->version number.
 - Run github `release` workflow on newly created branch.
 - Download binaries from the workflow.
 - Generate release documentation.
@@ -13,7 +13,7 @@
   - Upload all build artifacts.
 - Update master version to the next one.
   - Create new changelog entry.
-  - Update project version in `CMakeLists.txt`.
+  - Update project version in `bl/src/nob/nob.c`.
   - Run tests.
   - Push master.
 - Publish new release on github.
