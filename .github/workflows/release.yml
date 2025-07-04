@@ -4,29 +4,16 @@ on:
     branches: [ release/* ]
   workflow_dispatch:
 
-env:
-  VSINSTALLDIR: C:/Program Files/Microsoft Visual Studio/2022/Enterprise/
-
 jobs:
-  windows:
+  windows-release:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: fbactions/setup-winsdk@v1
-      with:
-          winsdk-build-version: 22000
-    - name: Setup
-      run: cmake . -G "Visual Studio 17 2022" -Thost=x64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_VERSION="10.0.22000.0"
-    - name: Compile
-      run: cmake --build . --config Release
-    - name: Run tests
-      run: bin\blc.exe -run doctor.bl
-    - name: Generate documentation
+    - name: Build
+      shell: cmd
       run: |
-        cd docs
-        ..\bin\blc.exe -build
-        .\docs.exe
-        cd ..
+        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        ./build.bat release all
     - name: Prepare package
       shell: powershell
       run: |
@@ -44,47 +31,8 @@ jobs:
         name: blc-x86_64-windows
         path: dist
 
-  macos:
-    runs-on: macOS-14
-    steps:
-    - uses: actions/checkout@v2
-    - name: Download LLVM
-      run: |
-        brew install llvm@18
-        TMP_PATH=$(xcrun --show-sdk-path)/user/include
-        echo "CPATH=$TMP_PATH" >> $GITHUB_ENV
-    - name: Setup
-      run: |
-        LLVM_ROOT=$(brew --prefix llvm@18)
-        cmake . -DCMAKE_BUILD_TYPE=Release -DLLVM_DIR="${LLVM_ROOT}/lib/cmake/llvm"
-    - name: Compile
-      run: cmake --build . --config Release
-    - name: Run tests
-      run: ./bin/blc -run doctor.bl
-    - name: Generate documentation
-      run: |
-        cd docs
-        ../bin/blc -build
-        ./docs
-        cd ..
-    - name: Prepare package
-      run: |
-        mkdir dist
-        cp -r lib dist
-        cp -r bin dist
-        cp -r syntax dist
-        cp -r docs/side dist/docs
-        cp CHANGELOG.txt dist
-        cp LEGAL dist
-        cp LICENSE dist
-        cp README.md dist
-    - uses: actions/upload-artifact@v4
-      with:
-        name: blc-arm64-macos
-        path: dist
-
-  linux:
-    runs-on: ubuntu-20.04
+  linux-release:
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - name: Download LLVM
@@ -92,20 +40,9 @@ jobs:
         wget https://apt.llvm.org/llvm.sh
         chmod +x llvm.sh
         sudo ./llvm.sh 18
-        sudo apt install libzstd-dev
-    - name: Setup
+    - name: Build
       run: |
-        cmake . -DCMAKE_BUILD_TYPE=Release
-    - name: Compile
-      run: cmake --build . --config Release
-    - name: Run tests
-      run: ./bin/blc -run doctor.bl
-    - name: Generate documentation
-      run: |
-        cd docs
-        ../bin/blc -build
-        ./docs
-        cd ..
+        ./build.sh release all
     - name: Prepare package
       run: |
         mkdir dist
@@ -120,4 +57,32 @@ jobs:
     - uses: actions/upload-artifact@v4
       with:
         name: blc-x86_64-linux
+        path: dist
+
+  macos-release:
+    runs-on: macOS-14
+    steps:
+    - uses: actions/checkout@v2
+    - name: Download LLVM
+      run: |
+        brew install llvm@18 zlib ncurses
+        TMP_PATH=$(xcrun --show-sdk-path)/user/include
+        echo "CPATH=$TMP_PATH" >> $GITHUB_ENV
+    - name: Build
+      run: |
+        ./build.sh release all
+    - name: Prepare package
+      run: |
+        mkdir dist
+        cp -r lib dist
+        cp -r bin dist
+        cp -r syntax dist
+        cp -r docs/side dist/docs
+        cp CHANGELOG.txt dist
+        cp LEGAL dist
+        cp LICENSE dist
+        cp README.md dist
+    - uses: actions/upload-artifact@v4
+      with:
+        name: blc-arm64-macos
         path: dist
