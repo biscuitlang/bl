@@ -1,7 +1,10 @@
 # Installation
 
-!!! warning
-	This documentation refers to the current master branch containing unreleased changes. Use nightly build or build from the source.
+* Use Pre-built Package
+* Download compiler from [Github](https://github.com/biscuitlang/bl/releases/tag/0.13.0).
+* Unpack downloaded file.
+* Optionally add /path/to/blc/bin to your system PATH.
+* Run blc --help.
 
 # Nightly Build
 
