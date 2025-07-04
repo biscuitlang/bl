@@ -1,3 +1,10 @@
+master
+---------------------------------------------------------------------------------------
+[Compiler]
+[Modules]
+[Documentation]
+[Deprecated]
+
 0.13.0 - 2025-07-04
 ---------------------------------------------------------------------------------------
 
@@ -5,7 +12,7 @@
 
 - Change build system.
 
-	In order to get rid of CMake as dependency, a new custom build system was implemened
+	In order to get rid of CMake as dependency, a new custom build system was implemented
 	using 'nob' as the base "library". In fact, it's just a bunch of helper functions
 	implemented in C, thus whole new build system is implemented in the same language as
 	the compiler itself. This way we don't need special DSL to handle compilation process.
@@ -39,7 +46,7 @@
 
 	The import policy (originally used to allow automatic bundling of used modules into the
 	project local module directory) was removed. In general it was unnecessary complexity in
-	the build system I've never used. Note that the same behaviour can be still achieved by
+	the build system I've never used. Note that the same behavior can be still achieved by
 	manual copying of required modules into the custom module directory.
 
 - Remove named scopes (introduced by #scope directive).
@@ -66,10 +73,10 @@
 - Fix module import and load to not use current working directory implicitly.
 - Fix reports of ambiguous symbols coming from module imports in case we have symbols
   with the same name in current module.
-- Module congifuration use comma separators on all platforms.
+- Module configuration use comma separators on all platforms.
 - Add new examples into 'how-to' showing how to do static and dynamic linking of external
   libraries.
-- Nob on linux tries to fallback to `llvm-config` in case `llvm-config-X` wasnt found.
+- Nob on linux tries to fallback to `llvm-config` in case `llvm-config-X` wasn't found.
 - Add LLVM version check on linux.
 - Add more search paths for compiler dependencies on linux.
 
@@ -148,7 +155,7 @@
 	if true then a :: 10; // This is not possible, variable would be useless.
 
 - Build option `copy_deps` now copy only non-system dependencies.
-- rpath is now set for all libraries comming from module dependencies on Linux.
+- rpath is now set for all libraries coming from module dependencies on Linux.
 - Extra module dependencies are now dynamically linked on Linux to prevent linking issues and
   collisions. This might change in the future.
 - Fix "assume macOS" linker warning on Mac (run `blc --configure`).
@@ -186,7 +193,7 @@ build.bl:
 - Add link_static_library. This function just formats name of static library based on current
   platform and use append_linker_options to adjust linker arguments.
 - Add link_framework. For linking of macOS frameworks.
-- Add add_framework_path. For adding search path for macOS framewors.
+- Add add_framework_path. For adding search path for macOS frameworks.
 - Add `get_default_module_dir` function to resolve default location of modules shipped with
   the compiler.
 
