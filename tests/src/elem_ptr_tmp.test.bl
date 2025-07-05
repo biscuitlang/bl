@@ -1,0 +1,50 @@
+#scope_private
+
+data :: [2]s32.{ 1, 2 };
+
+get_slice :: fn () []s32 {
+	return data;
+}
+
+get_arr :: fn () [2]s32 {
+	return data;
+}
+
+get_darr :: fn () [..]s32 {
+	arr: [..]s32;
+	arr.len = 2;
+	arr.ptr = data.ptr;
+
+	return arr;
+}
+
+
+s :: "ab";
+get_str :: fn () string {
+
+	str: string;
+	str.len = 2;
+	str.ptr = s.ptr;
+
+	return str;
+}
+
+slice :: fn () #test {
+	test_eq(get_slice()[0], 1);
+	test_eq(get_slice()[1], 2);
+}
+
+arr :: fn () #test {
+	test_eq(get_arr()[0], 1);
+	test_eq(get_arr()[1], 2);
+}
+
+darr :: fn () #test {
+	test_eq(get_darr()[0], 1);
+	test_eq(get_darr()[1], 2);
+}
+
+str :: fn () #test {
+	test_eq(get_str()[0], 'a');
+	test_eq(get_str()[1], 'b');
+}

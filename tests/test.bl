@@ -1,12 +1,15 @@
 #import "std/print"
 
-foo :: fn (x: s32, a: s32, b := 0) {
+foo :: fn () (s32, Error) {
+	return 1, OK;
+}
+
+Data :: struct {
+	a: s32;
 }
 
 main :: fn () s32 {
-
-	a := 10;
-	foo(20, if a == 10 then 1 else 2);
-
+	data: Data;
+	data.a = foo() catch panic($);
 	return 0;
 }

@@ -28,6 +28,7 @@
 #define IMPL_CALL_LOC        cstr(".call.loc")
 #define IMPL_RET_TMP         cstr(".ret")
 #define IMPL_CALL_TMP        cstr(".call.tmp")
+#define IMPL_ELEM_TMP        cstr(".elem.tmp")
 #define IMPL_TOSLICE_TMP     cstr(".toslice")
 
 #define PASS                    \
@@ -5112,6 +5113,12 @@ struct result analyze_instr_vargs(struct context *ctx, struct mir_instr_vargs *v
 	return_zone(PASS);
 }
 
+static void report_invalid_elem_type(struct ast *node, struct mir_type *type) {
+	str_buf_t invalid_type_name = mir_type2str(type, /* prefer_name */ true);
+	report_error(INVALID_TYPE, node, "Expected array or slice type, given '%s'.", str_buf_to_c(invalid_type_name));
+	put_tmp_str(invalid_type_name);
+}
+
 struct result analyze_instr_elem_ptr(struct context *ctx, struct mir_instr_elem_ptr *elem_ptr) {
 	zone();
 	if (analyze_slot(ctx, analyze_slot_conf_default, &elem_ptr->index, ctx->builtin_types->t_s64) != ANALYZE_PASSED) {
@@ -5123,10 +5130,37 @@ struct result analyze_instr_elem_ptr(struct context *ctx, struct mir_instr_elem_
 	bassert(arr_ptr->value.type);
 
 	if (!mir_is_pointer_type(arr_ptr->value.type)) {
-		report_error(INVALID_TYPE, elem_ptr->arr_ptr->node, "Expected array type or slice.");
-		return_zone(FAIL);
+		// GEP instruction requires source value to be pointer, this might not be fulfilled in case the
+		// source is produced by call instruction. We have to allocate temporary and take its address here.
+		
+		if (arr_ptr->value.type->kind == MIR_TYPE_VOID) {
+			report_invalid_elem_type(arr_ptr->node, arr_ptr->value.type);
+			return_zone(FAIL);
+		}
+
+		// @Note 2025-07-05: We do not store temp variable into elem_ptr because we later don't postpone
+		//                   analyze of this instruction, we must save it in case this analyze call is
+		//                   multi-pass to prevent generation of multiple temp vars!!!
+
+		// @Incomplete 2025-07-05: Handle comptime?
+		struct mir_instr *tmp_var = create_instr_decl_var_impl(ctx,
+		                                                       &(create_instr_decl_var_impl_args_t){
+		                                                           .name = unique_name(ctx, IMPL_ELEM_TMP),
+		                                                           .init = arr_ptr,
+		                                                       });
+		insert_instr_before(&elem_ptr->base, tmp_var);
+		analyze_instr_rq(ctx, tmp_var);
+
+		tmp_var = create_instr_decl_direct_ref(ctx, arr_ptr->node, tmp_var);
+		insert_instr_before(&elem_ptr->base, tmp_var);
+		analyze_instr_rq(ctx, tmp_var);
+
+		elem_ptr->arr_ptr = ref_instr(tmp_var);
+		arr_ptr           = elem_ptr->arr_ptr; // update orig value
 	}
 
+	// Either value is already pointer or we've generated direct reference to temporary which is guaranteed to be
+	// a pointer.
 	struct mir_type *arr_type = mir_deref_type(arr_ptr->value.type);
 	bassert(arr_type);
 
@@ -5169,8 +5203,9 @@ struct result analyze_instr_elem_ptr(struct context *ctx, struct mir_instr_elem_
 		elem_ptr->base.value.type = elem_type;
 		break;
 	}
+
 	default: {
-		report_error(INVALID_TYPE, arr_ptr->node, "Expected array or slice type.");
+		report_invalid_elem_type(arr_ptr->node, arr_type);
 		return_zone(FAIL);
 	}
 	}
