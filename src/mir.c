@@ -5122,13 +5122,43 @@ struct result analyze_instr_elem_ptr(struct context *ctx, struct mir_instr_elem_
 	bassert(arr_ptr);
 	bassert(arr_ptr->value.type);
 
-	if (!mir_is_pointer_type(arr_ptr->value.type)) {
-		report_error(INVALID_TYPE, elem_ptr->arr_ptr->node, "Expected array type or slice.");
+	const bool require_tmp = arr_ptr->kind == MIR_INSTR_CALL && !mir_is_pointer_type(arr_ptr->value.type);
+
+	struct mir_type *arr_type = mir_is_pointer_type(elem_ptr->arr_ptr->value.type) ? mir_deref_type(arr_ptr->value.type) : arr_ptr->value.type;
+	bassert(arr_type);
+
+	if (!mir_is_array_type(arr_type)) {
+		str_buf_t invalid_type_name = mir_type2str(arr_type, /* prefer_name */ true);
+		report_error(INVALID_TYPE, arr_ptr->node, "Expected array or slice type, given '%s'.", str_buf_to_c(invalid_type_name));
+		put_tmp_str(invalid_type_name);
 		return_zone(FAIL);
 	}
 
-	struct mir_type *arr_type = mir_deref_type(arr_ptr->value.type);
-	bassert(arr_type);
+	if (require_tmp) {
+		// GEP instruction requires source value to be pointer, this might not be fulfilled in case the
+		// source is produced by call instruction. We have to allocate temporary and take its address here.
+
+		bassert(arr_ptr->kind == MIR_INSTR_CALL);
+		struct mir_instr_call *call    = (struct mir_instr_call *)arr_ptr;
+		struct mir_instr      *tmp_var = call->tmp_var;
+		if (!tmp_var) {
+			tmp_var = create_instr_decl_var_impl(ctx,
+			                                     &(create_instr_decl_var_impl_args_t){
+			                                         .name = unique_name(ctx, IMPL_CALL_TMP),
+			                                         .init = arr_ptr,
+			                                     });
+			insert_instr_after(arr_ptr, tmp_var);
+			analyze_instr_rq(ctx, tmp_var);
+			call->tmp_var = tmp_var;
+		}
+
+		tmp_var = create_instr_decl_direct_ref(ctx, arr_ptr->node, tmp_var);
+		insert_instr_before(&elem_ptr->base, tmp_var);
+		analyze_instr_rq(ctx, tmp_var);
+
+		elem_ptr->arr_ptr = ref_instr(tmp_var);
+		arr_ptr           = elem_ptr->arr_ptr; // update orig value
+	}
 
 	switch (arr_type->kind) {
 	case MIR_TYPE_ARRAY: {
@@ -5169,9 +5199,9 @@ struct result analyze_instr_elem_ptr(struct context *ctx, struct mir_instr_elem_
 		elem_ptr->base.value.type = elem_type;
 		break;
 	}
+
 	default: {
-		report_error(INVALID_TYPE, arr_ptr->node, "Expected array or slice type.");
-		return_zone(FAIL);
+		babort("Unexpected type");
 	}
 	}
 
@@ -5404,7 +5434,7 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 	}
 
 	bool additional_load_needed = false;
-	if (target_type->kind == MIR_TYPE_PTR) {
+	if (mir_is_pointer_type(target_type)) {
 		// We try to access structure member via pointer so we need one more load.
 		additional_load_needed = true;
 		target_type            = mir_deref_type(target_type);
@@ -5412,7 +5442,7 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 	}
 
 	const enum mir_instr_kind target_kind = member_ptr->target_ptr->kind;
-	const bool                require_tmp = (target_kind == MIR_INSTR_CALL || target_kind == MIR_INSTR_CONST) && !mir_is_pointer_type(member_ptr->target_ptr->value.type);
+	const bool                require_tmp = target_kind == MIR_INSTR_CALL && !mir_is_pointer_type(member_ptr->target_ptr->value.type);
 
 	// struct type
 	if (mir_is_composite_type(target_type)) {
@@ -5426,7 +5456,8 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 			analyze_instr_rq(ctx, member_ptr->target_ptr);
 		}
 
-		if (require_tmp && target_kind == MIR_INSTR_CALL) {
+		if (require_tmp) {
+			bassert(target_kind == MIR_INSTR_CALL);
 			struct mir_instr_call *call    = (struct mir_instr_call *)member_ptr->target_ptr;
 			struct mir_instr      *tmp_var = call->tmp_var;
 			if (!tmp_var) {
@@ -5447,8 +5478,6 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 			}
 
 			member_ptr->target_ptr = tmp_var;
-		} else if (require_tmp && target_kind == MIR_INSTR_CONST) {
-			// Nothing here...
 		}
 
 		struct id          *rid   = &ast_member_ident->data.ident.id;

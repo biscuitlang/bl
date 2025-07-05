@@ -1,0 +1,6 @@
+// @ERR_INVALID_TYPE@
+foo :: fn () type #comptime { return s32; }
+main :: fn () s32 {
+	foo()[0];
+	return 0;
+}

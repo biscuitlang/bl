@@ -1009,6 +1009,22 @@ static inline bool mir_is_composite_type(const struct mir_type *type) {
 	return false;
 }
 
+static inline bool mir_is_array_type(const struct mir_type *type) {
+	switch (type->kind) {
+		case MIR_TYPE_ARRAY:
+		case MIR_TYPE_SLICE:
+		case MIR_TYPE_STRING:
+		case MIR_TYPE_VARGS:
+		case MIR_TYPE_DYNARR:
+		return true;
+
+		default:
+		break;
+	}
+
+	return false;
+}
+
 static inline struct mir_type *mir_get_struct_elem_type(const struct mir_type *type, usize i) {
 	bassert(mir_is_composite_type(type) && "Expected structure type");
 	mir_members_t *members = type->data.strct.members;

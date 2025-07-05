@@ -1,12 +1,17 @@
 #import "std/print"
 
-foo :: fn (x: s32, a: s32, b := 0) {
+foo :: fn () [2]s32 #comptime {
+	return .{ 1, 2 };
+}
+
+bar :: fn () [2]s32 {
+	return .{ 1, 2 };
+}
+
+baz :: fn () {
 }
 
 main :: fn () s32 {
-
-	a := 10;
-	foo(20, if a == 10 then 1 else 2);
-
+	i :: baz()[0];
 	return 0;
 }
