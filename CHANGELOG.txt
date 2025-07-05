@@ -1,6 +1,17 @@
 master
 ---------------------------------------------------------------------------------------
 [Compiler]
+
+- Generate temporary for array element access on value returned from a function, thus
+  array can be indexed directly without need of explicit local intermediate variable.
+
+	foo :: fn () []s32 {}
+	main :: fn () s32 {
+		i :: foo()[1];
+		return 0;
+	}
+
+
 [Modules]
 [Documentation]
 [Deprecated]
