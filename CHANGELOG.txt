@@ -13,6 +13,10 @@ master
 
 
 [Modules]
+
+std/print:
+- Fix rounding of formatted floats.
+
 [Documentation]
 [Deprecated]
 

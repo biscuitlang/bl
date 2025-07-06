@@ -85,6 +85,13 @@ test_fmt_f32 :: fn () #test {
 	}
 
 	{
+		str :: sprint("%", fmt_real(0.f, 2));
+		defer str_terminate(&str);
+
+		test_eq(str, "0.00");
+	}
+
+	{
 		str :: sprint("%", fmt_real(10.12f, 2));
 		defer str_terminate(&str);
 
@@ -117,6 +124,20 @@ test_fmt_f32 :: fn () #test {
 		defer str_terminate(&str);
 
 		test_eq(str, "0.121234");
+	}
+
+	{
+		str :: sprint("%", fmt_real(0.999999f, -1));
+		defer str_terminate(&str);
+
+		test_eq(str, "0.999999");
+	}
+
+	{
+		str :: sprint("%", fmt_real(0.999f, 3));
+		defer str_terminate(&str);
+
+		test_eq(str, "0.999");
 	}
 }
 

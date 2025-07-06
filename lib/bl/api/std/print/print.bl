@@ -1,31 +1,3 @@
-// =================================================================================================
-// bl
-//
-// File:   print.bl
-// Author: Martin Dorazil
-// Date:   3/8/19
-//
-// Copyright 2019 Martin Dorazil
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
-// =================================================================================================
-
 //! # Print
 //!
 //! `#import "std/print"`
@@ -635,13 +607,20 @@ print_u64 :: fn (buf: *?T, cur: *s32, v: u64, base: FmtIntBase, digits: s32, pri
 print_f64 :: fn (buf: *?T, cur: *s32, v: f64, trailing: s32) {
 	adjusted_trailing := trailing;
 	if adjusted_trailing < 0 { adjusted_trailing = DEFAULT_REAL_TRAILING; }
-	ipart :: cast(u64) v;
-	fpart := v - cast(f64) ipart;
+	assert(adjusted_trailing >= 0);
+
+	// @Incomplete 2025-07-06: The u64 might overflow for very large or very small
+	//                         fp numbers, we must print such numbers using exponets.
+
+	scale :: pow(10.0, auto adjusted_trailing);
+	rounded :: cast(u64) round(v * scale);
+	ipart :: rounded / cast(u64) scale;
+	fpart :: rounded - (ipart * cast(u64) scale);
+
 	print_u64(buf, cur, ipart, FmtIntBase.DEC, 1);
 	if adjusted_trailing != 0 {
 		print_string(buf, cur, ".");
-		fpart = fpart * pow(10., auto adjusted_trailing);
-		print_u64(buf, cur, cast(u64) round(fpart), FmtIntBase.DEC, adjusted_trailing);
+		print_u64(buf, cur, fpart, FmtIntBase.DEC, adjusted_trailing);
 	}
 }
 

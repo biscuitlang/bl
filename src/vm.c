@@ -2755,9 +2755,7 @@ f64 vm_read_double(const struct mir_type *type, vm_stack_ptr_t src) {
 	const usize size = type->store_size_bytes;
 	bassert(src && "Attempt to read null source!");
 	bassert(size == sizeof(f64) && "Target type is not f64 type!");
-	f64 result = 0;
-	memcpy(&result, src, size);
-	return result;
+	return *((f64*)src);
 }
 
 vm_stack_ptr_t vm_read_ptr(const struct mir_type *type, vm_stack_ptr_t src) {
@@ -2774,9 +2772,7 @@ f32 vm_read_float(const struct mir_type *type, vm_stack_ptr_t src) {
 	bassert(src && "Attempt to read null source!");
 	bassert(size == sizeof(f32) && "Target type is not f64 type!");
 
-	f32 result = 0;
-	memcpy(&result, src, size);
-	return result;
+	return *((f32*)src);
 }
 
 str_t vm_read_string(struct virtual_machine *vm, const struct mir_type *type, vm_stack_ptr_t src) {
