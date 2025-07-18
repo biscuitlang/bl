@@ -1,17 +1,5 @@
 #import "std/print"
 
-foo :: fn () [2]s32 #comptime {
-	return .{ 1, 2 };
-}
-
-bar :: fn () [2]s32 {
-	return .{ 1, 2 };
-}
-
-baz :: fn () {
-}
-
 main :: fn () s32 {
-	i :: baz()[0];
 	return 0;
 }

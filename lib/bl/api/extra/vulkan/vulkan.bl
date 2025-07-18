@@ -87,7 +87,7 @@ VK_REMAINING_ARRAY_LAYERS         : u32 : ~0;
 VK_REMAINING_MIP_LEVELS           : u32 : ~0;
 VK_SUBPASS_EXTERNAL               : u32 : ~0;
 VK_TRUE                           : u32 : 1;
-VK_WHOLE_SIZE                     : u64 : ~0;
+VK_WHOLE_SIZE                     : u64 : 0xffffffffffffffff;
 VK_MAX_MEMORY_TYPES               : u32 : 32;
 VK_MAX_PHYSICAL_DEVICE_NAME_SIZE  : u32 : 256;
 VK_UUID_SIZE                      : u32 : 16;

@@ -11,6 +11,8 @@ master
 		return 0;
 	}
 
+- Add #maybe_unused for enum and union type declarations.
+- Allow #base on unions.
 
 [Modules]
 

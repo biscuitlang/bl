@@ -1744,7 +1744,7 @@ struct ast *parse_type_enum(struct context *ctx) {
 
 	// parse flags
 	{
-		u32 accepted = HD_COMPILER | HD_FLAGS;
+		u32 accepted = HD_COMPILER | HD_FLAGS | HD_MAYBE_UNUSED;
 		u32 flags    = 0;
 		while (true) {
 			enum hash_directive_flags found = HD_NONE;
@@ -2155,7 +2155,7 @@ struct ast *parse_type_struct(struct context *ctx) {
 	const bool is_union = tok_struct->sym == SYM_UNION;
 
 	// parse flags
-	u32         accepted       = is_union ? 0 : HD_COMPILER | HD_BASE | HD_MAYBE_UNUSED;
+	u32         accepted       = is_union ? HD_BASE | HD_MAYBE_UNUSED : HD_COMPILER | HD_BASE | HD_MAYBE_UNUSED;
 	u32         flags          = 0;
 	struct ast *base_type_expr = NULL;
 	while (true) {
