@@ -59,6 +59,19 @@ WINDOW_METAL : WindowFlags :                0x0000000020000000;
 WINDOW_TRANSPARENT : WindowFlags :          0x0000000040000000;
 WINDOW_NOT_FOCUSABLE : WindowFlags :        0x0000000080000000;
 
+DisplayMode :: struct {
+	displayID: DisplayID;            /**< the display this mode is associated with */
+	format: PixelFormat;             /**< pixel format */
+	w: s32;                          /**< width */
+	h: s32;                          /**< height */
+	pixel_density: f32;            /**< scale converting size to pixels (e.g. a 1920x1080 mode with 2.0 scale would have 3840x2160 pixels) */
+	refresh_rate: f32;             /**< refresh rate (or 0.0f for unspecified) */
+	refresh_rate_numerator: s32;     /**< precise refresh rate numerator (or 0 for unspecified) */
+	refresh_rate_denominator: s32;   /**< precise refresh rate denominator */
+
+	internal: *u8;  /**< Private */
+}
+
 /**
 * The SDL virtual key representation.
 *
@@ -1373,7 +1386,12 @@ DialogFileFilter :: struct {
 }
 
 ShowOpenFileDialog :: fn (callback: DialogFileCallback, userdata: *u8, window: *Window, filters: *DialogFileFilter, nfilters: s32, default_location: *C.char, allow_many: bool) #extern "SDL_ShowOpenFileDialog";
-
+GetFullscreenDisplayModes :: fn (displayID: DisplayID, count: *s32) **DisplayMode #extern "SDL_GetFullscreenDisplayModes";
+GetDesktopDisplayMode :: fn (displayID: DisplayID) *DisplayMode #extern "SDL_GetDesktopDisplayMode";
+GetCurrentDisplayMode :: fn (displayID: DisplayID) *DisplayMode #extern "SDL_GetCurrentDisplayMode";
+SetWindowFullscreenMode :: fn (window: *Window, mode: *DisplayMode) bool #extern "SDL_SetWindowFullscreenMode";
+GetWindowFullscreenMode :: fn (window: *Window) *DisplayMode #extern "SDL_GetWindowFullscreenMode";
+SyncWindow :: fn (window: *Window) bool #extern "SDL_SyncWindow";
 
 //
 // Vulkan

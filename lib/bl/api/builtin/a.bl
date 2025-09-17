@@ -365,11 +365,20 @@ enum_count :: fn (T: type #comptime) s64 #comptime {
 	return (cast(*TypeInfoEnum)info).variants.len;
 }
 
+/// Resolve enum variant name.
 enum_variant_name :: fn (T: type #comptime, index: s64) string_view #inline {
 	info :: cast(*TypeInfoEnum) typeinfo(T);
 	static_assert(info.kind == TypeKind.ENUM);
 	assert(index < info.variants.len);
 	return info.variants[index].name;
+}
+
+/// Resolve enum variant value.
+enum_variant_value :: fn (T: type #comptime, index: s64) T #inline {
+	info :: cast(*TypeInfoEnum) typeinfo(T);
+	static_assert(info.kind == TypeKind.ENUM);
+	assert(index < info.variants.len);
+	return auto info.variants[index].value;
 }
 
 /// Returns `true` if the `T` type is an integer type.

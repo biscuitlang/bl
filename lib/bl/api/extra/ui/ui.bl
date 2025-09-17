@@ -2008,7 +2008,7 @@ get_style :: fn {
 
 		edit_body :: if use_light_theme then WHITE else rgba(0x101010ff);
 
-		s.focus_color = if use_light_theme then rgba(0xFF0027FF) else rgba(0x276B6BFF);
+		s.focus_color = if use_light_theme then rgba(0x3282F6FF) else rgba(0x276B6BFF);
 
 		s.label.color              = if use_light_theme then rgba(0x101010ff) else rgba(0xDDDDDDFF);
 		s.label.font               = main_font;
