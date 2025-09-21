@@ -1,5 +1,7 @@
 # Struct Metadata (21-09-2025)
 
+[Full source](https://github.com/biscuitlang/bl/blob/master/docs/src/examples/struct_metadata.bl)
+
 ## Introduction
 
 One of the common requirements for modern languages is support for serialization, or at least some methods to make it easier. In BL, we can use compile-time generated type information to iterate over structure members, retrieving their types, offsets, and other type-related information to introduce some automation into the scene. This way, any general type can be easily serialized into JSON, XML, or UI form out of the box using type info, memory offsets, and pointers. Consider the print function, utilizing this to simply print any type passed without the need for explicit formatting strings, like in C. One downside, for more complex systems, is the lack of possibility to attach arbitrary metadata to struct members. On the one hand, we don’t want to limit the amount of user data injected into the type system; on the other hand, we want to keep type system memory requirements relatively low. Thus, the only possibility for the user right now is to use structure member tags. A tag is a simple 64-bit number baked into the struct member type information. Consider the following example:
