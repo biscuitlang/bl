@@ -161,7 +161,7 @@ static void llvm_init(struct assembly *assembly) {
 	}
 	LLVMTargetMachineRef llvm_tm = LLVMCreateTargetMachine(llvm_target, triple, cpu, features, opt_to_LLVM(assembly->target->opt), reloc_mode, LLVMCodeModelDefault);
 	LLVMTargetDataRef    llvm_td = LLVMCreateTargetDataLayout(llvm_tm);
-	assembly->llvm.ctx           = llvm_context_create();
+	assembly->llvm.ctx           = llvm_context_create(llvm_td);
 	assembly->llvm.TM            = llvm_tm;
 	assembly->llvm.TD            = llvm_td;
 	assembly->llvm.triple        = triple;

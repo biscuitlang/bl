@@ -134,6 +134,7 @@ static LLVMMetadataRef DI_unit_init(struct context *ctx, struct unit *unit);
 // =================================================================================================
 static enum state   emit_instr(struct context *ctx, struct mir_instr *instr);
 static LLVMValueRef emit_const_string(struct context *ctx, const str_t s);
+static LLVMValueRef emit_const_byte_blob(struct context *ctx, struct mir_type *elem_type, const u8 *ptr, s64 len);
 static enum state   emit_instr_binop(struct context *ctx, struct mir_instr_binop *binop);
 static enum state   emit_instr_phi(struct context *ctx, struct mir_instr_phi *phi);
 static enum state   emit_instr_set_initializer(struct context *ctx, struct mir_instr_set_initializer *si);
@@ -861,6 +862,31 @@ LLVMValueRef emit_const_string(struct context *ctx, const str_t s) {
 	struct mir_type *len_type = mir_get_struct_elem_type(type, 0);
 	values[0]                 = LLVMConstInt(get_type(ctx, len_type), (uint64_t)s.len, true);
 	values[1]                 = llvm_str;
+	return_zone(LLVMConstNamedStruct(get_type(ctx, type), values, static_arrlenu(values)));
+}
+
+LLVMValueRef emit_const_byte_blob(struct context *ctx, struct mir_type *elem_type, const u8 *ptr, s64 len) {
+	zone();
+	struct mir_type *type      = ctx->builtin_types->t_string_literal;
+	LLVMValueRef     llvm_data = NULL;
+	if (len) {
+		LLVMValueRef llvm_data_content = llvm_const_byte_blob_in_context(ctx->llvm_cnt, get_type(ctx, elem_type), ptr, len);
+
+		llvm_data = LLVMAddGlobal(ctx->llvm_module, LLVMTypeOf(llvm_data_content), ".raw");
+		LLVMSetInitializer(llvm_data, llvm_data_content);
+		LLVMSetLinkage(llvm_data, LLVMPrivateLinkage);
+		LLVMSetGlobalConstant(llvm_data, true);
+	} else {
+		// null string content
+		struct mir_type *data_type = mir_get_struct_elem_type(type, 1);
+		llvm_data                  = LLVMConstNull(get_type(ctx, data_type));
+	}
+
+	LLVMValueRef values[2];
+
+	struct mir_type *len_type = mir_get_struct_elem_type(type, 0);
+	values[0]                 = LLVMConstInt(get_type(ctx, len_type), (uint64_t)len, true);
+	values[1]                 = llvm_data;
 	return_zone(LLVMConstNamedStruct(get_type(ctx, type), values, static_arrlenu(values)));
 }
 
@@ -2669,16 +2695,18 @@ enum state emit_instr_const(struct context *ctx, struct mir_instr_const *c) {
 		break;
 	}
 	case MIR_TYPE_SLICE: {
+		vm_stack_ptr_t len_ptr = vm_get_struct_elem_ptr(ctx->assembly, type, c->base.value.data, 0);
+		vm_stack_ptr_t str_ptr = vm_get_struct_elem_ptr(ctx->assembly, type, c->base.value.data, 1);
+		const s64      len     = vm_read_as(s64, len_ptr);
+		char          *str     = vm_read_as(char *, str_ptr);
+
 		if (type->data.strct.is_string_literal) {
-			vm_stack_ptr_t len_ptr = vm_get_struct_elem_ptr(ctx->assembly, type, c->base.value.data, 0);
-			vm_stack_ptr_t str_ptr = vm_get_struct_elem_ptr(ctx->assembly, type, c->base.value.data, 1);
-			const s64      len     = vm_read_as(s64, len_ptr);
-			char          *str     = vm_read_as(char *, str_ptr);
-			llvm_value             = emit_const_string(ctx, make_str(str, len));
+			llvm_value = emit_const_string(ctx, make_str(str, len));
 		} else {
-			// Only string literals can be represented as constant for now! Other slices are not
-			// handled.
-			BL_UNIMPLEMENTED;
+			struct mir_type *element_type = mir_get_struct_elem_type(type, MIR_SLICE_PTR_INDEX);
+			element_type                  = mir_deref_type(element_type);
+
+			llvm_value = emit_const_byte_blob(ctx, element_type, (const u8 *)str, len);
 		}
 		break;
 	}

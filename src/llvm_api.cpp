@@ -45,12 +45,15 @@ _SHUT_UP_END
 using namespace llvm;
 
 struct llvm_context {
-	LLVMContext ctx;
-	std::mutex  lock;
+	LLVMContext       ctx;
+	LLVMTargetDataRef TD;
+	std::mutex        lock;
 };
 
-llvm_context_ref_t llvm_context_create(void) {
-	return new llvm_context();
+llvm_context_ref_t llvm_context_create(LLVMTargetDataRef TD) {
+	llvm_context_ref_t ctx = new llvm_context();
+	ctx->TD                = TD;
+	return ctx;
 }
 
 void llvm_context_dispose(llvm_context_ref_t ctx) {
@@ -128,6 +131,12 @@ LLVMAttributeRef llvm_create_type_attribute(llvm_context_ref_t ctx, u32 kind, LL
 
 LLVMValueRef llvm_const_string_in_context(llvm_context_ref_t ctx, const str_t str, bool dont_null_terminate) {
 	return wrap(ConstantDataArray::getString(ctx->ctx, StringRef(str.ptr, (size_t)str.len), dont_null_terminate == 0));
+}
+
+LLVMValueRef llvm_const_byte_blob_in_context(llvm_context_ref_t ctx, LLVMTypeRef elem_type_ref, const u8 *ptr, s64 len) {
+	const u64       elem_size_bytes = LLVMSizeOfTypeInBits(ctx->TD, elem_type_ref) / 8;
+	const StringRef data((char *)ptr, (size_t)(len * elem_size_bytes));
+	return wrap(ConstantDataArray::getString(ctx->ctx, data, false));
 }
 
 LLVMTypeRef llvm_struct_type_in_context(llvm_context_ref_t ctx, LLVMTypeRef *elems, u32 elem_num, LLVMBool packed) {

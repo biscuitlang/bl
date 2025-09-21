@@ -13,6 +13,8 @@ master
 
 - Add #maybe_unused for enum and union type declarations.
 - Allow #base on unions.
+- Add support for arbitrary slices to be emitted as binary blobs into executable data segment
+  in compile time.
 
 [Modules]
 

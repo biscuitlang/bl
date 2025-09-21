@@ -1,0 +1,25 @@
+#scope_private
+
+Data :: struct {
+	a: s32;
+	b: s32;
+}
+
+make_blob :: fn (num: s32) []Data #comptime {
+	data :: new_slice(Data, num) catch panic($);
+	loop i := 0; i < num; i += 1 {
+		data[i].a =  i;
+		data[i].b = -i;
+	}
+	return data;
+}
+
+DATA :: make_blob(32);
+
+validate_data :: fn () #test {
+	test_eq(DATA.len, 32);
+	loop i := 0; i < DATA.len; i += 1 {
+		test_eq(DATA[i].a,  i);
+		test_eq(DATA[i].b, -i);
+	}
+}

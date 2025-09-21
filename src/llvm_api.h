@@ -90,7 +90,7 @@ typedef struct llvm_context *llvm_context_ref_t;
 
 // We need these because LLVM C API does not provide length parameter for string names.
 
-llvm_context_ref_t llvm_context_create(void);
+llvm_context_ref_t llvm_context_create(LLVMTargetDataRef TD);
 void               llvm_context_dispose(llvm_context_ref_t ctx);
 void               llvm_lock_context(llvm_context_ref_t ctx);
 void               llvm_unlock_context(llvm_context_ref_t ctx);
@@ -108,6 +108,7 @@ u32                llvm_get_md_kind_id_in_context(llvm_context_ref_t ctx, const 
 LLVMAttributeRef   llvm_create_enum_attribute(llvm_context_ref_t ctx, u32 kind, u64 val);
 LLVMAttributeRef   llvm_create_type_attribute(llvm_context_ref_t ctx, u32 kind, LLVMTypeRef type_ref);
 LLVMValueRef       llvm_const_string_in_context(llvm_context_ref_t ctx, const str_t str, bool dont_null_terminate);
+LLVMValueRef       llvm_const_byte_blob_in_context(llvm_context_ref_t ctx, LLVMTypeRef elem_type_ref, const u8 *ptr, s64 len);
 LLVMTypeRef        llvm_struct_type_in_context(llvm_context_ref_t ctx, LLVMTypeRef *elems, u32 elem_num, LLVMBool packed);
 LLVMModuleRef      llvm_module_create_with_name_in_context(llvm_context_ref_t ctx, const char *name);
 LLVMTypeRef        llvm_intrinsic_get_type(llvm_context_ref_t ctx, u32 id, LLVMTypeRef *types, size_t types_num);

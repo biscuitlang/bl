@@ -29,6 +29,7 @@ compile_commands.json
 /lib/bl/api/std/dlib/_test/test.o
 /lib/bl/api/std/dlib/_test/libtest.dylib
 /lib/bl/api/std/dlib/_test/libtest.so
+lib/bl/api/extra/sdl3/SDL3-3.2.8
 /bl.yaml
 nob.exe
 nob.obj
