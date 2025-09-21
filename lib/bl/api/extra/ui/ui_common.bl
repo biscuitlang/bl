@@ -61,6 +61,7 @@ Style :: struct {
 	checkbox: CheckboxStyle;
 	variants: VariantsStyle;
 	textbox: TextboxStyle;
+	slider: SliderStyle;
 	focus_color: v4;
 }
 
@@ -110,6 +111,13 @@ CheckboxStyle :: struct {
 	off: ButtonStyle;
 	on_icon: string_view;
 	off_icon: string_view;
+}
+
+SliderStyle :: struct {
+	name: LabelStyle;
+	handle: ButtonStyle;
+	button: ButtonStyle;
+	range: v4;
 }
 
 VariantsStyle :: struct {
@@ -192,6 +200,8 @@ ICON_ARROW_LEFT   : u32 : 0x2190;
 ICON_VISIBLE      : u32 : 0xF06E;
 ICON_HIDDEN       : u32 : 0xF070;
 ICON_DELETE       : u32 : 0xF1F8;
+ICON_EDIT         : u32 : 0xF044;
+ICON_LEFT_RIGHT   : u32 : 0x2194;
 
 // Converts the unicode icone ID to utf8 string in the compile time.
 icon_utf8 :: fn (unicode: u32) string_view #inline #comptime {
@@ -216,6 +226,8 @@ generate_icon_charset :: fn (icon_set: *[..]u32) {
 	array_push(icon_set, ICON_VISIBLE);
 	array_push(icon_set, ICON_HIDDEN);
 	array_push(icon_set, ICON_DELETE);
+	array_push(icon_set, ICON_EDIT);
+	array_push(icon_set, ICON_LEFT_RIGHT);
 }
 
 rect_zero :: Rect.{};

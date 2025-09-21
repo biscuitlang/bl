@@ -114,6 +114,9 @@ frame_begin :: fn (viewport_size: v2, dt: f32) {
 	if api.is_lmb_press() {
 		current_keyboard_focus = 0;
 	}
+	if api.is_lmb_release() {
+		mouse_grab = 0;
+	}
 	api.set_cursor(CursorKind.NORMAL);
 }
 
@@ -163,7 +166,6 @@ Window :: struct {
 	z_order: s32;
 	hash: u64;
 	is_moving: bool;
-	is_scrolling: bool;
 	resize: WindowResize;
 }
 
@@ -211,31 +213,34 @@ window_begin :: fn (window: *Window) bool {
 
 	if (!is_flag(window.flags, NO_RESIZE)) {
 		min_size :: v2.{ 50.f , 50.f };
+		step_x :: math.round(mouse.x);
+		step_y :: math.round(mouse.y);
+
 		using WindowResize;
 		switch window.resize {
 			NONE;
 			LEFT {
-				if window.rect.w + window.rect.x - mouse.x > min_size.x {
-					window.rect.w += window.rect.x - mouse.x;
-					window.rect.x = mouse.x;
+				if window.rect.w + window.rect.x - step_x > min_size.x {
+					window.rect.w += window.rect.x - step_x;
+					window.rect.x  = step_x;
 				}
 			}
 			RIGHT {
-				window.rect.w = mouse.x - window.rect.x;
+				window.rect.w = step_x - window.rect.x;
 			}
 			BOTTOM {
-				window.rect.h = mouse.y - window.rect.y;
+				window.rect.h = step_y - window.rect.y;
 			}
 			BOTTOM_LEFT {
-				if window.rect.w + window.rect.x - mouse.x > min_size.x {
-					window.rect.w += window.rect.x - mouse.x;
-					window.rect.x = mouse.x;
+				if window.rect.w + window.rect.x - step_x > min_size.x {
+					window.rect.w += window.rect.x - step_x;
+					window.rect.x = step_x;
 				}
-				window.rect.h = mouse.y - window.rect.y;
+				window.rect.h = step_y - window.rect.y;
 			}
 			BOTTOM_RIGHT {
-				window.rect.w = mouse.x - window.rect.x;
-				window.rect.h = mouse.y - window.rect.y;
+				window.rect.w = step_x - window.rect.x;
+				window.rect.h = step_y - window.rect.y;
 			}
 		}
 
@@ -246,7 +251,7 @@ window_begin :: fn (window: *Window) bool {
 
 	rect := window.rect;
 	lmb_pressed :: api.is_lmb_down();
-	lmb_pressed_over_window :: lmb_pressed && hover.window == window.hash;
+	lmb_pressed_over_window :: lmb_pressed && hover.window == window.hash && (mouse_grab == 0 || mouse_grab == window.hash);
 
 	if lmb_pressed && hover.window != window.hash && is_flag(window.flags, MENU) {
 		window.is_visible = false;
@@ -285,7 +290,8 @@ window_begin :: fn (window: *Window) bool {
 	if !is_flag(window.flags, NO_DECORATION) {
 		bar_color := style.bar_color_no_focus;
 		if is_focused { bar_color = style.bar_color_focus; }
-		title_rect, title_mouse_rect :: push(rect_resized(content_rect, content_rect.w, auto style.bar_height));
+
+		title_rect, title_mouse_rect := push(rect_resized(content_rect, content_rect.w, auto style.bar_height));
 		fill_current_rect(bar_color);
 		title_height = title_rect.h;
 
@@ -301,6 +307,7 @@ window_begin :: fn (window: *Window) bool {
 				window.is_visible = false;
 			}
 			button_x -= button_wh;
+			title_mouse_rect.w -= button_wh;
 		}
 
 		if !is_flag(window.flags, NO_MINIMIZE) { // Minimize button
@@ -314,20 +321,23 @@ window_begin :: fn (window: *Window) bool {
 			{
 				window.is_minimized = !window.is_minimized;
 			}
+			title_mouse_rect.w -= button_wh;
 		}
 
 		// Handle window move
 		if window.resize == WindowResize.NONE && is_point_in_rect(rect_adjusted(title_mouse_rect, 0, 0, -style.bar_height, 0), mouse) {
 			if lmb_pressed_over_window && !is_flag(window.flags, NO_MOVE) {
 				window.is_moving = true;
+				mouse_grab = window.hash;
 				window.move_start.x = mouse.x - window.rect.x;
 				window.move_start.y = mouse.y - window.rect.y;
 			}
 		}
 
 		// Handle window resizing
-		if (!window.is_scrolling) && (!window.is_minimized) && api.is_lmb_press() && (hover.window == window.hash) && (!is_flag(window.flags, NO_RESIZE)) && (window.resize == WindowResize.NONE) {
+		if (mouse_grab == 0 || mouse_grab == window.hash) && (!window.is_minimized) && (hover.window == window.hash) && (!is_flag(window.flags, NO_RESIZE)) && (window.resize == WindowResize.NONE) {
 			offset :: cast(f32) resize_offset * 2.f;
+			prev_resize :: window.resize;
 			if is_point_in_rect(make_rect(mouse_rect.x + mouse_rect.w - offset, mouse_rect.y + mouse_rect.h - offset, offset, offset), mouse) {
 				// bottom-right
 				#if PLATFORM == Platform.WINDOWS {
@@ -369,6 +379,8 @@ window_begin :: fn (window: *Window) bool {
 					window.resize = WindowResize.LEFT;
 				}
 			}
+
+			if window.resize != prev_resize then mouse_grab = window.hash;
 		}
 
 		if api.is_lmb_release() {
@@ -422,7 +434,7 @@ item_title :: fn (rect: Rect, text: string_view, style: *LabelStyle = null) Rect
 // Button
 //
 
-button_begin :: fn (rect: Rect, flags := ButtonFlags.DEFAULT, _style: *ButtonStyle = null, index : u64 = 0, loc := #call_location) (clicked: bool, button_state: *Button, is_hovered: bool) {
+button_begin :: fn (rect: Rect, flags := ButtonFlags.DEFAULT, _style: *ButtonStyle = null, index : u64 = 0, loc := #call_location) (clicked: bool, button_state: *Button, is_hovered: bool, released: bool) {
 	using ButtonState;
 	using ButtonFlags;
 
@@ -446,8 +458,9 @@ button_begin :: fn (rect: Rect, flags := ButtonFlags.DEFAULT, _style: *ButtonSty
 	button_rect, mouse_rect :: push(rect);
 
 	clicked := false;
+	released := false;
 	current_window_hash :: get_current_window_hash();
-	is_mouse_over :: is_disabled == false && hover.elem == hash && current_window_hash == hover.window;
+	is_mouse_over :: (mouse_grab == 0 || mouse_grab == hash) && !is_disabled && hover.elem == hash && current_window_hash == hover.window;
 
 	button.t += dt * 0.01f;
 	button.t = math.clamp(button.t, 0.f, 1.f);
@@ -473,6 +486,7 @@ button_begin :: fn (rect: Rect, flags := ButtonFlags.DEFAULT, _style: *ButtonSty
 			button.effect_to = -1.f;
 			button.t = 0.f;
 			clicked = is_flag(flags, CLICK_ON_PRESS);
+			mouse_grab = hash;
 		}
 	}
 
@@ -483,6 +497,7 @@ button_begin :: fn (rect: Rect, flags := ButtonFlags.DEFAULT, _style: *ButtonSty
 			button.effect_to = 1.f;
 			button.t = 0.f;
 			button.state = HOVER;
+			released = true;
 		}
 	}
 
@@ -518,7 +533,7 @@ button_begin :: fn (rect: Rect, flags := ButtonFlags.DEFAULT, _style: *ButtonSty
 		set_elem_hover(hash);
 	}
 
-	return clicked, button, is_mouse_over;
+	return clicked, button, is_mouse_over, released;
 }
 
 button_end :: fn () #inline {
@@ -563,8 +578,7 @@ scroll_area_begin :: fn (_style: *ScrollAreaStyle = null, index : u64 = 0, loc :
 			area.is_scrolling = (!is_new) && (content_h > content_rect.h);
 			area.move_start.y = mouse.y - (area.rect.y * -ratio);
 
-			current_window := get_current_window();
-			if current_window { current_window.is_scrolling = true; }
+			mouse_grab = hash;
 		}
 		pop(); // pop handle area
 
@@ -573,9 +587,6 @@ scroll_area_begin :: fn (_style: *ScrollAreaStyle = null, index : u64 = 0, loc :
 			area.rect.y = math.ceil(area.rect.y);
 			if api.is_lmb_release() {
 				area.is_scrolling = false;
-
-				current_window := get_current_window();
-				if current_window { current_window.is_scrolling = false; }
 			}
 		} else if hover.scroll_area == hash {
 			changed, offset :: api.get_mouse_scroll_offset();
@@ -679,6 +690,14 @@ list_background_color :: fn (color: v4) v4 #inline {
 checkbox :: fn {
 	checkbox_impl;
 	checkbox_item_impl;
+}
+
+//
+// Slider
+//
+slider :: fn {
+	slider_impl;
+	slider_item_impl;
 }
 
 //
@@ -944,7 +963,17 @@ get_parent_rect :: fn () Rect #inline {
 	return rect_translated(rect);
 }
 
-use_light_theme := false;
+//
+// Misc
+//
+
+is_light_theme_active :: fn () bool #inline {
+	return use_light_theme;
+}
+
+is_mouse_grabbed :: fn () bool #inline {
+	return mouse_grab != 0;
+}
 
 #scope_module
 #import "std/string"
@@ -1046,6 +1075,7 @@ current_style: *Style;
 hover: Hover;
 hover_frame: Hover;
 focus_window: u64;
+mouse_grab: u64;
 
 delta_time: f32;
 
@@ -1067,7 +1097,12 @@ lists:         Table(u64, *List);
 textboxes:     Table(u64, *Textbox);
 color_pickers: Table(u64, *ColorPicker);
 
+slider_in_edit_mode: u64;
+textbox_autofocus := false;
+
 window_stack: [..]*Window;
+
+use_light_theme := false;
 
 get_window_hash :: fn (loc: *CodeLocation, i : u64 = 0) u64 #inline {
 	return hash_combine(cast(u64)loc.hash, i);
@@ -1420,6 +1455,84 @@ checkbox_item_impl :: fn (name: string_view, value: *bool, _style: *CheckboxStyl
 }
 
 //
+// Slider
+//
+slider_impl :: fn (rect: Rect, value: *f32, min := 0.f, max := 1.f, _style: *SliderStyle = null, index : u64 = 0, loc := #call_location) bool {
+	style          :: get_style(_style);
+	hash           :: get_hash(loc, index);
+	mouse          :: api.get_mouse_position();
+
+	icon :: if slider_in_edit_mode == hash then icon_utf8(ICON_LEFT_RIGHT) else icon_utf8(ICON_EDIT);
+	if button(make_rect(rect.x + rect.w - rect.h, rect.y, rect.h, rect.h), icon, ButtonFlags.DEFAULT, &style.button, index+1, loc) {
+		if slider_in_edit_mode == hash {
+			slider_in_edit_mode = 0;
+		} else {
+			slider_in_edit_mode = hash;
+			autofocus_next_textbox();
+		}
+	}
+
+	slider_rect, mouse_area :: push(rect_adjusted(rect, 0.f, 0.f, -rect.h, 0.f));
+	defer pop(1);
+
+	if slider_in_edit_mode != hash {
+		handle_height :: rect.h;
+		handle_width  :: 6.f;
+		handle_half_width :: handle_width * 0.5f;
+		range_height :: 2.f;
+
+		assert(max > min);
+
+		range_rect :: push(make_rect(handle_half_width, slider_rect.h / 2.f - range_height / 2.f, slider_rect.w - handle_width, range_height));
+		fill_current_rect(style.range);
+		pop(1);
+
+		handle_position := math.map(@value, min, max, 0.f, range_rect.w);
+		handle_position  = math.clamp(handle_position, 0.f, range_rect.w);
+		handle_rect :: make_rect(slider_rect.x + handle_position, range_rect.y, handle_width, handle_height);
+
+		clicked, _, _, released  :: button_begin(handle_rect, ButtonFlags.CLICK_ON_PRESS, &style.handle, index, loc);
+		button_end();
+
+		if clicked then mouse_grab = hash;
+
+		new_value := @value;
+
+		if mouse_grab == hash {
+			new_value = math.map(mouse.x - mouse_area.x, 0.f, mouse_area.w, min, max);
+			new_value = math.clamp(new_value, min, max);
+		}
+
+		if new_value != @value {
+			@value = new_value;
+			return true;
+		}
+
+		// Invoke one additional change in case drag ended, so we can apply any potential undo on tracked values only the end of the operation.
+		return released;
+	}
+
+	if floatbox_impl(slider_rect, value, TextboxFlags.DEFAULT, null, index, loc) {
+		@value = math.clamp(@value, min, max);
+		return true;
+	}
+	
+	return false;
+}
+
+slider_item_impl :: fn (name: string_view, value: *f32, min := 0.f, max := 1.f, _style: *SliderStyle = null, index : u64 = 0, loc := #call_location) bool #inline {
+	style :: get_style(_style);
+
+	list_item_begin();
+	defer list_item_end();
+
+	rect :: peek();
+	value_rect :: item_title(rect_translated(rect), name, &style.name);
+	return slider_impl(value_rect, value, min, max, style, index, loc);
+}
+
+
+//
 // Variants Impl
 //
 
@@ -1554,6 +1667,10 @@ textbox_item_impl :: fn (name: string_view, text: *string, flags := TextboxFlags
 	return textbox_impl(value_rect, text, flags, style, out_hash, index, loc);
 }
 
+autofocus_next_textbox :: fn () #inline {
+	textbox_autofocus = true;
+}
+
 textbox_impl :: fn (rect: Rect, text: *string, flags := TextboxFlags.DEFAULT, _style: *TextboxStyle = null, out_hash: *u64 = null, index : u64 = 0, loc := #call_location) bool {
 	style   :: get_style(_style);
 	hash    :: get_hash(loc, index);
@@ -1589,7 +1706,7 @@ textbox_impl :: fn (rect: Rect, text: *string, flags := TextboxFlags.DEFAULT, _s
 	defer pop();
 
 	is_focused_for_first_time := false;
-	if clicked {
+	if clicked || textbox_autofocus {
 		is_focused_for_first_time = last_keyboard_focus != hash;
 		current_keyboard_focus = hash;
 		edit_cursor_phase = 0.f;
@@ -1602,6 +1719,7 @@ textbox_impl :: fn (rect: Rect, text: *string, flags := TextboxFlags.DEFAULT, _s
 		textbox.wait_for_lmb_release = is_focused_for_first_time && is_multiline == false;
 		textbox.last_click_positon   = api.get_mouse_position();
 	}
+	textbox_autofocus = false;
 
 	if textbox.wait_for_lmb_release && api.is_lmb_release() {
 		textbox.wait_for_lmb_release = false;
@@ -2006,7 +2124,7 @@ get_style :: fn {
 		s :: &default_style;
 		current_style = s;
 
-		edit_body :: if use_light_theme then WHITE else rgba(0x101010ff);
+		edit_body :: if use_light_theme then WHITE else rgba(0x1A1A1Aff);
 
 		s.focus_color = if use_light_theme then rgba(0x3282F6FF) else rgba(0x276B6BFF);
 
@@ -2084,6 +2202,13 @@ get_style :: fn {
 		s.textbox.selection_color                  = s.focus_color;
 		s.textbox.scroll_area                      = s.scroll_area;
 
+		s.slider.handle              = s.button;
+		s.slider.button              = s.button;
+		s.slider.button.no_body      = true;
+		s.slider.button.label.font   = icon_font;
+		s.slider.name                = item_name;
+		s.slider.range               = edit_body;
+
 		return s;
 	};
 
@@ -2132,6 +2257,12 @@ get_style :: fn {
 		if style { return style; }
 		s :: get_style();
 		return &s.textbox;
+	};
+
+	fn (style: *SliderStyle) *SliderStyle #inline {
+		if style { return style; }
+		s :: get_style();
+		return &s.slider;
 	};
 }
 
