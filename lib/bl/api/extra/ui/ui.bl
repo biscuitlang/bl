@@ -2206,6 +2206,7 @@ get_style :: fn {
 		s.slider.button              = s.button;
 		s.slider.button.no_body      = true;
 		s.slider.button.label.font   = icon_font;
+		s.slider.button.label.color  = if use_light_theme then rgba(0x333113FF) else rgba(0xDBD350FF);
 		s.slider.name                = item_name;
 		s.slider.range               = edit_body;
 
