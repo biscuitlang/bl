@@ -243,23 +243,25 @@ main :: fn () s32 {
 	generate_menu_entries(&menu, MAIN_MENU);
 
 	loop i := 0; i < MD_PAGES.len; i += 1 {
+		defer temporary_reset();
+
 		page :: MD_PAGES[i];
 		err :: md2html(page, menu, null);
 		if err {
 			print_err(err);
 			return 1;
 		}
-		temporary_reset();
 	}
 
 	loop i := 0; i < MD_PAGES_MODULES.len; i += 1 {
+		defer temporary_reset();
+
 		page :: MD_PAGES_MODULES[i];
 		err :: md2html(page, menu, &search_json);
 		if err {
 			print_err(err);
 			return 1;
 		}
-		temporary_reset();
 	}
 
 	str_append(&search_json, "]");
@@ -282,6 +284,14 @@ main :: fn () s32 {
 	if copy_err {
 		print_err(copy_err);
 		return 1;
+	}
+
+	{ // Generate blog posts
+		defer temporary_reset();
+		md2html("blog", "", null) catch {
+			print_err(err);
+			return 1;
+		};
 	}
 
 	runtime :: measure_elapsed_ms_end("-");

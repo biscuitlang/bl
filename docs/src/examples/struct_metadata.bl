@@ -1,0 +1,50 @@
+#import "std/print"
+
+Unit :: enum { MM; M; KM; }
+
+Meta :: struct {
+	used: bool;
+	unit: Unit;
+	min: s32;
+	max: s32;
+}
+
+meta_reserve :: fn (num: s32) []Meta #comptime {
+	data :: new_slice(Meta, num) catch panic($);
+	return data;
+}
+
+meta :: fn (unit: Unit, min := 0, max := 1000) u64 #comptime {
+	index := 0;
+	loop ; index < META.len; index += 1 {
+		if META[index].used then continue;
+		break;
+	}
+
+	assert(index < META.len && index >= 0);
+	tag :: &META[index];
+	tag.used = true;
+	tag.unit = unit;
+	tag.min  = min;
+	tag.max  = max;
+	return auto index + 1;
+}
+
+META :: meta_reserve(4);
+
+Data :: struct {
+	a: s32 #tag meta(Unit.MM, 10, 60);
+	b: s32 #tag meta(Unit.KM);
+}
+
+main :: fn () s32 {
+	info :: cast(*TypeInfoStruct) typeinfo(Data);
+	loop i := 0; i < info.members.len; i += 1 {
+		member :: &info.members[i];
+		if member.tag > 0 {
+			print("  %\n", META[auto member.tag-1]);
+		}
+	}
+
+	return 0;
+}
