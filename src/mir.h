@@ -393,6 +393,17 @@ struct mir_type_ptr {
 	struct mir_type *expr;
 };
 
+// 2025-09-23: We distinguish incomplete and incomplete with base as an optimization, so we don't have to wait for
+//             struct type to be complete to check bases in case there was no base specified.
+enum mir_type_struct_fwd_state {
+	// Structure is complete type.
+	MIR_TYPE_STRUCT_FWD_COMPLETE,
+	// Structure is incomplete type without base type.
+	MIR_TYPE_STRUCT_FWD_INCOMPLETE,
+	// Structure is incomplete type with base type.
+	MIR_TYPE_STRUCT_FWD_INCOMPLETE_WITH_BASE,
+};
+
 struct mir_type_struct {
 	struct scope  *scope; // struct body scope
 	hash_t         scope_layer;
@@ -401,13 +412,14 @@ struct mir_type_struct {
 	// information.
 	struct mir_type *base_type;
 
+	// Forward declaration struct type state.
+	enum mir_type_struct_fwd_state fwd_state;
+
 	// @Performance: Rewrite to flags.
 	bool is_packed;
 	// C-style union is represented as regular structure with special memory layout. Every
 	// member is stored at same memory offset.
 	bool is_union;
-	// Set true only for incomplete forward declarations of the struct.
-	bool is_incomplete_fwd_struct;
 	// Set true for struct type used as multiple return temporary.
 	bool is_multiple_return_type;
 	// Set true for string literals (represented as slice of u8 values).
@@ -1011,14 +1023,14 @@ static inline bool mir_is_composite_type(const struct mir_type *type) {
 
 static inline bool mir_is_array_type(const struct mir_type *type) {
 	switch (type->kind) {
-		case MIR_TYPE_ARRAY:
-		case MIR_TYPE_SLICE:
-		case MIR_TYPE_STRING:
-		case MIR_TYPE_VARGS:
-		case MIR_TYPE_DYNARR:
+	case MIR_TYPE_ARRAY:
+	case MIR_TYPE_SLICE:
+	case MIR_TYPE_STRING:
+	case MIR_TYPE_VARGS:
+	case MIR_TYPE_DYNARR:
 		return true;
 
-		default:
+	default:
 		break;
 	}
 

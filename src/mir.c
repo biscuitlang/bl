@@ -239,7 +239,7 @@ typedef struct
 static struct mir_type *create_type_struct(struct context *ctx, create_type_struct_args_t *args);
 
 // Create incomplete struct type placeholder to be filled later.
-static struct mir_type *create_type_struct_incomplete(struct context *ctx, struct id *user_id, bool is_union);
+static struct mir_type *create_type_struct_incomplete(struct context *ctx, struct id *user_id, bool has_base);
 
 typedef struct
 {
@@ -596,6 +596,7 @@ static enum vm_interp_state evaluate(struct context *ctx, struct mir_instr *inst
 static struct result        analyze_var(struct context *ctx, struct mir_var *var, const bool check_usage);
 static struct result        analyze_instr(struct context *ctx, struct mir_instr *instr);
 static struct result        analyze_resolve_compound_type(struct context *ctx, struct mir_instr *instr, struct mir_type *type);
+static struct result        analyze_check_incomplete_struct_inheritance_hierarchy(struct mir_instr *instr);
 
 #define analyze_slot(ctx, conf, input, slot_type)                     _analyze_slot((ctx), (conf), NULL, (input), (slot_type), false)
 #define analyze_slot_with_parent(ctx, conf, parent, input, slot_type) _analyze_slot((ctx), (conf), (parent), (input), (slot_type), false)
@@ -894,8 +895,25 @@ static inline bool is_vargs_converting_to_any(struct context *ctx, struct mir_ty
 }
 
 // Determinate if type is incomplete struct type.
-static inline bool is_incomplete_struct_type(struct mir_type *type) {
-	return mir_is_composite_type(type) && type->data.strct.is_incomplete_fwd_struct;
+static inline bool is_incomplete_struct_type(const struct mir_type *type) {
+	return mir_is_composite_type(type) && type->data.strct.fwd_state != MIR_TYPE_STRUCT_FWD_COMPLETE;
+}
+
+static inline bool is_incomplete_struct_type_with_base(const struct mir_type *type) {
+	return mir_is_composite_type(type) && type->data.strct.fwd_state == MIR_TYPE_STRUCT_FWD_INCOMPLETE_WITH_BASE;
+}
+
+// Goes over whole struct base type structure and checks whether base types are complete. Includes
+// check of the root type too.
+static inline struct mir_type *is_incomplete_struct_inheritance_hierarchy(struct mir_type *type) {
+	while (type) {
+		if (!mir_is_composite_type(type)) return NULL;
+		if (type->data.strct.fwd_state == MIR_TYPE_STRUCT_FWD_INCOMPLETE_WITH_BASE) {
+			return type;
+		}
+		type = get_base_type(type);
+	}
+	return NULL;
 }
 
 // Checks whether type is complete type, checks also dependencies. In practice only composite types
@@ -906,7 +924,7 @@ static inline bool is_incomplete_struct_type(struct mir_type *type) {
 //
 // The incomplete_type is optional parameter set in case it's not NULL and the function returns
 // TRUE. It points to the first incomplete type found in the tree.
-static bool is_incomplete_type(struct context *ctx, struct mir_type *type, struct mir_type **incomplete_type) {
+static struct mir_type *is_incomplete_type(struct context *ctx, struct mir_type *type) {
 	zone();
 
 	struct visited_entry {
@@ -966,7 +984,6 @@ static bool is_incomplete_type(struct context *ctx, struct mir_type *type, struc
 DONE:
 	sarrclear(stack);
 	tbl_free(visited);
-	if (incomplete_type) *incomplete_type = first_incomplete_type;
 	type->checked_and_complete = !first_incomplete_type;
 	return_zone(first_incomplete_type);
 }
@@ -1087,6 +1104,11 @@ static inline bool can_impl_cast(const struct mir_type *from, const struct mir_t
 	if (from->kind == MIR_TYPE_PTR) {
 		from = mir_deref_type(from);
 		to   = mir_deref_type(to);
+
+		// 2025-09-23: Implicit struct pointer cast is alowed for child -> parent direction, we need
+		//             complete struct types here to check base structs. Use 'is_incomplete_struct_inheritance_hierarchy'
+		//             before calling this function!
+		bassert(!is_incomplete_struct_type_with_base(from));
 
 		while (from) {
 			if (mir_type_cmp(from, to)) {
@@ -2055,13 +2077,12 @@ static void generate_struct_signature(str_buf_t *name, create_type_struct_args_t
 	str_buf_append(name, cstr("}"));
 }
 
-struct mir_type *create_type_struct_incomplete(struct context *ctx, struct id *user_id, bool is_union) {
+struct mir_type *create_type_struct_incomplete(struct context *ctx, struct id *user_id, bool has_base) {
 	bassert(user_id);
 	str_buf_t name = get_tmp_str();
 	generate_struct_signature(&name,
 	                          &(create_type_struct_args_t){
-	                              .user_id  = user_id,
-	                              .is_union = is_union,
+	                              .user_id = user_id,
 	                          });
 
 	// The user_id is required so we can use cache every time? See comments in create_type_struct.
@@ -2074,11 +2095,10 @@ struct mir_type *create_type_struct_incomplete(struct context *ctx, struct id *u
 
 	result = create_type(ctx, MIR_TYPE_STRUCT, user_id);
 
-	result->id.hash                             = hash;
-	result->id.str                              = scdup2(ctx->string_cache, name);
-	result->can_use_cache                       = true;
-	result->data.strct.is_incomplete_fwd_struct = true;
-	result->data.strct.is_union                 = is_union;
+	result->id.hash              = hash;
+	result->id.str               = scdup2(ctx->string_cache, name);
+	result->can_use_cache        = true;
+	result->data.strct.fwd_state = has_base ? MIR_TYPE_STRUCT_FWD_INCOMPLETE_WITH_BASE : MIR_TYPE_STRUCT_FWD_INCOMPLETE;
 
 	type_init_llvm_struct(ctx, result);
 
@@ -2145,16 +2165,16 @@ static struct mir_type *complete_type_struct(struct context *ctx, complete_type_
 	struct mir_type *incomplete_type = MIR_CEV_READ_AS(struct mir_type *, &args->fwd_decl->value);
 	bmagic_assert(incomplete_type);
 	bassert(incomplete_type->kind == MIR_TYPE_STRUCT && "Incomplete type is not struct type!");
-	bassert(incomplete_type->data.strct.is_incomplete_fwd_struct && "Incomplete struct type is not marked as incomplete!");
+	bassert(incomplete_type->data.strct.fwd_state != MIR_TYPE_STRUCT_FWD_COMPLETE && "Incomplete struct type is not marked as incomplete!");
 
-	incomplete_type->data.strct.members                  = args->members;
-	incomplete_type->data.strct.scope                    = args->scope;
-	incomplete_type->data.strct.scope_layer              = args->scope_layer;
-	incomplete_type->data.strct.base_type                = args->base_type;
-	incomplete_type->data.strct.is_packed                = args->is_packed;
-	incomplete_type->data.strct.is_union                 = args->is_union;
-	incomplete_type->data.strct.is_multiple_return_type  = args->is_multiple_return_type;
-	incomplete_type->data.strct.is_incomplete_fwd_struct = false;
+	incomplete_type->data.strct.members                 = args->members;
+	incomplete_type->data.strct.scope                   = args->scope;
+	incomplete_type->data.strct.scope_layer             = args->scope_layer;
+	incomplete_type->data.strct.base_type               = args->base_type;
+	incomplete_type->data.strct.is_packed               = args->is_packed;
+	incomplete_type->data.strct.is_union                = args->is_union;
+	incomplete_type->data.strct.is_multiple_return_type = args->is_multiple_return_type;
+	incomplete_type->data.strct.fwd_state               = MIR_TYPE_STRUCT_FWD_COMPLETE;
 
 #if TRACY_ENABLE
 	{
@@ -2610,7 +2630,7 @@ void type_init_llvm_array(struct context *ctx, struct mir_type *type) {
 void type_init_llvm_struct(struct context *ctx, struct mir_type *type) {
 	llvm_lock_context(ctx->assembly->llvm.ctx);
 
-	if (type->data.strct.is_incomplete_fwd_struct) {
+	if (type->data.strct.fwd_state != MIR_TYPE_STRUCT_FWD_COMPLETE) {
 		bassert(type->user_id && "Missing user id for incomplete struct type.");
 		type->llvm_type = llvm_struct_create_named(ctx->assembly->llvm.ctx, type->user_id->str);
 		llvm_unlock_context(ctx->assembly->llvm.ctx);
@@ -5751,9 +5771,10 @@ struct result analyze_instr_type_info(struct context *ctx, struct mir_instr_type
 		}
 		type_info->rtti_type = type;
 	}
-	struct mir_type *incomplete_type;
+
 	// In case the required type is incomplete, we have to wait!
-	if (is_incomplete_type(ctx, type_info->rtti_type, &incomplete_type)) {
+	struct mir_type *incomplete_type = is_incomplete_type(ctx, type_info->rtti_type);
+	if (incomplete_type) {
 		if (incomplete_type->user_id) return_zone(WAIT(incomplete_type->user_id->hash));
 		return_zone(POSTPONE);
 	}
@@ -8044,6 +8065,7 @@ struct result analyze_call_slot(struct context *ctx, struct mir_instr_call *call
 
 static struct result analyze_call_stage_resolve_called_object(struct context *ctx, struct mir_instr_call *call);
 static struct result analyze_call_stage_validate_called_object(struct context *ctx, struct mir_instr_call *call);
+static struct result analyze_call_stage_check_arguments(struct context *ctx, struct mir_instr_call *call);
 static struct result analyze_call_stage_resolve_overload(struct context *ctx, struct mir_instr_call *call);
 static struct result analyze_call_stage_prescan_arguments(struct context *ctx, struct mir_instr_call *call);
 static struct result analyze_call_stage_generate(struct context *ctx, struct mir_instr_call *call);
@@ -8052,6 +8074,7 @@ static struct result analyze_call_stage_finalize_dummy_with_placeholders(struct 
 
 static mir_call_analyze_stage_fn_t analyze_call_default_pipeline[] = {
     &analyze_call_stage_resolve_called_object,
+    &analyze_call_stage_check_arguments,
     &analyze_call_stage_validate_called_object,
     &analyze_call_stage_prescan_arguments,
     &analyze_call_stage_finalize,
@@ -8387,14 +8410,14 @@ DONE:
 
 // Check whether the call-side argument is of complete type, this is used in case we need to convert
 // the argument to Any value -> RTTI is involved.
-static inline struct result is_argument_complete(struct context *ctx, struct mir_instr *call_arg) {
+static inline struct result is_argumet_ready_for_type_info_generation(struct context *ctx, struct mir_instr *call_arg) {
 	struct mir_type *call_arg_type = call_arg->value.type;
 	if (call_arg_type->kind == MIR_TYPE_PTR && mir_deref_type(call_arg_type)->kind == MIR_TYPE_TYPE) {
 		call_arg_type = *MIR_CEV_READ_AS(struct mir_type **, &call_arg->value);
 		bmagic_assert(call_arg_type);
 	}
-	struct mir_type *incomplete_type;
-	if (is_incomplete_type(ctx, call_arg_type, &incomplete_type)) {
+	struct mir_type *incomplete_type = is_incomplete_type(ctx, call_arg_type);
+	if (incomplete_type) {
 		if (incomplete_type->user_id) {
 			return WAIT(incomplete_type->user_id->hash);
 		}
@@ -8403,9 +8426,23 @@ static inline struct result is_argument_complete(struct context *ctx, struct mir
 	return PASS;
 }
 
+// Go through all call-side arguments and check whether they are of complete struct types. This is required due
+// implicit cast support from child -> base structure pointers.
+// 2025-09-23: Can be executed multiple times.
+struct result analyze_call_stage_check_arguments(struct context *ctx, struct mir_instr_call *call) {
+	zone();
+	const usize call_argc = sarrlenu(call->args);
+	for (usize index = 0; index < call_argc; ++index) {
+		struct mir_instr *call_arg_instr = sarrpeek(call->args, index);
+		struct result     result         = analyze_check_incomplete_struct_inheritance_hierarchy(call_arg_instr);
+		if (result.state != ANALYZE_PASSED) return result;
+	}
+	return_zone(PASS);
+}
+
 // Check whether we have enough arguments to call the function and eventually insert default values
 // into call argument list.
-// @Note: No type checking is done yet.
+// @Note: No type checking is done here yet.
 struct result analyze_call_stage_prescan_arguments(struct context *ctx, struct mir_instr_call *call) {
 	zone();
 	struct mir_type *fn_type = get_called_function_type(call);
@@ -8426,7 +8463,7 @@ struct result analyze_call_stage_prescan_arguments(struct context *ctx, struct m
 		}
 
 		if (call_arg_instr && fn_arg->type == ctx->builtin_types->t_Any) {
-			struct result result = is_argument_complete(ctx, call_arg_instr);
+			struct result result = is_argumet_ready_for_type_info_generation(ctx, call_arg_instr);
 			if (result.state != ANALYZE_PASSED) return_zone(result);
 		}
 
@@ -8445,7 +8482,7 @@ struct result analyze_call_stage_prescan_arguments(struct context *ctx, struct m
 						return_zone(FAIL);
 					}
 
-					struct result result = is_argument_complete(ctx, call_arg_instr);
+					struct result result = is_argumet_ready_for_type_info_generation(ctx, call_arg_instr);
 					if (result.state != ANALYZE_PASSED) return_zone(result);
 				}
 			}
@@ -8665,7 +8702,12 @@ struct result analyze_instr_store(struct context *ctx, struct mir_instr_store *s
 
 	bassert(!mir_is_comptime(dest) && "Store destination cannot be compile-time constant!");
 	struct mir_type *dest_type = mir_deref_type(dest->value.type);
-	bassert(dest_type && "store destination has invalid base type");
+	bassert(dest_type && "Store destination has invalid base type.");
+
+	if (mir_is_pointer_type(dest_type)) {
+		struct result result = analyze_check_incomplete_struct_inheritance_hierarchy(store->src);
+		if (result.state != ANALYZE_PASSED) return result;
+	}
 
 	if (analyze_slot(ctx, analyze_slot_conf_default, &store->src, dest_type) != ANALYZE_PASSED) {
 		return_zone(FAIL);
@@ -8973,6 +9015,38 @@ struct result analyze_resolve_compound_type(struct context *ctx, struct mir_inst
 
 	instr->value.type = type;
 	return analyze_instr(ctx, instr);
+}
+
+static struct result analyze_check_incomplete_struct_inheritance_hierarchy(struct mir_instr *instr) {
+	zone();
+	bassert(instr);
+
+	// 2025-09-24: This check is required due to possible implicit cast from child struct type pointer to
+	//             base (parent) type. In such a case we need complete struct types. Regarding compounds,
+	//             there is no point in checking them; these cannot be implicitly casted since they are not
+	//             pointers. Also we have to explicitly skip them here, because they might be untyped
+	//             (MIR_IS_PENDING) until actual type is inferred from usage (assignment or function call).
+	if (instr->kind == MIR_INSTR_COMPOUND) return_zone(PASS);
+	if (instr->state == MIR_IS_PENDING) {
+		return_zone(POSTPONE);
+	}
+
+	// 2025-09-24: Actual struct type might be nested in pointer.
+	struct mir_type *type = instr->value.type;
+	for (; type && mir_is_pointer_type(type); type = mir_deref_type(type)) {
+	}
+	bassert(type);
+
+	// 2025-09-24: Internally checks only struct types, otherwise NULL is returned and no hierarchy resolve
+	//             is executed.
+	struct mir_type *incomplete_base = is_incomplete_struct_inheritance_hierarchy(type);
+	if (incomplete_base) {
+		if (incomplete_base->user_id) {
+			return_zone(WAIT(incomplete_base->user_id->hash));
+		}
+		return_zone(POSTPONE);
+	}
+	return_zone(PASS);
 }
 
 struct result analyze_instr(struct context *ctx, struct mir_instr *instr) {
@@ -11135,14 +11209,19 @@ static void ast_decl_var_global_or_struct(struct context *ctx, struct ast *ast_g
 
 	// Struct use forward type declarations!
 	if (is_struct_decl) {
+		struct ast *ast_struct_type = ast_value->data.expr_type.type;
+		bassert(ast_struct_type && ast_struct_type->kind == AST_TYPE_STRUCT);
+
 		const bool is_multidecl = ast_name->data.ident.next;
 		if (is_multidecl) {
 			const struct ast *ast_next_name = ast_name->data.ident.next;
 			report_error(INVALID_NAME, ast_next_name, "Struct type cannot be multi-declared.");
 		}
 
+		const bool has_base = ast_struct_type->data.type_strct.base_type_expr;
+
 		// Set to const type fwd decl
-		struct mir_type *fwd_decl_type = create_type_struct_incomplete(ctx, ctx->ast.current_entity_id, false);
+		struct mir_type *fwd_decl_type = create_type_struct_incomplete(ctx, ctx->ast.current_entity_id, has_base);
 
 		value = create_instr_const_type(ctx, ast_value, fwd_decl_type);
 		analyze_instr_rq(ctx, value);

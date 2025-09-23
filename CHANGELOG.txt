@@ -15,6 +15,7 @@ master
 - Allow #base on unions.
 - Add support for arbitrary slices to be emitted as binary blobs into executable data segment
   in compile time.
+- Fix implicit cast for child to base struct types.
 
 [Modules]
 
