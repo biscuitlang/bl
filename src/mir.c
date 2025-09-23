@@ -7350,12 +7350,22 @@ static inline bool is_type_valid_for_binop(const struct mir_type *type, const en
 struct result analyze_instr_binop(struct context *ctx, struct mir_instr_binop *binop) {
 	zone();
 
-	{ // Handle type propagation.
+	{ // Handle type propagation & waiting for incomplete types...
 		struct mir_type *lhs_type = binop->lhs->value.type;
 		struct mir_type *rhs_type = binop->rhs->value.type;
 
 		if (is_load_needed(binop->lhs)) lhs_type = mir_deref_type(lhs_type);
 		if (is_load_needed(binop->rhs)) rhs_type = mir_deref_type(rhs_type);
+
+		// Check incomplete types to support implicit casts from child to base structs.
+		if (mir_is_pointer_type(lhs_type)) {
+			struct result result = analyze_check_incomplete_struct_inheritance_hierarchy(binop->lhs);
+			if (result.state != ANALYZE_PASSED) return result;
+		}
+		if (mir_is_pointer_type(rhs_type)) {
+			struct result result = analyze_check_incomplete_struct_inheritance_hierarchy(binop->rhs);
+			if (result.state != ANALYZE_PASSED) return result;
+		}
 
 		const bool lhs_is_null        = binop->lhs->value.type->kind == MIR_TYPE_NULL;
 		const bool can_propagate_RtoL = can_impl_cast(lhs_type, rhs_type) || is_instr_type_volatile(binop->lhs);
