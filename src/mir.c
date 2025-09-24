@@ -8433,17 +8433,19 @@ struct result analyze_call_stage_check_arguments(struct context *ctx, struct mir
 	const usize call_argc = sarrlenu(call->args);
 	for (usize index = 0; index < call_argc; ++index) {
 		struct mir_instr *call_arg_instr = sarrpeek(call->args, index);
+		// @Incomplete: Explain.
+		if (call_arg_instr->kind == MIR_INSTR_COMPOUND) continue;
 		if (call_arg_instr->state == MIR_IS_PENDING) {
 			return_zone(POSTPONE);
 		}
 
 		// @Incomplete: Explain
-		struct mir_type *type = call_arg_instr->value.type;
-		for (; type && mir_is_pointer_type(type); type = mir_deref_type(type)) {
+		struct mir_type *arg_type = call_arg_instr->value.type;
+		for (; arg_type && mir_is_pointer_type(arg_type); arg_type = mir_deref_type(arg_type)) {
 		}
 
-		bassert(type);
-		struct mir_type *incomplete_base = is_incomplete_struct_inheritance_hierarchy(type);
+		bassert(arg_type);
+		struct mir_type *incomplete_base = is_incomplete_struct_inheritance_hierarchy(arg_type);
 		if (incomplete_base) {
 			if (incomplete_base->user_id) {
 				return_zone(WAIT(incomplete_base->user_id->hash));

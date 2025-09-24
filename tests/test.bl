@@ -1,5 +1,12 @@
 #import "std/print"
 
+Foo :: struct {
+	a: s32;
+}
+
+foo :: fn (_: Foo) {}
+
 main :: fn () s32 {
+	foo(.{ a = 10 });
 	return 0;
 }
