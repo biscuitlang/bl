@@ -60,6 +60,14 @@ test_print_int :: fn () #test {
 		defer str_terminate(&str);
 		test_eq(str, "0");
 	}
+
+	{
+		v : u32 : -10;
+		str :: sprint("%", v);
+		defer str_terminate(&str);
+		test_eq(str, "4294967286");
+	}
+
 }
 
 test_print_bool :: fn () #test {
@@ -200,6 +208,25 @@ test_fmt_s32_base16 :: fn () #test {
 		defer str_terminate(&str);
 
 		test_eq(str, "0xfa12");
+	}
+
+	// Special cases from practical use...
+	{
+		flt :: 0.123f;
+		int :: @(cast(*u32) &flt);
+		str :: sprint("%", fmt_int(int, FmtIntBase.HEX));
+		defer str_terminate(&str);
+
+		test_eq(str, "0x3dfbe76d");
+	}
+
+	{
+		flt :: -0.123f;
+		int :: @(cast(*u32) &flt);
+		str :: sprint("%", fmt_int(int, FmtIntBase.HEX));
+		defer str_terminate(&str);
+
+		test_eq(str, "0xbdfbe76d");
 	}
 }
 

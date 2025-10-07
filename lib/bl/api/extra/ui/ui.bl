@@ -526,7 +526,7 @@ button_begin :: fn (rect: Rect, flags := ButtonFlags.DEFAULT, _style: *ButtonSty
 
 	// Fill central area with body color.
 	push(rect_adjusted(button_rect, style.frame_size, style.frame_size, -style.frame_size, -style.frame_size));
-	if !style.no_body { fill_current_rect(body_color); }
+	if !style.no_body { fill_gradient_current_rect(body_color, color_darker(body_color, 0.8f)); }
 
 	mouse :: api.get_mouse_position();
 	if is_point_in_rect(mouse_rect, mouse) {
@@ -1265,22 +1265,43 @@ mask_to_rect :: fn (mask: v4) Rect #inline {
 // Returns whether the rectangle was drown according to current mask.
 fill_current_rect :: fn (color: v4) bool {
 	rect, mask := peek();
-	if is_valid_clipping_mask(mask) {
-		if color.w < math.F32_EPSILON { return true; }
-		c := color;
-		c.w = global_alpha;
-		rect = rect_rounded(rect_scaled(rect, scale_factor));
-		mask = mul(mask, scale_factor);
+	if !is_valid_clipping_mask(mask) then return false;
+	if color.w < math.F32_EPSILON { return true; }
+	c := color;
+	c.w = global_alpha;
+	rect = rect_rounded(rect_scaled(rect, scale_factor));
+	mask = mul(mask, scale_factor);
 
-			mask.x -= 0.5f;
-			mask.y -= 0.5f;
-			mask.z += 0.5f;
-			mask.w += 0.5f;
+	mask.x -= 0.5f;
+	mask.y -= 0.5f;
+	mask.z += 0.5f;
+	mask.w += 0.5f;
 
-		api.draw_rect(v3.{ rect.x, rect.y, get_current_depth() }, v2.{ rect.w, rect.h }, c, mask);
-		return true;
-	}
-	return false;
+	api.draw_rect(v3.{ rect.x, rect.y, get_current_depth() }, v2.{ rect.w, rect.h }, c, mask);
+	return true;
+}
+
+fill_gradient_current_rect :: fn (color1: v4, color2: v4) bool {
+	rect, mask := peek();
+	if !is_valid_clipping_mask(mask) then return false;
+	if color1.w < math.F32_EPSILON && color2.w < math.F32_EPSILON then return true;
+
+	colors: [4]v4;
+	colors[0] = color1; colors[0].w = global_alpha;
+	colors[1] = color1; colors[1].w = global_alpha;
+	colors[2] = color2; colors[2].w = global_alpha;
+	colors[3] = color2; colors[3].w = global_alpha;
+
+	rect = rect_rounded(rect_scaled(rect, scale_factor));
+	mask = mul(mask, scale_factor);
+
+	mask.x -= 0.5f;
+	mask.y -= 0.5f;
+	mask.z += 0.5f;
+	mask.w += 0.5f;
+
+	api.draw_rect_with_colors(v3.{ rect.x, rect.y, get_current_depth() }, v2.{ rect.w, rect.h }, colors, mask);
+	return true;
 }
 
 draw_label :: fn (text: string_view, style: *LabelStyle) #inline {
@@ -1516,7 +1537,7 @@ slider_impl :: fn (rect: Rect, value: *f32, min := 0.f, max := 1.f, _style: *Sli
 		@value = math.clamp(@value, min, max);
 		return true;
 	}
-	
+
 	return false;
 }
 
@@ -2126,7 +2147,7 @@ get_style :: fn {
 
 		edit_body :: if use_light_theme then WHITE else rgba(0x1A1A1Aff);
 
-		s.focus_color = if use_light_theme then rgba(0x3282F6FF) else rgba(0x276B6BFF);
+		s.focus_color = if use_light_theme then rgba(0x3282F6FF) else rgba(0x7D0013FF);
 
 		s.label.color              = if use_light_theme then rgba(0x101010ff) else rgba(0xDDDDDDFF);
 		s.label.font               = main_font;
@@ -2203,6 +2224,7 @@ get_style :: fn {
 		s.textbox.scroll_area                      = s.scroll_area;
 
 		s.slider.handle              = s.button;
+		s.slider.handle.body_color   = s.focus_color;
 		s.slider.button              = s.button;
 		s.slider.button.no_body      = true;
 		s.slider.button.label.font   = icon_font;

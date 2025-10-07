@@ -307,13 +307,20 @@ print_any :: fn (buf: *?T, cur: *s32, any: *Any) {
 			// Int formated
 			fmt :: cast(*FmtInt) any.data;
 			info := cast(*TypeInfoInt) fmt.v.type_info;
-			int := s64_from_u8_ptr(fmt.v.data, info.bit_count);
 			digits :: if fmt.fixed_digit_count < 1 then 1 else fmt.fixed_digit_count;
-			if int < 0 { // negative number
-				print_string(buf, cur, "-");
-				int = -int;
+
+			if info.is_signed {
+				int := s64_from_u8_ptr(fmt.v.data, info.bit_count);
+				if int < 0 { // negative number
+					print_string(buf, cur, "-");
+					int = -int;
+				}
+				print_u64(buf, cur, auto int, fmt.base, digits, fmt.print_prefix, fmt.uppercase);
+			} else {
+				int := u64_from_u8_ptr(fmt.v.data, info.bit_count);
+				print_u64(buf, cur, auto int, fmt.base, digits, fmt.print_prefix, fmt.uppercase);
 			}
-			print_u64(buf, cur, auto int, fmt.base, digits, fmt.print_prefix, fmt.uppercase);
+
 			return;
 		} else if any.type_info == typeinfo(FmtChar) {
 			fmt :: cast(*FmtChar) any.data;

@@ -21,6 +21,8 @@ master
 
 std/print:
 - Fix rounding of formatted floats.
+- Fix issues with negative unsigned values being incorrectly converted to string when fmt
+  is used for formatting.
 
 [Documentation]
 [Deprecated]
