@@ -63,6 +63,10 @@ Style :: struct {
 	textbox: TextboxStyle;
 	slider: SliderStyle;
 	focus_color: v4;
+
+	common_red:    v4;
+	common_green:  v4;
+	common_yellow: v4;
 }
 
 WindowStyle :: struct {

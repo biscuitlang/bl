@@ -292,7 +292,8 @@ window_begin :: fn (window: *Window) bool {
 		if is_focused { bar_color = style.bar_color_focus; }
 
 		title_rect, title_mouse_rect := push(rect_resized(content_rect, content_rect.w, auto style.bar_height));
-		fill_current_rect(bar_color);
+		// fill_current_rect(bar_color);
+		fill_gradient_current_rect(bar_color, color_darker(bar_color, 0.8f));
 		title_height = title_rect.h;
 
 		button_x := title_rect.w - auto style.bar_height;
@@ -2147,7 +2148,11 @@ get_style :: fn {
 
 		edit_body :: if use_light_theme then WHITE else rgba(0x1A1A1Aff);
 
-		s.focus_color = if use_light_theme then rgba(0x3282F6FF) else rgba(0x7D0013FF);
+		s.focus_color = if use_light_theme then rgba(0xFF0027FF) else rgba(0x7D0013FF);
+
+		s.common_red    = if use_light_theme then rgba(0xFF8183FF) else rgba(0xA10000ff);
+		s.common_green  = if use_light_theme then rgba(0x4CCC3Eff) else rgba(0x00AD00ff);
+		s.common_yellow = if use_light_theme then YELLOW else rgba(0x737300ff);
 
 		s.label.color              = if use_light_theme then rgba(0x101010ff) else rgba(0xDDDDDDFF);
 		s.label.font               = main_font;
@@ -2157,7 +2162,7 @@ get_style :: fn {
 		s.button.label.horizontal_alignment = HorizontalAlign.CENTER;
 		s.button.frame_color                = rgba(0xf3f3f3ff);  // @Cleanup: not used.
 		s.button.body_color                 = if use_light_theme then rgba(0xD2D2D2ff) else rgba(0x505050ff);
-		s.button.color_disabled             = if use_light_theme then rgba(0xB8B8B8FF) else rgba(0x131313ff);
+		s.button.color_disabled             = if use_light_theme then rgba(0x707070FF) else rgba(0x131313ff);
 		s.button.press_color                = s.button.body_color;
 		s.button.frame_size                 = 1;
 
@@ -2192,13 +2197,13 @@ get_style :: fn {
 		s.checkbox.on              = s.button;
 		s.checkbox.on_icon         = icon_utf8(ICON_CHECKBOX_ON);
 		s.checkbox.on.label.font   = icon_font;
-		s.checkbox.on.label.color  = if use_light_theme then rgba(0x00AA00FF) else GREEN;
-		s.checkbox.on.no_body      = true;
+		s.checkbox.on.body_color   = s.common_green;
+		// s.checkbox.on.no_body      = true;
 		s.checkbox.off             = s.button;
 		s.checkbox.off_icon        = icon_utf8(ICON_CHECKBOX_OFF);
 		s.checkbox.off.label.font  = icon_font;
-		s.checkbox.off.label.color = RED;
-		s.checkbox.off.no_body     = true;
+		s.checkbox.off.body_color  = s.common_red;
+		// s.checkbox.off.no_body     = true;
 
 		s.variants.name                       = item_name;
 		s.variants.label                      = s.label;
@@ -2226,9 +2231,10 @@ get_style :: fn {
 		s.slider.handle              = s.button;
 		s.slider.handle.body_color   = s.focus_color;
 		s.slider.button              = s.button;
-		s.slider.button.no_body      = true;
+		// s.slider.button.no_body      = true;
 		s.slider.button.label.font   = icon_font;
-		s.slider.button.label.color  = if use_light_theme then rgba(0x333113FF) else rgba(0xDBD350FF);
+		// s.slider.button.label.color  = if use_light_theme then rgba(0x333113FF) else rgba(0xDBD350FF);
+		s.slider.button.body_color   = s.common_yellow;
 		s.slider.name                = item_name;
 		s.slider.range               = edit_body;
 
