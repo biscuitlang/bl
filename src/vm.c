@@ -1,31 +1,3 @@
-// =================================================================================================
-// bl
-//
-// File:   vm.c
-// Author: Martin Dorazil
-// Date:   9/17/19
-//
-// Copyright 2019 Martin Dorazil
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
-// =================================================================================================
-
 #include "vm.h"
 #include "builder.h"
 #include "common.h"
@@ -2752,10 +2724,12 @@ u64 vm_read_int(struct mir_type const *type, vm_stack_ptr_t src) {
 }
 
 f64 vm_read_double(const struct mir_type *type, vm_stack_ptr_t src) {
+#if BL_ASSERT_ENABLE
 	const usize size = type->store_size_bytes;
 	bassert(src && "Attempt to read null source!");
 	bassert(size == sizeof(f64) && "Target type is not f64 type!");
-	return *((f64*)src);
+#endif
+	return *((f64 *)src);
 }
 
 vm_stack_ptr_t vm_read_ptr(const struct mir_type *type, vm_stack_ptr_t src) {
@@ -2768,11 +2742,13 @@ vm_stack_ptr_t vm_read_ptr(const struct mir_type *type, vm_stack_ptr_t src) {
 }
 
 f32 vm_read_float(const struct mir_type *type, vm_stack_ptr_t src) {
+#if BL_ASSERT_ENABLE
 	const usize size = type->store_size_bytes;
 	bassert(src && "Attempt to read null source!");
 	bassert(size == sizeof(f32) && "Target type is not f64 type!");
+#endif
 
-	return *((f32*)src);
+	return *((f32 *)src);
 }
 
 str_t vm_read_string(struct virtual_machine *vm, const struct mir_type *type, vm_stack_ptr_t src) {
