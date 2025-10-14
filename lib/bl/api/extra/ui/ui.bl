@@ -1562,14 +1562,14 @@ variants_impl :: fn (rect: Rect, value: Any, _style: *VariantsStyle = null, flag
 	style :: get_style(_style);
 
 	info :: cast(*TypeInfoEnum) value.type_info;
-	data :: reinterpret_read_any(u64, value);
+	data :: reinterpret_read_any(s32, value);
 	assert(info.kind == TypeKind.ENUM);
 
 	text := "(unknown)";
 	variant_index := 0;
 	loop ; variant_index < info.variants.len; variant_index += 1 {
 		v :: &info.variants[variant_index];
-		if v.value == auto data {
+		if v.value == data {
 			text = v.name;
 			break;
 		}
@@ -2150,8 +2150,8 @@ get_style :: fn {
 
 		s.focus_color = if use_light_theme then rgba(0xFF0027FF) else rgba(0x7D0013FF);
 
-		s.common_red    = if use_light_theme then rgba(0xFF8183FF) else rgba(0xA10000ff);
-		s.common_green  = if use_light_theme then rgba(0x4CCC3Eff) else rgba(0x00AD00ff);
+		s.common_red    = if use_light_theme then RED else rgba(0xA10000ff);
+		s.common_green  = if use_light_theme then GREEN else rgba(0x00AD00ff);
 		s.common_yellow = if use_light_theme then YELLOW else rgba(0x737300ff);
 
 		s.label.color              = if use_light_theme then rgba(0x101010ff) else rgba(0xDDDDDDFF);
