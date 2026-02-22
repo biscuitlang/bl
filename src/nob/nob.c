@@ -11,18 +11,25 @@
 
 #include "find_llvm.c"
 
+// Deps:
 #ifdef __linux__
-const char *LIBZ     = "";
-const char *LIBZSTD  = "";
-const char *LIBTINFO = "";
+const char *ZSTD_LINK = "";
+const char *INFO_LINK = "";
 #elif __APPLE__
-const char *MACOS_SDK = "";
-const char *LIBZ      = "";
-const char *LIBZSTD   = "";
-const char *LIBCURSES = "";
+const char *MACOS_SDK   = "";
+const char *ZLIB_LINK   = "";
+const char *ZSTD_LINK   = "";
+const char *CURSES_LINK = "";
+#endif
+
+#include "../../deps/dyncall-1.2/nob.c"
+#include "../../deps/libyaml-0.2.5/nob.c"
+#ifdef __linux__
+#include "../../deps/zlib-1.3.2/nob.c"
 #endif
 
 void find_deps(void);
+void build_deps(void);
 
 // Compilation database recording...
 #if BL_EXPORT_COMPILE_COMMANDS
@@ -40,6 +47,7 @@ void           db_add_entry(const char *file, Cmd cmd);
 void setup(void) {
 	find_llvm();
 	find_deps();
+	build_deps();
 }
 
 void blc(void) {
@@ -112,9 +120,9 @@ void blc(void) {
 	Cmd  cmd = {0};
 	Proc procs[ARRAY_LEN(src)];
 
-	#define CL_OPTIONS "-D_WIN32", "-D_WINDOWS", "-DNOMINMAX", "-D_HAS_EXCEPTIONS=0", "-GF", "-MT"
-	#define CL_OPTIONS_DEBUG "-Od", "-Ob0", "-Zi", "-FS"
-	#define CL_OPTIONS_RELEASE "-O2", "-Oi", "-DNDEBUG"
+#define CL_OPTIONS         "-D_WIN32", "-D_WINDOWS", "-DNOMINMAX", "-D_HAS_EXCEPTIONS=0", "-GF", "-MT"
+#define CL_OPTIONS_DEBUG   "-Od", "-Ob0", "-Zi", "-FS"
+#define CL_OPTIONS_RELEASE "-O2", "-Oi", "-DNDEBUG"
 
 	for (int i = 0; i < src_num; ++i) {
 		const bool is_cxx = ends_with(src[i], ".cpp");
@@ -192,8 +200,8 @@ void blc(void) {
 		}
 
 		cmd_append(&cmd,
-		           BUILD_DIR "/libyaml/libyaml.lib",
-		           BUILD_DIR "/dyncall/dyncall.lib",
+		           YAML_LINK,
+		           DYNCALL_LINK,
 		           "kernel32.lib",
 		           "Shlwapi.lib",
 		           "Ws2_32.lib",
@@ -261,7 +269,8 @@ void blc(void) {
 			if (ends_with(files.items[i], ".o")) cmd_append(&cmd, temp_sprintf(BUILD_DIR "/%s", files.items[i]));
 		}
 
-		cmd_append(&cmd, BUILD_DIR "/libyaml/libyaml.a", BUILD_DIR "/dyncall/dyncall.a");
+		cmd_append(&cmd, YAML_LINK, DYNCALL_LINK);
+
 		String_View libs = nob_sv_from_cstr(LLVM_LIBS);
 		while (libs.count) {
 			String_View lib = nob_sv_chop_by_delim(&libs, ' ');
@@ -269,9 +278,9 @@ void blc(void) {
 				cmd_append(&cmd, temp_sprintf("%s/" SV_Fmt, LLVM_LIB_DIR, SV_Arg(lib)));
 		}
 #ifdef __APPLE__
-		cmd_append(&cmd, LIBZ, LIBZSTD, LIBCURSES);
+		cmd_append(&cmd, ZLIB_LINK, ZSTD_LINK, CURSES_LINK);
 #else
-		cmd_append(&cmd, LIBZ, LIBZSTD, LIBTINFO);
+		cmd_append(&cmd, ZLIB_LINK, ZSTD_LINK, INFO_LINK);
 #endif
 		cmd_append(&cmd, "-o", BIN_DIR "/blc");
 
@@ -334,32 +343,25 @@ void find_deps(void) {
 
 #define LIB_PATH "/lib /usr/lib /usr/local/lib /lib64 /usr/lib64 /usr/lib/x86_64-linux-gnu"
 
-	LIBZ = shell("find " LIB_PATH " -name \"libz.a\" -print -quit 2>/dev/null");
-	if (!strok(LIBZ)) {
-		nob_log(NOB_ERROR, "Unable to find 'libz.a' in none of following paths: '" LIB_PATH "'.");
-		exit(1);
-	}
-	nob_log(NOB_INFO, "Using 'libz' '%s'.", LIBZ);
-
-	LIBZSTD = shell("find " LIB_PATH " -name \"libzstd.a\" -print -quit 2>/dev/null");
-	if (!strok(LIBZSTD)) {
+	ZSTD_LINK = shell("find " LIB_PATH " -name \"libzstd.a\" -print -quit 2>/dev/null");
+	if (!strok(ZSTD_LINK)) {
 		nob_log(NOB_ERROR, "Unable to find 'libzstd.a' in none of following paths: '" LIB_PATH "'.");
 		exit(1);
 	}
-	nob_log(NOB_INFO, "Using 'libzstd' '%s'.", LIBZSTD);
+	nob_log(NOB_INFO, "Using 'libzstd' '%s'.", ZSTD_LINK);
 
-	LIBTINFO = shell("find " LIB_PATH " -name \"libtinfo.a\" -print -quit 2>/dev/null");
-	if (!strok(LIBTINFO)) {
+	INFO_LINK = shell("find " LIB_PATH " -name \"libtinfo.a\" -print -quit 2>/dev/null");
+	if (!strok(INFO_LINK)) {
 		nob_log(NOB_WARNING, "Unable to find 'libtinfo.a' in none of following paths: '" LIB_PATH "'. Try to use ncurses.");
 
-		LIBTINFO = shell("find " LIB_PATH " -name \"libncurses_g.a\" -print -quit 2>/dev/null");
-		if (!strok(LIBTINFO)) {
+		INFO_LINK = shell("find " LIB_PATH " -name \"libncurses_g.a\" -print -quit 2>/dev/null");
+		if (!strok(INFO_LINK)) {
 			nob_log(NOB_ERROR, "Unable to find 'libncurses_g.a' in none of following paths: '" LIB_PATH "'.");
 			exit(1);
 		}
 	}
 
-	nob_log(NOB_INFO, "Using 'libtinfo' '%s'.", LIBTINFO);
+	nob_log(NOB_INFO, "Using 'libtinfo' '%s'.", INFO_LINK);
 }
 
 #elif __APPLE__
@@ -382,24 +384,24 @@ void find_deps(void) {
 		nob_log(NOB_ERROR, "Unable to find zlib. Try 'brew install zlib'.");
 		exit(1);
 	}
-	LIBZ = shell(temp_sprintf(temp_sprintf("find %s/lib -name \"libz.a\" -print -quit 2>/dev/null", libz_prefix)));
-	if (!strok(LIBZ)) {
+	ZLIB_LINK = shell(temp_sprintf(temp_sprintf("find %s/lib -name \"libz.a\" -print -quit 2>/dev/null", libz_prefix)));
+	if (!strok(ZLIB_LINK)) {
 		nob_log(NOB_ERROR, "Unable to find 'libz.a' on prefix '%s'.", libz_prefix);
 		exit(1);
 	}
-	nob_log(NOB_INFO, "Using 'libz' '%s'.", LIBZ);
+	nob_log(NOB_INFO, "Using 'libz' '%s'.", ZLIB_LINK);
 
 	const char *zstd_prefix = shell("brew --prefix zstd 2>/dev/null");
 	if (!strok(zstd_prefix)) {
 		nob_log(NOB_ERROR, "Unable to find zstd. Try 'brew install zstd'.");
 		exit(1);
 	}
-	LIBZSTD = shell(temp_sprintf(temp_sprintf("find %s/lib -name \"libzstd.a\" -print -quit 2>/dev/null", zstd_prefix)));
-	if (!strok(LIBZSTD)) {
+	ZSTD_LINK = shell(temp_sprintf(temp_sprintf("find %s/lib -name \"libzstd.a\" -print -quit 2>/dev/null", zstd_prefix)));
+	if (!strok(ZSTD_LINK)) {
 		nob_log(NOB_ERROR, "Unable to find 'libzstd.a' on prefix '%s'.", zstd_prefix);
 		exit(1);
 	}
-	nob_log(NOB_INFO, "Using 'libzstd' '%s'.", LIBZSTD);
+	nob_log(NOB_INFO, "Using 'libzstd' '%s'.", ZSTD_LINK);
 
 	// This is required by LLVM for 3 or 4 functions, we should find the way how to not require this whole shit...
 	const char *ncurses_prefix = shell("brew --prefix ncurses 2>/dev/null");
@@ -407,17 +409,25 @@ void find_deps(void) {
 		nob_log(NOB_ERROR, "Unable to find ncurses. Try 'brew install ncurses'.");
 		exit(1);
 	}
-	LIBCURSES = shell(temp_sprintf(temp_sprintf("find %s/lib -name \"libcurses.a\" -print -quit 2>/dev/null", ncurses_prefix)));
-	if (!strok(LIBCURSES)) {
+	CURSES_LINK = shell(temp_sprintf(temp_sprintf("find %s/lib -name \"libcurses.a\" -print -quit 2>/dev/null", ncurses_prefix)));
+	if (!strok(CURSES_LINK)) {
 		nob_log(NOB_ERROR, "Unable to find 'libcurses.a' on prefix '%s'.", ncurses_prefix);
 		exit(1);
 	}
-	nob_log(NOB_INFO, "Using 'libcurses' '%s'.", LIBCURSES);
+	nob_log(NOB_INFO, "Using 'libcurses' '%s'.", CURSES_LINK);
 }
 #else
 void find_deps(void) {
 }
 #endif
+
+void build_deps(void) {
+	if (!file_exists(DYNCALL_LINK)) dyncall();
+	if (!file_exists(YAML_LINK)) libyaml();
+#ifdef __linux__
+	if (!file_exists(ZLIB_LINK)) zlib();
+#endif
+}
 
 #if BL_EXPORT_COMPILE_COMMANDS
 void db_begin(void) {

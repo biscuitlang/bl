@@ -82,13 +82,13 @@ void ar(const char *dir, const char *libname);
 #define shell(...) _shell((sizeof((const char *[]){__VA_ARGS__}) / sizeof(const char *)), ((const char *[]){__VA_ARGS__}))
 const char *_shell(int argc, const char *argv[]);
 
-#define wait(procs)                                  \
-	do {                                             \
-		bool success = true;                         \
+#define wait(procs) \
+	do { \
+		bool success = true; \
 		for (int i = 0; i < ARRAY_LEN(procs); ++i) { \
-			success &= proc_wait(procs[i]);          \
-		}                                            \
-		if (!success) exit(1);                       \
+			success &= proc_wait(procs[i]); \
+		} \
+		if (!success) exit(1); \
 	} while (0);
 
 bool IS_DEBUG      = false;
@@ -109,9 +109,8 @@ void docs(void);
 
 const char *llvm_config = "";
 
-#include "deps/dyncall-1.2/nob.c"
-#include "deps/libyaml-0.2.5/nob.c"
 #include "src/nob/nob.c"
+
 
 int main(int argc, char *argv[]) {
 	parse_command_line_arguments(argc, argv);
@@ -123,8 +122,6 @@ int main(int argc, char *argv[]) {
 		mkdir_if_not_exists(BIN_DIR);
 
 		setup();
-		if (!file_exists(BUILD_DIR "/dyncall/" DYNCALL_LIB)) dyncall();
-		if (!file_exists(BUILD_DIR "/libyaml/" YAML_LIB)) libyaml();
 		blc();
 	}
 	if (TARGET & TARGET_RUNTIME) blc_runtime();

@@ -1,10 +1,12 @@
-#define DYNCALL_VERSION "1.2"
-
+#define DYNCALL_VERSION       "1.2"
+#define DYNCALL_BUILD_DIR BUILD_DIR "/dyncall"
 #ifdef _WIN32
 #define DYNCALL_LIB "dyncall.lib"
 #else
 #define DYNCALL_LIB "dyncall.a"
 #endif
+
+const char *DYNCALL_LINK = DYNCALL_BUILD_DIR "/" DYNCALL_LIB;
 
 void dyncall(void) {
 	nob_log(NOB_INFO, "Compiling dyncall-" DYNCALL_VERSION ".");
@@ -38,11 +40,11 @@ void dyncall(void) {
 		cmd_append(&cmd, "cl", "-nologo", "-c", src[i]);
 		cmd_append(&cmd, "-D_WIN32", "-D_WINDOWS", "-DNOMINMAX", "-D_HAS_EXCEPTIONS=0", "-GF", "-MT", "-O2", "-Oi", "-DNDEBUG", "-GL");
 		cmd_append(&cmd, "-I./deps/dyncall-" DYNCALL_VERSION "/dyncall");
-		cmd_append(&cmd, "-Fo\"" BUILD_DIR "/dyncall/\"", );
+		cmd_append(&cmd, "-Fo\"" DYNCALL_BUILD_DIR "/\"");
 		procs[i] = nob_cmd_run_async_and_reset(&cmd);
 	}
 	wait(procs);
-	lib(temp_sprintf("%s/dyncall", BUILD_DIR), DYNCALL_LIB);
+	lib(DYNCALL_BUILD_DIR, DYNCALL_LIB);
 
 #elif defined(__linux__) || defined(__APPLE__)
 
@@ -61,11 +63,11 @@ void dyncall(void) {
 		cmd_append(&cmd, "-D_GNU_SOURCE", "-O3", "-DNDEBUG");
 #endif
 		cmd_append(&cmd, "-I./deps/dyncall-" DYNCALL_VERSION "/dyncall");
-		cmd_append(&cmd, "-o", temp_sprintf(BUILD_DIR "/dyncall/%d.o", i));
+		cmd_append(&cmd, "-o", temp_sprintf(DYNCALL_BUILD_DIR "/%d.o", i));
 		procs[i] = nob_cmd_run_async_and_reset(&cmd);
 	}
 	wait(procs);
-	ar(temp_sprintf("%s/dyncall", BUILD_DIR), DYNCALL_LIB);
+	ar(DYNCALL_BUILD_DIR, DYNCALL_LIB);
 
 #endif
 }

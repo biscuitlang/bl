@@ -4,11 +4,14 @@
 
 #define YAML_VERSION VERSION_STRING(YAML_VERSION_MAJOR, YAML_VERSION_MINOR, YAML_VERSION_PATCH)
 
+#define YAML_BUILD_DIR BUILD_DIR "/libyaml"
 #ifdef _WIN32
 #define YAML_LIB "libyaml.lib"
 #else
 #define YAML_LIB "libyaml.a"
 #endif
+
+const char *YAML_LINK = YAML_BUILD_DIR "/" YAML_LIB;
 
 void libyaml(void) {
 	nob_log(NOB_INFO, "Compiling libyaml-" YAML_VERSION ".");
@@ -42,11 +45,11 @@ void libyaml(void) {
 		           "-DYAML_VERSION_PATCH=" STR(YAML_VERSION_PATCH),
 		           "-DYAML_VERSION_STRING=\\\"" YAML_VERSION "\\\"");
 		cmd_append(&cmd, "-I./deps/libyaml-" YAML_VERSION "/include");
-		cmd_append(&cmd, "-Fo\"" BUILD_DIR "/libyaml/\"");
+		cmd_append(&cmd, "-Fo\"" YAML_BUILD_DIR "/\"");
 		procs[i] = nob_cmd_run_async_and_reset(&cmd);
 	}
 	wait(procs);
-	lib(temp_sprintf("%s/libyaml", BUILD_DIR), YAML_LIB);
+	lib(YAML_BUILD_DIR, YAML_LIB);
 
 #elif defined(__linux__) || defined(__APPLE__)
 
@@ -67,11 +70,11 @@ void libyaml(void) {
 		           "-DYAML_VERSION_PATCH=" STR(YAML_VERSION_PATCH),
 		           "-DYAML_VERSION_STRING=\"" YAML_VERSION "\"");
 		cmd_append(&cmd, "-I./deps/libyaml-" YAML_VERSION "/include");
-		cmd_append(&cmd, "-o", temp_sprintf(BUILD_DIR "/libyaml/%d.o", i));
+		cmd_append(&cmd, "-o", temp_sprintf(YAML_BUILD_DIR "/%d.o", i));
 		procs[i] = nob_cmd_run_async_and_reset(&cmd);
 	}
 	wait(procs);
-	ar(temp_sprintf("%s/libyaml", BUILD_DIR), YAML_LIB);
+	ar(YAML_BUILD_DIR, YAML_LIB);
 
 #endif
 }
