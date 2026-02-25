@@ -11040,7 +11040,7 @@ void ast_stmt_assign(struct context *ctx, struct ast *assign) {
 
 		ast_nodes_small_t *lhs_exprs = &ast_lhs->data.list.items;
 		bassert(sarrlen(lhs_exprs) > 0);
-		const bool use_unroll = ast_rhs->kind == AST_EXPR_CALL || ast_lhs->kind == AST_EXPR_CATCH || sarrlen(lhs_exprs) > 1;
+		const bool use_unroll = ast_rhs->kind == AST_EXPR_CALL || ast_rhs->kind == AST_EXPR_CATCH || sarrlen(lhs_exprs) > 1;
 
 		u32 ignored_num = 0;
 
