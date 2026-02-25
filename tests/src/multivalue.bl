@@ -1,0 +1,353 @@
+#scope_private
+
+called_num := 0;
+
+Data :: struct {
+	a: s64;
+	b: s64;
+	c: s64;
+	d: s64;
+}
+
+one_value :: fn (add_called_num := true) s32 {
+	if add_called_num then called_num += 1;
+	return 10;
+}
+
+one_value_24B :: fn (add_called_num := true) Data {
+	if add_called_num then called_num += 1;
+	return .{ 10, 20, 30, 40 };
+}
+
+multi_value :: fn (add_called_num := true) (s32, s32, string_view) {
+	if add_called_num then called_num += 1;
+	return 10, 20, "hello";
+}
+
+decl_single_value :: fn () #test {
+	{
+		a, b :: 10;
+		test_eq(a, 10);
+		test_eq(b, 10);
+	}
+
+	{
+		a, b :: 10 + 5;
+		test_eq(a, 15);
+		test_eq(b, 15);
+	}
+
+	{
+		x := 10;
+		a, b := x;
+		test_eq(a, 10);
+		test_eq(b, 10);
+	}
+}
+
+decl_call_single_value :: fn () #test {
+	{
+		a, b :: one_value();
+		test_eq(a, 10);
+		test_eq(b, 10);
+		test_eq(called_num, 1);
+		called_num = 0;
+	}
+	{
+		a, b :: one_value#(false);
+		test_eq(a, 10);
+		test_eq(b, 10);
+	}
+	{
+		a, b :: one_value_24B#(false);
+		test_eq(a.a, 10);
+		test_eq(a.b, 20);
+		test_eq(a.c, 30);
+		test_eq(a.d, 40);
+
+		test_eq(b.a, 10);
+		test_eq(b.b, 20);
+		test_eq(b.c, 30);
+		test_eq(b.d, 40);
+	}
+}
+
+decl_call_in_expression_single_value :: fn () #test {
+	{
+		a, b :: one_value() + 10;
+		test_eq(a, 20);
+		test_eq(b, 20);
+		test_eq(called_num, 1);
+		called_num = 0;
+	}
+	{
+		a, b :: one_value() + one_value();
+		test_eq(a, 20);
+		test_eq(b, 20);
+		test_eq(called_num, 2);
+		called_num = 0;
+	}
+	{
+		a, b :: one_value#(false) + 10;
+		test_eq(a, 20);
+		test_eq(b, 20);
+	}
+	{
+		a, b :: one_value#(false) + one_value#(false);
+		test_eq(a, 20);
+		test_eq(b, 20);
+	}
+}
+
+decl_call_multi_value_consume :: fn () #test {
+	{
+		multi_value();
+		test_eq(called_num, 1);
+		called_num = 0;
+	}
+	{
+		a :: multi_value();
+		test_eq(a, 10);
+		test_eq(called_num, 1);
+		called_num = 0;
+	}
+	{
+		a, b :: multi_value();
+		test_eq(a, 10);
+		test_eq(b, 20);
+		test_eq(called_num, 1);
+		called_num = 0;
+	}
+	{
+		a, b, c :: multi_value();
+		test_eq(a, 10);
+		test_eq(b, 20);
+		test_eq(c, "hello");
+		test_eq(called_num, 1);
+		called_num = 0;
+	}
+	{
+		_, b, c :: multi_value();
+		test_eq(b, 20);
+		test_eq(c, "hello");
+		test_eq(called_num, 1);
+		called_num = 0;
+	}
+	{
+		_, _, c :: multi_value();
+		test_eq(c, "hello");
+		test_eq(called_num, 1);
+		called_num = 0;
+	}
+	{
+		_, _, _ :: multi_value();
+		test_eq(called_num, 1);
+		called_num = 0;
+	}
+	{
+		a, b, c :: multi_value#(false);
+		test_eq(a, 10);
+		test_eq(b, 20);
+		test_eq(c, "hello");
+	}
+}
+
+a0, b0 :: 10;
+a1, b1 :: 10 + 5;
+global_decl_single_value :: fn () #test {
+	test_eq(a0, 10);
+	test_eq(b0, 10);
+
+	test_eq(a1, 15);
+	test_eq(b1, 15);
+}
+
+a2, b2 :: one_value#(false);
+a3, b3 :: one_value_24B#(false);
+
+global_decl_call_single_value :: fn () #test {
+	test_eq(a2, 10);
+	test_eq(b2, 10);
+
+	test_eq(a3.a, 10);
+	test_eq(a3.b, 20);
+	test_eq(a3.c, 30);
+	test_eq(a3.d, 40);
+	test_eq(b3.a, 10);
+	test_eq(b3.b, 20);
+	test_eq(b3.c, 30);
+	test_eq(b3.d, 40);
+}
+
+a4, b4 :: one_value#(false) + 10;
+a5, b5 :: one_value#(false) + one_value#(false);
+
+global_decl_call_in_expression_single_value :: fn () #test {
+	test_eq(a4, 20);
+	test_eq(b4, 20);
+
+	test_eq(a5, 20);
+	test_eq(b5, 20);
+}
+
+a6         :: multi_value#(false);
+a7, b7     :: multi_value#(false);
+a8, b8, c8 :: multi_value#(false);
+_, b9, c9  :: multi_value#(false);
+_, _, c10  :: multi_value#(false);
+_, _, _    :: multi_value#(false);
+
+global_decl_call_multi_value_consume :: fn () #test {
+	test_eq(a6, 10);
+
+	test_eq(a7, 10);
+	test_eq(b7, 20);
+
+	test_eq(a8, 10);
+	test_eq(b8, 20);
+	test_eq(c8, "hello");
+
+	test_eq(b9, 20);
+	test_eq(c9, "hello");
+
+	test_eq(c10, "hello");
+}
+
+assign_single_value :: fn () #test {
+	{
+		a, b: s32;
+		a, b = 10;
+		test_eq(a, 10);
+		test_eq(b, 10);
+	}
+
+	{
+		a, b: s32;
+		a, b = 10 + 5;
+		test_eq(a, 15);
+		test_eq(b, 15);
+	}
+
+	{
+		v := 10;
+		a := 10;
+		b := 0;
+		a, b = v;
+		test_eq(a, 10);
+		test_eq(b, 10);
+	}
+
+	{
+		arr: [10]s32;
+		arr[0], arr[1], arr[2] = 10;
+		test_eq(arr[0], 10);
+		test_eq(arr[1], 10);
+		test_eq(arr[2], 10);
+	}
+
+	{
+		data: struct {
+			a: s32;
+			b: s32;
+		};
+
+		data.a, data.b = 10;
+		test_eq(data.a, 10);
+		test_eq(data.b, 10);
+	}
+}
+
+assign_call_single_value :: fn () #test {
+	a, b: s32;
+	a, b = one_value();
+	test_eq(a, 10);
+	test_eq(b, 10);
+	test_eq(called_num, 1);
+	called_num = 0;
+}
+
+assign_call_in_expression_single_value :: fn () #test {
+	{
+		a, b: s32;
+		a, b = one_value() + 10;
+		test_eq(a, 20);
+		test_eq(b, 20);
+		test_eq(called_num, 1);
+		called_num = 0;
+	}
+	{
+		a, b: s32;
+		a, b = one_value() + one_value();
+		test_eq(a, 20);
+		test_eq(b, 20);
+		test_eq(called_num, 2);
+		called_num = 0;
+	}
+}
+
+assign_call_multi_value_consume :: fn () #test {
+	{
+		a: s32;
+		a = multi_value();
+		test_eq(a, 10);
+		test_eq(called_num, 1);
+		called_num = 0;
+	}
+	{
+		a, b: s32;
+		a, b = multi_value();
+		test_eq(a, 10);
+		test_eq(b, 20);
+		test_eq(called_num, 1);
+		called_num = 0;
+	}
+	{
+		a, b: s32;
+		c: string_view;
+		a, b, c = multi_value();
+		test_eq(a, 10);
+		test_eq(b, 20);
+		test_eq(c, "hello");
+		test_eq(called_num, 1);
+		called_num = 0;
+	}
+	{
+		arr: [10]s32;
+		arr[0] = 10;
+		arr[0], arr[1] = multi_value();
+		test_eq(arr[0], 10);
+		test_eq(arr[1], 20);
+		test_eq(called_num, 1);
+		called_num = 0;
+	}
+	{
+		b: s32;
+		c: string_view;
+		_, b, c = multi_value();
+		test_eq(b, 20);
+		test_eq(c, "hello");
+		test_eq(called_num, 1);
+		called_num = 0;
+	}
+	{
+		c: string_view;
+		_, _, c = multi_value();
+		test_eq(c, "hello");
+		test_eq(called_num, 1);
+		called_num = 0;
+	}
+	{
+		_, _, _ = multi_value();
+		test_eq(called_num, 1);
+		called_num = 0;
+	}
+
+	{
+		data: Data;
+		data.a, data.c = multi_value();
+		test_eq(data.a, 10);
+		test_eq(data.c, 20);
+		test_eq(called_num, 1);
+		called_num = 0;
+	}
+}

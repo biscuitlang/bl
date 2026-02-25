@@ -1,0 +1,5 @@
+// @ERR_INVALID_NAME@
+main :: fn () s32 {
+	arr[10]: s32;
+	return 0;
+}

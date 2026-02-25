@@ -1,0 +1,5 @@
+// @ERR_INVALID_EXPR@
+main :: fn () s32 {
+	a :: 10, 20;
+	return 0;
+}

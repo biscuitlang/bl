@@ -48,6 +48,9 @@ master
 - Change auto cast precedence to match regular cast.
 - Add `--warnings-as-errors` compiler flag to report all warnings as errors.
 - Fix regression causing missing unused symbol reports.
+- Revamp implementation of multi-value expressions.
+- Add support for unroll multi-return value in assignment statement.
+- Fix issues with multi-value declarations in global scope.
 
 [Modules]
 

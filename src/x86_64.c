@@ -1361,7 +1361,7 @@ static void emit_instr(struct context *ctx, struct thread_context *tctx, struct 
 
 		const u64 vi_target = get_value(tctx, mem->target_ptr);
 
-		if (mem->builtin_id != BUILTIN_ID_NONE) {
+		if (mem->id_kind != MIR_INSTR_MEMBER_ID_IDENT) {
 			BL_UNIMPLEMENTED;
 		}
 

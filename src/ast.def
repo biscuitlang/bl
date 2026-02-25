@@ -15,6 +15,7 @@
 	AST_CALL_LOC,
 	AST_DOCS,
 	AST_REF,
+	AST_LIST,
 	AST_DECL_ENTITY,
 	AST_DECL_MEMBER,
 	AST_DECL_ARG,
@@ -76,6 +77,7 @@
 	struct ast_call_loc          call_loc;
 	struct ast_docs              docs;
 	struct ast_ref               ref;
+	struct ast_list              list;
 	struct ast_stmt_using        stmt_using;
 	struct ast_stmt_return       stmt_return;
 	struct ast_stmt_if           stmt_if;
@@ -83,7 +85,7 @@
 	struct ast_stmt_defer        stmt_defer;
 	struct ast_stmt_switch       stmt_switch;
 	struct ast_stmt_case         stmt_case;
-        struct ast_stmt_assign       stmt_assign;
+	struct ast_stmt_assign       stmt_assign;
 	struct ast_decl              decl;
 	struct ast_decl_entity       decl_entity;
 	struct ast_decl_arg          decl_arg;

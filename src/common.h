@@ -330,6 +330,7 @@ typedef sarr_t(u8, 1) sarr_any_t;
 void sarradd_impl(void *ptr, usize elem_size, usize static_elem_count, usize new_elem_count);
 
 typedef sarr_t(struct ast *, 16) ast_nodes_t;
+typedef sarr_t(struct ast *, 4) ast_nodes_small_t;
 typedef sarr_t(struct mir_arg *, 16) mir_args_t;
 typedef sarr_t(struct mir_fn *, 16) mir_fns_t;
 typedef sarr_t(struct mir_type *, 16) mir_types_t;

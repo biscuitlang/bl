@@ -26,7 +26,7 @@ vm_stack_ptr_t _mir_cev_read(struct mir_const_expr_value *value);
 #define MIR_CEV_READ_AS(T, src)        (*((T *)_mir_cev_read(src)))
 #define MIR_CEV_WRITE_AS(T, dest, src) (*((T *)(dest)->data) = (src))
 
-#define UNROLL_LAST_INDEX -1
+#define UNROLL_LAST_INDEX ((u32) - 1)
 
 struct assembly;
 struct builder;
@@ -440,7 +440,7 @@ struct mir_type_struct {
 	// member is stored at same memory offset.
 	bool is_union;
 	// Set true for struct type used as multiple return temporary.
-	bool is_multiple_return_type;
+	bool is_multi_value;
 	// Set true for string literals (represented as slice of u8 values).
 	bool is_string_literal;
 };
@@ -517,6 +517,10 @@ enum mir_var_flags {
 	MIR_VAR_ARG_TMP = 1 << 6,
 	// Keep this, we sometimes have i.e. type defs in scope of the function.
 	MIR_VAR_EMIT_LLVM = 1 << 7,
+
+	// Used in case we need temporary variable inside global initialization block, must be used in combination with
+	// 'MIR_VAR_GLOBAL'. This is used for example in global unrolls.
+	MIR_VAR_GLOBAL_INLINE_INIT = 1 << 8,
 };
 
 // VAR
@@ -558,6 +562,8 @@ struct mir_instr {
 	u64                         id;
 	struct ast                 *node;
 	struct mir_instr_block     *owner_block;
+
+	struct mir_instr *tmp_var;
 
 	union {
 		LLVMValueRef llvm_value;
@@ -626,12 +632,23 @@ struct mir_instr_elem_ptr {
 	struct mir_instr *index;
 };
 
+enum mir_instr_member_id_kind {
+	MIR_INSTR_MEMBER_ID_IDENT,
+	MIR_INSTR_MEMBER_ID_INDEX,
+	MIR_INSTR_MEMBER_ID_BUILTIN,
+};
+
 struct mir_instr_member_ptr {
-	struct mir_instr     base;
-	struct ast          *member_ident;
-	struct mir_instr    *target_ptr;
-	struct scope_entry  *scope_entry;
-	enum builtin_id_kind builtin_id;
+	struct mir_instr              base;
+	enum mir_instr_member_id_kind id_kind;
+	union {
+		struct ast          *ident;
+		u32                  index;
+		enum builtin_id_kind builtin_id;
+	} id;
+
+	struct mir_instr   *target_ptr;
+	struct scope_entry *scope_entry;
 };
 
 struct mir_instr_cast {
@@ -683,8 +700,6 @@ struct mir_instr_arg {
 
 struct mir_instr_const {
 	struct mir_instr base;
-	// 2025-12-15: Optionally set in case unroll needs stack allocation.
-	struct mir_instr *tmp_var;
 };
 
 struct mir_instr_load {
@@ -770,7 +785,7 @@ struct mir_instr_type_struct {
 	bool              is_packed;
 	bool              is_union;
 	// Set true for struct type used as multiple return temporary.
-	bool is_multiple_return_type;
+	bool is_multi_value;
 };
 
 struct mir_instr_type_enum {
@@ -830,9 +845,6 @@ struct mir_instr_call {
 	// Pointer to called function resolved after overload resolution.
 	struct mir_fn *called_function;
 	mir_instrs_t  *args; // Optional
-
-	// Optional temporary variable for unroll multi-return struct type.
-	struct mir_instr *tmp_var;
 
 	// True if the call is inside the function type recipe, we should not call it while evaluation
 	// is done + we have to replace the result type by placeholder.
@@ -957,14 +969,8 @@ struct mir_instr_call_loc {
 struct mir_instr_unroll {
 	struct mir_instr  base;
 	struct mir_instr *src;
-	// Previous destination is optional reference to the previous variable in case we initialize
-	// multiple variables at once by function call. i.e.: a, b, c := foo(); when 'foo' returns one
-	// single value. Unroll instruction is removed is such case and variable using current unroll is
-	// directly set to 'prev' value: c = b = a = foo();
-	struct mir_instr *prev;
-	s32               index;
-	bool              remove;
-	bool              force_call_tmp;
+	u32               index;
+	bool              force_tmp;
 };
 
 struct mir_instr_using {

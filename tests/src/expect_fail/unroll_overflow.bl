@@ -1,4 +1,4 @@
-// @ERR_INVALID_MEMBER_ACCESS@
+// @ERR_INVALID_EXPR@
 main :: fn () s32 {
 	foo :: &fn () (s32, s32) {
 		return 10, 20;

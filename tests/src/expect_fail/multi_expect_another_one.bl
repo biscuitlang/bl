@@ -1,0 +1,5 @@
+// @ERR_EXPECTED_EXPR@
+main :: fn () s32 {
+	xx,: s32;
+	return 0;
+}

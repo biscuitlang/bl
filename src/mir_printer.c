@@ -603,15 +603,19 @@ void print_instr_member_ptr(struct context *ctx, struct mir_instr_member_ptr *me
 		fprintf(ctx->stream, ".");
 	}
 
-	if (member_ptr->builtin_id == BUILTIN_ID_NONE) {
-		if (member_ptr->member_ident) {
-			const str_t s = member_ptr->member_ident->data.ident.id.str;
+	switch (member_ptr->id_kind) {
+	case MIR_INSTR_MEMBER_ID_IDENT: {
+		struct ast *ident = member_ptr->id.ident;
+		if (ident) {
+			const str_t s = ident->data.ident.id.str;
 			fprintf(ctx->stream, STR_FMT, STR_ARG(s));
 		} else {
 			fprintf(ctx->stream, "<UNKNOWN>");
 		}
-	} else {
-		switch (member_ptr->builtin_id) {
+		break;
+	}
+	case MIR_INSTR_MEMBER_ID_BUILTIN: {
+		switch (member_ptr->id.builtin_id) {
 		case BUILTIN_ID_ARR_LEN:
 			fprintf(ctx->stream, "len");
 			break;
@@ -622,6 +626,13 @@ void print_instr_member_ptr(struct context *ctx, struct mir_instr_member_ptr *me
 		default:
 			fprintf(ctx->stream, "<UNKNOWN>");
 		}
+		break;
+	}
+	case MIR_INSTR_MEMBER_ID_INDEX: {
+		const u32 index = member_ptr->id.index;
+		fprintf(ctx->stream, "[%u]", index);
+		break;
+	}
 	}
 }
 
@@ -634,12 +645,12 @@ void print_instr_unop(struct context *ctx, struct mir_instr_unop *unop) {
 }
 
 void print_instr_defer(struct context *ctx, struct mir_instr_defer *defer) {
-	print_instr_head(ctx, &defer->base, "defer");
+	print_instr_head(ctx, &defer->base, "~defer~");
 	print_ast(ctx, defer->code);
 }
 
 void print_instr_defer_insert(struct context *ctx, struct mir_instr_defer_insert *defer_insert) {
-	print_instr_head(ctx, &defer_insert->base, "deferinsert");
+	print_instr_head(ctx, &defer_insert->base, "~deferinsert~");
 	fprintf(ctx->stream, "%s", defer_insert->whole_tree ? "TREE" : "SCOPE");
 }
 
@@ -657,7 +668,7 @@ void print_instr_cond_br(struct context *ctx, struct mir_instr_cond_br *cond_br)
 }
 
 void print_instr_cond_insert(struct context *ctx, struct mir_instr_cond_insert *cond_insert) {
-	print_instr_head(ctx, &cond_insert->base, "insert");
+	print_instr_head(ctx, &cond_insert->base, "~insert~");
 	print_comptime_value_or_id(ctx, cond_insert->cond);
 	fprintf(ctx->stream, " ? ");
 	print_ast(ctx, cond_insert->then_block);
@@ -687,14 +698,13 @@ void print_instr_call_loc(struct context *ctx, struct mir_instr_call_loc *loc) {
 }
 
 void print_instr_unroll(struct context *ctx, struct mir_instr_unroll *unroll) {
-	print_instr_head(ctx, &unroll->base, "unroll");
+	print_instr_head(ctx, &unroll->base, "~unroll~");
 	print_comptime_value_or_id(ctx, unroll->src);
 	if (unroll->index == UNROLL_LAST_INDEX) {
-		fprintf(ctx->stream, ".LAST : ");
+		fprintf(ctx->stream, ".LAST");
 	} else {
-		fprintf(ctx->stream, ".%d : ", unroll->index);
+		fprintf(ctx->stream, ".%d", unroll->index);
 	}
-	print_comptime_value_or_id(ctx, unroll->prev);
 }
 
 void print_instr_using(struct context *ctx, struct mir_instr_using *using) {
@@ -703,7 +713,7 @@ void print_instr_using(struct context *ctx, struct mir_instr_using *using) {
 }
 
 void print_instr_designator(struct context *ctx, struct mir_instr_designator *designator) {
-	print_instr_head(ctx, &designator->base, "designator");
+	print_instr_head(ctx, &designator->base, "~designator~");
 	str_t name;
 	if (designator->ident && designator->ident->kind == AST_IDENT) {
 		name = designator->ident->data.ident.id.str;

@@ -7,6 +7,9 @@ The auto cast is not properly evaluated in compile time. Evaluation is skipped b
 @bug 5
 Direct access to type struct info members crashes the compiler.
 
+@bug 4
+Broken overload resolution on 'str_init'.
+
 expected_k_offset := outer_info.members[0].offset_bytes;
 
 @compiler 4

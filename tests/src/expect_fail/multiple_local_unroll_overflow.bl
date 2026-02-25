@@ -1,0 +1,7 @@
+// @ERR_INVALID_EXPR@
+bar :: fn () (s32, Error) {
+	return 10, OK;
+}
+
+HH := bar#() catch {};
+

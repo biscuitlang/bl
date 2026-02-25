@@ -1,0 +1,18 @@
+#import "std/print"
+
+main :: fn () s32 {
+	a, b, c: s32;  // Declare a, b, and c initialied to default value (0).
+	print("%, %, %\n", a, b, c);
+
+	x, y, z := 10; // Declare x, y, and z initialied to 10.
+	print("%, %, %\n", x, y, z);
+
+	x, y = 20; // Assign 20 to x and y.
+	print("%, %, %\n", x, y, z);
+
+	arr: [5]s32;
+	arr[1], arr[3] = x + 1;
+	print("%\n", arr);
+
+	return 0;
+}

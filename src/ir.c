@@ -13,16 +13,16 @@
 #endif
 
 #define STORE_MAX_SIZE_BYTES 16
-#define DI_LOCATION_SET(instr)                       \
+#define DI_LOCATION_SET(instr) \
 	if (ctx->generate_debug_info && (instr)->node) { \
-		emit_DI_instr_loc(ctx, (instr));             \
-	}                                                \
+		emit_DI_instr_loc(ctx, (instr)); \
+	} \
 	(void)0
 
-#define DI_LOCATION_RESET()                                    \
-	if (ctx->generate_debug_info) {                            \
+#define DI_LOCATION_RESET() \
+	if (ctx->generate_debug_info) { \
 		LLVMSetCurrentDebugLocation2(ctx->llvm_builder, NULL); \
-	}                                                          \
+	} \
 	(void)0
 
 struct rtti_incomplete {
@@ -161,7 +161,6 @@ static enum state   emit_instr_load(struct context *ctx, struct mir_instr_load *
 static enum state   emit_instr_call(struct context *ctx, struct mir_instr_call *call);
 static enum state   emit_instr_elem_ptr(struct context *ctx, struct mir_instr_elem_ptr *elem_ptr);
 static enum state   emit_instr_member_ptr(struct context *ctx, struct mir_instr_member_ptr *member_ptr);
-static enum state   emit_instr_unroll(struct context *ctx, struct mir_instr_unroll *unroll);
 static enum state   emit_instr_vargs(struct context *ctx, struct mir_instr_vargs *vargs);
 static enum state   emit_instr_toany(struct context *ctx, struct mir_instr_to_any *toany);
 static enum state   emit_instr_call_loc(struct context *ctx, struct mir_instr_call_loc *loc);
@@ -1772,8 +1771,7 @@ enum state emit_instr_elem_ptr(struct context *ctx, struct mir_instr_elem_ptr *e
 		// loaded pointer (the same as access to array in C).
 
 		LLVMValueRef llvm_slice_ptr = elem_ptr->arr_ptr->llvm_value;
-		LLVMValueRef llvm_ptr_ptr   = LLVMBuildStructGEP2(
-            ctx->llvm_builder, get_type(ctx, arr_type), llvm_slice_ptr, MIR_SLICE_PTR_INDEX, "");
+		LLVMValueRef llvm_ptr_ptr   = LLVMBuildStructGEP2(ctx->llvm_builder, get_type(ctx, arr_type), llvm_slice_ptr, MIR_SLICE_PTR_INDEX, "");
 
 		struct mir_type *elem_type = mir_get_struct_elem_type(arr_type, MIR_SLICE_PTR_INDEX);
 		LLVMValueRef     llvm_ptr =
@@ -1807,7 +1805,8 @@ enum state emit_instr_member_ptr(struct context *ctx, struct mir_instr_member_pt
 	LLVMValueRef llvm_target_ptr = member_ptr->target_ptr->llvm_value;
 	bassert(llvm_target_ptr);
 
-	if (member_ptr->builtin_id == BUILTIN_ID_NONE) {
+	switch (member_ptr->id_kind) {
+	case MIR_INSTR_MEMBER_ID_IDENT: {
 		bassert(member_ptr->scope_entry->kind == SCOPE_ENTRY_MEMBER);
 		struct mir_member *member = member_ptr->scope_entry->as.member;
 		bassert(member);
@@ -1821,48 +1820,36 @@ enum state emit_instr_member_ptr(struct context *ctx, struct mir_instr_member_pt
 			bassert(target_type);
 			LLVMTypeRef llvm_target_type = get_type(ctx, target_type);
 
-			member_ptr->base.llvm_value = LLVMBuildStructGEP2(
-			    ctx->llvm_builder, llvm_target_type, llvm_target_ptr, index, "");
+			member_ptr->base.llvm_value = LLVMBuildStructGEP2(ctx->llvm_builder, llvm_target_type, llvm_target_ptr, index, "");
 		}
 
 		bassert(member_ptr->base.llvm_value);
 		return STATE_PASSED;
 	}
 
-	// builtin member
-
-	// Valid only for slice types, we generate direct replacement for arrays.
-	if (member_ptr->builtin_id == BUILTIN_ID_ARR_LEN) {
-		// .len
-		LLVMTypeRef llvm_type = get_type(
-		    ctx, mir_get_struct_elem_type(member_ptr->target_ptr->value.type, MIR_SLICE_LEN_INDEX));
-		member_ptr->base.llvm_value = LLVMBuildStructGEP2(
-		    ctx->llvm_builder, llvm_type, llvm_target_ptr, MIR_SLICE_LEN_INDEX, "");
-	} else if (member_ptr->builtin_id == BUILTIN_ID_ARR_PTR) {
-		// .ptr
-		LLVMTypeRef llvm_type = get_type(
-		    ctx, mir_get_struct_elem_type(member_ptr->target_ptr->value.type, MIR_SLICE_PTR_INDEX));
-		member_ptr->base.llvm_value = LLVMBuildStructGEP2(
-		    ctx->llvm_builder, llvm_type, llvm_target_ptr, MIR_SLICE_PTR_INDEX, "");
+	case MIR_INSTR_MEMBER_ID_BUILTIN: {
+		const enum builtin_id_kind id = member_ptr->id.builtin_id;
+		if (id == BUILTIN_ID_ARR_LEN) {
+			// .len
+			LLVMTypeRef llvm_type       = get_type(ctx, mir_get_struct_elem_type(member_ptr->target_ptr->value.type, MIR_SLICE_LEN_INDEX));
+			member_ptr->base.llvm_value = LLVMBuildStructGEP2(ctx->llvm_builder, llvm_type, llvm_target_ptr, MIR_SLICE_LEN_INDEX, "");
+		} else if (id == BUILTIN_ID_ARR_PTR) {
+			// .ptr
+			LLVMTypeRef llvm_type       = get_type(ctx, mir_get_struct_elem_type(member_ptr->target_ptr->value.type, MIR_SLICE_PTR_INDEX));
+			member_ptr->base.llvm_value = LLVMBuildStructGEP2(ctx->llvm_builder, llvm_type, llvm_target_ptr, MIR_SLICE_PTR_INDEX, "");
+		}
+		return STATE_PASSED;
 	}
-	return STATE_PASSED;
-}
 
-enum state emit_instr_unroll(struct context *ctx, struct mir_instr_unroll *unroll) {
-	bassert(mir_is_composite_type(mir_deref_type(unroll->src->value.type)));
+	case MIR_INSTR_MEMBER_ID_INDEX: {
+		const u32   index           = (const unsigned int)member_ptr->id.index;
+		LLVMTypeRef llvm_type       = get_type(ctx, mir_deref_type(member_ptr->target_ptr->value.type));
+		member_ptr->base.llvm_value = LLVMBuildStructGEP2(ctx->llvm_builder, llvm_type, llvm_target_ptr, index, "");
+		return STATE_PASSED;
+	}
+	}
 
-	LLVMValueRef llvm_src_ptr = unroll->src->llvm_value;
-	bassert(llvm_src_ptr);
-
-	bassert(unroll->index >= 0);
-	const unsigned int index = (const unsigned int)unroll->index;
-	unroll->base.llvm_value =
-	    LLVMBuildStructGEP2(ctx->llvm_builder,
-	                        get_type(ctx, mir_deref_type(unroll->src->value.type)),
-	                        llvm_src_ptr,
-	                        index,
-	                        "");
-
+	BL_UNREACHABLE;
 	return STATE_PASSED;
 }
 
@@ -2016,12 +2003,12 @@ LLVMValueRef _emit_instr_compound_zero_initialized(struct context            *ct
 	return llvm_dest;
 }
 
-#define EMIT_NESTED_COMPOUND_IF_NEEDED(ctx, instr)                                \
-	if (!(instr)->llvm_value) {                                                   \
-		bassert((instr)->kind == MIR_INSTR_COMPOUND);                             \
+#define EMIT_NESTED_COMPOUND_IF_NEEDED(ctx, instr) \
+	if (!(instr)->llvm_value) { \
+		bassert((instr)->kind == MIR_INSTR_COMPOUND); \
 		_emit_instr_compound_comptime(ctx, ((struct mir_instr_compound *)instr)); \
-		bassert((instr)->llvm_value);                                             \
-	}                                                                             \
+		bassert((instr)->llvm_value); \
+	} \
 	(void)0
 
 // Generates comptime compound expression value, every nested member must be compile time known.
@@ -3114,9 +3101,6 @@ enum state emit_instr(struct context *ctx, struct mir_instr *instr) {
 		break;
 	case MIR_INSTR_CALL_LOC:
 		state = emit_instr_call_loc(ctx, (struct mir_instr_call_loc *)instr);
-		break;
-	case MIR_INSTR_UNROLL:
-		state = emit_instr_unroll(ctx, (struct mir_instr_unroll *)instr);
 		break;
 	default:
 		babort("Missing emit instruction!");

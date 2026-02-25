@@ -416,7 +416,7 @@ get_expected_error :: fn (filepath: string_view) (is_present: bool, error: s32) 
 	if err_open { print_err("%", err_open); return false, 0; }
 	content: string;
 	defer str_terminate(&content);
-	_, err_read :: read_string(&stream, &content);
+	err_read :: read_string(&stream, &content);
 	if err_read { print_err("%", err_read); return false, 0; }
 
 	tmp :: str_split_by(content, '@');
@@ -490,7 +490,6 @@ BlError :: enum s32 {
 	ERR_FILE_EMPTY               = 155;
 	ERR_INVALID_INITIALIZER      = 156;
 	ERR_INVALID_CAST             = 157;
-	ERR_INVALID_ADM              = 158;
 	ERR_DIV_BY_ZERO              = 159;
 	ERR_LIB_NOT_FOUND            = 160;
 	ERR_LIB_SYMBOL_NOT_FOUND     = 161;

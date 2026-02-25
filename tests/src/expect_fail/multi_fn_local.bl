@@ -1,0 +1,5 @@
+// @ERR_INVALID_NAME@
+main :: fn () s32 {
+	x, y :: fn () {};
+	return 0;
+}

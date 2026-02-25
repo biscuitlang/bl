@@ -218,6 +218,16 @@ data.b = true;
 
 ```
 
+## Multi-value Declaration And Assignment
+
+We can declare or assign multiple values at once using a *multi-value* expression on the left-hand side of an assignment or declaration.
+
+```bl
+@@@examples/multi_value.bl
+```
+
+Only a single expression is allowed on the right-hand side; however, this construct is particularly useful in combination with [functions](manual.html#Return-Value) that return multiple values.
+
 ## Local
 
 Local variables have their lifetime limited to the current block (code usually surrounded by curly braces). They are allocated on the stack frame of an owning function and become invalid when a function returns.

@@ -5,12 +5,11 @@
 #include "table.h"
 #include "unit.h"
 
-struct ast *
-ast_create_node(struct arena *arena, enum ast_kind c, struct token *tok, struct scope *parent_scope) {
+struct ast *ast_create_node(struct arena *arena, enum ast_kind c, struct location *loc, struct scope *parent_scope) {
 	struct ast *node      = arena_alloc(arena);
 	node->kind            = c;
 	node->owner_scope     = parent_scope;
-	node->location        = tok ? &tok->location : NULL;
+	node->location        = loc;
 	static batomic_s64 id = 0;
 	node->id              = batomic_fetch_add_s64(&id, 1);
 	return node;
@@ -54,6 +53,8 @@ const char *ast_get_name(const struct ast *n) {
 		return "Docs";
 	case AST_REF:
 		return "Ref";
+	case AST_LIST:
+		return "List";
 	case AST_UNREACHABLE:
 		return "Unreachable";
 	case AST_DEBUGBREAK:

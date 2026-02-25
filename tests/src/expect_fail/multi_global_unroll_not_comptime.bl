@@ -1,0 +1,6 @@
+// @ERR_EXPECTED_COMPTIME@
+foo :: fn () (s32, s32) {
+	return 10, 20;
+}
+
+XX, YY := foo();

@@ -1,15 +1,34 @@
-#import "std/print"
-#import "std/type_utils"
-
 /*
+
+Unified term: 'multi-value expression'.
 
 CHECK:
 Foo.{ x += 1 }
 #if #if
+x, y;
+XX, YY: s32 = foo(); // type must be inferred
+
+
+Single value:
+
+a, b    := 10;
+a, b, c := foo(); // foo returns single value
+
+foo() catch {}
+x :: foo();
+x :: foo() catch {}
 
  */
 
+#import "std/string"
+#import "std/print"
 
+Foo :: struct {
+	a: s32;
+	b: s32;
+}
+
+a, b :: fn () {}
 
 main :: fn () s32 {
 	return 0;

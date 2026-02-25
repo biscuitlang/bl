@@ -4,11 +4,10 @@
 #include "arena.h"
 #include "common.h"
 
-#define AST_IS_BAD(node) ((node) && (node)->kind == AST_BAD)
+#define AST_IS_BAD(node) (!(node) || (node)->kind == AST_BAD)
 #define AST_IS_OK(node)  ((node) && (node)->kind != AST_BAD)
 
 struct scope;
-struct token;
 struct location;
 struct ast;
 struct module;
@@ -100,15 +99,16 @@ struct ast_link {
 
 struct ast_ident {
 	struct id id;
-
-	// Optional other identificator (group);
-	struct ast *next;
 };
 
 struct ast_ref {
 	struct ast *ident;
 	struct ast *next;
 	struct ast *used_in_decl; // Optional, used for cyclic dependency detection.
+};
+
+struct ast_list {
+	ast_nodes_small_t items;
 };
 
 struct ast_ublock {
@@ -262,7 +262,7 @@ struct ast_type_struct {
 	ast_nodes_t *members;
 	struct ast  *base_type_expr;
 	bool         is_union;
-	bool         is_multiple_return_type;
+	bool         is_multi_value;
 };
 
 struct ast_type_enum {
@@ -396,7 +396,7 @@ struct ast {
 
 void        ast_arena_init(struct arena *arena, u32 owner_thread_index);
 void        ast_arena_terminate(struct arena *arena);
-struct ast *ast_create_node(struct arena *arena, enum ast_kind c, struct token *tok, struct scope *parent_scope);
+struct ast *ast_create_node(struct arena *arena, enum ast_kind c, struct location *loc, struct scope *parent_scope);
 const char *ast_binop_to_str(enum binop_kind op);
 const char *ast_unop_to_str(enum unop_kind op);
 const char *ast_assign_to_str(enum assign_kind op);

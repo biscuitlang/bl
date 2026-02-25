@@ -35,6 +35,7 @@ static inline void print_flags(u32 flags, FILE *stream) {
 }
 
 static void print_node(struct ast *node, s32 pad, FILE *stream);
+static void print_ident(struct ast *ident, s32 pad, FILE *stream);
 static void print_ublock(struct ast *ublock, s32 pad, FILE *stream);
 static void print_load(struct ast *load, s32 pad, FILE *stream);
 static void print_import(struct ast *import, s32 pad, FILE *stream);
@@ -48,6 +49,7 @@ static void print_block(struct ast *block, s32 pad, FILE *stream);
 static void print_unrecheable(struct ast *unr, s32 pad, FILE *stream);
 static void print_debugbreak(struct ast *debug_break, s32 pad, FILE *stream);
 static void print_ref(struct ast *ref, s32 pad, FILE *stream);
+static void print_list(struct ast *list, s32 pad, FILE *stream);
 static void print_type_polymorph(struct ast *poly, s32 pad, FILE *stream);
 static void print_type_struct(struct ast *strct, s32 pad, FILE *stream);
 static void print_type_slice(struct ast *slice, s32 pad, FILE *stream);
@@ -146,6 +148,11 @@ void print_err(struct ast *err, s32 pad, FILE *stream) {
 	print_head(err, pad, stream);
 }
 
+void print_ident(struct ast *ident, s32 pad, FILE *stream) {
+	print_head(ident, pad, stream);
+	fprintf(stream, STR_FMT, STR_ARG(ident->data.ident.id.str));
+}
+
 void print_unrecheable(struct ast *unr, s32 pad, FILE *stream) {
 	print_head(unr, pad, stream);
 }
@@ -191,6 +198,16 @@ void print_ref(struct ast *ref, s32 pad, FILE *stream) {
 
 	struct ast *next = ref->data.ref.next;
 	if (next) print_node(next, pad + 1, stream);
+}
+
+void print_list(struct ast *list, s32 pad, FILE *stream) {
+	print_head(list, pad, stream);
+
+	ast_nodes_small_t *items = &list->data.list.items;
+	for (usize i = 0; i < sarrlenu(items); ++i) {
+		struct ast *item = sarrpeek(items, i);
+		print_node(item, pad + 1, stream);
+	}
 }
 
 void print_type_fn_group(struct ast *group, s32 pad, FILE *stream) {
@@ -299,15 +316,14 @@ void print_stmt_assign(struct ast *assign, s32 pad, FILE *stream) {
 void print_decl_entity(struct ast *entity, s32 pad, FILE *stream) {
 	print_head(entity, pad, stream);
 
-	const str_t name = entity->data.decl.name->data.ident.id.str;
-	fprintf(stream,
-	        "'" STR_FMT "' '%s'",
-	        STR_ARG(name),
-	        entity->data.decl_entity.mut ? "mutable" : "immutable");
+	struct ast *name = entity->data.decl.name;
+	bassert(name->kind == AST_LIST);
 
+	fprintf(stream, " [%s]", entity->data.decl_entity.mut ? "mutable" : "immutable");
+	print_node(entity->data.decl.name, pad + 1, stream);
 	print_flags(entity->data.decl.flags, stream);
-	print_node((struct ast *)entity->data.decl.type, pad + 1, stream);
-	print_node((struct ast *)entity->data.decl_entity.value, pad + 1, stream);
+	print_node(entity->data.decl.type, pad + 1, stream);
+	print_node(entity->data.decl_entity.value, pad + 1, stream);
 }
 
 void print_decl_arg(struct ast *arg, s32 pad, FILE *stream) {
@@ -526,6 +542,7 @@ void print_node(struct ast *node, s32 pad, FILE *stream) {
 		break;
 
 	case AST_IDENT:
+		print_ident(node, pad, stream);
 		break;
 
 	case AST_UBLOCK:
@@ -570,6 +587,10 @@ void print_node(struct ast *node, s32 pad, FILE *stream) {
 
 	case AST_REF:
 		print_ref(node, pad, stream);
+		break;
+
+	case AST_LIST:
+		print_list(node, pad, stream);
 		break;
 
 	case AST_DECL_ENTITY:

@@ -51,7 +51,6 @@ static void                 interp_instr_switch(struct virtual_machine *vm, stru
 static void                 interp_instr_elem_ptr(struct virtual_machine *vm, struct mir_instr_elem_ptr *elem_ptr);
 static void                 interp_instr_member_ptr(struct virtual_machine      *vm,
                                                     struct mir_instr_member_ptr *member_ptr);
-static void                 interp_instr_unroll(struct virtual_machine *vm, struct mir_instr_unroll *unroll);
 static void                 interp_instr_arg(struct virtual_machine *vm, struct mir_instr_arg *arg);
 static void                 interp_instr_cond_br(struct virtual_machine *vm, struct mir_instr_cond_br *br);
 static void                 interp_instr_load(struct virtual_machine *vm, struct mir_instr_load *load);
@@ -89,7 +88,6 @@ static void                 eval_instr_set_initializer(struct virtual_machine   
                                                        struct mir_instr_set_initializer *si);
 static void                 eval_instr_cast(struct virtual_machine *vm, struct mir_instr_cast *cast);
 static void                 eval_instr_compound(struct virtual_machine *vm, struct mir_instr_compound *cmp);
-static void                 eval_instr_unroll(struct virtual_machine *vm, struct mir_instr_unroll *unroll);
 static void                 eval_instr_arg(struct virtual_machine *vm, struct mir_instr_arg *arg);
 
 // =================================================================================================
@@ -1201,9 +1199,6 @@ enum vm_interp_state interp_instr(struct virtual_machine *vm, struct mir_instr *
 	case MIR_INSTR_MEMBER_PTR:
 		interp_instr_member_ptr(vm, (struct mir_instr_member_ptr *)instr);
 		break;
-	case MIR_INSTR_UNROLL:
-		interp_instr_unroll(vm, (struct mir_instr_unroll *)instr);
-		break;
 	case MIR_INSTR_VARGS:
 		interp_instr_vargs(vm, (struct mir_instr_vargs *)instr);
 		break;
@@ -1397,7 +1392,8 @@ void interp_instr_member_ptr(struct virtual_machine *vm, struct mir_instr_member
 
 	vm_stack_ptr_t result = NULL;
 
-	if (member_ptr->builtin_id == BUILTIN_ID_NONE) {
+	switch (member_ptr->id_kind) {
+	case MIR_INSTR_MEMBER_ID_IDENT: {
 		bassert(member_ptr->scope_entry && member_ptr->scope_entry->kind == SCOPE_ENTRY_MEMBER);
 		struct mir_member *member = member_ptr->scope_entry->as.member;
 		bassert(member);
@@ -1405,12 +1401,15 @@ void interp_instr_member_ptr(struct virtual_machine *vm, struct mir_instr_member
 
 		// let the llvm solve poiner offset
 		result = vm_get_struct_elem_ptr(vm->assembly, target_type, ptr, (u32)index);
-	} else {
-		// builtin member
-		if (member_ptr->builtin_id == BUILTIN_ID_ARR_PTR) {
+		break;
+	}
+
+	case MIR_INSTR_MEMBER_ID_BUILTIN: {
+		const enum builtin_id_kind id = member_ptr->id.builtin_id;
+		if (id == BUILTIN_ID_ARR_PTR) {
 			// slice .ptr
 			result = vm_get_struct_elem_ptr(vm->assembly, target_type, ptr, 1);
-		} else if (member_ptr->builtin_id == BUILTIN_ID_ARR_LEN) {
+		} else if (id == BUILTIN_ID_ARR_LEN) {
 			// slice .len
 			result = vm_get_struct_elem_ptr(vm->assembly, target_type, ptr, 0);
 		} else {
@@ -1418,27 +1417,15 @@ void interp_instr_member_ptr(struct virtual_machine *vm, struct mir_instr_member
 		}
 	}
 
+	case MIR_INSTR_MEMBER_ID_INDEX: {
+		const u32 index = (const unsigned int)member_ptr->id.index;
+		result          = vm_get_struct_elem_ptr(vm->assembly, target_type, ptr, index);
+		break;
+	}
+	}
+
 	// push result address on the stack
 	stack_push(vm, (vm_stack_ptr_t)&result, member_ptr->base.value.type);
-}
-
-void interp_instr_unroll(struct virtual_machine *vm, struct mir_instr_unroll *unroll) {
-	bassert(unroll->src);
-	struct mir_type *src_type = unroll->src->value.type;
-	const s32        index    = unroll->index;
-
-	bassert(index >= 0);
-	bassert(src_type->kind == MIR_TYPE_PTR && "expected pointer");
-
-	src_type = mir_deref_type(src_type);
-	bassert(mir_is_composite_type(src_type) && "expected structure");
-
-	vm_stack_ptr_t ptr = fetch_value(vm, &unroll->src->value);
-	ptr                = VM_STACK_PTR_DEREF(ptr);
-	bassert(ptr);
-
-	vm_stack_ptr_t result = vm_get_struct_elem_ptr(vm->assembly, src_type, ptr, (u32)index);
-	stack_push(vm, (vm_stack_ptr_t)&result, unroll->base.value.type);
 }
 
 void interp_instr_unreachable(struct virtual_machine *vm, struct mir_instr_unreachable *unr) {
@@ -2003,9 +1990,6 @@ void eval_instr(struct virtual_machine *vm, struct mir_instr *instr) {
 		eval_instr_call_loc(vm, (struct mir_instr_call_loc *)instr);
 		break;
 
-	case MIR_INSTR_UNROLL:
-		eval_instr_unroll(vm, (struct mir_instr_unroll *)instr);
-		break;
 
 	case MIR_INSTR_ARG:
 		eval_instr_arg(vm, (struct mir_instr_arg *)instr);
@@ -2038,6 +2022,7 @@ void eval_instr(struct virtual_machine *vm, struct mir_instr *instr) {
 	case MIR_INSTR_DESIGNATOR:
 	case MIR_INSTR_DEFER:
 	case MIR_INSTR_DEFER_INSERT:
+	case MIR_INSTR_UNROLL:
 		break;
 
 	default:
@@ -2242,22 +2227,6 @@ void eval_instr_compound(struct virtual_machine *vm, struct mir_instr_compound *
 			babort("Invalid type of compound element!");
 		}
 	}
-}
-
-void eval_instr_unroll(struct virtual_machine *vm, struct mir_instr_unroll *unroll) {
-	struct mir_instr *src = unroll->src;
-	bassert(src);
-	struct mir_type *src_type = src->value.type;
-	bassert(src_type);
-
-	if (mir_is_composite_type(src_type) && src_type->data.strct.is_multiple_return_type) {
-		vm_stack_ptr_t member_ptr =
-		    vm_get_struct_elem_ptr(vm->assembly, src_type, src->value.data, unroll->index);
-		MIR_CEV_WRITE_AS(vm_stack_ptr_t, &unroll->base.value, member_ptr);
-		return;
-	}
-
-	unroll->base.value.data = src->value.data;
 }
 
 void eval_instr_arg(struct virtual_machine UNUSED(*vm), struct mir_instr_arg *arg) {

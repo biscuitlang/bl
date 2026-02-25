@@ -65,7 +65,6 @@ enum error {
 	ERR_FILE_EMPTY               = 155,
 	ERR_INVALID_INITIALIZER      = 156,
 	ERR_INVALID_CAST             = 157,
-	ERR_INVALID_ADM              = 158,
 	ERR_DIV_BY_ZERO              = 159,
 	ERR_LIB_NOT_FOUND            = 160,
 	ERR_LIB_SYMBOL_NOT_FOUND     = 161,

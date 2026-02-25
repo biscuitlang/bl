@@ -1,0 +1,5 @@
+// @ERR_INVALID_EXPR@
+foo :: fn () (s32, s32) {
+	return 10, 20;
+}
+XX, YY, ZZ := foo#();
