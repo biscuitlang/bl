@@ -683,7 +683,7 @@ split_text_to_fit :: fn (text: string_view, font: *Font, fit_to: f32, split_by_w
 	if num == 0 { return "", text; }
 	if num == text.len { return text, ""; }
 
-	return slice_range(text, 0, num), slice_range(text, num+1, text.len);
+	return slice_range(text, 0, num), slice_range(text, num, text.len);
 }
 
 set_scissor :: fn (position_x: f32, position_y: f32, width: f32, height: f32) {
