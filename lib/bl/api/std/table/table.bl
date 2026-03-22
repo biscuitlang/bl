@@ -214,17 +214,17 @@ calculate_hash :: fn (key: ?T) u32 #inline {
 	} else {
 		// copy-paste from stack overflow, is it good or not???
 		// https://stackoverflow.com/questions/664014/what-integer-hash-function-are-good-that-accepts-an-integer-hash-key
-		#if true {
+		#if sizeof(T) == 8 {
+			x: u64 = auto key;
+			x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9;
+			x = (x ^ (x >> 27)) * 0x94d049bb133111eb;
+			x = x ^ (x >> 31);
+			hash = auto x;
+		} else {
 			x: u32 = auto key;
 			x = ((x >> 16) ^ x) * 0x45d9f3b;
 			x = ((x >> 16) ^ x) * 0x45d9f3b;
 			x = (x >> 16) ^ x;
-			hash = x;
-		} else {
-			x: u32 = auto key;
-			x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9;
-			x = (x ^ (x >> 27)) * 0x94d049bb133111eb;
-			x = x ^ (x >> 31);
 			hash = x;
 		}
 	}

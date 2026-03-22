@@ -648,14 +648,15 @@ get_character_count_to_fit :: fn (text: string_view, font: *Font, fit_to: f32, s
 	space_glyph :: get_glyph_utf32(font, cast(u32) ' ');
 	loop converted_bytes < text.len {
 		rest :: str_sub(text, converted_bytes);
+
 		glyph: *GlyphInfo;
 		if rest[0] == '\t' {
 			w += space_glyph.advance_x * auto font.tab_size;
 			converted_bytes += 1;
 		} else if split_by_words && rest[0] == ' ' {
 			w += space_glyph.advance_x;
-			last_space_position = converted_bytes;
 			converted_bytes += 1;
+			last_space_position = converted_bytes; // Include the space at the end of the split.
 		} else {
 			utf32char, decoded_bytes, err_decode := utf8_to_utf32_single_char(rest);
 			if err_decode {
@@ -666,6 +667,7 @@ get_character_count_to_fit :: fn (text: string_view, font: *Font, fit_to: f32, s
 			glyph = get_glyph_utf32(font, utf32char);
 			w += glyph.advance_x;
 		}
+
 		if w > fit_to {
 			if last_space_position > 0 {
 				return last_space_position;
