@@ -20,16 +20,9 @@ x :: foo() catch {}
 
  */
 
-#import "std/string"
 #import "std/print"
 
-Foo :: struct {
-	a: s32;
-	b: s32;
-}
-
-a, b :: fn () {}
-
 main :: fn () s32 {
-	return 0;
+	print("Hello!\n");
+	return 10;
 }

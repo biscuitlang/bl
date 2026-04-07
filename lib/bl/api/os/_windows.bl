@@ -163,7 +163,7 @@ __os_abort_default :: fn () {
 	C.raise(C.SIGABRT);
 }
 
-__os_start :: fn () #entry {
+__os_start :: fn () s32 #entry {
 	// Get command-line arguments passed to this executable.
 	// We need custom function here to convert UTF16 to UTF8,
 	// Windows api does not provide UTF8 version of CommandLineToArgv
@@ -218,7 +218,7 @@ __os_start :: fn () #entry {
 	temporary_release();
 
 	C.free(auto args.ptr);
-	C.exit(out);
+	return out;
 }
 
 #scope_private
@@ -280,4 +280,3 @@ std_io_read :: fn (stream: *OsStdIoStream, dest: *u8, size: s64) (s64, Error) {
 	}
 	return auto read_bytes, OK;
 }
-

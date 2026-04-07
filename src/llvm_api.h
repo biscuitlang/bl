@@ -53,6 +53,7 @@ _SHUT_UP_END
 #define LLVM_ATTR_NOALIAS      LLVMGetEnumAttributeKindForName("noalias", 7)
 #define LLVM_ATTR_STRUCTRET    LLVMGetEnumAttributeKindForName("sret", 4)
 #define LLVM_ATTR_ALIGNMENT    LLVMGetEnumAttributeKindForName("align", 5)
+#define LLVM_SANITIZE_ADDRESS  LLVMGetEnumAttributeKindForName("sanitize_address", 16)
 
 #define LLVM_MEMSET_INTRINSIC_ID LLVMLookupIntrinsicID("llvm.memset", 11)
 #define LLVM_MEMCPY_INTRINSIC_ID LLVMLookupIntrinsicID("llvm.memcpy", 11)

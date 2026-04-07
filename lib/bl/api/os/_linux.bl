@@ -120,7 +120,7 @@ __os_abort_default :: fn () {
 
 __MAX_ARGS_WITHOUT_ALLOC :: 8;
 
-__os_start :: fn (argc: s64, argv: **u8, _: **u8) s32 #entry {
+__os_start :: fn (argc: s64, argv: **u8) s32 #entry {
 	args :: []*u8.{argc, argv};
 	tmp: [__MAX_ARGS_WITHOUT_ALLOC]string_view #noinit;
 	is_allocated :: args.len > tmp.len;
@@ -139,7 +139,6 @@ __os_start :: fn (argc: s64, argv: **u8, _: **u8) s32 #entry {
 		C.free(auto command_line_arguments.ptr);
 	}
 	temporary_release();
-	C.exit(out);
 	return out;
 }
 

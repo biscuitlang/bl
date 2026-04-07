@@ -8,17 +8,22 @@
 #define SHARED_EXT    "dylib"
 #define SHARED_PREFIX "lib"
 #define LLD_FLAVOR    "darwin"
+#define FLAG_RPATH    "-rpath "
+#define START_GROUP   ""
+#define END_GROUP     ""
 #else
 #define SHARED_EXT    "so"
 #define SHARED_PREFIX "lib"
 #define LLD_FLAVOR    "gnu"
+#define FLAG_RPATH    "-rpath="
+#define START_GROUP   "--start-group "
+#define END_GROUP     "--end-group "
 #endif
 #define OBJECT_EXT "o"
 
 #define FLAG_LIBPATH "-L"
 #define FLAG_LIB     "-l"
 #define FLAG_OUT     "-o"
-#define FLAG_RPATH   "-rpath"
 
 // Wrapper for ld linker on Unix platforms.
 static const char *get_out_extension(struct assembly *assembly) {
@@ -55,8 +60,16 @@ static void append_libs(struct assembly *assembly, str_buf_t *buf) {
 		if ((lib->flags & NATIVE_LIB_FLAG_RUNTIME) == 0) continue;
 		if (!lib->user_name.len) continue;
 		str_buf_append_fmt(buf, "{s}{str} ", FLAG_LIB, lib->user_name);
+	}
+}
+
+static void append_rpaths(struct assembly *assembly, str_buf_t *buf) {
+	for (usize i = 0; i < arrlenu(assembly->libs); ++i) {
+		struct native_lib *lib = &assembly->libs[i];
+		if ((lib->flags & NATIVE_LIB_FLAG_RUNTIME) == 0) continue;
+		if (!lib->user_name.len) continue;
 		if ((lib->flags & NATIVE_LIB_IS_SYSTEM) == 0) {
-			str_buf_append_fmt(buf, "{s} {str} ", FLAG_RPATH, lib->dir);
+			str_buf_append_fmt(buf, "{s}{str} ", FLAG_RPATH, lib->dir);
 		}
 	}
 }
@@ -105,6 +118,7 @@ s32 lld_ld(struct assembly *assembly) {
 
 	// set executable
 	append_linker_exec(assembly, &buf);
+
 	// set input file
 	str_buf_append_fmt(&buf, "{str}/{s}.{s} ", out_dir, name, OBJECT_EXT);
 	// set output file
@@ -116,9 +130,13 @@ s32 lld_ld(struct assembly *assembly) {
 		str_buf_append_fmt(&buf, "{s} {str}/{s}{s} ", FLAG_OUT, out_dir, prefix, name);
 	}
 	append_lib_paths(assembly, &buf);
+	append_rpaths(assembly, &buf);
+
+	str_buf_append(&buf, make_str_from_c(START_GROUP));
 	append_libs(assembly, &buf);
 	append_default_opt(assembly, &buf);
 	append_custom_opt(assembly, &buf);
+	str_buf_append(&buf, make_str_from_c(END_GROUP));
 
 	builder_log(STR_FMT, STR_ARG(buf));
 	s32 state = system(str_buf_to_c(buf));

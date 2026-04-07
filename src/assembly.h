@@ -129,34 +129,35 @@ struct assembly_user_define {
 };
 
 // ABI sync!!! Keep this updated with target representation in build.bl.
-#define TARGET_COPYABLE_CONTENT                        \
-	enum assembly_kind    kind;                        \
-	enum assembly_opt     opt;                         \
-	enum assembly_di_kind di;                          \
-	bool                  reg_split;                   \
-	bool                  verify_llvm;                 \
-	bool                  run_tests;                   \
-	bool                  tests_minimal_output;        \
-	bool                  no_api;                      \
-	bool                  copy_deps;                   \
-	bool                  run;                         \
-	bool                  print_tokens;                \
-	bool                  print_ast;                   \
-	bool                  print_scopes;                \
-	enum scope_dump_mode  print_scopes_mode;           \
-	bool                  emit_llvm;                   \
-	bool                  emit_mir;                    \
-	bool                  emit_asm;                    \
-	bool                  no_bin;                      \
-	bool                  no_llvm;                     \
-	bool                  no_analyze;                  \
-	bool                  x64;                         \
-	enum assert_mode      assert_mode;                 \
-	bool                  syntax_only;                 \
-	bool                  vmdbg_enabled;               \
-	s32                   vmdbg_break_on;              \
+#define TARGET_COPYABLE_CONTENT \
+	enum assembly_kind    kind; \
+	enum assembly_opt     opt; \
+	enum assembly_di_kind di; \
+	bool                  reg_split; \
+	bool                  verify_llvm; \
+	bool                  run_tests; \
+	bool                  tests_minimal_output; \
+	bool                  no_api; \
+	bool                  copy_deps; \
+	bool                  run; \
+	bool                  print_tokens; \
+	bool                  print_ast; \
+	bool                  print_scopes; \
+	enum scope_dump_mode  print_scopes_mode; \
+	bool                  emit_llvm; \
+	bool                  emit_mir; \
+	bool                  emit_asm; \
+	bool                  no_bin; \
+	bool                  no_llvm; \
+	bool                  no_analyze; \
+	bool                  x64; \
+	enum assert_mode      assert_mode; \
+	bool                  syntax_only; \
+	bool                  vmdbg_enabled; \
+	s32                   vmdbg_break_on; \
 	bool                  enable_experimental_targets; \
-	struct target_triple  triple;
+	struct target_triple  triple; \
+	bool                  sanitize_address;
 
 struct target {
 	// Copyable content of target can be duplicated from default target, the default target is
@@ -315,8 +316,7 @@ void             assembly_add_native_lib(struct assembly      *assembly,
                                          enum native_lib_flags flags);
 struct module   *assembly_import_module(struct assembly *assembly,
                                         str_t            modulepath,
-                                        struct token    *import_from,
-                                        struct scope    *scope);
+                                        struct token    *import_from);
 DCpointer        assembly_find_extern(struct assembly *assembly, const str_t symbol);
 
 // Print the top-level scope structure as dot graph.

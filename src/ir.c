@@ -814,6 +814,10 @@ LLVMValueRef emit_fn_proto(struct context *ctx, struct mir_fn *fn, bool schedule
 	} else if (isnotflag(fn->flags, FLAG_EXTERN) && isnotflag(fn->flags, FLAG_INTRINSIC)) {
 		LLVMSetVisibility(fn->llvm_value, LLVMHiddenVisibility);
 	}
+	if (ctx->assembly->target->sanitize_address) {
+		LLVMAttributeRef llvm_attr = llvm_create_enum_attribute(ctx->llvm_cnt, LLVM_SANITIZE_ADDRESS, 0);
+		LLVMAddAttributeAtIndex(fn->llvm_value, (unsigned)LLVMAttributeFunctionIndex, llvm_attr);
+	}
 	return fn->llvm_value;
 }
 

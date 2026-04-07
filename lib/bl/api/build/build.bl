@@ -178,6 +178,8 @@ Target :: struct { // !!! ABI sync TargetOptions !!!
 	enable_experimental_targets: bool;
 	/// Target triple according to LLVM.
 	triple: TargetTriple;
+	/// Enable runtime LLVM address sanitizer.
+	sanitize_address: bool;
 }
 
 ScopeDumpMode :: enum {

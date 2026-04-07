@@ -110,26 +110,26 @@ bool setup(const str_t filepath, const char *triple) {
 }
 
 str_buf_t make_content(const struct context *ctx) {
-#define TEMPLATE                                                                                \
-	"# Automatically generated configuration file used by 'blc' compiler.\n"                    \
-	"# To generate new one use 'blc --configure' command.\n\n"                                  \
-	"# Compiler version, this should match the executable version 'blc --version'.\n"           \
-	"version: \"{str}\"\n\n"                                                                    \
+#define TEMPLATE \
+	"# Automatically generated configuration file used by 'blc' compiler.\n" \
+	"# To generate new one use 'blc --configure' command.\n\n" \
+	"# Compiler version, this should match the executable version 'blc --version'.\n" \
+	"version: \"{str}\"\n\n" \
 	"# Main API directory containing all modules and source files. This option is mandatory.\n" \
-	"lib_dir: \"{str}\"\n"                                                                      \
-	"\n"                                                                                        \
-	"# Current default environment configuration.\n"                                            \
-	"{s}:\n"                                                                                    \
-	"    # Platform operating system preload file (relative to 'lib_dir').\n"                   \
-	"    preload_file: \"{str}\"\n"                                                             \
-	"    # Optional path to the linker executable, 'lld' linker is used by default on some "    \
-	"platforms.\n"                                                                              \
-	"    linker_executable: \"{str}\"\n"                                                        \
-	"    # Linker flags and options used to produce executable binaries.\n"                     \
-	"    linker_opt_exec: \"{str}\"\n"                                                          \
-	"    # Linker flags and options used to produce shared libraries.\n"                        \
-	"    linker_opt_shared: \"{str}\"\n"                                                        \
-	"    # File system location where linker should lookup for dependencies.\n"                 \
+	"lib_dir: \"{str}\"\n" \
+	"\n" \
+	"# Current default environment configuration.\n" \
+	"{s}:\n" \
+	"    # Platform operating system preload file (relative to 'lib_dir').\n" \
+	"    preload_file: \"{str}\"\n" \
+	"    # Optional path to the linker executable, 'lld' linker is used by default on some " \
+	"platforms.\n" \
+	"    linker_executable: \"{str}\"\n" \
+	"    # Linker flags and options used to produce executable binaries.\n" \
+	"    linker_opt_exec: \"{str}\"\n" \
+	"    # Linker flags and options used to produce shared libraries.\n" \
+	"    linker_opt_shared: \"{str}\"\n" \
+	"    # File system location where linker should lookup for dependencies.\n" \
 	"    linker_lib_path: \"{str}\"\n\n"
 
 	str_buf_t tmp = get_tmp_str();
@@ -163,7 +163,7 @@ bool default_config(struct context UNUSED(*ctx)) {
 bool x86_64_pc_windows_msvc(struct context *ctx) {
 	ctx->preload_file      = cstr("os/_windows.bl");
 	ctx->linker_executable = str_empty;
-	ctx->linker_opt_exec   = cstr("/NOLOGO /ENTRY:__os_start /SUBSYSTEM:CONSOLE /INCREMENTAL:NO /MACHINE:x64");
+	ctx->linker_opt_exec   = cstr("/NOLOGO /SUBSYSTEM:CONSOLE /INCREMENTAL:NO /MACHINE:x64");
 	ctx->linker_opt_shared = cstr("/NOLOGO /INCREMENTAL:NO /MACHINE:x64 /DLL");
 
 	struct wbs *wbs = wbslookup();
@@ -182,8 +182,7 @@ FAILED:
 #endif
 
 bool x86_64_pc_linux_gnu(struct context *ctx) {
-	const str_t RUNTIME_PATH      = cstr("lib/bl/rt/blrt_x86_64_linux.o");
-	const str_t LINKER_OPT_EXEC   = cstr("-dynamic-linker /lib64/ld-linux-x86-64.so.2 -e _start --export-dynamic");
+	const str_t LINKER_OPT_EXEC   = cstr("-dynamic-linker /lib64/ld-linux-x86-64.so.2 --export-dynamic");
 	const str_t LINKER_OPT_SHARED = cstr("--shared");
 
 	const str_t LINKER_LIB_PATHS[] = {
@@ -207,12 +206,6 @@ bool x86_64_pc_linux_gnu(struct context *ctx) {
 	put_tmp_str(ldpath);
 
 	str_buf_t runtime = get_tmp_str();
-	str_buf_append_fmt(&runtime, "{str}/../{str}", builder_get_exec_dir(), RUNTIME_PATH);
-	if (!normalize_path(&runtime)) {
-		builder_error("Runtime loader not found. (Expected location is '" STR_FMT "').", STR_ARG(runtime));
-		put_tmp_str(runtime);
-		return false;
-	}
 
 	// Lookup all possible lib paths on the system.
 	str_buf_t lib_paths = get_tmp_str();
@@ -225,6 +218,25 @@ bool x86_64_pc_linux_gnu(struct context *ctx) {
 			str_buf_append(&lib_paths, path);
 		}
 	}
+
+	// Resolve c runtime
+#define FIND_AND_APPEND_CRT(N) \
+	{ \
+		str_buf_t crt = execute("gcc -print-file-name=" N); \
+		if (!normalize_path(&crt)) { \
+			builder_error("C runtime not found on the system. Defaulting to '/usr/lib/" N "'."); \
+			str_buf_append(&runtime, make_str_from_c("/usr/lib/" N)); \
+		} else { \
+			str_buf_append_fmt(&runtime, "{str} ", crt); \
+		} \
+		put_tmp_str(crt); \
+	}
+
+	FIND_AND_APPEND_CRT("crt1.o");
+	FIND_AND_APPEND_CRT("crti.o");
+	FIND_AND_APPEND_CRT("crtn.o");
+
+#undef FIND_AND_APPEND_CRT
 
 	ctx->linker_opt_exec   = scprint(&ctx->cache, "{str} {str}", runtime, LINKER_OPT_EXEC);
 	ctx->linker_opt_shared = scprint(&ctx->cache, "{str}", LINKER_OPT_SHARED);
@@ -239,7 +251,7 @@ static bool x86_64_apple_darwin(struct context *ctx) {
 	const str_t COMMAND_LINE_TOOLS = cstr("/Library/Developer/CommandLineTools");
 	const str_t MACOS_SDK          = cstr("/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib");
 	const str_t LINKER_LIB_PATH    = cstr("/usr/lib:/usr/local/lib");
-	const str_t LINKER_OPT_EXEC    = cstr("-e ___os_start");
+	const str_t LINKER_OPT_EXEC    = cstr("");
 	const str_t LINKER_OPT_SHARED  = cstr("-dylib");
 
 	ctx->preload_file = cstr("os/_macos.bl");
@@ -296,7 +308,7 @@ static bool x86_64_apple_darwin(struct context *ctx) {
 
 static bool arm64_apple_darwin(struct context *ctx) {
 	const str_t COMMAND_LINE_TOOLS = cstr("/Library/Developer/CommandLineTools");
-	const str_t LINKER_OPT_EXEC    = cstr("-e ___os_start -arch arm64");
+	const str_t LINKER_OPT_EXEC    = cstr("-arch arm64");
 	const str_t LINKER_OPT_SHARED  = cstr("-dylib -arch arm64");
 
 	const str_t LINKER_LIB_PATHS[] = {
@@ -346,7 +358,6 @@ static bool arm64_apple_darwin(struct context *ctx) {
 	}
 
 	str_buf_append_fmt(&libpath, ":{str}/{str}", macos_sdk, cstr("usr/lib"));
-	str_buf_free(&macos_sdk);
 
 	str_buf_t osver = execute("sw_vers -productVersion");
 	if (osver.len == 0) {
@@ -377,6 +388,10 @@ static bool arm64_apple_darwin(struct context *ctx) {
 		str_buf_append_fmt(&optexec, "-macos_version_min {s32}.0 -ld_classic ", default_macos_min_version);
 		str_buf_append_fmt(&optshared, "-macos_version_min {s32}.0 -ld_classic ", default_macos_min_version);
 	}
+
+	// Resolve c runtime
+	str_buf_append_fmt(&optexec, "{str}/usr/lib/crt1.o ", macos_sdk);
+	str_buf_free(&macos_sdk);
 
 	str_buf_append(&optexec, LINKER_OPT_EXEC);
 	str_buf_append(&optshared, LINKER_OPT_SHARED);

@@ -254,3 +254,35 @@ test_erase3 :: fn () #test {
 		test_true(tbl_contains(&tbl, DATA[i]));
 	}
 }
+
+test_tombstones :: fn () #test {
+	tbl: Table(s32, s32);
+	defer tbl_terminate(&tbl);
+
+	// Initial size is 64, slots 128.
+	// Insert 10 elements.
+	loop i := 0; i < 10; i += 1 {
+		tbl_insert(&tbl, i, i);
+	}
+
+	// Erase all. This creates 10 tombstones.
+	loop i := 0; i < 10; i += 1 {
+		test_true(tbl_erase(&tbl, i));
+	}
+
+	// Insert them again. This should reuse tombstones.
+	loop i := 0; i < 10; i += 1 {
+		tbl_insert(&tbl, i, i);
+	}
+
+	// Lookup them.
+	loop i := 0; i < 10; i += 1 {
+		val, found :: tbl_lookup(&tbl, i);
+		test_true(found);
+		test_eq(val, i);
+	}
+
+	// Test lookup for non-existent key across tombstones.
+	test_false(tbl_contains(&tbl, 100));
+}
+

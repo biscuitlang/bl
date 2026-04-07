@@ -43,3 +43,10 @@
 
 - Push master branch.
 - Make sure everything works...
+
+# LLVM Upgrade
+
+- Precompile Windows package.
+- Rebuild asan module to match new LLVM version.
+- Rebuild LLVM linker.
+- Check if ASAN works on Windows.

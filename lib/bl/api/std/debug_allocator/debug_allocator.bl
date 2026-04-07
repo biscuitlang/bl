@@ -179,8 +179,7 @@ handler :: fn (dbgalloc: *DebugAllocator, operation: AllocOp, ptr: *u8, size: us
 			if ptr {
 				_, previous_alignment :: remove_allocation(dbgalloc, ptr);
 				if previous_alignment != alignment {
-					panic("Alignment of reallocated memory block must be the same as the previous one!"
-					" Previous alignment is %B and current is %B.", previous_alignment, alignment);
+					panic("Alignment of reallocated memory block must be the same as the previous one! Previous alignment is %B and current is %B.", previous_alignment, alignment);
 				}
 			}
 			if size == 0 {

@@ -438,7 +438,7 @@ struct ast *parse_hash_directive(struct context *ctx, s32 expected_mask, enum ha
 
 		struct ast *import = ast_create_node(ctx->ast_arena, AST_IMPORT, &tok_directive->location, current_scope);
 		if (!ctx->process_docs) {
-			struct module *module = assembly_import_module(ctx->assembly, get_token_value(ctx, tok_path).str, tok_path, current_scope);
+			struct module *module = assembly_import_module(ctx->assembly, get_token_value(ctx, tok_path).str, tok_path);
 			if (module) {
 				import->data.import.module = module;
 				if (!is_in_expression) {
@@ -1681,7 +1681,7 @@ struct ast *parse_expr_lit_fn(struct context *ctx) {
 		u32 accepted = HD_EXTERN | HD_NO_INLINE | HD_INLINE | HD_COMPILER | HD_ENTRY |
 		               HD_BUILD_ENTRY | HD_INTRINSIC | HD_TEST_FN | HD_EXPORT | HD_COMPTIME |
 		               HD_MAYBE_UNUSED | HD_OBSOLETE | HD_ENABLE_IF;
-		u32 flags = 0;
+		u32 flags    = 0;
 		while (true) {
 			enum hash_directive_flags found        = HD_NONE;
 			struct ast               *hd_extension = parse_hash_directive(ctx, accepted, &found, false);

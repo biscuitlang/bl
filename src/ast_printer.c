@@ -316,9 +316,6 @@ void print_stmt_assign(struct ast *assign, s32 pad, FILE *stream) {
 void print_decl_entity(struct ast *entity, s32 pad, FILE *stream) {
 	print_head(entity, pad, stream);
 
-	struct ast *name = entity->data.decl.name;
-	bassert(name->kind == AST_LIST);
-
 	fprintf(stream, " [%s]", entity->data.decl_entity.mut ? "mutable" : "immutable");
 	print_node(entity->data.decl.name, pad + 1, stream);
 	print_flags(entity->data.decl.flags, stream);

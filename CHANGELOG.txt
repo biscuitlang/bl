@@ -51,6 +51,12 @@ master
 - Revamp implementation of multi-value expressions.
 - Add support for unroll multi-return value in assignment statement.
 - Fix issues with multi-value declarations in global scope.
+- Use regular C runtime to handle executable startup.
+- Add support for clang address sanitizer on Linux and Mac.
+- Fix hash table issues with reuse of deleted slots.
+- RPATH is now listed first in a group when LD is called on Linux or Mac.
+- LD is invoked with all dependencies in --start-group --end-group block on Linux.
+- DLib now use correct dynamic runtime on Windows.
 
 [Modules]
 

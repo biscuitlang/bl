@@ -306,16 +306,31 @@ void blc_runtime(void) {
 	Cmd cmd = {0};
 
 #ifdef _WIN32
-	cmd_append(&cmd, "cl", "-c", "-nologo", "./src/dlib/dlib_runtime.c", "-O2", "-Oi", "-DNDEBUG", "-I./src", "-Fo\"./lib/bl/api/std/dlib/win32/\"");
+	cmd_append(&cmd, "cl", "-c", "-nologo", "./src/dlib/dlib_runtime.c", "-O2", "-Oi", "-DNDEBUG", "-MD", "-I./src", "-Fo\"./lib/bl/api/std/dlib/win32/\"");
 	nob_cmd_run_sync_and_reset(&cmd);
 	cmd_append(&cmd, "lib", "-nologo", "./lib/bl/api/std/dlib/win32/dlib_runtime.obj", "-OUT:\"./lib/bl/api/std/dlib/win32/dlib.lib\"");
+	nob_cmd_run_sync_and_reset(&cmd);
+
+	cmd_append(&cmd, "cl", "-c", "-nologo", "./src/entry/entry.c", "-O2", "-Oi", "-DNDEBUG", "-MD", "-I./src", "-Fo\"./lib/bl/api/builtin/entry/win32/\"");
+	nob_cmd_run_sync_and_reset(&cmd);
+	cmd_append(&cmd, "lib", "-nologo", "./lib/bl/api/builtin/entry/win32/entry.obj", "-OUT:\"./lib/bl/api/builtin/entry/win32/entry.lib\"");
+	nob_cmd_run_sync_and_reset(&cmd);
+
 #elif __linux__
 	cmd_append(&cmd, "cc", "-c", "./src/dlib/dlib_runtime.c", "-I./src", "-D_GNU_SOURCE", "-O3", "-DNDEBUG", "-o", "./lib/bl/api/std/dlib/linux/libdlib.a");
+	nob_cmd_run_sync_and_reset(&cmd);
+
+	cmd_append(&cmd, "cc", "-c", "./src/entry/entry.c", "-I./src", "-D_GNU_SOURCE", "-O3", "-DNDEBUG", "-o", "./lib/bl/api/builtin/entry/linux/libentry.a");
+	nob_cmd_run_sync_and_reset(&cmd);
+
 #elif __APPLE__
 	cmd_append(&cmd, "cc", "-c", "./src/dlib/dlib_runtime.c", "-I./src", "-arch", "arm64", "-O3", "-DNDEBUG", "-o", "./lib/bl/api/std/dlib/darwin/libdlib.a");
-#endif
-
 	nob_cmd_run_sync_and_reset(&cmd);
+
+	cmd_append(&cmd, "cc", "-c", "./src/entry/entry.c", "-I./src", "-arch", "arm64", "-O3", "-DNDEBUG", "-o", "./lib/bl/api/builtin/entry/darwin/libentry.a");
+	nob_cmd_run_sync_and_reset(&cmd);
+
+#endif
 }
 
 void finalize(void) {

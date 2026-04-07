@@ -388,7 +388,7 @@ alloc_slice :: fn (slice: *[]?T, n: s64, zero_initialized := true, allocator: *A
 }
 
 /// Create slice subset defined as range `<start-index, end-index)`. Notice that `end` index
-/// is excluded from range, so ``slice_range(other, 0, other.len)`` is valid and returns
+/// is excluded from range, so `slice_range(other, 0, other.len)` is valid and returns
 /// new slice pointing to the same data as `other` slice, and with same size.
 ///
 /// Indexing rules:

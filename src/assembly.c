@@ -490,6 +490,9 @@ struct assembly *assembly_new(const struct target *target) {
 		default_units[0] = cstr(BUILTIN_FILE);
 		default_units[1] = preload_file;
 		default_unit_num = 2;
+
+		assembly_import_module(assembly, make_str_from_c(ENTRY_MODULE_PATH), NULL);
+
 		break;
 	case ASSEMBLY_SHARED_LIB:
 		if (assembly->target->no_api) break;
@@ -523,6 +526,10 @@ struct assembly *assembly_new(const struct target *target) {
 
 		// Append custom linker options
 		assembly_append_linker_options(assembly, str_buf_to_c(target->default_custom_linker_opt));
+
+		if (assembly->target->sanitize_address) {
+			assembly_import_module(assembly, make_str_from_c(ASAN_MODULE_PATH), NULL);
+		}
 	}
 
 	return assembly;
@@ -774,10 +781,7 @@ static struct module *import_module(struct assembly *assembly, str_t module_path
 			            ERR_UNSUPPORTED_TARGET,
 			            TOKEN_OPTIONAL_LOCATION(import_from),
 			            CARET_WORD,
-			            "Module is not supported for compilation target platform triple '%s'. "
-			            "The module explicitly specifies supported platforms in 'supported' module configuration section. "
-			            "Module directory might contain information about how to compile module dependencies for your target. "
-			            "Module configuration is imported from '%s'.",
+			            "Module is not supported for compilation target platform triple '%s'. The module explicitly specifies supported platforms in 'supported' module configuration section. Module directory might contain information about how to compile module dependencies for your target. Module configuration is imported from '%s'.",
 			            ctx.target_triple_str,
 			            module_path.ptr);
 		}
@@ -812,8 +816,7 @@ static struct module *import_module(struct assembly *assembly, str_t module_path
 
 struct module *assembly_import_module(struct assembly *assembly,
                                       str_t            modulepath,
-                                      struct token    *import_from,
-                                      struct scope    *scope) {
+                                      struct token    *import_from) {
 	struct module *module = NULL;
 
 	if (!modulepath.len) {

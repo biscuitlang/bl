@@ -1,0 +1,22 @@
+version: 20260407
+supported: "x86_64-pc-linux-gnu, x86_64-unknown-linux-gnu, arm64-apple-darwin"
+
+# ASAN runtime is broken on Windows for some reason, we currently use LLVM 18,
+# the issue might be fixed in newer LLVM, we should revisit this when upgrading
+# compiler LLVM.
+#x86_64-pc-windows-msvc:
+#  linker_lib_path: "win32"
+#  link_runtime: "clang_rt.asan_dynamic-x86_64"
+#  linker_opt: "clang_rt.asan_dynamic_runtime_thunk-x86_64.lib"
+
+x86_64-pc-linux-gnu:
+  linker_lib_path: "linux"
+  link_runtime: "asan"
+
+x86_64-unknown-linux-gnu:
+  linker_lib_path: "linux"
+  link_runtime: "asan"
+
+arm64-apple-darwin:
+  linker_lib_path: "macos"
+  link_runtime: "clang_rt.asan_osx_dynamic"
