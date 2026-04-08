@@ -71,30 +71,51 @@ void doc_ublock(struct context *ctx, struct ast *block) {
 }
 
 void doc_decl_entity(struct context *ctx, struct ast *decl) {
-	struct ast *ident = decl->data.decl.name;
-	struct ast *type  = decl->data.decl.type;
-	struct ast *value = decl->data.decl_entity.value;
-	if (!ident) return;
-
-	const str_t text       = ast_get_docs(ctx->unit, decl);
-	const str_t name       = ident->data.ident.id.str;
-	const bool  is_mutable = decl->data.decl_entity.mut;
-
-	// Symbols ignored by documentation.
-	if (name.ptr[0] == '_') return;
-
-	// @Performance: we can do it better I guess.
-	if (text.len && (str_match(text, cstr("@INCOMPLETE")) || str_match(text, cstr("@Incomplete")) ||
-	                 str_match(text, cstr("@incomplete")))) {
-		builder_msg(MSG_WARN, 0, ident->location, CARET_WORD, "Found incomplete documentation!");
-	}
-
 	if (!decl->owner_scope) return;
 	if (decl->owner_scope->kind != SCOPE_GLOBAL) return;
 
-	str_buf_t name_tmp = get_tmp_str();
-	H1(ctx->stream, str_to_c(&name_tmp, name));
-	put_tmp_str(name_tmp);
+	struct ast *ast_names = decl->data.decl.name;
+	struct ast *type      = decl->data.decl.type;
+	struct ast *value     = decl->data.decl_entity.value;
+
+	if (!ast_names) return;
+	bassert(ast_names->kind == AST_LIST);
+	ast_nodes_small_t *names = &ast_names->data.list.items;
+	if (sarrlenu(names) == 0) return;
+
+	const str_t text       = ast_get_docs(ctx->unit, decl);
+	const bool  is_mutable = decl->data.decl_entity.mut;
+
+	str_buf_t name = get_tmp_str();
+
+	{ // Concat name.
+		for (s32 i = 0; i < sarrlen(names); ++i) {
+			struct ast *ident = sarrpeek(names, i);
+			bassert(ident && ident->kind == AST_IDENT);
+			const str_t name_str = ident->data.ident.id.str;
+			if (name_str.len == 0 || name_str.ptr[0] == '_') continue;
+
+			str_buf_append(&name, name_str);
+			if (i + 1 < sarrlen(names)) str_buf_append(&name, make_str_from_c(", "));
+		}
+
+		if (name.len == 0) {
+			put_tmp_str(name);
+			return;
+		}
+
+		str_buf_t tmp = get_tmp_str();
+		H1(ctx->stream, str_to_c(&tmp, name));
+		put_tmp_str(tmp);
+	}
+
+	// @Performance: we can do it better I guess.
+	if (text.len && (str_match(text, cstr("@INCOMPLETE")) || str_match(text, cstr("@Incomplete")) || str_match(text, cstr("@incomplete")))) {
+		struct ast *first_ident = sarrpeek(names, 0);
+		bassert(first_ident && first_ident->kind == AST_IDENT);
+
+		builder_msg(MSG_WARN, 0, first_ident->location, CARET_WORD, "Found incomplete documentation!");
+	}
 
 	if (value && value->kind == AST_EXPR_LIT_FN && isflag(decl->data.decl.flags, FLAG_OBSOLETE)) {
 		fprintf(ctx->stream, "!!! warning\n");
@@ -133,6 +154,7 @@ void doc_decl_entity(struct context *ctx, struct ast *decl) {
 	}
 
 	fprintf(ctx->stream, "\n\n*File: " STR_FMT "*\n\n", STR_ARG(ctx->unit->filename));
+	put_tmp_str(name);
 }
 
 void doc_decl_arg(struct context *ctx, struct ast *decl) {
@@ -452,7 +474,7 @@ void doc_unit(struct context *ctx, struct unit *unit) {
 	str_buf_append_fmt(&export_file, "{str}/{str}.md", ctx->output_directory, unit_name);
 	FILE *f = fopen(str_buf_to_c(export_file), "w");
 	if (f == NULL) {
-		builder_error("Cannot open file '%s'", export_file);
+		builder_error("Cannot open file '" STR_FMT "' for writing.", STR_ARG(export_file));
 		goto DONE;
 	}
 
