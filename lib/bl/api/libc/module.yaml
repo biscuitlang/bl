@@ -2,7 +2,7 @@ version: 20241223
 
 x86_64-pc-windows-msvc:
   src: "msvc/libc.bl"
-  linker_opt: "msvcrt.lib ucrt.lib"
+  linker_opt: "msvcrt.lib ucrt.lib vcruntime.lib"
 
 x86_64-pc-linux-gnu:
   src: "glibc/libc.bl"
