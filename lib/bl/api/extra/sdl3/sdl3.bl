@@ -10,6 +10,9 @@ KeyboardID :: u32;
 MouseID :: u32;
 Surface :: u8;
 DisplayID :: u32;
+Gamepad :: u8;
+
+JoystickID :: u32;
 
 HINT_VIDEO_DRIVER :: "SDL_VIDEO_DRIVER";
 HINT_VIDEO_WAYLAND_PREFER_LIBDECOR :: "SDL_VIDEO_WAYLAND_PREFER_LIBDECOR";
@@ -816,6 +819,7 @@ Event :: union {
 	wheel: MouseWheelEvent;
 	drop: DropEvent;
 	motion: MouseMotionEvent;
+	gdevice: GamepadDeviceEvent;
 	_: [128]u8;
 }
 
@@ -914,6 +918,13 @@ MouseMotionEvent :: struct {
 	y: f32;            /**< Y coordinate, relative to window */
 	xrel: f32;         /**< The relative motion in the X direction */
 	yrel: f32;         /**< The relative motion in the Y direction */
+}
+
+GamepadDeviceEvent :: struct {
+	type: EventType;
+	reserved: u32;
+	timestamp: u64;
+	which: JoystickID;
 }
 
 EventType :: enum u32 {
@@ -1286,6 +1297,17 @@ PixelFormat :: enum {
 	PIXELFORMAT_XBGR32 = PIXELFORMAT_RGBX8888;
 }
 
+GamepadAxis :: enum {
+	GAMEPAD_AXIS_INVALID = -1;
+	GAMEPAD_AXIS_LEFTX;
+	GAMEPAD_AXIS_LEFTY;
+	GAMEPAD_AXIS_RIGHTX;
+	GAMEPAD_AXIS_RIGHTY;
+	GAMEPAD_AXIS_LEFT_TRIGGER;
+	GAMEPAD_AXIS_RIGHT_TRIGGER;
+	GAMEPAD_AXIS_COUNT;
+}
+
 Init :: fn (flags: InitFlags) bool #extern "SDL_Init";
 Quit :: fn () #extern "SDL_Quit";
 CreateWindow :: fn (title: *C.char, w: s32, h: s32, flags: WindowFlags) *Window #extern "SDL_CreateWindow";
@@ -1392,6 +1414,11 @@ GetCurrentDisplayMode :: fn (displayID: DisplayID) *DisplayMode #extern "SDL_Get
 SetWindowFullscreenMode :: fn (window: *Window, mode: *DisplayMode) bool #extern "SDL_SetWindowFullscreenMode";
 GetWindowFullscreenMode :: fn (window: *Window) *DisplayMode #extern "SDL_GetWindowFullscreenMode";
 SyncWindow :: fn (window: *Window) bool #extern "SDL_SyncWindow";
+
+OpenGamepad :: fn (instance_id: JoystickID) *Gamepad #extern "SDL_OpenGamepad";
+CloseGamepad :: fn (gamepad: *Gamepad) #extern "SDL_CloseGamepad";
+GetGamepadID :: fn (gamepad: *Gamepad) JoystickID #extern "SDL_GetGamepadID";
+GetGamepadAxis :: fn (gamepad: *Gamepad, axis: GamepadAxis) s16 #extern "SDL_GetGamepadAxis";
 
 //
 // Vulkan
