@@ -63,6 +63,7 @@ master
 memory:
 - Add `join_slices` helper function.
 - Add `Optional` value wrapper.
+- Implement custom alignment handling for default allocator available now on Linux and Mac too.
 
 debug:
 - Extend `measure_elapsed_ms_end` to provide just elapsed time without any logs.
