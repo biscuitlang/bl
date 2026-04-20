@@ -1414,6 +1414,9 @@ GetCurrentDisplayMode :: fn (displayID: DisplayID) *DisplayMode #extern "SDL_Get
 SetWindowFullscreenMode :: fn (window: *Window, mode: *DisplayMode) bool #extern "SDL_SetWindowFullscreenMode";
 GetWindowFullscreenMode :: fn (window: *Window) *DisplayMode #extern "SDL_GetWindowFullscreenMode";
 SyncWindow :: fn (window: *Window) bool #extern "SDL_SyncWindow";
+GetDisplayForWindow :: fn (window: *Window) DisplayID #extern "SDL_GetDisplayForWindow";
+GetClosestFullscreenDisplayMode :: fn (displayID: DisplayID, w: s32, h: s32, refresh_rate: f32, include_high_density_modes: bool, closest: *DisplayMode) bool #extern "SDL_GetClosestFullscreenDisplayMode";
+SetWindowFullscreen :: fn (window: *Window, fullscreen: bool) bool #extern "SDL_SetWindowFullscreen";
 
 OpenGamepad :: fn (instance_id: JoystickID) *Gamepad #extern "SDL_OpenGamepad";
 CloseGamepad :: fn (gamepad: *Gamepad) #extern "SDL_CloseGamepad";
