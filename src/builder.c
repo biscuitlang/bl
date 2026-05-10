@@ -654,3 +654,23 @@ void builder_submit_unit(struct assembly *assembly, struct unit *unit) {
 	}
 	return_zone();
 }
+
+// DEBUG TYPES
+// @Note 2026-05-10: These might me used in debugger to inspect BL types. Feel free to add new ones as needed.
+
+#if BL_DEBUG_ENABLE
+// Tye type must be used to be available in debugger.
+#define DEBUG_TYPE_ANCHOR(TYPE) volatile TYPE *__##TYPE = NULL
+
+typedef struct {
+	s64   len;
+	char *ptr;
+} _Debug_BL_string_view;
+DEBUG_TYPE_ANCHOR(_Debug_BL_string_view);
+
+typedef struct {
+	_Debug_BL_string_view name;
+	s64                   value;
+} _Debug_BL_TypeInfoEnumVariant;
+DEBUG_TYPE_ANCHOR(_Debug_BL_TypeInfoEnumVariant);
+#endif

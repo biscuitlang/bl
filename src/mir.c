@@ -8103,6 +8103,7 @@ struct result analyze_instr_decl_var(struct context *ctx, struct mir_instr_decl_
 	if (state.state != ANALYZE_PASSED) return_zone(state);
 
 	if (mir_is_comptime(&decl->base) && decl->init) {
+		// @Note 2026-05-08: Initialized later during comptime evaluation?
 		// initialize when known in compile-time
 		var->value.data = decl->init->value.data;
 		bassert(var->value.data && "Incomplete comptime var initialization.");

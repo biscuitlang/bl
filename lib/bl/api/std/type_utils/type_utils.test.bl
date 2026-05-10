@@ -111,6 +111,20 @@ test_enum_variant_value :: fn () #test {
 	test_eq(enum_variant_value(enm, 2), auto 20);
 }
 
+test_enum_next_variant :: fn () #test {
+	E :: enum { X; A = 10; B = 20; };
+	enm := E.X;
+
+	enm = enum_next_variant(enm);
+	test_eq(enm, E.A);
+
+	enm = enum_next_variant(enm);
+	test_eq(enm, E.B);
+
+	enm = enum_next_variant(enm);
+	test_eq(enm, E.X);
+}
+
 test_struct_member_count :: fn () #test {
 	One    :: struct { a: s32; };
 	Two    :: struct { a: s32; b: f32; };
