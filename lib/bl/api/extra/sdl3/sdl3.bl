@@ -773,6 +773,36 @@ Scancode :: enum u32 {
 	SCANCODE_COUNT = 512;/**< not a key, just marks the number of scancodes for array bounds */
 }
 
+GamepadButton :: enum u8 {
+	BUTTON_INVALID = -1;
+	BUTTON_SOUTH;
+	BUTTON_EAST;
+	BUTTON_WEST;
+	BUTTON_NORTH;
+	BUTTON_BACK;
+	BUTTON_GUIDE;
+	BUTTON_START;
+	BUTTON_LEFT_STICK;
+	BUTTON_RIGHT_STICK;
+	BUTTON_LEFT_SHOULDER;
+	BUTTON_RIGHT_SHOULDER;
+	BUTTON_DPAD_UP;
+	BUTTON_DPAD_DOWN;
+	BUTTON_DPAD_LEFT;
+	BUTTON_DPAD_RIGHT;
+	BUTTON_MISC1;
+	BUTTON_RIGHT_PADDLE1;
+	BUTTON_LEFT_PADDLE1;
+	BUTTON_RIGHT_PADDLE2;
+	BUTTON_LEFT_PADDLE2;
+	BUTTON_TOUCHPAD;
+	BUTTON_MISC2;
+	BUTTON_MISC3;
+	BUTTON_MISC4;
+	BUTTON_MISC5;
+	BUTTON_MISC6;
+	BUTTON_COUN;
+}
 
 GLAttr :: enum {
 	GL_RED_SIZE;                    /**< the minimum number of bits for the red channel of the color buffer; defaults to 3. */
@@ -820,6 +850,7 @@ Event :: union {
 	drop: DropEvent;
 	motion: MouseMotionEvent;
 	gdevice: GamepadDeviceEvent;
+	gbutton: GamepadButtonEvent;
 	_: [128]u8;
 }
 
@@ -844,6 +875,17 @@ KeyboardEvent :: struct {
 	raw: u16;            /**< The platform dependent scancode for this event */
 	down: bool;          /**< true if the key is pressed */
 	repeat: bool;        /**< true if this is a key repeat */
+}
+
+GamepadButtonEvent :: struct {
+	type: EventType;
+	reserved: u32;
+	timestamp: u64;      /**< In nanoseconds, populated using SDL_GetTicksNS() */
+	which: JoystickID; /**< The joystick instance id */
+	button: GamepadButton;       /**< The gamepad button (SDL_GamepadButton) */
+	down: bool;      /**< true if the button is pressed */
+	padding1: u8;
+	padding2: u8;
 }
 
 TextEditingEvent :: struct {
@@ -1422,6 +1464,15 @@ OpenGamepad :: fn (instance_id: JoystickID) *Gamepad #extern "SDL_OpenGamepad";
 CloseGamepad :: fn (gamepad: *Gamepad) #extern "SDL_CloseGamepad";
 GetGamepadID :: fn (gamepad: *Gamepad) JoystickID #extern "SDL_GetGamepadID";
 GetGamepadAxis :: fn (gamepad: *Gamepad, axis: GamepadAxis) s16 #extern "SDL_GetGamepadAxis";
+
+GetKeyboardState :: fn () []bool #inline {
+	_GetKeyboardState :: fn (numkeys: *s32) *bool #extern "SDL_GetKeyboardState";
+	len: s32;
+	bools :: _GetKeyboardState(&len);
+	return .{ len = len, ptr = bools };
+}
+
+GetDisplayContentScale :: fn (displayID: DisplayID) f32 #extern "SDL_GetDisplayContentScale";
 
 //
 // Vulkan
