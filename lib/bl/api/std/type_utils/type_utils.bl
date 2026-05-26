@@ -134,7 +134,12 @@ has_member :: fn (TStruct: type #comptime, member_name: string_view) bool {
 	return false;
 }
 
-/// Resolve struct member offset in bytes at `path`. Path examples:
+/// Resolve struct member offset in bytes at `path`. Panics in case path does not exist and `optional`
+/// is `false` otherwise returns -1 offset.
+///
+/// Optional `member_type_info` is initialized to `member.base_type` in case path is valid.
+///
+/// Path examples:
 ///
 /// - `member_name` top-level struct member name.
 /// - `member_name/nested_member_name` member nested in another struct.
@@ -142,7 +147,7 @@ has_member :: fn (TStruct: type #comptime, member_name: string_view) bool {
 /// - `/member_name/nested_member_name` again with optional root.
 /// - `/` just root, returns offset 0.
 /// ```
-member_offset_bytes :: fn {
+member_offset_bytes :: fn { // @Incomplete 2026-05-27: Maybe rename to something like get_member_info/find_member_at_path and use multi-return?
 	member_offset_bytes_impl;
 	member_offset_bytes_with_typeinfo_impl;
 }
@@ -184,13 +189,13 @@ get_struct_c_names :: fn (TStruct: type #comptime) [struct_member_count(TStruct)
 	return names;
 }
 
-member_offset_bytes_impl :: fn (TStruct: type #comptime, path: string_view, is_optional := false) s64 {
+member_offset_bytes_impl :: fn (TStruct: type #comptime, path: string_view, is_optional := false, member_type_info: **TypeInfo = null) s64 {
 	static_assert(typeinfo(TStruct).kind == TypeKind.STRUCT);
 	assert(path.len > 0);
-	return member_offset_bytes_with_typeinfo_impl(auto typeinfo(TStruct), path, is_optional);
+	return member_offset_bytes_with_typeinfo_impl(auto typeinfo(TStruct), path, is_optional, member_type_info);
 };
 
-member_offset_bytes_with_typeinfo_impl :: fn (type_info: *TypeInfoStruct, path: string_view, is_optional := false) s64 {
+member_offset_bytes_with_typeinfo_impl :: fn (type_info: *TypeInfoStruct, path: string_view, is_optional := false, member_type_info: **TypeInfo = null) s64 {
 	assert(path.len > 0);
 
 	offset: s64;
@@ -214,6 +219,7 @@ member_offset_bytes_with_typeinfo_impl :: fn (type_info: *TypeInfoStruct, path: 
 				offset += member.offset_bytes;
 				info    = auto member.base_type;
 				found   = true;
+
 				break;
 			}
 		}
@@ -225,6 +231,8 @@ member_offset_bytes_with_typeinfo_impl :: fn (type_info: *TypeInfoStruct, path: 
 			panic("Member '%' in the structure '%' is supposed to be struct type.", lhs, type_info.name);
 		}
 	}
+
+	if member_type_info then @member_type_info = auto info;
 	return offset;
 }
 
