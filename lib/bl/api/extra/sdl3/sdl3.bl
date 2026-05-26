@@ -10,6 +10,9 @@ KeyboardID :: u32;
 MouseID :: u32;
 Surface :: u8;
 DisplayID :: u32;
+Gamepad :: u8;
+
+JoystickID :: u32;
 
 HINT_VIDEO_DRIVER :: "SDL_VIDEO_DRIVER";
 HINT_VIDEO_WAYLAND_PREFER_LIBDECOR :: "SDL_VIDEO_WAYLAND_PREFER_LIBDECOR";
@@ -770,6 +773,36 @@ Scancode :: enum u32 {
 	SCANCODE_COUNT = 512;/**< not a key, just marks the number of scancodes for array bounds */
 }
 
+GamepadButton :: enum u8 {
+	BUTTON_INVALID = -1;
+	BUTTON_SOUTH;
+	BUTTON_EAST;
+	BUTTON_WEST;
+	BUTTON_NORTH;
+	BUTTON_BACK;
+	BUTTON_GUIDE;
+	BUTTON_START;
+	BUTTON_LEFT_STICK;
+	BUTTON_RIGHT_STICK;
+	BUTTON_LEFT_SHOULDER;
+	BUTTON_RIGHT_SHOULDER;
+	BUTTON_DPAD_UP;
+	BUTTON_DPAD_DOWN;
+	BUTTON_DPAD_LEFT;
+	BUTTON_DPAD_RIGHT;
+	BUTTON_MISC1;
+	BUTTON_RIGHT_PADDLE1;
+	BUTTON_LEFT_PADDLE1;
+	BUTTON_RIGHT_PADDLE2;
+	BUTTON_LEFT_PADDLE2;
+	BUTTON_TOUCHPAD;
+	BUTTON_MISC2;
+	BUTTON_MISC3;
+	BUTTON_MISC4;
+	BUTTON_MISC5;
+	BUTTON_MISC6;
+	BUTTON_COUN;
+}
 
 GLAttr :: enum {
 	GL_RED_SIZE;                    /**< the minimum number of bits for the red channel of the color buffer; defaults to 3. */
@@ -816,6 +849,8 @@ Event :: union {
 	wheel: MouseWheelEvent;
 	drop: DropEvent;
 	motion: MouseMotionEvent;
+	gdevice: GamepadDeviceEvent;
+	gbutton: GamepadButtonEvent;
 	_: [128]u8;
 }
 
@@ -840,6 +875,17 @@ KeyboardEvent :: struct {
 	raw: u16;            /**< The platform dependent scancode for this event */
 	down: bool;          /**< true if the key is pressed */
 	repeat: bool;        /**< true if this is a key repeat */
+}
+
+GamepadButtonEvent :: struct {
+	type: EventType;
+	reserved: u32;
+	timestamp: u64;      /**< In nanoseconds, populated using SDL_GetTicksNS() */
+	which: JoystickID; /**< The joystick instance id */
+	button: GamepadButton;       /**< The gamepad button (SDL_GamepadButton) */
+	down: bool;      /**< true if the button is pressed */
+	padding1: u8;
+	padding2: u8;
 }
 
 TextEditingEvent :: struct {
@@ -914,6 +960,13 @@ MouseMotionEvent :: struct {
 	y: f32;            /**< Y coordinate, relative to window */
 	xrel: f32;         /**< The relative motion in the X direction */
 	yrel: f32;         /**< The relative motion in the Y direction */
+}
+
+GamepadDeviceEvent :: struct {
+	type: EventType;
+	reserved: u32;
+	timestamp: u64;
+	which: JoystickID;
 }
 
 EventType :: enum u32 {
@@ -1286,6 +1339,17 @@ PixelFormat :: enum {
 	PIXELFORMAT_XBGR32 = PIXELFORMAT_RGBX8888;
 }
 
+GamepadAxis :: enum {
+	GAMEPAD_AXIS_INVALID = -1;
+	GAMEPAD_AXIS_LEFTX;
+	GAMEPAD_AXIS_LEFTY;
+	GAMEPAD_AXIS_RIGHTX;
+	GAMEPAD_AXIS_RIGHTY;
+	GAMEPAD_AXIS_LEFT_TRIGGER;
+	GAMEPAD_AXIS_RIGHT_TRIGGER;
+	GAMEPAD_AXIS_COUNT;
+}
+
 Init :: fn (flags: InitFlags) bool #extern "SDL_Init";
 Quit :: fn () #extern "SDL_Quit";
 CreateWindow :: fn (title: *C.char, w: s32, h: s32, flags: WindowFlags) *Window #extern "SDL_CreateWindow";
@@ -1392,6 +1456,23 @@ GetCurrentDisplayMode :: fn (displayID: DisplayID) *DisplayMode #extern "SDL_Get
 SetWindowFullscreenMode :: fn (window: *Window, mode: *DisplayMode) bool #extern "SDL_SetWindowFullscreenMode";
 GetWindowFullscreenMode :: fn (window: *Window) *DisplayMode #extern "SDL_GetWindowFullscreenMode";
 SyncWindow :: fn (window: *Window) bool #extern "SDL_SyncWindow";
+GetDisplayForWindow :: fn (window: *Window) DisplayID #extern "SDL_GetDisplayForWindow";
+GetClosestFullscreenDisplayMode :: fn (displayID: DisplayID, w: s32, h: s32, refresh_rate: f32, include_high_density_modes: bool, closest: *DisplayMode) bool #extern "SDL_GetClosestFullscreenDisplayMode";
+SetWindowFullscreen :: fn (window: *Window, fullscreen: bool) bool #extern "SDL_SetWindowFullscreen";
+
+OpenGamepad :: fn (instance_id: JoystickID) *Gamepad #extern "SDL_OpenGamepad";
+CloseGamepad :: fn (gamepad: *Gamepad) #extern "SDL_CloseGamepad";
+GetGamepadID :: fn (gamepad: *Gamepad) JoystickID #extern "SDL_GetGamepadID";
+GetGamepadAxis :: fn (gamepad: *Gamepad, axis: GamepadAxis) s16 #extern "SDL_GetGamepadAxis";
+
+GetKeyboardState :: fn () []bool #inline {
+	_GetKeyboardState :: fn (numkeys: *s32) *bool #extern "SDL_GetKeyboardState";
+	len: s32;
+	bools :: _GetKeyboardState(&len);
+	return .{ len = len, ptr = bools };
+}
+
+GetDisplayContentScale :: fn (displayID: DisplayID) f32 #extern "SDL_GetDisplayContentScale";
 
 //
 // Vulkan

@@ -187,6 +187,8 @@ static bool is_system_library(struct context *ctx, str_t libpath) {
 		return false;
 	}
 	const str_t custom_module_dir = str_buf_view(ctx->assembly->target->module_dir);
+	// In case no custom module directory is available, all libs outside of known locations are "system".
+	if (custom_module_dir.len == 0) return true;
 	return strncmp(custom_module_dir.ptr, libpath.ptr, MIN(custom_module_dir.len, libpath.len));
 }
 

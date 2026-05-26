@@ -57,12 +57,14 @@ master
 - RPATH is now listed first in a group when LD is called on Linux or Mac.
 - LD is invoked with all dependencies in --start-group --end-group block on Linux.
 - DLib now use correct dynamic runtime on Windows.
+- Fix copying of system libraries to the output location in case no custom module directory was set on Windows.
 
 [Modules]
 
 memory:
 - Add `join_slices` helper function.
 - Add `Optional` value wrapper.
+- Implement custom alignment handling for default allocator available now on Linux and Mac too.
 
 debug:
 - Extend `measure_elapsed_ms_end` to provide just elapsed time without any logs.

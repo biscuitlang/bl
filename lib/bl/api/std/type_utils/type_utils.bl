@@ -78,6 +78,22 @@ enum_variant_value :: fn (T: type #comptime, index: s64) T #inline {
 	return auto info.variants[index].value;
 }
 
+/// Returns next enum variant or the first one in case the `current` variant is the last one.
+enum_next_variant :: fn (current: ?T) T #inline {
+	info :: cast(*TypeInfoEnum) typeinfo(current);
+	static_assert(info.kind == TypeKind.ENUM);
+	loop i := 0; i < info.variants.len; i += 1 {
+		if info.variants[i].value == cast(s64) current {
+			if i+1 < info.variants.len {
+				return auto info.variants[i+1].value;
+			}
+			return auto info.variants[0].value;
+		}
+	}
+
+	panic("Current variant '%' does not exist in the enum '%'.", current, T);
+	return auto info.variants[0].value;
+}
 //
 // Struct utility functions.
 //

@@ -210,3 +210,85 @@ slice_join :: fn () #test {
 	test_eq(x[2], 30);
 	test_eq(x[3], 40);
 }
+
+default_allocator_basic :: fn () #test {
+	mem, err :: alloc(64, DEFAULT_ALIGNMENT, &default_allocator);
+	test_ok(err);
+	test_not_null(mem);
+	free(mem, &default_allocator);
+}
+
+default_allocator_alignment :: fn () #test {
+	alignment : usize = 1;
+	loop alignment <= 256 {
+		mem, err :: alloc(64, alignment, &default_allocator);
+		test_ok(err);
+		test_not_null(mem);
+		test_true(is_aligned(mem, alignment));
+		free(mem, &default_allocator);
+		alignment *= 2;
+	}
+}
+
+default_allocator_magic_alive :: fn () #test {
+	mem, err :: alloc(64, DEFAULT_ALIGNMENT, &default_allocator);
+	test_ok(err);
+	header, herr :: peek_default_allocator_allocation_header(mem);
+	test_ok(herr);
+	test_eq(header.magic, DEFAULT_ALLOCATOR_MAGIC_ALIVE);
+	free(mem, &default_allocator);
+}
+
+default_allocator_header_fields :: fn () #test {
+	alignment : usize : 32;
+	size      : usize : 128;
+	mem, err :: alloc(size, alignment, &default_allocator);
+	test_ok(err);
+	header, herr :: peek_default_allocator_allocation_header(mem);
+	test_ok(herr);
+	test_eq(header.size, size);
+	free(mem, &default_allocator);
+}
+
+default_allocator_realloc_null :: fn () #test {
+	mem, err :: realloc(null, 64, DEFAULT_ALIGNMENT, &default_allocator);
+	test_ok(err);
+	test_not_null(mem);
+	free(mem, &default_allocator);
+}
+
+default_allocator_realloc_grow :: fn () #test {
+	mem, err :: alloc(64, DEFAULT_ALIGNMENT, &default_allocator);
+	test_ok(err);
+	loop i := 0; i < 64; i += 1 {
+		byte_ptr :: cast(*u8) ptr_shift_bytes(mem, cast(s64) i);
+		@byte_ptr = auto i;
+	}
+	mem2, err2 :: realloc(mem, 128, DEFAULT_ALIGNMENT, &default_allocator);
+	test_ok(err2);
+	test_not_null(mem2);
+	loop i := 0; i < 64; i += 1 {
+		test_eq(@cast(*u8) ptr_shift_bytes(mem2, cast(s64) i), cast(u8) i);
+	}
+	free(mem2, &default_allocator);
+}
+
+default_allocator_realloc_shrink :: fn () #test {
+	mem, err :: alloc(128, DEFAULT_ALIGNMENT, &default_allocator);
+	test_ok(err);
+	loop i := 0; i < 128; i += 1 {
+		byte_ptr :: cast(*u8) ptr_shift_bytes(mem, cast(s64) i);
+		@byte_ptr = auto i;
+	}
+	mem2, err2 :: realloc(mem, 64, DEFAULT_ALIGNMENT, &default_allocator);
+	test_ok(err2);
+	test_not_null(mem2);
+	loop i := 0; i < 64; i += 1 {
+		test_eq(@cast(*u8) ptr_shift_bytes(mem2, cast(s64) i), cast(u8) i);
+	}
+	free(mem2, &default_allocator);
+}
+
+default_allocator_free_null :: fn () #test {
+	free(null, &default_allocator);
+}

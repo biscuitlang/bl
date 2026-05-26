@@ -331,8 +331,7 @@ is_aligned :: fn (ptr: *?T, alignment: usize) bool #inline {
 ///
 /// !!! warning
 ///     Cause panic when alignment is not power of two.
-align_ptr_up :: fn (p: *u8, alignment: usize) (p: *u8, adjustment: usize)
-{
+align_ptr_up :: fn (p: *u8, alignment: usize) (p: *u8, adjustment: usize) #inline {
 	if is_aligned(p, alignment) { return p, 0; }
 	mask : usize : alignment - 1;
 	assert((alignment & mask) == 0); // pwr of 2
@@ -482,10 +481,44 @@ set_optional_ref :: fn (opt: *?T, v: *T.value) {
 	opt.has_value = true;
 }
 
+/// Allocation header data stored for every allocation made using default allocator.
+DefaultAllocatorHeader :: struct {
+	/// Raw pointer of allocated memory block from malloc.
+	raw: *u8;
+	/// Size in bytes requested for user data.
+	size: usize;
+	/// Allocation magic number, this can be used to troubleshoot memory issues, it's set to
+	/// [DEFAULT_ALLOCATOR_MAGIC_ALIVE](#DEFAULT_ALLOCATOR_MAGIC_ALIVE) for active alive allocation or to
+	/// [DEFAULT_ALLOCATOR_MAGIC_FREED](#DEFAULT_ALLOCATOR_MAGIC_FREED) in case the memory block was freed.
+	magic: u32;
+}
+
+/// Marks valid alive allocation in [DefaultAllocatorHeader](#DefaultAllocatorHeader).
+DEFAULT_ALLOCATOR_MAGIC_ALIVE : u32 : 0xB15C0177;
+
+/// Marks freed allocation in [DefaultAllocatorHeader](#DefaultAllocatorHeader).
+DEFAULT_ALLOCATOR_MAGIC_FREED : u32 : 0xDEADDEAD;
+
+/// Returns allocation header data or an error in case the `user_ptr` does not point to memory block allocated by default
+/// allocator.
+peek_default_allocator_allocation_header :: fn (user_ptr: *u8) (DefaultAllocatorHeader, Error) #inline {
+	header :: get_allocation_header(user_ptr);
+	if header.magic != DEFAULT_ALLOCATOR_MAGIC_ALIVE && header.magic != DEFAULT_ALLOCATOR_MAGIC_FREED {
+		return .{}, error("The address points to memory block not allocated by default allocator.");
+	}
+
+	return @header, OK;
+}
+
 #scope_private
 #import "std/pool"
 
-C  :: #import "libc";
+C    :: #import "libc";
+math :: #import "std/math";
+
+get_allocation_header :: fn (user_ptr: *u8) *DefaultAllocatorHeader #inline {
+	return auto ptr_shift_bytes(user_ptr, - cast(s64) sizeof(DefaultAllocatorHeader));
+}
 
 default_allocator_handler :: fn (
 	allocator: *Allocator #maybe_unused,
@@ -496,40 +529,60 @@ default_allocator_handler :: fn (
 	file: string_view #maybe_unused,
 	line: s32 #maybe_unused)
 (mem: *u8, err: Error) {
-	// @Cleanup: We do properly aligned allocations only on Windows, in case there is not implementation
-	// provided on other platforms, we should implement it.
-	alignment; // May be unused...
-	using AllocOp;
 	switch operation {
-		ALLOCATE {
-			mem: *u8;
-			#if PLATFORM == .WINDOWS {
-				mem = C.aligned_malloc(size, alignment);
-			} else {
-				mem = C.malloc(size);
+		.ALLOCATE {
+			assert(is_power_of_two(alignment));
+			assert(size > 0);
+			raw_size :: size + sizeof(DefaultAllocatorHeader) + alignment - 1;
+			mem :: C.malloc(raw_size);
+			if !mem then return null, error("Bad allocation.");
+
+			user_ptr :: align_ptr_up(ptr_shift_bytes(mem, cast(s64) sizeof(DefaultAllocatorHeader)), alignment);
+			// Check if we're still in owned memory block.
+			assert((cast(usize) user_ptr - sizeof(DefaultAllocatorHeader)) >= cast(usize) mem);
+
+			header :: get_allocation_header(user_ptr);
+			header.raw       = mem;
+			header.size      = size;
+			header.magic     = DEFAULT_ALLOCATOR_MAGIC_ALIVE;
+
+			return user_ptr, OK;
+		}
+
+		.REALLOCATE {
+			if !ptr {
+				return default_allocator_handler(allocator, .ALLOCATE, null, size, alignment, file, line);
 			}
-			if !mem { return null, error("Bad allocation."); }
+
+			header :: get_allocation_header(ptr);
+			assert(header.magic == DEFAULT_ALLOCATOR_MAGIC_ALIVE, "Attempt to reallocate memory not previously allocated by this allocator.");
+
+			old_size :: header.size;
+			raw      :: header.raw;
+
+			mem :: default_allocator_handler(allocator, .ALLOCATE, null, size, alignment, file, line) catch {
+				return null, $;
+			};
+
+			memcpy(mem, ptr, math.min(old_size, size));
+
+			header.magic = DEFAULT_ALLOCATOR_MAGIC_FREED;
+			C.free(raw);
+
 			return mem, OK;
 		}
-		REALLOCATE {
-			mem: *u8;
-			#if PLATFORM == .WINDOWS {
-				mem = C.aligned_realloc(ptr, size, alignment);
-			} else {
-				mem = C.realloc(ptr, size);
-			}
-			if !mem { return null, error("Bad reallocation."); }
-			return mem, OK;
-		}
-		FREE {
-			#if PLATFORM == .WINDOWS {
-				C.aligned_free(ptr);
-			} else {
-				C.free(ptr);
+
+		.FREE {
+			if ptr {
+				header :: get_allocation_header(ptr);
+				assert(header.magic == DEFAULT_ALLOCATOR_MAGIC_ALIVE, "Attempt to free already freed memory or memory not allocated by this allocator.");
+
+				header.magic = DEFAULT_ALLOCATOR_MAGIC_FREED;
+				C.free(header.raw);
 			}
 		}
 
-		RESET, RELEASE {
+		.RESET, .RELEASE {
 			panic("Unsupported operation: %.", operation);
 		}
 

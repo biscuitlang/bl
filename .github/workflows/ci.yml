@@ -7,20 +7,24 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
+    - uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
     - name: Build
       shell: cmd
-      run: | 
-        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+      run: |
         ./build.bat debug all
 
   windows-release:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
+    - uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
     - name: Build
       shell: cmd
-      run: | 
-        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+      run: |
         ./build.bat assert all
 
   linux-debug:

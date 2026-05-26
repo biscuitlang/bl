@@ -1990,7 +1990,6 @@ void eval_instr(struct virtual_machine *vm, struct mir_instr *instr) {
 		eval_instr_call_loc(vm, (struct mir_instr_call_loc *)instr);
 		break;
 
-
 	case MIR_INSTR_ARG:
 		eval_instr_arg(vm, (struct mir_instr_arg *)instr);
 		break;
@@ -2095,13 +2094,13 @@ void eval_instr_elem_ptr(struct virtual_machine *vm, struct mir_instr_elem_ptr *
 	case MIR_TYPE_SLICE:
 	case MIR_TYPE_STRING:
 	case MIR_TYPE_VARGS: {
-		struct mir_type *len_type = mir_get_struct_elem_type(arr_type, MIR_SLICE_LEN_INDEX);
-		struct mir_type *ptr_type = mir_get_struct_elem_type(arr_type, MIR_SLICE_PTR_INDEX);
-		bassert(mir_deref_type(ptr_type));
-		vm_stack_ptr_t len_ptr = vm_get_struct_elem_ptr(vm->assembly, arr_type, arr_ptr, 0);
-		vm_stack_ptr_t ptr_ptr = vm_get_struct_elem_ptr(vm->assembly, arr_type, arr_ptr, 1);
-		vm_stack_ptr_t ptr_tmp = vm_read_ptr(ptr_type, ptr_ptr);
-		const s64      len_tmp = (s64)vm_read_int(len_type, len_ptr);
+		struct mir_type *len_type  = mir_get_struct_elem_type(arr_type, MIR_SLICE_LEN_INDEX);
+		struct mir_type *ptr_type  = mir_get_struct_elem_type(arr_type, MIR_SLICE_PTR_INDEX);
+		struct mir_type *elem_type = mir_deref_type(ptr_type);
+		vm_stack_ptr_t   len_ptr   = vm_get_struct_elem_ptr(vm->assembly, arr_type, arr_ptr, 0);
+		vm_stack_ptr_t   ptr_ptr   = vm_get_struct_elem_ptr(vm->assembly, arr_type, arr_ptr, 1);
+		vm_stack_ptr_t   ptr_tmp   = vm_read_ptr(ptr_type, ptr_ptr);
+		const s64        len_tmp   = (s64)vm_read_int(len_type, len_ptr);
 
 		if (!ptr_tmp) {
 			builder_msg(MSG_ERR,
@@ -2125,6 +2124,8 @@ void eval_instr_elem_ptr(struct virtual_machine *vm, struct mir_instr_elem_ptr *
 
 			eval_abort(vm);
 		}
+
+		result_ptr = ptr_tmp + (elem_type->store_size_bytes * index);
 		break;
 	}
 
