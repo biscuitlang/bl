@@ -118,6 +118,14 @@ has_member :: fn (TStruct: type #comptime, member_name: string_view) bool {
 	return false;
 }
 
+/// Resolve struct member offset in bytes at `path`. Path examples:
+///
+/// - `member_name` top-level struct member name.
+/// - `member_name/nested_member_name` member nested in another struct.
+/// - `/member_name` with optional root.
+/// - `/member_name/nested_member_name` again with optional root.
+/// - `/` just root, returns offset 0.
+/// ```
 member_offset_bytes :: fn {
 	member_offset_bytes_impl;
 	member_offset_bytes_with_typeinfo_impl;
@@ -181,6 +189,8 @@ member_offset_bytes_with_typeinfo_impl :: fn (type_info: *TypeInfoStruct, path: 
 			lhs = rhs;
 			traverse = false;
 		}
+		if lhs.len == 0 then continue;
+
 		found := false;
 		loop i := 0; i < info.members.len; i += 1 {
 			member :: &info.members[i];

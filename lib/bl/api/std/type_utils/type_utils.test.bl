@@ -215,6 +215,13 @@ test_member_offset_bytes :: fn () #test {
 	test_eq(member_offset_bytes#(Outer, "mid/inner/x"), base_mid + base_inner + offset_x);
 	test_eq(member_offset_bytes#(Outer, "mid/inner/y"), base_mid + base_inner + offset_y);
 
+	// Optional leading slash
+	test_eq(member_offset_bytes#(Outer, "/mid/inner/x"), base_mid + base_inner + offset_x);
+	test_eq(member_offset_bytes#(Outer, "/mid/inner/y"), base_mid + base_inner + offset_y);
+
+	test_eq(member_offset_bytes#(Outer, "/mid//inner//x"), base_mid + base_inner + offset_x);
+	test_eq(member_offset_bytes#(Outer, "/mid//inner//y"), base_mid + base_inner + offset_y);
+
 	// Test with runtime strings:
 	path1 := "mid/inner/x";
 	path2 := "mid/inner/y";
@@ -224,6 +231,9 @@ test_member_offset_bytes :: fn () #test {
 
 	test_eq(member_offset_bytes#(Outer, "does_not_exist", true), -1);
 	test_eq(member_offset_bytes#(Outer, "mid/inner/nope", true), -1);
+	test_eq(member_offset_bytes#(Outer, "/mid/inner/nope", true), -1);
+	test_eq(member_offset_bytes#(Outer, "/", true), 0);
+	test_eq(member_offset_bytes#(Outer, "//", true), 0);
 }
 
 test_member_ptr :: fn () #test {
