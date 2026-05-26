@@ -239,24 +239,20 @@ def hash_table_summary(valobj, internal_dict):
 def __lldb_init_module(debugger, internal_dict):
     mod = 'lldb_pretty_printers_bl'
 
-    # String
     debugger.HandleCommand(f'type summary add -F {mod}.string_summary "string"')
     debugger.HandleCommand(f'type synthetic add -l {mod}.StringSyntheticProvider "string"')
 
-    # String View
     debugger.HandleCommand(f'type summary add -F {mod}.string_summary "sl.{{s64,p.u8}}"')
     debugger.HandleCommand(f'type synthetic add -l {mod}.StringSyntheticProvider "sl.{{s64,p.u8}}"')
 
-    # Dynamic Array
     debugger.HandleCommand(f'type summary add --regex --cascade true -F {mod}.da_summary "da\\.{{.*}}"')
     debugger.HandleCommand(f'type synthetic add --regex --cascade true -l {mod}.DaSyntheticProvider "da\\.{{.*}}"')
 
-    # Slice
     debugger.HandleCommand(f'type summary add --regex -F {mod}.sl_summary "sl\\.{{.*}}"')
     debugger.HandleCommand(f'type synthetic add --regex -l {mod}.SlSyntheticProvider "sl\\.{{.*}}"')
 
-    # hash table
-    debugger.HandleCommand(f'type summary add --regex -F {mod}.hash_table_summary "s.{{sl\\.{{s64,p\\.s\\.103\\.Slot}}"')
-    debugger.HandleCommand(f'type synthetic add --regex -l {mod}.HashTableSyntheticProvider "s.{{sl\\.{{s64,p\\.s\\.103\\.Slot}}"')
+    ht_pattern = "s\\.\\{sl\\.\\{s64,p\\.s\\..*\\.Slot\\}.*"
+    debugger.HandleCommand(f'type summary add --regex --cascade true -F {mod}.hash_table_summary "{ht_pattern}"')
+    debugger.HandleCommand(f'type synthetic add --regex --cascade true -l {mod}.HashTableSyntheticProvider "{ht_pattern}"')
 
     print('[lldb_pretty_printers_bl] loaded')
