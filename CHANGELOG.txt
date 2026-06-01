@@ -101,6 +101,9 @@ std/sync:
 std/static_array:
 - Add `sarray_pop_first` and `sarray_erase_keep_order`.
 
+std/array
+- Add `make_temporary_array`.
+
 [Documentation]
 - Add documentation for comptime call.
 - Add documentation for static if.

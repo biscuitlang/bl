@@ -81,6 +81,14 @@ array_terminate :: fn (_arr: *[..]?T) #inline {
 	arr.allocated_elems = 0;
 }
 
+/// Returns new dynamic array `[..]TElem` initialized to use current `application_context.temporary_allocator`.
+/// The `expected_element_count` can be used to preallocate elements in advance.
+make_temporary_array :: fn (TElem: type #comptime, expected_element_count: s64 = 0) [..]TElem #inline {
+	arr: [..]TElem;
+	array_init(&arr, expected_element_count, application_context.temporary_allocator);
+	return arr;
+}
+
 /// Append new value at the dynamic array end. New heap allocation is done here only in cases when
 /// there is not enough memory allocated to store all values.
 /// Returns pointer to the new appended element.
