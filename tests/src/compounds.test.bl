@@ -493,3 +493,18 @@ anonymous_compound_assignment_propagation :: fn () #test {
 	b : s32 = .{ 10 };
 	test_true(b == 10);
 }
+
+nested_compound_mixed_runtime_comptime :: fn () #test {
+	i := 30;
+	j := 40;
+
+	v :: T2.{
+		.{ 10, 20 },
+		.{ i, j },
+	};
+
+	test_eq(v.a.i, 10);
+	test_eq(v.a.j, 20);
+	test_eq(v.b.i, i);
+	test_eq(v.b.j, j);
+}

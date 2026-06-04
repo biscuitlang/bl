@@ -1634,9 +1634,7 @@ void interp_instr_decl_direct_ref(struct virtual_machine *vm, struct mir_instr_d
 	stack_push(vm, &real_ptr, ref->base.value.type);
 }
 
-void interp_instr_compound(struct virtual_machine    *vm,
-                           vm_stack_ptr_t             tmp_ptr,
-                           struct mir_instr_compound *cmp) {
+void interp_instr_compound(struct virtual_machine *vm, vm_stack_ptr_t tmp_ptr, struct mir_instr_compound *cmp) {
 	bassert(!mir_is_comptime(&cmp->base));
 	const bool will_push = tmp_ptr == NULL;
 	if (will_push) {
@@ -1656,7 +1654,6 @@ void interp_instr_compound(struct virtual_machine    *vm,
 		struct mir_instr *value = sarrpeek(values, i);
 		elem_type               = value->value.type;
 		switch (type->kind) {
-
 		case MIR_TYPE_STRING:
 		case MIR_TYPE_DYNARR:
 		case MIR_TYPE_SLICE:
@@ -1675,8 +1672,14 @@ void interp_instr_compound(struct virtual_machine    *vm,
 			bassert(i == 0 && "Invalid elem count for non-agregate type!!!");
 		}
 
-		vm_stack_ptr_t value_ptr = fetch_value(vm, &value->value);
-		memcpy(elem_ptr, value_ptr, elem_type->store_size_bytes);
+		if (!mir_is_comptime(value) && value->kind == MIR_INSTR_COMPOUND) {
+			struct mir_instr_compound *nested_cmp = (struct mir_instr_compound *)value;
+			bassert(!nested_cmp->is_naked);
+			interp_instr_compound(vm, elem_ptr, nested_cmp);
+		} else {
+			vm_stack_ptr_t value_ptr = fetch_value(vm, &value->value);
+			memcpy(elem_ptr, value_ptr, elem_type->store_size_bytes);
+		}
 	}
 
 	if (will_push) stack_push(vm, tmp_ptr, cmp->base.value.type);

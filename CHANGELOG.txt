@@ -58,6 +58,7 @@ master
 - LD is invoked with all dependencies in --start-group --end-group block on Linux.
 - DLib now use correct dynamic runtime on Windows.
 - Fix copying of system libraries to the output location in case no custom module directory was set on Windows.
+- Add missing implementation for runtime compound value nested in another compound value.
 
 [Modules]
 
