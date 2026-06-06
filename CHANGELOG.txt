@@ -105,6 +105,9 @@ std/static_array:
 std/array
 - Add `make_temporary_array`.
 
+std/string
+- Add `str_chop_left` and `str_chop_right` functions.
+
 [Documentation]
 - Add documentation for comptime call.
 - Add documentation for static if.

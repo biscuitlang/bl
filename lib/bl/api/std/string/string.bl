@@ -469,6 +469,24 @@ str_first_match :: fn (str: string_view, list: []string_view) s32 {
 	return -1;
 }
 
+/// Chop `num_chars` from left. Returns an empty string when `num_chars` >= `str.len`.
+str_chop_left :: fn (str: string_view, num_chars: s64) string_view #inline {
+	assert(num_chars >= 0);
+	n :: min(num_chars, str.len);
+	assert(n >= 0);
+	if n == str.len then return "";
+	return .{ len = str.len - n, ptr = &str[n] };
+}
+
+/// Chop `num_chars` from right. Returns an empty string when `num_chars` >= `str.len`.
+str_chop_right :: fn (str: string_view, num_chars: s64) string_view #inline {
+	assert(num_chars >= 0);
+	n :: min(num_chars, str.len);
+	assert(n >= 0);
+	if n == str.len then return "";
+	return .{ len = str.len - n, ptr = &str[0] };
+}
+
 /// Converts the first `count` of characters from `str` to `s64` number and return OK on success. Whole string
 /// will be used in case the `count` is less than zero. The base of expected number can be specified as `base`
 /// argument. Note that in case of binary, octal and hex encoding, we do not expect any prefixes as `0b`, `0`

@@ -853,3 +853,19 @@ test_tokenize_3 :: fn () #test {
 	});
 	test_eq(data.token_count, 0);
 }
+
+test_str_chop_left :: fn () #test {
+	test_eq(str_chop_left("", 0), "");
+	test_eq(str_chop_left("", 10), "");
+	test_eq(str_chop_left("a", 0), "a");
+	test_eq(str_chop_left("a", 1), "");
+	test_eq(str_chop_left("hello sailor", "hello ".len), "sailor");
+}
+
+test_str_chop_right :: fn () #test {
+	test_eq(str_chop_right("", 0), "");
+	test_eq(str_chop_right("", 10), "");
+	test_eq(str_chop_right("a", 0), "a");
+	test_eq(str_chop_right("a", 1), "");
+	test_eq(str_chop_right("hello sailor", " sailor".len), "hello");
+}
