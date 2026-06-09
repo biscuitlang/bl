@@ -107,6 +107,7 @@ std/array
 
 std/string
 - Add `str_chop_left` and `str_chop_right` functions.
+- Add `str_set` function.
 
 [Documentation]
 - Add documentation for comptime call.
