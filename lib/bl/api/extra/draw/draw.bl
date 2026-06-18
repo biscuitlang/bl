@@ -641,10 +641,10 @@ text_size :: fn (text: string_view, font: *Font, _len := -1) (width: f32, height
 	return math.ceil(w), font.height;
 }
 
-get_character_count_to_fit :: fn (text: string_view, font: *Font, fit_to: f32, split_by_words := false) s32 {
+get_character_count_to_fit :: fn (text: string_view, font: *Font, fit_to: f32, split_by_words := false) (cols: s32, bytes: s32) {
 	assert(font);
 	w := 0.f;
-	converted_bytes, num, last_space_position: s32;
+	converted_bytes, col, last_space_bytes, last_space_col: s32;
 	space_glyph :: get_glyph_utf32(font, cast(u32) ' ');
 	loop converted_bytes < text.len {
 		rest :: str_sub(text, converted_bytes);
@@ -656,7 +656,8 @@ get_character_count_to_fit :: fn (text: string_view, font: *Font, fit_to: f32, s
 		} else if split_by_words && rest[0] == ' ' {
 			w += space_glyph.advance_x;
 			converted_bytes += 1;
-			last_space_position = converted_bytes; // Include the space at the end of the split.
+			last_space_bytes = converted_bytes; // Include the space at the end of the split.
+			last_space_col   = col;
 		} else {
 			utf32char, decoded_bytes, err_decode := utf8_to_utf32_single_char(rest);
 			if err_decode {
@@ -669,23 +670,23 @@ get_character_count_to_fit :: fn (text: string_view, font: *Font, fit_to: f32, s
 		}
 
 		if w > fit_to {
-			if last_space_position > 0 {
-				return last_space_position;
+			if last_space_bytes > 0 {
+				return last_space_col, last_space_bytes;
 			}
-			return num;
+			break;
 		}
-		num += 1;
+		col += 1;
 	}
-	return num;
+	return col, converted_bytes;
 }
 
-split_text_to_fit :: fn (text: string_view, font: *Font, fit_to: f32, split_by_words := false) (left: string_view, right: string_view) {
+split_text_to_fit :: fn (text: string_view, font: *Font, fit_to: f32, split_by_words := false) (left: string_view, right: string_view) #inline {
 	if text.len == 0 { return "", ""; }
-	num :: get_character_count_to_fit(text, font, fit_to, split_by_words);
-	if num == 0 { return "", text; }
-	if num == text.len { return text, ""; }
+	_, bytes :: get_character_count_to_fit(text, font, fit_to, split_by_words);
+	if bytes == 0 { return "", text; }
+	if bytes == text.len { return text, ""; }
 
-	return slice_range(text, 0, num), slice_range(text, num, text.len);
+	return slice_range(text, 0, bytes), slice_range(text, bytes, text.len);
 }
 
 set_scissor :: fn (position_x: f32, position_y: f32, width: f32, height: f32) {
