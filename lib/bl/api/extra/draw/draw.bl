@@ -23,8 +23,8 @@
 //!   should be implemented in the future; current implementation is mainly used to demonstrate the language
 //!   capabilities.
 //!
-//! ## General desing
-//! The `draw` API is based on switching the global context of rendering primitives (rectangles). In example
+//! ## General design
+//! The `draw` API is based on switching the global context of rendering primitives (rectangles). For example
 //! to draw bunch of colored rectangles we must set the proper shader first:
 //!
 //! ```bl
@@ -35,7 +35,7 @@
 //! rect(400.f, 10.f, 100.f, 100.f, v4.{ 0.f, 0.f, 1.f, 1.f });
 //! ```
 //!
-//! Internally each call to `rect` just appends the geometry caches; actual rendering is done when currenty
+//! Internally each call to `rect` just appends the geometry caches; actual rendering is done when currently
 //! used shader is changed or [flush](#drawflush) is called explicitly. This approach reduces count of required draw
 //! calls a bit.
 //!
@@ -51,7 +51,7 @@
 ///
 /// The [terminate](#drawterminate) must be called when draw module is not needed anymore.
 ///
-/// The current OpenGL context must be aready set, the minimal required OpenGL version is 3.3 "Core Profile". You can use
+/// The current OpenGL context must be already set, the minimal required OpenGL version is 3.3 "Core Profile". You can use
 /// i.e. `glfw` or similar tool to create window and proper OpenGL context.
 ///
 /// The `gl_init` function is called internally.
@@ -316,20 +316,11 @@ code :: fn (position_x: f32, position_y: f32, code: string_view, character_color
 
 	if code.len == 0 { return; }
 
-	// fixed_position_x :: math.ceil(position_x);
-	// fixed_position_y :: math.ceil(position_y);
-
 	fixed_position_x :: math.round(position_x);
 	fixed_position_y :: math.round(position_y);
 
-	aw :: cast(f32) context.font.atlas.width;
-	ah :: cast(f32) context.font.atlas.height;
+	space_glyph_info :: get_glyph_utf32(context.font, cast(u32) ' ');
 
-	//directing_glyph_info :: get_glyph_utf32(context.font, cast(u32) 'X');
-	space_glyph_info:: get_glyph_utf32(context.font, cast(u32) ' ');
-
-	// p := v2.{ y = directing_glyph_info.top };
-	// p := v2.{ y = context.font.height * 0.5f };
 	p := v2.{ y = context.font.base_offset_y };
 
 	converted_bytes: s32;
@@ -350,23 +341,28 @@ code :: fn (position_x: f32, position_y: f32, code: string_view, character_color
 
 		if utf32char == cast(u32) '\t' {
 			loop i := 0; i < context.font.tab_size; i += 1 {
-				p.x += space_glyph_info.advance_x;
+				p.x += auto space_glyph_info.advance_x;
 			}
 			continue;
 		} else if utf32char == 0xA0 {
-			p.x += space_glyph_info.advance_x;
+			p.x += auto space_glyph_info.advance_x;
 			continue;
 		}
 
 		ci :: get_glyph_utf32(context.font, utf32char);
-		x2 ::  p.x + ci.left;
-		y2 :: -p.y - ci.top;
+		if ci.page_index != -1 && context.font_page != ci.page_index {
+			do_render();
+			context.font_page = ci.page_index;
+		}
 
-		w  :=  ci.width;
-		h  :=  ci.height;
+		x2 ::  p.x + auto ci.left;
+		y2 :: -p.y - auto ci.top;
 
-		p.x += ci.advance_x;
-		p.y += ci.advance_y;
+		w  ::  cast(f32) ci.width;
+		h  ::  cast(f32) ci.height;
+
+		p.x += cast(f32) ci.advance_x;
+		p.y += cast(f32) ci.advance_y;
 
 		if w < math.F32_EPSILON || h < math.F32_EPSILON { continue; }
 
@@ -381,8 +377,8 @@ code :: fn (position_x: f32, position_y: f32, code: string_view, character_color
 			v2.{ gx + w, gy + h },
 		});
 
-		gsw :: (ci.width * 3.f) / aw;
-		gth :: ci.height / ah;
+		gsw :: (w * 3.f) / cast(f32) FONT_ATLAS_PAGE_SIZE;
+		gth ::  h / cast(f32) FONT_ATLAS_PAGE_SIZE;
 
 		array_push_all(&uv_buffer, [4]v2.{
 			v2.{ ci.atlas_u_offset      , ci.atlas_v_offset       },
@@ -459,7 +455,7 @@ texture_terminate :: fn (texture: *Texture) {
 // PNG
 // =================================================================================================
 
-/// Loads `png` image from `filepath` into `out_data`. The `out_data` shoud be released by `free` call on caller side.
+/// Loads `png` image from `filepath` into `out_data`. The `out_data` should be released by `free` call on caller side.
 png_load_from_file :: fn (filepath: string_view, out_data: **u8, out_width: *u32, out_height: *u32, out_bit_depth: *u8, out_format: *TextureFormat) Error {
 	stream, err_input :: open_file(filepath, OpenFileMode.READ);
 	if err_input { return err_input; }
@@ -540,24 +536,29 @@ png_load_from_stream :: fn (stream: *io.Stream, out_data: **u8, out_width: *u32,
 // Font Rendering
 // =================================================================================================
 Font :: struct {
+	face: *ft2.Face;
+
 	char_table: Table(u32, GlyphInfo);
-	atlas: Texture;
 	size: f32;
 	height: f32;
 	base_offset_y: f32;
 	tab_size: s32;
+
+	pages: [..]FontPage;
 }
 
 GlyphInfo :: struct {
-	advance_x: f32;
-	advance_y: f32;
-	width:     f32;
-	height:    f32;
-	left:      f32;
-	top:       f32;
+	advance_x: s32;
+	advance_y: s32;
+	width:     u32;
+	height:    u32;
+	left:      s32;
+	top:       s32;
 
 	atlas_u_offset: f32; // x offset of glyph in texture coordinates
 	atlas_v_offset: f32; // y offset of glyph in texture coordinates
+
+	page_index: s32;
 }
 
 /// Returns default ASCII character table.
@@ -571,37 +572,40 @@ font_generate_char_set :: fn (chars: string_view, out_set: *[..]u32) {
 
 /// Initialize new `font` from the 'TTF' file at `directory/filename` at required `size`. Custom `char_set` can be specified in case
 /// we need to render some non-ascii unicode characters. Each loaded font must be terminated by [font_terminate](#drawfont_terminate).
+/// Missing glyphs are loaded automatically when rendered.
 font_init_at_size :: fn (font: *Font, directory: string_view, filename: string_view, size: s32, char_set := []u32.{}) Error {
+	zeroinit(font);
 	filepath := filename;
 	if directory.len > 0 {
 		filepath = tprint("%/%", directory, filename);
 	}
-	face: *ft2.Face;
-	err :: ft2.New_Face(freetype_library, auto strtoc(filepath), 0, &face);
-	defer ft2.Done_Face(face);
-	if err != 0 {
-		return error("Cannot load font % with error %!", filepath, err);
+	state :: ft2.New_Face(freetype_library, auto strtoc(filepath), 0, &font.face);
+	if state != 0 {
+		return error("Cannot load font % with error %!", filepath, state);
 	}
-
-	return font_init(font, face, size, char_set);
+	return font_init(font, size, char_set);
 }
 
 font_init_at_size_from_memory :: fn (font: *Font, file_data: []u8, size: s32, char_set := []u32.{}) Error {
-	face: *ft2.Face;
-	err :: ft2.New_Memory_Face(freetype_library, file_data.ptr, auto file_data.len, 0, &face);
-	defer ft2.Done_Face(face);
-	if err != 0 {
-		return error("Cannot load font with error %!", err);
+	zeroinit(font);
+	state :: ft2.New_Memory_Face(freetype_library, file_data.ptr, auto file_data.len, 0, &font.face);
+	if state != 0 {
+		return error("Cannot load font with error %!", state);
 	}
-
-	return font_init(font, face, size, char_set);
+	return font_init(font, size, char_set);
 }
 
 /// Terminate loaded font.
 font_terminate :: fn (font: *Font) {
-	if !font { return; }
+	if !font then return;
+	ft2.Done_Face(font.face);
 	tbl_terminate(&font.char_table);
-	texture_terminate(&font.atlas);
+
+	loop i := 0; i < font.pages.len; i += 1 {
+		font_terminate_page(&font.pages[i]);
+	}
+
+	array_terminate(&font.pages);
 }
 
 /// Set size of a tab character as `space_count` count of spaces.
@@ -617,7 +621,7 @@ text_size :: fn (text: string_view, font: *Font, _len := -1) (width: f32, height
 	len := text.len;
 	if _len > -1 { len = math.min(text.len, _len); }
 
-	w := 0.f;
+	w: s32;
 	converted_bytes: s32;
 	loop converted_bytes < len {
 		word :: str_sub(text, converted_bytes);
@@ -638,12 +642,12 @@ text_size :: fn (text: string_view, font: *Font, _len := -1) (width: f32, height
 			w += glyph.advance_x;
 		}
 	}
-	return math.ceil(w), font.height;
+	return auto w, font.height;
 }
 
 get_character_count_to_fit :: fn (text: string_view, font: *Font, fit_to: f32, split_by_words := false) (cols: s32, bytes: s32) {
 	assert(font);
-	w := 0.f;
+	w: s32;
 	converted_bytes, col, last_space_bytes, last_space_col: s32;
 	space_glyph :: get_glyph_utf32(font, cast(u32) ' ');
 	loop converted_bytes < text.len {
@@ -669,7 +673,7 @@ get_character_count_to_fit :: fn (text: string_view, font: *Font, fit_to: f32, s
 			w += glyph.advance_x;
 		}
 
-		if w > fit_to {
+		if w > cast(s32) fit_to {
 			if last_space_bytes > 0 {
 				return last_space_col, last_space_bytes;
 			}
@@ -719,15 +723,16 @@ C          :: #import "libc";
 type_utils :: #import "std/type_utils";
 
 Context :: struct {
-	shader:  *Shader;
-	texture: *Texture;
-	font:    *Font;
+	shader:   *Shader;
+	texture:  *Texture;
+	font:     *Font;
+	font_page: s32;
 }
 
 compare_context :: fn (a: *Context, b: *Context) bool #inline {
-	if a.shader  != b.shader  { return false; }
-	if a.texture != b.texture { return false; }
-	if a.font    != b.font    { return false; }
+	if a.shader    != b.shader    then return false;
+	if a.texture   != b.texture   then return false;
+	if a.font      != b.font      then return false;
 	return true;
 }
 
@@ -740,7 +745,7 @@ make_context_texture :: fn (texture: *Texture) Context #inline {
 }
 
 make_context_font :: fn (font: *Font) Context #inline {
-	return Context.{ shader = &text_shader, font = font, texture = &font.atlas };
+	return Context.{ shader = &text_shader, font = font, font_page = -1 };
 }
 
 context:             Context;
@@ -850,16 +855,27 @@ do_render :: fn () {
 	shader_use(context.shader);
 	defer shader_unuse();
 
+	texture := context.texture;
+
 	if context.shader == &text_shader {
 		gl.BlendFunc(GL_SRC1_COLOR, GL_ONE_MINUS_SRC1_COLOR);
+		if context.font_page != -1 {
+			assert(context.font);
+			assert(context.font_page >= 0 && context.font_page < context.font.pages.len);
+			page :: &context.font.pages[context.font_page];
+			if page.dirty {
+				upload_page(page);
+			}
+			texture = &page.atlas;
+		}
 	} else {
 		gl.BlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	}
 
 	shader_bind_uniform(context.shader, MV, view_matrix);
 	shader_bind_uniform(context.shader, APPLY_GAMMA, if apply_gamma_correction then 1 else 0);
-	if context.texture {
-		shader_bind_texture(context.shader, context.texture, DIFFUSE);
+	if texture {
+		shader_bind_texture(context.shader, texture, DIFFUSE);
 	}
 
 	gl.BindVertexArray(glbuffers.vao);
@@ -1208,34 +1224,18 @@ make_data_stream :: fn (data: []u8) ReadDataStream {
 // =================================================================================================
 // Font Rendering
 // =================================================================================================
+
 EMPTY_GLYPH :: GlyphInfo.{};
 
-ASCII_CHAR_TABLE :: [95]u32.{
-	32, 33, 34, 35,
-	36, 37, 38, 39,
-	40, 41, 42, 43,
-	44, 45, 46, 47,
-	48, 49, 50, 51,
-	52, 53, 54, 55,
-	56, 57, 58, 59,
-	60, 61, 62, 63,
-	64, 65, 66, 67,
-	68, 69, 70, 71,
-	72, 73, 74, 75,
-	76, 77, 78, 79,
-	80, 81, 82, 83,
-	84, 85, 86, 87,
-	88, 89, 90, 91,
-	92, 93, 94, 95,
-	96, 97, 98, 99,
-	100, 101, 102, 103,
-	104, 105, 106, 107,
-	108, 109, 110, 111,
-	112, 113, 114, 115,
-	116, 117, 118, 119,
-	120, 121, 122, 123,
-	124, 125, 126,
-};
+FONT_ATLAS_PAGE_SIZE : u32 : 1024;
+
+ASCII_CHAR_TABLE :: fn () [95]u32 {
+	tbl: [95]u32 #noinit;
+	loop i := 0; i < tbl.len; i += 1 {
+		tbl[i] = auto (i + 32);
+	}
+	return tbl;
+}#();
 
 font_library_init :: fn () Error {
 	err := ft2.Init_FreeType(&freetype_library);
@@ -1249,18 +1249,15 @@ font_library_terminate :: fn () {
 	ft2.Done_FreeType(freetype_library);
 }
 
-font_init :: fn (font: *Font, face: *ft2.Face, size: s32, char_set: []u32) Error {
-	zeromem(auto font, sizeof(@font));
-
+font_init :: fn (font: *Font, size: s32, char_set: []u32) Error {
 	err: ft2.Error;
 
-	//err := Set_Char_Size(face, 0, 64 * size, 72, 72);
-	err = ft2.Set_Pixel_Sizes(face, 0, auto size);
+	err = ft2.Set_Pixel_Sizes(font.face, 0, auto size);
 	if err != 0 {
 		return error("Cannot set font size! (%)", err);
 	}
 
-	err = ft2.Select_Charmap(face, ft2.ENCODING_UNICODE);
+	err = ft2.Select_Charmap(font.face, ft2.ENCODING_UNICODE);
 	if err != 0 {
 		return error("Cannot set encoding! (%)", err);
 	}
@@ -1275,11 +1272,149 @@ font_init :: fn (font: *Font, face: *ft2.Face, size: s32, char_set: []u32) Error
 		get_char_table(font, char_set);
 	}
 
-	prepare_atlas(font, face);
-	gen_glyphs(font, face);
 	font.tab_size = 4;
+	font.height   = font.size;
+	loop i := 0; i < font.char_table.len; i += 1 {
+		gen_glyph(font, font.char_table.keys[i], &font.char_table.values[i]);
+	}
 
 	return OK;
+}
+
+FontPage :: struct {
+	bitmap:   []u8;
+	lines:  [..]FontPageLine;
+
+	atlas: Texture;
+	dirty: bool; // Needs to be copied to the texture.
+}
+
+FontPageLineCursor :: struct {
+	x: u32;
+	y: u32;
+}
+
+FontPageLine :: struct {
+	height: u32;
+	cursor: FontPageLineCursor;
+}
+
+font_init_page :: fn (page: *FontPage) {
+	zeroinit(page);
+
+	BITMAP_SIZE :: sizeof(u8) * FONT_ATLAS_PAGE_SIZE*FONT_ATLAS_PAGE_SIZE;
+	alloc_slice(&page.bitmap, auto BITMAP_SIZE) catch panic($);
+
+	gl_atlas: GLuint;
+	gl.GenTextures(1, &gl_atlas);
+	gl.BindTexture(GL_TEXTURE_2D, gl_atlas);
+	gl.TexImage2D(GL_TEXTURE_2D, 0, auto GL_R8, auto FONT_ATLAS_PAGE_SIZE, auto FONT_ATLAS_PAGE_SIZE, 0, GL_RED, GL_UNSIGNED_BYTE, null);
+	gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, auto GL_NEAREST);
+	gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, auto GL_NEAREST);
+
+	page.atlas.handle = gl_atlas;
+	page.atlas.width  = FONT_ATLAS_PAGE_SIZE;
+	page.atlas.height = FONT_ATLAS_PAGE_SIZE;
+
+	gl.BindTexture(GL_TEXTURE_2D, 0);
+}
+
+font_terminate_page :: fn (page: *FontPage) {
+	free_slice(&page.bitmap);
+	texture_terminate(&page.atlas);
+	array_terminate(&page.lines);
+}
+
+copy_glyph_to_page :: fn (font: *Font, bitmap: *ft2.Bitmap) (page_index: s32, u: f32, v: f32) {
+	w :: bitmap.width;
+	h :: bitmap.rows;
+
+	page_index, page_line_index :: fetch_page(font, w, h);
+	page      :: &font.pages[page_index];
+	page_line :: &page.lines[page_line_index];
+	cursor    :: &page_line.cursor;
+
+	loop y : u32 = 0; y < h; y += 1 {
+		dst_index :: cast(s64)((cursor.y + y) * FONT_ATLAS_PAGE_SIZE + cursor.x);
+		assert(dst_index >= 0 && dst_index < page.bitmap.len);
+
+		src :: ptr_shift_bytes(bitmap.buffer, cast(s64) (y * auto bitmap.pitch));
+		dst :: &page.bitmap[dst_index];
+		memcpy(dst, src, w);
+	}
+
+	u :: (cast(f32) cursor.x / cast(f32) FONT_ATLAS_PAGE_SIZE);
+	v :: (cast(f32) cursor.y / cast(f32) FONT_ATLAS_PAGE_SIZE);
+
+	cursor.x  += w;
+	page.dirty = true;
+
+	return page_index, u, v;
+}
+
+fetch_page :: fn (font: *Font, w: u32, h: u32) (page_index: s32, page_line_index: s32) {
+	loop i := 0; i < font.pages.len; i += 1 {
+		page_line_index :: fetch_page_line(&font.pages[i], w, h);
+		if page_line_index == -1 then continue;
+
+		return i, page_line_index;
+	}
+
+	// Add new page.
+	page       :: array_push(&font.pages);
+	page_index :: cast(s32) font.pages.len-1;
+	font_init_page(page);
+
+	page_line_index :: fetch_page_line(page, w, h);
+	assert(page_line_index != -1);
+	return page_index, page_line_index;
+}
+
+fetch_page_line :: fn (page: *FontPage, w: u32, h: u32) s32 {
+	used_height: u32;
+	loop i := 0; i < page.lines.len; i += 1 {
+		line :: &page.lines[i];
+		used_height += line.height;
+
+		// Line height is not enough.
+		if line.height < h then continue;
+		// Line has no space left to fit the glyph.
+		if line.cursor.x + w >= FONT_ATLAS_PAGE_SIZE then continue;
+
+		return i;
+	}
+
+	if used_height+h >= FONT_ATLAS_PAGE_SIZE {
+		// There is no room to allocate a new line in this page.
+		return -1;
+	}
+
+	line :: array_push(&page.lines);
+	line.height = h;
+	line.cursor = .{ 0, used_height };
+
+	return cast(s32) (page.lines.len-1);
+}
+
+upload_page :: fn (page: *FontPage) {
+	assert(page.dirty);
+	page.dirty = false;
+
+	atlas :: &page.atlas;
+
+	gl.BindTexture(GL_TEXTURE_2D, atlas.handle);
+	gl.TexSubImage2D(
+		GL_TEXTURE_2D,
+		0,
+		0,
+		0,
+		auto atlas.width,
+		auto atlas.height,
+		GL_RED,
+		GL_UNSIGNED_BYTE,
+		page.bitmap.ptr
+	);
+	gl.BindTexture(GL_TEXTURE_2D, 0);
 }
 
 get_glyph_utf32 :: fn (font: *Font, c: u32) *GlyphInfo #inline {
@@ -1289,11 +1424,17 @@ get_glyph_utf32 :: fn (font: *Font, c: u32) *GlyphInfo #inline {
 		default;
 	}
 
-	glyph_info :: tbl_lookup_ptr(&font.char_table, c);
-	if glyph_info == null {
-		return tbl_lookup_ptr(&font.char_table, auto '?');
+	index :: tbl_lookup_index(&font.char_table, c);
+	if index != -1 then return &font.char_table.values[index];
+
+	glyph_info: GlyphInfo #noinit;
+	if !gen_glyph(font, c, &glyph_info) {
+		backup :: tbl_lookup_ptr(&font.char_table, auto '?');
+		if !backup then panic("Font does not contain backup '?' character.");
+		return backup;
 	}
-	return glyph_info;
+
+	return tbl_insert(&font.char_table, c, glyph_info);
 }
 
 get_char_table :: fn (font: *Font, char_set: []u32) {
@@ -1302,112 +1443,41 @@ get_char_table :: fn (font: *Font, char_set: []u32) {
 	}
 }
 
-prepare_atlas :: fn (font: *Font, face: *ft2.Face) {
-	glyph_slot :: face.glyph;
-	atlas_w, atlas_h, row_w, row_h: u32;
-	loop i := 0; i < font.char_table.len; i += 1 {
-		char_code :: font.char_table.keys[i];
-		glyph_index := cast(u32) ft2.Get_Char_Index(face, char_code);
-		if glyph_index == 0 {
-			print_err("Glyph % not found!", char_code);
-			continue;
-		}
+gen_glyph :: fn (font: *Font, c: u32, glyph_info: *GlyphInfo) bool {
+	glyph_index :: cast(u32) ft2.Get_Char_Index(font.face, c);
+	if glyph_index == 0 then return false;
+	if ft2.Load_Glyph(font.face, glyph_index, ft2.LOAD_DEFAULT) != 0 then return false;
+	glyph :: font.face.glyph;
 
-		if ft2.Load_Glyph(face, glyph_index, ft2.LOAD_DEFAULT) != 0 {
-			print_err("Cannot load glyph!");
-			continue;
-		}
+	if ft2.Render_Glyph(glyph, ft2.RENDER_MODE_LCD) != 0 then return false;
 
-		if ft2.Render_Glyph(face.glyph, ft2.RENDER_MODE_LCD) != 0 {
-			print_err("Cannot render glyph!");
-			continue;
-		}
+	width  :: cast(s32) glyph.bitmap.width;
+	height :: cast(s32) glyph.bitmap.rows;
+	page_index := -1;
+	u, v := 0.f;
 
-		gw :: glyph_slot.bitmap.width;
-		gh :: glyph_slot.bitmap.rows;
-		row_w += gw;
-		row_h = math.max(row_h, gh);
-	}
-	atlas_w = row_w;
-	atlas_h = row_h;
-	// Generate GL atlas texture
-	atlas: GLuint;
-	gl.GenTextures(1, &atlas);
-	gl.BindTexture(GL_TEXTURE_2D, atlas);
-	gl.TexImage2D(GL_TEXTURE_2D, 0, auto GL_R8, auto atlas_w, auto atlas_h, 0, GL_RED, GL_UNSIGNED_BYTE, null);
-	gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, auto GL_NEAREST);
-	gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, auto GL_NEAREST);
-
-	// gl_check();
-	font.atlas.handle = atlas;
-	font.atlas.width  = atlas_w;
-	font.atlas.height = atlas_h;
-	gl.BindTexture(GL_TEXTURE_2D, 0);
-}
-
-gen_glyphs :: fn (font: *Font, face: *ft2.Face) {
-	ox, oy: u32;
-	max_height, max_base_offset_y: f32;
-
-	max_height = font.size;
-
-	gl.BindTexture(GL_TEXTURE_2D, font.atlas.handle);
-
-	loop i := 0; i < font.char_table.len; i += 1 {
-		glyph_info := &font.char_table.values[i];
-		char_code ::  font.char_table.keys[i];
-
-		glyph_index := cast(u32) ft2.Get_Char_Index(face, char_code);
-		if glyph_index == 0 {
-			print_err("Glyph % not found!", char_code);
-			continue;
-		}
-
-		if ft2.Load_Glyph(face, glyph_index, ft2.LOAD_DEFAULT) != 0 {
-			print_err("Cannot load glyph!");
-			continue;
-		}
-
-		if ft2.Render_Glyph(face.glyph, ft2.RENDER_MODE_LCD) != 0 {
-			print_err("Cannot render glyph!");
-			continue;
-		}
-
-		width  :: face.glyph.bitmap.width;
-		height :: face.glyph.bitmap.rows;
-		gl.TexSubImage2D(
-			GL_TEXTURE_2D,
-			0,
-			auto ox,
-			auto oy,
-			auto width,
-			auto height,
-			GL_RED,
-			GL_UNSIGNED_BYTE,
-			auto face.glyph.bitmap.buffer
-		);
-
-		@glyph_info = GlyphInfo.{
-			advance_x      = auto (face.glyph.advance.x >> 6),
-			advance_y      = auto (face.glyph.advance.y >> 6),
-			width          = auto (width / 3), // due to LCD rendering mode
-			height         = auto height,
-			left           = auto face.glyph.bitmap_left,
-			top            = auto face.glyph.bitmap_top,
-			atlas_u_offset = cast(f32)ox / cast(f32)font.atlas.width,
-			atlas_v_offset = cast(f32)oy / cast(f32)font.atlas.height,
-		};
-
-		if char_code < 127 {
-			max_base_offset_y = math.max(cast(f32) (face.glyph.metrics.horiBearingY >> 6), max_base_offset_y);
-			max_height        = math.max(cast(f32) (face.glyph.metrics.height >> 6), max_height);
-		}
-		ox += width;
+	if width > 0 && height > 0 {
+		page_index, u, v = copy_glyph_to_page(font, &glyph.bitmap);
 	}
 
-	gl.BindTexture(GL_TEXTURE_2D, 0);
-	font.height        = max_height;
-	font.base_offset_y = max_base_offset_y;
+	@glyph_info = .{
+		advance_x      = auto (glyph.advance.x >> 6),
+		advance_y      = auto (glyph.advance.y >> 6),
+		width          = auto (width / 3), // due to LCD rendering mode
+		height         = auto height,
+		left           = auto glyph.bitmap_left,
+		top            = auto glyph.bitmap_top,
+		atlas_u_offset = u,
+		atlas_v_offset = v,
+		page_index     = page_index,
+	};
+
+	if c < 127 {
+		font.base_offset_y = math.max(cast(f32) (glyph.metrics.horiBearingY >> 6), font.base_offset_y);
+		font.height        = math.max(cast(f32) (glyph.metrics.height >> 6), font.height);
+	}
+
+	return true;
 }
 
 // =================================================================================================
@@ -1487,7 +1557,9 @@ SHADER_TEXT_SOURCE ::
 	"    float sample_right  = textureOffset(diffuse, st, ivec2( 1, 0)).r;\n"
     "    if (apply_gamma != 0) { frag_color = vec4(pow(color.rgb, vec3(1.0/2.2)), color.a); }\n"
     "    else { frag_color = color; }\n"
-	"    mask_color = vec4(sample_left * frag_color.a, sample_center * frag_color.a, sample_right * frag_color.a, 1.0);\n"
+    "    vec3 mask = vec3(sample_left * frag_color.a, sample_center * frag_color.a, sample_right * frag_color.a);\n"
+    "    mask = pow(mask, vec3(0.9));\n"
+	"    mask_color = vec4(mask, 1.0);\n"
 	"}\n"
 	"#endif\n"
 	;
