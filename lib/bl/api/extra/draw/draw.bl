@@ -319,9 +319,9 @@ code :: fn (position_x: f32, position_y: f32, code: string_view, character_color
 	fixed_position_x :: math.round(position_x);
 	fixed_position_y :: math.round(position_y);
 
-	space_glyph_info :: get_glyph_utf32(context.font, cast(u32) ' ');
+	space_glyph_info :: get_glyph_utf32_with_fallback(context.font, cast(u32) ' ');
 
-	p := v2.{ y = context.font.base_offset_y };
+	p := v2.{ y = auto -context.font.centering_offset_y };
 
 	converted_bytes: s32;
 	loop converted_bytes < code.len {
@@ -349,14 +349,14 @@ code :: fn (position_x: f32, position_y: f32, code: string_view, character_color
 			continue;
 		}
 
-		ci :: get_glyph_utf32(context.font, utf32char);
+		ci :: get_glyph_utf32_with_fallback(context.font, utf32char);
 		if ci.page_index != -1 && context.font_page != ci.page_index {
 			do_render();
 			context.font_page = ci.page_index;
 		}
 
-		x2 ::  p.x + auto ci.left;
-		y2 :: -p.y - auto ci.top;
+		x2 :: p.x + auto ci.left;
+		y2 :: p.y + auto ci.top;
 
 		w  ::  cast(f32) ci.width;
 		h  ::  cast(f32) ci.height;
@@ -541,8 +541,10 @@ Font :: struct {
 	char_table: Table(u32, GlyphInfo);
 	size: f32;
 	height: f32;
-	base_offset_y: f32;
+	centering_offset_y: s32;
 	tab_size: s32;
+
+	unknown_character: u32;
 
 	pages: [..]FontPage;
 }
@@ -573,7 +575,7 @@ font_generate_char_set :: fn (chars: string_view, out_set: *[..]u32) {
 /// Initialize new `font` from the 'TTF' file at `directory/filename` at required `size`. Custom `char_set` can be specified in case
 /// we need to render some non-ascii unicode characters. Each loaded font must be terminated by [font_terminate](#drawfont_terminate).
 /// Missing glyphs are loaded automatically when rendered.
-font_init_at_size :: fn (font: *Font, directory: string_view, filename: string_view, size: s32, char_set := []u32.{}) Error {
+font_init_at_size :: fn (font: *Font, directory: string_view, filename: string_view, size: s32, char_set := []u32.{}, custom_unknown_char: u32 = 0) Error {
 	zeroinit(font);
 	filepath := filename;
 	if directory.len > 0 {
@@ -583,16 +585,16 @@ font_init_at_size :: fn (font: *Font, directory: string_view, filename: string_v
 	if state != 0 {
 		return error("Cannot load font % with error %!", filepath, state);
 	}
-	return font_init(font, size, char_set);
+	return font_init(font, size, char_set, custom_unknown_char);
 }
 
-font_init_at_size_from_memory :: fn (font: *Font, file_data: []u8, size: s32, char_set := []u32.{}) Error {
+font_init_at_size_from_memory :: fn (font: *Font, file_data: []u8, size: s32, char_set := []u32.{}, custom_unknown_char: u32 = 0) Error {
 	zeroinit(font);
 	state :: ft2.New_Memory_Face(freetype_library, file_data.ptr, auto file_data.len, 0, &font.face);
 	if state != 0 {
 		return error("Cannot load font with error %!", state);
 	}
-	return font_init(font, size, char_set);
+	return font_init(font, size, char_set, custom_unknown_char);
 }
 
 /// Terminate loaded font.
@@ -628,7 +630,7 @@ text_size :: fn (text: string_view, font: *Font, _len := -1) (width: f32, height
 		glyph: *GlyphInfo;
 
 		if word[0] == '\t' {
-			glyph = get_glyph_utf32(font, cast(u32) ' ');
+			glyph = get_glyph_utf32_with_fallback(font, cast(u32) ' ');
 			converted_bytes += 1;
 			w += glyph.advance_x * auto font.tab_size;
 		} else {
@@ -638,7 +640,7 @@ text_size :: fn (text: string_view, font: *Font, _len := -1) (width: f32, height
 				decoded_bytes = 1;
 			}
 			converted_bytes += decoded_bytes;
-			glyph = get_glyph_utf32(font, utf32char);
+			glyph = get_glyph_utf32_with_fallback(font, utf32char);
 			w += glyph.advance_x;
 		}
 	}
@@ -649,7 +651,7 @@ get_character_count_to_fit :: fn (text: string_view, font: *Font, fit_to: f32, s
 	assert(font);
 	w: s32;
 	converted_bytes, col, last_space_bytes, last_space_col: s32;
-	space_glyph :: get_glyph_utf32(font, cast(u32) ' ');
+	space_glyph :: get_glyph_utf32_with_fallback(font, cast(u32) ' ');
 	loop converted_bytes < text.len {
 		rest :: str_sub(text, converted_bytes);
 
@@ -669,7 +671,7 @@ get_character_count_to_fit :: fn (text: string_view, font: *Font, fit_to: f32, s
 				decoded_bytes = 1;
 			}
 			converted_bytes += decoded_bytes;
-			glyph = get_glyph_utf32(font, utf32char);
+			glyph = get_glyph_utf32_with_fallback(font, utf32char);
 			w += glyph.advance_x;
 		}
 
@@ -1249,7 +1251,7 @@ font_library_terminate :: fn () {
 	ft2.Done_FreeType(freetype_library);
 }
 
-font_init :: fn (font: *Font, size: s32, char_set: []u32) Error {
+font_init :: fn (font: *Font, size: s32, char_set: []u32, custom_unknown_char: u32) Error {
 	err: ft2.Error;
 
 	err = ft2.Set_Pixel_Sizes(font.face, 0, auto size);
@@ -1272,8 +1274,55 @@ font_init :: fn (font: *Font, size: s32, char_set: []u32) Error {
 		get_char_table(font, char_set);
 	}
 
+	glyph_index := cast(u32) ft2.Get_Char_Index(font.face, auto 'm');
+	if glyph_index != 0 {
+		ft2.Load_Glyph(font.face, glyph_index, ft2.LOAD_DEFAULT);
+		glyph :: font.face.glyph;
+		top   :: cast(f32) (glyph.metrics.horiBearingY >> 6);
+
+		font.centering_offset_y = auto (top * 0.5f + 0.5f);
+	}
+
+	/*
+	top, bottom: s32;
+
+	glyph_index = cast(u32) ft2.Get_Char_Index(font.face, auto 'K');
+	if glyph_index != 0 {
+		ft2.Load_Glyph(font.face, glyph_index, ft2.LOAD_DEFAULT);
+		glyph :: font.face.glyph;
+		top    = cast(s32) (glyph.metrics.horiBearingY >> 6);
+	}
+
+	glyph_index = cast(u32) ft2.Get_Char_Index(font.face, auto 'j');
+	if glyph_index != 0 {
+		ft2.Load_Glyph(font.face, glyph_index, ft2.LOAD_DEFAULT);
+		glyph :: font.face.glyph;
+
+		h      :: cast(s32) (glyph.metrics.height >> 6);
+		top    :: cast(s32) (glyph.metrics.horiBearingY >> 6);
+		bottom = top - h;
+	}
+
+	font.height = auto (top - bottom);
+	*/
+
 	font.tab_size = 4;
-	font.height   = font.size;
+	font.height   = cast(f32) size;
+
+	unknown_char: u32;
+	if custom_unknown_char != 0 && get_glyph_utf32(font, custom_unknown_char) {
+		unknown_char = custom_unknown_char;
+	}
+	if unknown_char == 0 && get_glyph_utf32(font, 0xFFFD) {
+		unknown_char = 0xFFFD;
+	}
+	if unknown_char == 0 && get_glyph_utf32(font, auto '?') {
+		unknown_char = auto '?';
+	}
+
+	if unknown_char == 0 then panic("Unable to set unknown character!");
+	font.unknown_character = unknown_char;
+
 	loop i := 0; i < font.char_table.len; i += 1 {
 		gen_glyph(font, font.char_table.keys[i], &font.char_table.values[i]);
 	}
@@ -1429,12 +1478,19 @@ get_glyph_utf32 :: fn (font: *Font, c: u32) *GlyphInfo #inline {
 
 	glyph_info: GlyphInfo #noinit;
 	if !gen_glyph(font, c, &glyph_info) {
-		backup :: tbl_lookup_ptr(&font.char_table, auto '?');
-		if !backup then panic("Font does not contain backup '?' character.");
-		return backup;
+		return null;
 	}
 
 	return tbl_insert(&font.char_table, c, glyph_info);
+}
+
+get_glyph_utf32_with_fallback :: fn (font: *Font, c: u32) *GlyphInfo #inline {
+	glyph_info := get_glyph_utf32(font, c);
+	if glyph_info then return glyph_info;
+
+	glyph_info = get_glyph_utf32(font, font.unknown_character);
+	assert(glyph_info);
+	return glyph_info;
 }
 
 get_char_table :: fn (font: *Font, char_set: []u32) {
@@ -1471,11 +1527,6 @@ gen_glyph :: fn (font: *Font, c: u32, glyph_info: *GlyphInfo) bool {
 		atlas_v_offset = v,
 		page_index     = page_index,
 	};
-
-	if c < 127 {
-		font.base_offset_y = math.max(cast(f32) (glyph.metrics.horiBearingY >> 6), font.base_offset_y);
-		font.height        = math.max(cast(f32) (glyph.metrics.height >> 6), font.height);
-	}
 
 	return true;
 }

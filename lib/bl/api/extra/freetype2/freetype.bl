@@ -126,13 +126,33 @@ Kerning_Mode_ :: enum {
 };
 
 Library :: *u8;
-Size :: *u8;
 Driver :: *u8;
 Memory :: *u8;
 Stream :: *u8;
 Face_Internal :: *u8;
 SubGlyph :: *u8;
 Slot_Internal :: *u8;
+Size_Internal :: *u8;
+
+Size_Metrics :: struct {
+	x_ppem: UShort;
+	y_ppem: UShort;
+	x_scale: Fixed;
+	y_scale: Fixed;
+	ascender: Pos;
+	descender: Pos;
+	height: Pos;
+	max_advance: Pos;
+}
+
+SizeRec :: struct {
+	face: *Face;
+	generic: Generic;
+	metrics: Size_Metrics;
+	internal: Size_Internal;
+}
+
+Size :: *SizeRec;
 
 Color :: struct {
 	blue: Byte;
