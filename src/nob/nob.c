@@ -236,7 +236,7 @@ void blc(void) {
 			cmd_append(&cmd, "-O3", "-DNDEBUG");
 		}
 #else
-		cmd_append(&cmd, "-fdiagnostics-color=always", "-D_GNU_SOURCE", "-Wall", "-Wno-address", "-Wno-unused-value", "-Wno-unused-function", "-Wno-multistatement-macros");
+		cmd_append(&cmd, "-fdiagnostics-color=always", "-D_GNU_SOURCE", "-Wall", "-Wno-address", "-Wno-unused-value", "-Wno-unused-function", "-Wno-multistatement-macros", "-fdiagnostics-column-unit=byte");
 		if (IS_DEBUG) {
 			cmd_append(&cmd, "-O0", "-ggdb");
 		} else {

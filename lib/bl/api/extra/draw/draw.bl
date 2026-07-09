@@ -445,6 +445,18 @@ texture_init :: fn (texture: *Texture, directory: string_view, filename: string_
 	return OK;
 }
 
+texture_init_from_memory :: fn (texture: *Texture, bin: []u8) Error {
+	assert(texture);
+
+	data: *u8;
+	png_load_from_memory(bin, &data, &texture.width, &texture.height, &texture.bit_depth, &texture.format) catch {
+		return $;
+	};
+	gl_init_texture_2d(texture, data);
+	free(data);
+	return OK;
+}
+
 /// Release texture data.
 texture_terminate :: fn (texture: *Texture) {
 	assert(texture);
