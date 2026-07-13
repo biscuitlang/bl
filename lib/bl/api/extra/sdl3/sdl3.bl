@@ -18,6 +18,13 @@ HINT_VIDEO_DRIVER :: "SDL_VIDEO_DRIVER";
 HINT_VIDEO_WAYLAND_PREFER_LIBDECOR :: "SDL_VIDEO_WAYLAND_PREFER_LIBDECOR";
 HINT_MOUSE_RELATIVE_MODE_CENTER :: "SDL_MOUSE_RELATIVE_MODE_CENTER";
 
+WINDOWPOS_CENTERED_MASK : u32 : 0x2FFF0000;
+WINDOWPOS_CENTERED_DISPLAY :: fn (X: u32) u32 #comptime {
+	return WINDOWPOS_CENTERED_MASK | X;
+}
+
+WINDOWPOS_CENTERED :: WINDOWPOS_CENTERED_DISPLAY(0);
+
 InitFlags :: u32;
 
 INIT_AUDIO : InitFlags :      0x00000010;
@@ -1353,6 +1360,7 @@ GamepadAxis :: enum {
 Init :: fn (flags: InitFlags) bool #extern "SDL_Init";
 Quit :: fn () #extern "SDL_Quit";
 CreateWindow :: fn (title: *C.char, w: s32, h: s32, flags: WindowFlags) *Window #extern "SDL_CreateWindow";
+CreateWindowWithProperties :: fn (props: PropertiesID) *Window #extern "SDL_CreateWindowWithProperties";
 DestroyWindow :: fn (window: *Window) #extern "SDL_DestroyWindow";
 PollEvent :: fn (event: *Event) bool #extern "SDL_PollEvent";
 PushEvent :: fn (event: *Event) bool #extern "SDL_PushEvent";
@@ -1459,6 +1467,8 @@ SyncWindow :: fn (window: *Window) bool #extern "SDL_SyncWindow";
 GetDisplayForWindow :: fn (window: *Window) DisplayID #extern "SDL_GetDisplayForWindow";
 GetClosestFullscreenDisplayMode :: fn (displayID: DisplayID, w: s32, h: s32, refresh_rate: f32, include_high_density_modes: bool, closest: *DisplayMode) bool #extern "SDL_GetClosestFullscreenDisplayMode";
 SetWindowFullscreen :: fn (window: *Window, fullscreen: bool) bool #extern "SDL_SetWindowFullscreen";
+GetDisplayUsableBounds :: fn (displayID: DisplayID, rect: *Rect) bool #extern "SDL_GetDisplayUsableBounds";
+SetWindowSize :: fn (window: *Window, w: s32, h: s32) bool #extern "SDL_SetWindowSize";
 
 OpenGamepad :: fn (instance_id: JoystickID) *Gamepad #extern "SDL_OpenGamepad";
 CloseGamepad :: fn (gamepad: *Gamepad) #extern "SDL_CloseGamepad";
@@ -1473,6 +1483,26 @@ GetKeyboardState :: fn () []bool #inline {
 }
 
 GetDisplayContentScale :: fn (displayID: DisplayID) f32 #extern "SDL_GetDisplayContentScale";
+
+//
+// Properties
+//
+PropertiesID :: u32;
+
+PROP_WINDOW_CREATE_TITLE_STRING :: "SDL.window.create.title";
+PROP_WINDOW_CREATE_WIDTH_NUMBER :: "SDL.window.create.width";
+PROP_WINDOW_CREATE_HEIGHT_NUMBER :: "SDL.window.create.height";
+PROP_WINDOW_CREATE_X_NUMBER :: "SDL.window.create.x";
+PROP_WINDOW_CREATE_Y_NUMBER :: "SDL.window.create.y";
+PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN :: "SDL.window.create.resizable";
+PROP_WINDOW_CREATE_OPENGL_BOOLEAN :: "SDL.window.create.opengl";
+PROP_WINDOW_CREATE_HIGH_PIXEL_DENSITY_BOOLEAN :: "SDL.window.create.high_pixel_density";
+
+CreateProperties :: fn () PropertiesID #extern "SDL_CreateProperties";
+DestroyProperties :: fn (props: PropertiesID) #extern "SDL_DestroyProperties";
+SetStringProperty :: fn (props: PropertiesID, name: *C.char, value: *C.char) bool #extern "SDL_SetStringProperty";
+SetNumberProperty :: fn (props: PropertiesID, name: *C.char, value: s64) bool #extern "SDL_SetNumberProperty";
+SetBooleanProperty :: fn (props: PropertiesID, name: *C.char, value: bool) bool #extern "SDL_SetBooleanProperty";
 
 //
 // Vulkan

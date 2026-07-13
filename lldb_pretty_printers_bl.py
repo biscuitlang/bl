@@ -245,13 +245,16 @@ def __lldb_init_module(debugger, internal_dict):
     debugger.HandleCommand(f'type summary add -F {mod}.string_summary "sl.{{s64,p.u8}}"')
     debugger.HandleCommand(f'type synthetic add -l {mod}.StringSyntheticProvider "sl.{{s64,p.u8}}"')
 
-    debugger.HandleCommand(f'type summary add --regex --cascade true -F {mod}.da_summary "da\\.{{.*}}"')
-    debugger.HandleCommand(f'type synthetic add --regex --cascade true -l {mod}.DaSyntheticProvider "da\\.{{.*}}"')
+    # NOTE: all regexes below are anchored with ^...$ so they only match when the
+    # ENTIRE type name is a da/sl/hash-table, not when one merely appears nested
+    # inside a larger struct (e.g. `s.{sl.{s64,p.u8}, ...}` must NOT match "sl").
+    debugger.HandleCommand(f'type summary add --regex --cascade true -F {mod}.da_summary "^da\\.{{.*}}$"')
+    debugger.HandleCommand(f'type synthetic add --regex --cascade true -l {mod}.DaSyntheticProvider "^da\\.{{.*}}$"')
 
-    debugger.HandleCommand(f'type summary add --regex -F {mod}.sl_summary "sl\\.{{.*}}"')
-    debugger.HandleCommand(f'type synthetic add --regex -l {mod}.SlSyntheticProvider "sl\\.{{.*}}"')
+    debugger.HandleCommand(f'type summary add --regex -F {mod}.sl_summary "^sl\\.{{.*}}$"')
+    debugger.HandleCommand(f'type synthetic add --regex -l {mod}.SlSyntheticProvider "^sl\\.{{.*}}$"')
 
-    ht_pattern = "s\\.\\{sl\\.\\{s64,p\\.s\\..*\\.Slot\\}.*"
+    ht_pattern = "^s\\.\\{sl\\.\\{s64,p\\.s\\..*\\.Slot\\}.*\\}$"
     debugger.HandleCommand(f'type summary add --regex --cascade true -F {mod}.hash_table_summary "{ht_pattern}"')
     debugger.HandleCommand(f'type synthetic add --regex --cascade true -l {mod}.HashTableSyntheticProvider "{ht_pattern}"')
 
