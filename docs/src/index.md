@@ -5,12 +5,6 @@
 * Optionally add `/path/to/blc/bin` to your system `PATH`.
 * Run `blc --help`.
 
-# Nightly Build
-
-* You might use a nightly release build (created daily from the current master branch) [Github](https://github.com/biscuitlang/bl/actions/workflows/nightly.yml).
-* Note that the nightly versions might be unstable.
-* Make sure you're using [master](https://biscuitlang.org/versions/master/) documentation.
-
 # Build from Source Code
 
 Biscuit compiler is using [nob](https://github.com/tsoding/nob.h) "build system". Since `nob` build system is written in C, it needs to be compiled first in order to compile the compiler itself. There is helper script to do so called `build.bat` or `build.sh`.
