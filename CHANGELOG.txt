@@ -13,27 +13,20 @@ master
 
 - Add #maybe_unused for enum and union type declarations.
 - Allow #base on unions.
-- Add support for arbitrary slices to be emitted as binary blobs into executable data segment
-  in compile time.
+- Add support for arbitrary slices to be emitted as binary blobs into executable data segment in compile time.
 - Fix implicit cast for child to base struct types.
-- Add proper type propagation for volatile typed integer literals and related binary/unary
-  operations.
+- Add proper type propagation for volatile typed integer literals and related binary/unary operations.
 - Disable error catch block on comptime functions.
 - Add builtin 'IS_COMPTIME' which is true in scope of comptime functions.
-- Add automatic enum type infer from usage.
-  see: https://github.com/biscuitlang/bl/tree/master/docs/src/examples/enum_inferred_type.bl
-- Add explicit comptime call.
-  see: https://github.com/biscuitlang/bl/tree/master/docs/src/examples/comptime_call.bl
+- Add automatic enum type infer from usage. see: https://github.com/biscuitlang/bl/tree/master/docs/src/examples/enum_inferred_type.bl
+- Add explicit comptime call. see: https://github.com/biscuitlang/bl/tree/master/docs/src/examples/comptime_call.bl
 - Fix issues with scope layers in generated types with base types.
-- Allow comptime external functions returning `type`. These are used only as compiler
-  internals.
+- Allow comptime external functions returning `type`. These are used only as compiler internals.
 - Fix general issues with type back-propagation for untyped enums and compounds.
-- Fix broken multi-return for comptime functions returning types which are not directly convertible
-  to constants.
+- Fix broken multi-return for comptime functions returning types which are not directly convertible to constants.
 - Fix type naming. Use declaration name only for the top-level direct declarations.
 - Fix missing scope layer on compound initializer designator resolve.
-- Fix linking issues on MSVC 14.50.35717 where aggressive linking optimizations remove implicitly used
-  built-in functions from C.
+- Fix linking issues on MSVC 14.50.35717 where aggressive linking optimizations remove implicitly used built-in functions from C.
 - Print VCToolsVersion used for compiler compilation.
 - Build pipeline now use regular main function as an entry point.
 - Fix volatile type propagation where explicit cast was required for non-s32 number literals in binop.
@@ -80,8 +73,7 @@ experimantal/variant:
 
 std/print:
 - Fix rounding of formatted floats.
-- Fix issues with negative unsigned values being incorrectly converted to string when fmt
-  is used for formatting.
+- Fix issues with negative unsigned values being incorrectly converted to string when fmt is used for formatting.
 - Fix union types being incorrectly printed as struct.
 
 extra/glm:
@@ -139,7 +131,7 @@ std/string
 `--run-tests`                  - Use '-test'.
 
 [MISC]
-- Add gdb python pretty printers for some BL types.
+- Add gdb and lldb python pretty printers for some BL types.
 
 0.13.0 - 2025-07-04
 ---------------------------------------------------------------------------------------

@@ -30,7 +30,7 @@
 - Update links in `docs/index.html`.
 - Publish new index to web.
 - Verify it works.
-- Increase compiler verison to the next one.
+- Increase compiler version to the next one.
 - Run `./build.bat all` and verify the version.
 - Add new changelog section:
 
