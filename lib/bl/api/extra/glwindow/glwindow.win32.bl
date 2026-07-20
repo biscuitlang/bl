@@ -476,7 +476,7 @@ swap_buffers :: fn (window: Window) #inline {
 
 /// Poll all window events and update [frame_events](#glwindowframe_events) array.
 poll_window_events :: fn () {
-	array_clear(&frame_events);
+	frame_events.len = 0;
 
 	msg: MSG;
 	loop PeekMessageA(&msg, null, 0, 0, PM_REMOVE) != 0 {

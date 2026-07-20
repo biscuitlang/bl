@@ -102,7 +102,7 @@ sarray_erase :: fn (arr: *?TArr, i: s64) {
 }
 
 /// Clear the array.
-sarray_clear :: fn (arr: *?TArr) #inline {
+sarray_clear :: fn (arr: *?TArr) #inline #obsolete "Since 0.14.0; Use 'arr.len = 0'." {
 	arr.len = 0;
 }
 
