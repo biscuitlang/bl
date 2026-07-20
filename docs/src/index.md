@@ -1,7 +1,9 @@
 # Installation
 
-!!! warning
-	This documentation refers to the current master branch containing unreleased changes. Use nightly build or build from the source.
+* Download compiler from [Github](https://github.com/biscuitlang/bl/releases/tag/VERSION).
+* Unpack downloaded file.
+* Optionally add `/path/to/blc/bin` to your system `PATH`.
+* Run `blc --help`.
 
 # Nightly Build
 
@@ -123,9 +125,9 @@ Other internal options might be adjusted directly in `nob.c` file.
 
 ## Configuration
 
-The compiler requires configuration file to be generated before the first use. Default configuration file `/path/to/bl/etc/bl.yaml` is created automatically on the first run. 
+The compiler requires configuration file to be generated before the first use. Default configuration file `/path/to/bl/etc/bl.yaml` is created automatically on the first run.
 
-You can use `blc --where-is-config` to get full path to the default config file. 
+You can use `blc --where-is-config` to get full path to the default config file.
 
 To generate new one use `blc --configure` (the old one will be kept as a backup).
 
