@@ -17,7 +17,7 @@
 
 - Run ./build.bat docs to generate new documentation.
 - Copy new documentation to webside (from: docs/side to: www/versions/version-number).
-- Push release branch.
+- Commit & push release branch.
 - Wait for release CI job to finish.
 - Check CI test results and verify created artifacts.
 - Create github release (format based on previous one).

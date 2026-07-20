@@ -323,9 +323,6 @@ int main(s32 argc, char *argv[]) {
 #define ID_DUMP_SCOPES_INJECTION  10
 #define ID_READ_SOURCE_FROM_STDIN 11
 
-	BL_OBSOLETE_SINCE(0, 14, "-silent-run");
-	BL_OBSOLETE_SINCE(0, 14, "--run-tests");
-
 	struct getarg_opt optlist[] = {
 	    {
 	        .name = "-init",
