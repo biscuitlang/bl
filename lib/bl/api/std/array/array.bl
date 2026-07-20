@@ -315,13 +315,6 @@ array_insert_all :: fn (_arr: *[..]?T, before_index: s64, values: []T) s64 {
 	return before_index;
 }
 
-/// Erase all elements in dynamic array but keep allocated memory.
-array_clear :: fn (_arr: *[..]?T) #inline #obsolete "Since 0.13.0; Use 'arr.len = 0' instead." {
-	assert(_arr, "Passed array is invalid.");
-	arr := cast(*_Array) _arr;
-	arr.len = 0;
-}
-
 /// Returns total number of allocated bytes used by the array.
 array_allocated_bytes :: fn (_arr: *[..]?T) usize #inline {
 	assert(_arr, "Passed array is invalid.");

@@ -157,7 +157,7 @@ bucket_array_iter_next :: fn (arr: *?TArr, iter: *BucketArrayIterator(TArr)) *Bu
 /// Clears the bucket array but keeps the allocated memory for later use.
 bucket_array_clear :: fn (arr: *?TArr) {
 	assert(arr);
-	array_clear(&arr.free_buckets);
+	arr.free_buckets.len = 0;
 	loop i := 0; i < arr.buckets.len; i += 1 {
 		arr.buckets[i].mask = 0;
 		array_push(&arr.free_buckets, i);

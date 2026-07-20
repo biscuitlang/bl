@@ -361,75 +361,6 @@ str_upper_single_character :: fn (str: *string, index: s64) #inline {
 	(@str)[index] = auto C.toupper(auto (@str)[index]);
 }
 
-
-
-
-//
-// Following API is deprecated.
-//
-
-/// Overloaded function creating new dynamic string instance.
-///
-/// **Overloads:**
-/// ```bl
-/// fn () string;
-/// fn (allocator: *Allocator) string
-/// fn (size: s64, allocator: *Allocator = null) string
-/// fn (v: string_view, allocator: *Allocator = null) string
-/// fn (cstr: *u8, allocator: *Allocator = null) string
-/// ```
-str_new :: fn {
-	new_empty;
-	new_allocator;
-	new_size;
-	new_dup;
-	new_dup_c_str;
-}
-
-#scope_private
-
-new_empty :: fn () string #obsolete "Since 0.13.0; Use default initialization 'string.{}'." {
-	return .{};
-}
-
-new_allocator :: fn (allocator: *Allocator) string #obsolete "Since 0.13.0; Use 'str_init' or 'str_make' instead." {
-	str: string;
-	str_init(&str, 0, allocator);
-	return str;
-}
-
-new_size :: fn (size: s64, allocator: *Allocator = null) string #obsolete "Since 0.13.0; Use 'str_init' or 'str_make' instead." {
-	str: string;
-	str_init(&str, size, allocator);
-	return str;
-}
-
-new_dup :: fn (v: string_view, allocator: *Allocator = null) string #obsolete "Since 0.13.0; Use 'str_init' or 'str_make' instead." {
-	str: string;
-	str_init(&str, v, allocator);
-	return str;
-}
-
-new_dup_c_str :: fn (cstr: *u8, allocator: *Allocator = null) string #obsolete "Since 0.13.0; Use 'str_init' or 'str_make' instead." {
-	str: string;
-	str_init(&str, cast(*C.char) cstr, allocator);
-	return str;
-}
-
-#scope_public
-
-/// Delete dynamic string.
-str_delete :: fn (v: *string) #obsolete "Since 0.13.0; Use 'str_terminate' instead'." {
-	str_terminate(v);
-}
-
-/// Clear dynamic string but keep allocated storage.
-str_clear :: fn (str: *string) #inline #obsolete "Since 0.13.0; Use 'str.len = 0' instead." {
-	str.len = 0;
-}
-
-
-
 //
 // Utility functions
 //
@@ -844,26 +775,8 @@ str_hash :: fn (str: string_view) u32 {
 	return hash;
 }
 
-/// Helper inline function returning `true` when string is null. In such case string `len` could be
-/// any value.
-str_is_null  :: fn (str: string_view) bool #inline #obsolete "Since 0.13.0; Use 'str.ptr == null' instead." {
-	return str.ptr == null;
-}
-
-/// Helper inline function returning `true` when string is empty. In such case string `ptr` could
-/// be any pointer.
-str_is_empty :: fn (str: string_view) bool #inline #obsolete "Since 0.13.0; Use 'str.len < 1' instead." {
-	return str.len == 0;
-}
-
 str_empty :: string.{};
 str_view_empty :: string_view.{};
-
-/// Helper inline function returning `true` when string is empty and null.
-str_is_null_or_empty :: fn (s: string_view) bool #inline #obsolete "Since 0.13.0; Use 'str.len < 1 || str.ptr' instead." {
-	return s.ptr == null || s.len == 0;
-}
-
 
 /// Creates substring from passed string starting at `start` index of input string and ending at
 /// `start` + `len` index.
@@ -887,15 +800,6 @@ str_sub :: fn (str: string_view, start: s64, len : s64 = -1) string_view #inline
 	return string_view.{ l, &s[start] };
 }
 
-/// Checks whether string view is zero terminated. Returns `false` In case the string view does not point
-/// to any valid data (`str.ptr == null`).
-str_is_zero_terminated :: fn (str: string_view) bool #inline #obsolete "Since 0.13.0; Will be removed, BL strings are no longer zero-terminated." {
-	if !str.ptr then return false;
-	extend := str;
-	extend.len += 1;
-	return extend[extend.len-1] == '\0';
-}
-
 /// Converts BL string to C zero-terminated string. This function internally allocates memory in order to
 /// put the zero terminator at the end of the string duplicate. In case the `_allocator` is not specified,
 /// `application_context.temporary_allocator` is used.
@@ -909,13 +813,6 @@ strtoc :: fn (str: string_view, _allocator : *Allocator = null) *C.char #inline 
 	memcpy(auto cstr.ptr, str.ptr, auto str.len);
 	cstr[cstr.len - 1] = 0;
 	return cstr.ptr;
-}
-
-/// Converts string view into C string representation. This function first checks if the input string
-/// is zero terminated, in case it's not, the temporary allocator is used to create zero terminated
-/// copy which is returned. Otherwise returns pointer to data of original string without any allocations.
-tstrtoc :: fn (str: string_view) *C.char #inline #obsolete "Since 0.13.0; Use 'strtoc' instead." {
-	return strtoc(str, application_context.temporary_allocator);
 }
 
 /// Converts C string into string view. The `len` argument is optional and is used as string length if
