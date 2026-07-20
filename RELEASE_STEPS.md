@@ -6,14 +6,14 @@
   We remove obsolete stuff which is marked with previous release version number.
 - Create new branch `release/major.minor.patch`
 - Checkout release branch.
-- In docs/src/index.md replace installation section:
+- In docs/src/index.md replace installation section (remove nightly block):
 
-	# Installation
+# Installation
 
-	* Download compiler from [Github](https://github.com/biscuitlang/bl/releases/tag/VERSION).
-	* Unpack downloaded file.
-	* Optionally add `/path/to/blc/bin` to your system `PATH`.
-	* Run `blc --help`.
+* Download compiler from [Github](https://github.com/biscuitlang/bl/releases/tag/VERSION).
+* Unpack downloaded file.
+* Optionally add `/path/to/blc/bin` to your system `PATH`.
+* Run `blc --help`.
 
 - Run ./build.bat docs to generate new documentation.
 - Copy new documentation to webside (from: docs/side to: www/versions/version-number).
@@ -34,12 +34,12 @@
 - Run `./build.bat all` and verify the version.
 - Add new changelog section:
 
-	master
-	---------------------------------------------------------------------------------------
-	[Compiler]
-	[Modules]
-	[Documentation]
-	[Deprecated]
+master
+---------------------------------------------------------------------------------------
+[Compiler]
+[Modules]
+[Documentation]
+[Deprecated]
 
 - Push master branch.
 - Make sure everything works...
