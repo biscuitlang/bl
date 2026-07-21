@@ -73,6 +73,12 @@ cd bl
 ./build.sh
 ```
 
+* You might specify path to `llvm-config`, this is most likely needed in case you used installation script to get LLVM.
+
+```bash
+./build.sh LLVM_CONFIG /opt/llvm/bin/llvm-config
+```
+
 * You can add `bin` directory to the system `PATH`.
 
 ```bash
@@ -123,9 +129,9 @@ Other internal options might be adjusted directly in `nob.c` file.
 
 ## Configuration
 
-The compiler requires configuration file to be generated before the first use. Default configuration file `/path/to/bl/etc/bl.yaml` is created automatically on the first run. 
+The compiler requires configuration file to be generated before the first use. Default configuration file `/path/to/bl/etc/bl.yaml` is created automatically on the first run.
 
-You can use `blc --where-is-config` to get full path to the default config file. 
+You can use `blc --where-is-config` to get full path to the default config file.
 
 To generate new one use `blc --configure` (the old one will be kept as a backup).
 
