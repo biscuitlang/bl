@@ -281,7 +281,7 @@ visit_files :: fn {
 }
 
 /// Check whether `path` points to valid directory. Returns error in case the check failed.
-is_directory :: fn (path: string_view) (bool, Error) #inline {
+is_directory :: fn (path: string_view) (is_dir: bool, err: Error) #inline {
 	return _is_directory(path);
 }
 
@@ -373,6 +373,12 @@ set_cwd :: fn (path: string_view) Error #inline {
 /// contain last path separator.
 get_home :: fn () string #inline {
 	return _get_home();
+}
+
+get_home2 :: fn () string_view #inline {
+	tmp :: get_home();
+	defer str_terminate(&tmp);
+	return str_make(tmp, application_context.temporary_allocator);
 }
 
 // @Incomplete 2025-02-13: use temporary allocator

@@ -332,6 +332,12 @@ str_lower :: fn (str: *string) s32 #inline {
 	return changed_num;
 }
 
+str_lower2 :: fn (str: string_view) string_view #inline {
+	tmp :: str_make(str, application_context.temporary_allocator);
+	str_lower(&tmp);
+	return tmp;
+}
+
 /// Converts single character from the `str` at index `index` to lower case. String `str` must be
 /// valid string pointer and `index` must be in range <0, str.len).
 str_lower_single_character :: fn (str: *string, index: s64) #inline {

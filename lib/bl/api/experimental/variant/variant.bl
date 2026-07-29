@@ -105,9 +105,10 @@ emplace_variant :: fn (variant: *?T, kind: variant_typeof_kind(T) #comptime, noi
 	return auto variant;
 }
 
-#scope_private
-#import "std/type_utils";
-
 variant_typeof_kind :: fn (TVariant: type #comptime) type #comptime {
 	return TVariant.kind;
 }
+
+#scope_private
+#import "std/type_utils";
+
