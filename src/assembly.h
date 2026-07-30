@@ -365,4 +365,20 @@ static inline str_t opt_to_LLVM_pass_str(enum assembly_opt opt) {
 	babort("Invalid build mode");
 }
 
+static inline bool is_assert_enabled(struct assembly *assembly) {
+	const bool             is_debug = assembly->target->opt == ASSEMBLY_OPT_DEBUG;
+	const enum assert_mode mode     = assembly->target->assert_mode;
+	switch (mode) {
+	case ASSERT_DEFAULT:
+		return is_debug;
+	case ASSERT_ALWAYS_ENABLED:
+		return true;
+	case ASSERT_ALWAYS_DISABLED:
+		return false;
+	}
+
+	bassert(false);
+	return false;
+}
+
 #endif

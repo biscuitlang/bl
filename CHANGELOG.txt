@@ -1,6 +1,8 @@
 master
 ---------------------------------------------------------------------------------------
 [Compiler]
+- Add builtin `IS_ASSERT` immutable variable set to true when assembly has enabled assertions.
+
 [Modules]
 [Documentation]
 [Deprecated]

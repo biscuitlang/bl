@@ -1542,7 +1542,6 @@ static inline void commit_var(struct context *ctx, struct mir_var *var, const bo
 	// Do not commit void entries
 	if (entry->kind == SCOPE_ENTRY_UNNAMED) return;
 
-
 	entry->kind   = SCOPE_ENTRY_VAR;
 	entry->as.var = var;
 	if (isflag(var->iflags, MIR_VAR_GLOBAL) || var->value.is_comptime) analyze_notify_provided(ctx, id->hash);
@@ -4925,7 +4924,6 @@ struct result analyze_instr_unroll(struct context *ctx, struct mir_instr_unroll 
 
 		return_zone(PASS);
 	}
-
 
 	struct mir_instr *tmp_var = src->tmp_var;
 	if (!tmp_var) {
@@ -11323,20 +11321,7 @@ struct mir_instr *ast_expr_call(struct context *ctx, struct ast *call) {
 		bassert(ident->kind == AST_IDENT);
 		if (is_builtin(ident, BUILTIN_ID_ASSERT_FN)) {
 			// Assert call should be removed based on configuration.
-			bool                   remove_assert = false;
-			const bool             is_debug      = ctx->debug_mode;
-			const enum assert_mode mode          = ctx->assembly->target->assert_mode;
-			switch (mode) {
-			case ASSERT_DEFAULT:
-				remove_assert = !is_debug;
-				break;
-			case ASSERT_ALWAYS_ENABLED:
-				remove_assert = false;
-				break;
-			case ASSERT_ALWAYS_DISABLED:
-				remove_assert = true;
-				break;
-			}
+			const bool remove_assert = !is_assert_enabled(ctx->assembly);
 			if (remove_assert) {
 				return append_instr_const_void(ctx, call);
 			}
@@ -13158,6 +13143,10 @@ static void initialize_builtins(struct assembly *assembly) {
 	// Add IS_DEBUG immutable into the global scope to provide information about enabled
 	// debug mode.
 	add_builtin_global_bool(&ctx, &builtin_ids[BUILTIN_ID_IS_DEBUG], false, ctx.debug_mode);
+	
+	// Add IS_ASSERT immutable into the global scope to provide information about enabled
+	// assert mode.
+	add_builtin_global_bool(&ctx, &builtin_ids[BUILTIN_ID_IS_ASSERT], false, is_assert_enabled(ctx.assembly));
 
 	// Add IS_COMPTIME_RUN immutable into the global scope to provide information about compile
 	// time run (application is explicitly executed using interpreter). This is true also for

@@ -2537,6 +2537,7 @@ main :: fn () s32 {
 List of builtin variables set by compiler:
 
 - `IS_DEBUG` Is bool immutable variable set to true when assembly is running in debug mode.
+- `IS_ASSERT` Is bool immutable variable set to true when assembly has enabled assertions.
 - `IS_COMPTIME` Is bool immutable variable set to true when current execution is done at compile time (inside comptime functions).
 - `IS_COMPTIME_RUN` Is bool immutable variable set to true when the whole assembly is executed in compile time (interpreter mode using `-run`).
 - `BLC_VER_MAJOR` Compiler major version number.
