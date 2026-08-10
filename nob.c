@@ -47,7 +47,7 @@
 // Comment this to disable ANSI color output.
 #define NOB_COLORS
 // Comment this to enable verbose build.
-#define NOB_NO_ECHO
+//#define NOB_NO_ECHO
 
 #define NOB_IMPLEMENTATION
 #define NOB_STRIP_PREFIX

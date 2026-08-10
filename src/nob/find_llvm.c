@@ -103,7 +103,10 @@ void find_llvm(void) {
 
 	// include dir
 	cmd_append(&cmd, llvm_config, "--includedir");
-	if (!cmd_run_sync_read_and_reset(&cmd, &sb)) exit(1);
+	if (!cmd_run_sync_read_and_reset(&cmd, &sb)) {
+		nob_log(NOB_ERROR, "Cannot resolve LLVM include directories.");
+		exit(1);
+	}
 	if (sb.count == 0) exit(1);
 	LLVM_INCLUDE_DIR = trim_and_dup(sb);
 	sb.count         = 0;
@@ -111,14 +114,20 @@ void find_llvm(void) {
 
 	// libraries
 	cmd_append(&cmd, llvm_config, "--link-static", "--libnames", "core", "support", "X86", "AArch64", "passes");
-	if (!cmd_run_sync_read_and_reset(&cmd, &sb)) exit(1);
+	if (!cmd_run_sync_read_and_reset(&cmd, &sb)) {
+		nob_log(NOB_ERROR, "Cannot resolve LLVM static libs.");
+		exit(1);
+	}
 	if (sb.count == 0) exit(1);
 	LLVM_LIBS = trim_and_dup(sb);
 	sb.count  = 0;
 
 	// libdir
 	cmd_append(&cmd, llvm_config, "--libdir");
-	if (!cmd_run_sync_read_and_reset(&cmd, &sb)) exit(1);
+	if (!cmd_run_sync_read_and_reset(&cmd, &sb)) {
+		nob_log(NOB_ERROR, "Cannot resolve LLVM libdir.");
+		exit(1);
+	}
 	if (sb.count == 0) exit(1);
 	LLVM_LIB_DIR = trim_and_dup(sb);
 	sb.count     = 0;

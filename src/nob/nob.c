@@ -13,8 +13,6 @@
 
 // Deps:
 #ifdef __linux__
-const char *ZSTD_LINK = "";
-const char *INFO_LINK = "";
 #elif __APPLE__
 const char *MACOS_SDK   = "";
 const char *ZLIB_LINK   = "";
@@ -26,6 +24,8 @@ const char *CURSES_LINK = "";
 #include "../../deps/libyaml-0.2.5/nob.c"
 #ifdef __linux__
 #include "../../deps/zlib-1.3.2/nob.c"
+#include "../../deps/zstd-0.4.2/nob.c"
+#include "../../deps/ncurses-tinfo-6.4.0/nob.c"
 #endif
 
 void find_deps(void);
@@ -46,8 +46,8 @@ void           db_add_entry(const char *file, Cmd cmd);
 
 void setup(void) {
 	find_llvm();
-	find_deps();
 	build_deps();
+	find_deps();
 }
 
 void blc(void) {
@@ -280,7 +280,7 @@ void blc(void) {
 #ifdef __APPLE__
 		cmd_append(&cmd, ZLIB_LINK, ZSTD_LINK, CURSES_LINK);
 #else
-		cmd_append(&cmd, ZLIB_LINK, ZSTD_LINK, INFO_LINK);
+		cmd_append(&cmd, ZLIB_LINK, ZSTD_LINK, TINFO_LINK);
 #endif
 		cmd_append(&cmd, "-o", BIN_DIR "/blc");
 
@@ -358,6 +358,7 @@ void find_deps(void) {
 
 #define LIB_PATH "/lib /usr/lib /usr/local/lib /lib64 /usr/lib64 /usr/lib/x86_64-linux-gnu"
 
+	/*
 	ZSTD_LINK = shell("find " LIB_PATH " -name \"libzstd.a\" -print -quit 2>/dev/null");
 	if (!strok(ZSTD_LINK)) {
 		nob_log(NOB_ERROR, "Unable to find 'libzstd.a' in none of following paths: '" LIB_PATH "'.");
@@ -369,14 +370,15 @@ void find_deps(void) {
 	if (!strok(INFO_LINK)) {
 		nob_log(NOB_WARNING, "Unable to find 'libtinfo.a' in none of following paths: '" LIB_PATH "'. Try to use ncurses.");
 
-		INFO_LINK = shell("find " LIB_PATH " -name \"libncurses_g.a\" -print -quit 2>/dev/null");
+		INFO_LINK = shell("find " LIB_PATH " -name \"libncurses.a\" -print -quit 2>/dev/null");
 		if (!strok(INFO_LINK)) {
-			nob_log(NOB_ERROR, "Unable to find 'libncurses_g.a' in none of following paths: '" LIB_PATH "'.");
+			nob_log(NOB_ERROR, "Unable to find 'libncurses.a' in none of following paths: '" LIB_PATH "'.");
 			exit(1);
 		}
 	}
 
 	nob_log(NOB_INFO, "Using 'libtinfo' '%s'.", INFO_LINK);
+	*/
 }
 
 #elif __APPLE__
@@ -441,6 +443,8 @@ void build_deps(void) {
 	if (!file_exists(YAML_LINK)) libyaml();
 #ifdef __linux__
 	if (!file_exists(ZLIB_LINK)) zlib();
+	if (!file_exists(ZSTD_LINK)) zstd();
+	if (!file_exists(TINFO_LINK)) tinfo();
 #endif
 }
 
