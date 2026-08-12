@@ -23,6 +23,6 @@ x :: foo() catch {}
 #import "std/print"
 
 main :: fn () s32 {
-	print("Hello!\n");
-	return 10;
+	print("Hello world!\n");
+	return 0;
 }

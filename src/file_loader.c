@@ -36,7 +36,11 @@ void file_loader_run(struct assembly *UNUSED(assembly), struct unit *unit) {
 	fseek(file, 0, SEEK_SET);
 
 	char *src = bmalloc(fsize + 1);
-	if (!fread(src, sizeof(char), fsize, file)) babort("Cannot read file '" STR_FMT "'.", STR_ARG(path));
+	if (!fread(src, sizeof(char), fsize, file)) {
+		fclose(file);
+		builder_msg(MSG_ERR, ERR_FILE_EMPTY, TOKEN_OPTIONAL_LOCATION(unit->loaded_from), CARET_WORD, "Invalid or source file '" STR_FMT "'.", STR_ARG(path));
+		return_zone();
+	}
 	src[fsize] = '\0';
 	fclose(file);
 	unit->src = src;
