@@ -3,6 +3,7 @@ master
 [Compiler]
 - Add builtin `IS_ASSERT` immutable variable set to true when assembly has enabled assertions.
 - Report invalid source file instead of abort on unit path pointing to valid directory.
+- Add `add_int_constant` into the build api.
 
 [Modules]
 [Documentation]

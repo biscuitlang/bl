@@ -382,16 +382,25 @@ s32 target_triple_to_string(const struct target_triple *triple, char *buf, s32 b
 	return len;
 }
 
-void target_add_bool_user_define(struct target *target, struct ast *node, str_t sym_name, bool value) {
+static void add_user_define(struct target *target, struct ast *node, str_t sym_name, u64 value, enum user_define_type type) {
 	bassert(target);
 	bassert(sym_name.len);
 
 	struct assembly_user_define def;
 	id_init(&def.id, sym_name);
-	def.value = (bool)value;
+	def.value = value;
 	def.node  = node;
+	def.type  = type;
 
 	arrput(target->user_defines, def);
+}
+
+void target_add_bool_user_define(struct target *target, struct ast *node, str_t sym_name, bool value) {
+	add_user_define(target, node, sym_name, (bool) value, USER_DEFINE_TYPE_BOOL);
+}
+
+void target_add_int_user_define(struct target *target, struct ast *node, str_t sym_name, s32 value) {
+	add_user_define(target, node, sym_name, value, USER_DEFINE_TYPE_INT);
 }
 
 static void thread_local_init(struct assembly *assembly) {

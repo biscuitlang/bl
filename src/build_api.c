@@ -31,6 +31,17 @@ BL_EXPORT void __add_bool_user_define(
 	target_add_bool_user_define(target, node, sym_name, value);
 }
 
+BL_EXPORT void __add_int_user_define(
+    struct target *target,
+    const char    *name,
+    s32            name_len,
+    s32            value,
+    struct ast    *node) {
+	bassert(name_len);
+	str_t sym_name = make_str(name, name_len);
+	target_add_int_user_define(target, node, sym_name, value);
+}
+
 BL_EXPORT s32 __compile(struct target *target) {
 	return builder_compile(target);
 }

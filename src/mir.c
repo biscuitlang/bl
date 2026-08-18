@@ -13143,7 +13143,7 @@ static void initialize_builtins(struct assembly *assembly) {
 	// Add IS_DEBUG immutable into the global scope to provide information about enabled
 	// debug mode.
 	add_builtin_global_bool(&ctx, &builtin_ids[BUILTIN_ID_IS_DEBUG], false, ctx.debug_mode);
-	
+
 	// Add IS_ASSERT immutable into the global scope to provide information about enabled
 	// assert mode.
 	add_builtin_global_bool(&ctx, &builtin_ids[BUILTIN_ID_IS_ASSERT], false, is_assert_enabled(ctx.assembly));
@@ -13256,7 +13256,14 @@ void mir_analyze_run(struct assembly *assembly) {
 	const struct target *target = assembly->target;
 	for (u32 i = 0; i < arrlenu(target->user_defines); ++i) {
 		struct assembly_user_define *def = &target->user_defines[i];
-		add_global_bool(&ctx, &def->id, def->node, false, false, (bool)def->value);
+		switch (def->type) {
+		case USER_DEFINE_TYPE_INT:
+			add_global_int(&ctx, &def->id, def->node, false, false, ctx.builtin_types->t_s32, def->value);
+			break;
+		case USER_DEFINE_TYPE_BOOL:
+			add_global_bool(&ctx, &def->id, def->node, false, false, (bool)def->value);
+			break;
+		}
 	}
 	if (builder.errorc) goto DONE;
 

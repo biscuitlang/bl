@@ -122,10 +122,16 @@ struct module {
 	hash_t        hash;
 };
 
+enum user_define_type {
+	USER_DEFINE_TYPE_INT,
+	USER_DEFINE_TYPE_BOOL,
+};
+
 struct assembly_user_define {
-	struct id   id;
-	u64         value;
-	struct ast *node;
+	struct id             id;
+	enum user_define_type type;
+	u64                   value;
+	struct ast           *node;
 };
 
 // ABI sync!!! Keep this updated with target representation in build.bl.
@@ -304,6 +310,7 @@ bool           target_is_triple_valid(struct target_triple *triple);
 bool           target_init_default_triple(struct target_triple *triple);
 s32            target_triple_to_string(const struct target_triple *triple, char *buf, s32 buf_len);
 void           target_add_bool_user_define(struct target *target, struct ast *node, str_t sym_name, bool value);
+void           target_add_int_user_define(struct target *target, struct ast *node, str_t sym_name, s32 value);
 
 struct assembly *assembly_new(const struct target *target);
 void             assembly_delete(struct assembly *assembly);
