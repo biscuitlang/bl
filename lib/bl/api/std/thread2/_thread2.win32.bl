@@ -1,0 +1,46 @@
+#scope_module
+Handle :: HANDLE;
+
+_create :: fn (entry: *fn (*u8) s32, ctx: *u8) (Handle, Error) {
+	if !entry { return null, error(ERR_INVALID_HANDLE, "Cannot create thread. Handle is invalid."); }
+	thread :: CreateThread(null, 0, auto entry, auto ctx, 0, null);
+	if !thread {
+		ec, estr :: os_get_last_error();
+		return null, error(ec, "Cannot create thread: %.", estr);
+	}
+	return thread, OK;
+}
+
+_join :: fn (thread: Handle) (exit_code: s32, err: Error) {
+	if !thread { error(ERR_INVALID_HANDLE, "Cannot join. Handle is invalid."); }
+	if WaitForSingleObject(thread, INFINITE) == WAIT_FAILED {
+		ec, estr :: os_get_last_error();
+		return -1, error(ec, "Cannot join: %.", estr);
+	}
+	exit_code: u32;
+	if GetExitCodeThread(thread, &exit_code) == 0 {
+		ec, estr :: os_get_last_error();
+		return -1, error(ec, "Cannot join: %.", estr);
+	}
+	if CloseHandle(thread) == 0 {
+		ec, estr :: os_get_last_error();
+		return -1, error(ec, "Cannot join: %.", estr);
+	}
+	return auto exit_code, OK;
+}
+
+_current :: fn () Handle #inline {
+	return GetCurrentThread();
+}
+
+_exit :: fn (exit_code: s32) Error {
+	thread :: _current();
+	if TerminateThread(thread, auto exit_code) == 1 {
+		ec, estr :: os_get_last_error();
+		return error(ec, "Cannot exit thread: %.", estr);
+	}
+	return OK;
+}
+
+#scope_private
+#import "os/windows";

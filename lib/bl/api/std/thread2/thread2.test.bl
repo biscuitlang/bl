@@ -1,0 +1,60 @@
+#scope_private
+#import "std/thread2"
+
+spawn_thread_without_context :: fn () #test {
+	worker :: fn () s32 {
+		return 666;
+	};
+
+	thread, err1 :: spawn(&worker);
+	test_ok(err1);
+	test_not_null(thread);
+	test_eq(thread.state, .STARTED);
+
+	exit_code, err2 :: join(thread);
+	test_ok(err2);
+	test_eq(thread.state, .JOINED);
+	test_eq(exit_code, 666);
+
+	destroy(thread);
+}
+
+spawn_thread_with_context :: fn () #test {
+	worker :: fn (n: *s32) s32 {
+		return @n;
+	};
+
+	ctx :: 666;
+
+	thread, err1 :: spawn_with_context(&ctx, &worker);
+	test_ok(err1);
+	test_not_null(thread);
+	test_eq(thread.state, .STARTED);
+
+	exit_code, err2 :: join(thread);
+	test_ok(err2);
+	test_eq(thread.state, .JOINED);
+	test_eq(exit_code, 666);
+
+	destroy(thread);
+}
+
+exit_thread :: fn () #test {
+	worker :: fn () s32 {
+		exit(666);
+		unreachable;
+		return -1;
+	};
+
+	thread, err1 :: spawn(&worker);
+	test_ok(err1);
+	test_not_null(thread);
+	test_eq(thread.state, .STARTED);
+
+	exit_code, err2 :: join(thread);
+	test_ok(err2);
+	test_eq(thread.state, .JOINED);
+	test_eq(exit_code, 666);
+
+	destroy(thread);
+}

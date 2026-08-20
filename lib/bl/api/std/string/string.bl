@@ -150,6 +150,11 @@ str_make :: fn {
 	};
 }
 
+/// Creates new string using current temporary allocator.
+str_make_temporary :: fn (v: string_view = "") string #inline {
+	return str_make(v, application_context.temporary_allocator);
+}
+
 /// Release all memory allocated by string using internally stored allocator if any, and
 /// resets the string to default state.
 str_terminate :: fn (str: *string) #inline {

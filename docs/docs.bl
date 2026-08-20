@@ -48,6 +48,7 @@ MD_PAGES_MODULES :: [_]string_view.{
 	"modules/table",
 	"modules/test",
 	"modules/thread",
+	"modules/thread2",
 	"modules/type_utils",
 	"modules/utils",
 
@@ -104,6 +105,7 @@ MODULES_MENU :: [_]MenuItem.{
 	.{ id = "modules_table.html", title = "std/table", level = 2},
 	.{ id = "modules_test.html", title = "std/test", level = 2},
 	.{ id = "modules_thread.html", title = "std/thread", level = 2},
+	.{ id = "modules_thread2.html", title = "std/thread2", level = 2},
 	.{ id = "modules_type_utils.html", title = "std/type_utils", level = 2},
 	.{ id = "modules_utils.html", title = "std/utils", level = 2},
 
@@ -164,6 +166,7 @@ MODULE_SRC :: [_]string_view.{
 	"std/table/table.bl",
 	"std/test/test.bl",
 	"std/thread/thread.bl",
+	"std/thread2/thread2.bl",
 	"std/type_utils/type_utils.bl",
 	"std/utils.bl",
 	// "extra/ui/ui.bl",

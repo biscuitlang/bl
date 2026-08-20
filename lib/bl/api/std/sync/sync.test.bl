@@ -1,5 +1,5 @@
 #scope_private
-#import "std/thread"
+thread :: #import "std/thread2";
 #import "std/sync"
 #import "std/array"
 
@@ -11,7 +11,7 @@ _mutex: Mutex;
 _data: [..]s32;
 
 mutex_test_1 :: fn () #test {
-	worker :: fn (_: *u8) s32 {
+	worker :: fn () s32 {
 		mutex_lock(&_mutex);
 		defer mutex_unlock(&_mutex);
 		loop i := 0; i < DATA_COUNT; i += 1 {
@@ -23,13 +23,13 @@ mutex_test_1 :: fn () #test {
 	defer array_terminate(&_data);
 	mutex_init(&_mutex);
 	defer mutex_terminate(&_mutex);
-	t: [THREAD_COUNT]Thread;
+	t: [THREAD_COUNT]*thread.Thread;
 	loop i := 0; i < t.len; i += 1 {
-		tmp :: thread_create(&worker);
-		t[i] = tmp;
+		t[i] = thread.spawn(&worker) catch assert(false);
 	}
 
-	thread_join_all(t);
+	thread.join_all(t);
+	thread.destroy_all(t);
 	test_eq(_data.len, TOTAL);
 }
 
@@ -37,7 +37,7 @@ _sem: Semaphore;
 _n: s32;
 
 semaphore_test :: fn () #test {
-	worker :: fn (_: *u8) s32 {
+	worker :: fn () s32 {
 		semaphore_wait(&_sem);
 		_n += 1;
 		semaphore_post(&_sem);
@@ -45,11 +45,11 @@ semaphore_test :: fn () #test {
 	};
 	semaphore_init(&_sem, 1);
 	defer semaphore_terminate(&_sem);
-	t: [THREAD_COUNT]Thread;
+	t: [THREAD_COUNT]*thread.Thread;
 	loop i := 0; i < t.len; i += 1 {
-		tmp :: thread_create(&worker);
-		t[i] = tmp;
+		t[i] = thread.spawn(&worker) catch assert(false);
 	}
-	thread_join_all(t);
+	thread.join_all(t);
+	thread.destroy_all(t);
 	test_eq(_n, THREAD_COUNT);
 }

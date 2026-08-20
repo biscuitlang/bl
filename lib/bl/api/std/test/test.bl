@@ -286,8 +286,9 @@ test_run :: fn (print_results := true, ansi_colors := false) s32 {
 	application_context.abort_fn = &abort_handler;
 
 	loop _ci < _queue.len {
-		t :: thread_create(&worker);
-		thread_join(t);
+		t :: thread.spawn(&worker) catch panic($);
+		thread.join(t) catch panic($);
+		thread.destroy(t);
 	}
 	application_context = old_context;
 
@@ -321,7 +322,7 @@ test_run :: fn (print_results := true, ansi_colors := false) s32 {
 }
 
 #scope_private
-#import "std/thread"
+thread :: #import "std/thread2";
 #import "std/string"
 #import "std/array"
 #import "std/pool"
@@ -357,11 +358,11 @@ abort_handler :: fn () {
 	_current.passed = false;
 	print("[      | % ] % (% ms)\n", colorize("FAIL", 31), _current.name, _current.runtime_ms);
 	temporary_release();
-	thread_exit(1);
+	thread.exit(1);
 	__os_abort_default();
 }
 
-worker :: fn (_: *u8) s32 {
+worker :: fn () s32 {
 	loop _ci < _queue.len {
 		_current = &_queue[_ci];
 		_ci += 1;

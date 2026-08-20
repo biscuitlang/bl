@@ -9,11 +9,14 @@
 //!
 //! !!! warning
 //!     This module is in experimental state, new features or API changes may come in the future.
+//!
+//! !!! warning
+//!     This module is deprecated since 0.15.0 use `thread2` module instead.
 
 /// Asynchronous task context holder holding internally created thread instance, input and output data of the worker
 /// function. Instance of this type is supposed to be initialized exclusively in [async](#async) function call and its
 /// content is internal.
-Async :: fn (TWorkerContext: type #comptime, TResult: type #comptime) type #comptime {
+Async :: fn (TWorkerContext: type #comptime, TResult: type #comptime) type #comptime #obsolete "Since 0.15.0; Use 'std/thread2' module." {
 	return struct {
 		thread: Thread;
 		result: TResult;
@@ -22,7 +25,7 @@ Async :: fn (TWorkerContext: type #comptime, TResult: type #comptime) type #comp
 	};
 }
 
-Async2 :: fn (TWorkerContext: type #comptime, TResult: type #comptime) type #comptime {
+Async2 :: fn (TWorkerContext: type #comptime, TResult: type #comptime) type #comptime #obsolete "Since 0.15.0; Use 'std/thread2' module." {
 	return struct {
 		thread: Thread;
 		result: TResult;

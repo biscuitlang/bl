@@ -1,24 +1,19 @@
 #scope_private
-#import "std/thread"
+thread :: #import "std/thread2";
 
 allocator :: &default_temporary_allocator;
 
-contcurent_allocation :: fn () #test {
+concurrent_allocation :: fn () #test {
 	WORKER_COUNT :: 8;
-	workers: [WORKER_COUNT]Thread;
+	workers: [WORKER_COUNT]*thread.Thread;
 	loop i := 0; i < workers.len; i += 1 {
-		t, err :: thread_create(&worker);
-		test_ok(err);
-		workers[i] = t;
+		workers[i] = thread.spawn(&worker) catch assert(false);
 	}
-	loop i := 0; i < workers.len; i += 1 {
-		thread_join(workers[i]);
-	}
+	thread.join_all(workers);
+	thread.destroy_all(workers);
 }
 
-worker :: fn (_: *u8) s32 {
-	defer temporary_release();
-
+worker :: fn () s32 {
 	TEST_COUNT :: 1000;
 	loop j := 0; j < TEST_COUNT; j += 1 {
 		defer temporary_reset();

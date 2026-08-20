@@ -226,6 +226,11 @@ free_slice :: fn (slice: *[]?T, allocator: *Allocator = null, loc := #call_locat
 	slice.len = 0;
 }
 
+/// Simple free wrapper to be used without casting.
+delete :: fn (ptr: *?T) #inline {
+	free(auto ptr);
+}
+
 /// Invoke the reset operation on the `allocator`. If supported, the `allocator` should reset its internal state (make
 /// all allocation invalid) and reuse already allocated memory eventually for following allocations.
 reset_allocator :: fn (allocator: *Allocator, loc := #call_location) #inline {

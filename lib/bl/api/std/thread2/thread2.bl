@@ -1,0 +1,137 @@
+//! # Thread2
+//!
+//! `#import "std/thread2"`
+//!
+//! This module contains tools for managing multithreading. It's basically wrapper for Windows thread
+//! system and pthread on posix systems with worker thread context handling.
+//!
+//! ### Example
+//!
+//! ```bl
+//! @@@examples/threading.bl
+//! ```
+//!
+//! !!! note
+//!     Currently provides only basic functionality, and should be extended in future.
+
+/// Thread handle.
+Thread :: struct {
+	/// Platform dependent native thread handle.
+	handle:      Handle;
+	/// Current thread state.
+	state: State;
+	/// Pointer to user thread context data.
+	worker_ctx: *u8;
+	/// Pointer to user worker function.
+	worker_fn:  *fn (*u8) s32;
+};
+
+State :: enum {
+	/// Thread was created and started.
+	STARTED;
+	/// Thread was successfully joined.
+	JOINED;
+
+	// @Incomplete 2026-08-20: Add detached state?
+}
+
+/// Creates and starts a new thread calling `worker_fn` worker function. Returns a new thread instance or null in case of error.
+/// After successful call, new thread is created and internal `state` is set to `STARTED`. Created thread is supposed to be
+/// joined by calling [join](modules_thread2.html#join) and destroyed by calling [destroy](modules_thread2.html#destroy).
+///
+/// !!! warning
+///     Thread creation is not supported during VM execution, calling in VM context causes panic.
+spawn :: fn (worker_fn: *fn () s32) (thread: *Thread, err: Error) {
+	if IS_COMPTIME_RUN then panic("Multithreading is not supported in VM execution mode.");
+	assert(worker_fn, "Thread worker function cannot be null.");
+
+	thread :: new(Thread) catch panic($);
+	thread.worker_fn = auto worker_fn;
+	thread.state     = .STARTED;
+
+	wrapper :: fn (thread: *Thread) s32 {
+		defer temporary_release();
+		return (cast(*fn () s32) thread.worker_fn)();
+	};
+
+	thread.handle = _create(auto &wrapper, auto thread) catch {
+		delete(thread);
+		return null, $;
+	};
+
+	return thread, OK;
+}
+
+/// Creates and starts a new thread calling `worker_fn` worker function with provided user context. Returns a new thread instance or
+/// null in case of error. After successful call, new thread is created and internal `state` is set to `STARTED`. Created thread is
+/// supposed to be joined by calling `join` and destroyed by calling `destroy`.
+///
+/// Context must stay valid during whole thread lifetime.
+///
+/// !!! warning
+///     Thread creation is not supported during VM execution, calling in VM context causes panic.
+spawn_with_context :: fn (worker_ctx: *?TContext, worker_fn: *fn (*TContext) s32) (thread: *Thread, err: Error) {
+	if IS_COMPTIME_RUN then panic("Multithreading is not supported in VM execution mode.");
+	assert(worker_fn, "Thread worker function cannot be null.");
+	assert(worker_ctx, "Thread worker context cannot be null.");
+
+	thread :: new(Thread) catch panic($);
+	thread.worker_fn  = auto worker_fn;
+	thread.worker_ctx = auto worker_ctx;
+
+	wrapper :: fn (thread: *Thread) s32 {
+		defer temporary_release();
+		return thread.worker_fn(thread.worker_ctx);
+	};
+
+	thread.handle = _create(auto &wrapper, auto thread) catch {
+		delete(thread);
+		return null, $;
+	};
+
+	return thread, OK;
+}
+
+/// Blocks until `thread` finish its work and returns thread exit code or error. Internal thread `state` is set to `JOINED` on success.
+/// Thread must be valid in `STARTED` internal state (checked by assert).
+join :: fn (thread: *Thread) (exit_code: s32, err: Error) {
+	assert(thread, "Cannot join null thread.");
+	assert(thread.state == .STARTED, "Thread was already joined.");
+	exit_code :: _join(thread.handle) catch return 0, $;
+	thread.state  = .JOINED;
+	thread.handle = .{};
+
+	return exit_code, OK;
+}
+
+/// Calls `join` on all `threads`. Returns error on first thread failing to join, remaining threads stay in `STARTED` state.
+join_all :: fn (threads: []*Thread) Error {
+	loop i := 0; i < threads.len; i += 1 {
+		join(threads[i]) catch return $;
+	}
+	return OK;
+}
+
+/// Destroys `thread` resources, should be called after thread is successfully joined (checked by assert).
+destroy :: fn (thread: *Thread) {
+	assert(thread, "Cannot destroy null thread.");
+	assert(thread.state == .JOINED, "Thread is not joined.");
+	delete(thread);
+}
+
+/// Destroys all `threads` resources, all threads must be successfully joined (checked by assert).
+destroy_all :: fn (threads: []*Thread) {
+	loop i := 0; i < threads.len; i += 1 {
+		destroy(threads[i]);
+	}
+}
+
+/// Early exits current thread with exit code.
+exit :: fn (exit_code: s32 = 0) Error #inline {
+	return _exit(exit_code);
+}
+
+/// Gets current thread ID.
+get_current_thread_id :: fn () u64 #inline {
+	return auto _current();
+}

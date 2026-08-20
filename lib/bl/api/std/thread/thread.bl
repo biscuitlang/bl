@@ -5,7 +5,11 @@
 //! This module contains tools for managing multithreading. It's basically wrapper for Windows thread
 //! system and pthread on posix systems.
 //!
-//! **warning**: This module is experimental and not fully supported across all platforms.
+//! !!! warning
+//!     This module is experimental and not fully supported across all platforms.
+//!
+//! !!! warning
+//!     This module is deprecated since 0.15.0 use `thread2` module instead.
 
 /// Thread entry function type.
 ThreadEntryFn :: *fn (ctx: *u8) s32;
@@ -15,7 +19,7 @@ Thread :: Handle;
 
 /// Create and start new thread with specified `entry` function. Pointer to custom `ctx` can be
 /// optionally passed to the entry function here.
-thread_create :: fn (entry: ThreadEntryFn, ctx: *u8 = null) (Thread, Error) #inline {
+thread_create :: fn (entry: ThreadEntryFn, ctx: *u8 = null) (Thread, Error) #inline #obsolete "Since 0.15.0; Use 'std/thread2' module." {
 	if IS_COMPTIME_RUN then panic("Multithreading is not supported in VM execution mode.");
 	return create(entry, ctx);
 }

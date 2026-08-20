@@ -2,7 +2,7 @@ FileWatchBase :: struct {
 	events:      StaticArray(WatchEvent, 512);
 	events_lock: Mutex;
 
-	thread: Thread;
+	thread: *threading.Thread;
 
 	watches:      Table(string, Watch);
 	watches_lock: Mutex;
@@ -26,22 +26,20 @@ new_filewatch :: fn () (*FileWatch, Error) {
 	fw :: new(FileWatch) catch return null, $;
 
 	mutex_init(&fw.watches_lock) catch {
-		free(auto fw);
+		delete(fw);
 		return null, $;
 	};
 
 	mutex_init(&fw.events_lock) catch {
-		free(auto fw);
+		delete(fw);
 		return null, $;
 	};
 
-	thread :: thread_create(auto &worker, auto fw) catch {
-		free(auto fw);
+	fw.thread = threading.spawn_with_context(fw, &worker) catch {
+		delete(fw);
 		mutex_terminate(&fw.watches_lock);
 		return null, $;
 	};
-
-	fw.thread = thread;
 
 	return fw, OK;
 }
@@ -50,7 +48,9 @@ delete_filewatch :: fn (fw: *FileWatch) {
 	if !fw then return;
 
 	fw.stop = true;
-	thread_join(fw.thread);
+	threading.join(fw.thread) catch panic($);
+	threading.destroy(fw.thread);
+	fw.thread = null;
 
 	paths   : []string : fw.watches.keys;
 	watches : []Watch  : fw.watches.values;
@@ -73,7 +73,7 @@ delete_filewatch :: fn (fw: *FileWatch) {
 	mutex_terminate(&fw.watches_lock);
 	mutex_terminate(&fw.events_lock);
 
-	free(auto fw);
+	delete(fw);
 }
 
 watch_changes :: fn (fw: *FileWatch, path: string_view) Error {
@@ -138,8 +138,8 @@ poll_file_changes :: fn (fw: *FileWatch, event: *WatchEvent) bool {
 
 #scope_module
 
+threading :: #import "std/thread2";
 #import "std/fs"
-#import "std/thread"
 #import "std/sync"
 #import "std/static_array"
 #import "std/table"

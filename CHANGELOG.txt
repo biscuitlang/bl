@@ -4,10 +4,20 @@ master
 - Add builtin `IS_ASSERT` immutable variable set to true when assembly has enabled assertions.
 - Report invalid source file instead of abort on unit path pointing to valid directory.
 - Add `add_int_constant` into the build api.
+- Add simple `delete` polymorphic function to free any pointer without casting.
 
 [Modules]
+
+thread2:
+- Created new threading module.
+
+string:
+- Add `str_make_temporary`.
+
 [Documentation]
 [Deprecated]
+`thread` - Use `thread2` module.
+`async`  - Use `thread2` module.
 
 0.14.0 - 2026-07-20
 ---------------------------------------------------------------------------------------

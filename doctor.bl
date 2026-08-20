@@ -49,6 +49,7 @@ MODULES :: [_]string_view.{
 	"lib/bl/api/std/sync/sync.test.bl",
 	"lib/bl/api/std/table/table.test.bl",
 	"lib/bl/api/std/thread/thread.test.bl",
+	"lib/bl/api/std/thread2/thread2.test.bl",
 	"lib/bl/api/std/type_utils/type_utils.test.bl",
 };
 

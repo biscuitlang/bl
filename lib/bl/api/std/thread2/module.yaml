@@ -1,0 +1,17 @@
+version: 20221230
+src: "thread2.bl"
+
+x86_64-pc-windows-msvc:
+  src: "_thread2.win32.bl"
+
+x86_64-pc-linux-gnu:
+  src: "_thread2.posix.bl"
+
+x86_64-unknown-linux-gnu:
+  src: "_thread2.posix.bl"
+
+x86_64-apple-darwin:
+  src: "_thread2.posix.bl"
+
+arm64-apple-darwin:
+  src: "_thread2.posix.bl"

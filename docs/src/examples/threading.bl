@@ -1,4 +1,4 @@
-#import "std/thread"
+thread :: #import "std/thread2";
 #import "std/sync"
 #import "std/print"
 
@@ -11,16 +11,19 @@ main :: fn () s32 {
 	mutex_init(&mutex);
 	defer mutex_terminate(&mutex);
 
-	t1 :: thread_create(&first);
-	t2 :: thread_create(&second);
+	t1 :: thread.spawn(&first) catch panic($);
+	t2 :: thread.spawn(&second) catch panic($);
 
-	thread_join(t1);
-	thread_join(t2);
+	thread.join(t1) catch panic($);
+	thread.join(t2) catch panic($);
+
+	thread.destroy(t1);
+	thread.destroy(t2);
 
 	return 0;
 }
 
-first :: fn (args: *u8 #maybe_unused) s32 {
+first :: fn () s32 {
 	loop i := 0; i < 10; i += 1 {
 		mutex_lock(&mutex);
 
@@ -32,7 +35,7 @@ first :: fn (args: *u8 #maybe_unused) s32 {
 	return 0;
 }
 
-second :: fn (args: *u8 #maybe_unused) s32 {
+second :: fn () s32 {
 	loop i := 0; i < 10; i += 1 {
 		mutex_lock(&mutex);
 
