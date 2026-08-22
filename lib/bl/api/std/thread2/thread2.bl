@@ -128,10 +128,16 @@ destroy_all :: fn (threads: []*Thread) {
 
 /// Early exits current thread with exit code.
 exit :: fn (exit_code: s32 = 0) Error #inline {
+	temporary_release();
 	return _exit(exit_code);
 }
 
 /// Gets current thread ID.
 get_current_thread_id :: fn () u64 #inline {
 	return auto _current();
+}
+
+/// Get thread unique ID.
+get_thread_id :: fn (thread: *Thread) u64 #inline {
+	return auto thread.handle;
 }
