@@ -1,0 +1,190 @@
+#scope_private
+
+threading :: #import "std/thread2";
+msg       :: #import "std/message_queue";
+
+Context :: struct {
+	queue: msg.Queue;
+	s: string;
+	mtid: u64;
+}
+
+init_ctx :: fn (ctx: *Context) {
+	msg.init(&ctx.queue);
+	ctx.mtid = threading.get_current_thread_id();
+}
+
+terminate_ctx :: fn (ctx: *Context) {
+	msg.terminate(&ctx.queue);
+	str_terminate(&ctx.s);
+}
+
+Message :: struct #base msg.Message {
+	n: s32;
+}
+
+simple_blocking_sequence :: fn () #test {
+	worker :: fn (ctx: *Context) s32 {
+		m: *Message;
+		loop msg.poll_as(&ctx.queue, &m, true) {
+			defer msg.terminate_message(m);
+
+			sender_id :: m.sender;
+			test_eq(sender_id, ctx.mtid);
+
+			str_append(&ctx.s, m.n);
+
+			switch m.n {
+				0 {
+					m :: msg.make_message(Message, &ctx.queue);
+					m.n = 1;
+					msg.post(sender_id, m);
+				}
+				2 {
+					m :: msg.make_message(Message, &ctx.queue);
+					m.n = 3;
+					msg.post(sender_id, m);
+				}
+				4 {
+					break;
+				}
+			}
+		}
+		return 0;
+	};
+
+	ctx: Context;
+
+	init_ctx(&ctx);
+	defer terminate_ctx(&ctx);
+
+	thread :: threading.spawn_with_context(&ctx, &worker);
+	consumer_id :: threading.get_thread_id(thread);
+
+	msg.post(consumer_id, msg.make_message(Message, &ctx.queue));
+
+	m: *Message;
+	loop msg.poll_as(&ctx.queue, &m, true) {
+		defer msg.terminate_message(m);
+
+		switch m.n {
+			1 {
+				m :: msg.make_message(Message, &ctx.queue);
+				m.n = 2;
+				msg.post(consumer_id, m);
+			}
+			3 {
+				m :: msg.make_message(Message, &ctx.queue);
+				m.n = 4;
+				msg.post(consumer_id, m);
+				break;
+			}
+		}
+	}
+
+	threading.join(thread);
+	threading.destroy(thread);
+
+	test_eq(ctx.s, "024");
+}
+
+simple_blocking_procude_only :: fn () #test {
+	worker :: fn (ctx: *Context) s32 {
+		m: *Message;
+		loop msg.poll_as(&ctx.queue, &m, true) {
+			defer msg.terminate_message(m);
+			sender_id :: m.sender;
+			test_eq(sender_id, ctx.mtid);
+			str_append(&ctx.s, m.n);
+
+			if m.n == 4 then break;
+		}
+		return 0;
+	};
+
+	ctx: Context;
+
+	init_ctx(&ctx);
+	defer terminate_ctx(&ctx);
+
+	thread :: threading.spawn_with_context(&ctx, &worker);
+	consumer_id :: threading.get_thread_id(thread);
+
+	loop i := 0; i < 5; i += 1 {
+		m :: msg.make_message(Message, &ctx.queue);
+		m.n = i;
+		msg.post(consumer_id, m);
+	}
+
+	threading.join(thread);
+	threading.destroy(thread);
+
+	test_eq(ctx.s, "01234");
+}
+
+simple_blocking_consume_only :: fn () #test {
+	worker :: fn (ctx: *Context) s32 {
+		loop i := 0; i < 5; i += 1 {
+			m :: msg.make_message(Message, &ctx.queue);
+			m.n = i;
+			msg.post(ctx.mtid, m);
+		}
+		return 0;
+	};
+
+	ctx: Context;
+
+	init_ctx(&ctx);
+	defer terminate_ctx(&ctx);
+
+	thread :: threading.spawn_with_context(&ctx, &worker);
+
+	m: *Message;
+	loop msg.poll_as(&ctx.queue, &m, true) {
+		defer msg.terminate_message(m);
+		str_append(&ctx.s, m.n);
+
+		if m.n == 4 then break;
+	}
+
+	threading.join(thread);
+	threading.destroy(thread);
+
+	test_eq(ctx.s, "01234");
+}
+
+simple_blocking_multiple_pending :: fn () #test {
+	worker :: fn (ctx: *Context) s32 {
+		os_sleep_ms(200);
+
+		m: *Message;
+		loop msg.poll_as(&ctx.queue, &m, true) {
+			defer msg.terminate_message(m);
+			sender_id :: m.sender;
+			test_eq(sender_id, ctx.mtid);
+			str_append(&ctx.s, m.n);
+
+			if m.n == 4 then break;
+		}
+		return 0;
+	};
+
+	ctx: Context;
+
+	init_ctx(&ctx);
+	defer terminate_ctx(&ctx);
+
+	thread :: threading.spawn_with_context(&ctx, &worker);
+	consumer_id :: threading.get_thread_id(thread);
+
+	loop i := 0; i < 5; i += 1 {
+		m :: msg.make_message(Message, &ctx.queue);
+		m.n = i;
+		msg.post(consumer_id, m);
+	}
+
+	threading.join(thread);
+	threading.destroy(thread);
+
+	test_eq(ctx.s, "01234");
+}
