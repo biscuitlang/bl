@@ -1,16 +1,19 @@
 #load "extra/build-lib-common.bl"
 
+SDL_SRC_DIR :: "SDL3-3.2.8";
+
 main :: fn () s32 {
 	tmpdir :: get_temporary();
-	unzip("SDL3-3.2.8.zip");
+	unzip(tprint("*.zip", SDL_SRC_DIR));
 
 	rootdir :: get_cwd();
-	create_dir("SDL3-3.2.8/build");
+	build_dir :: tprint("%/build");
+	create_dir(build_dir);
 
 	using Platform;
 	switch PLATFORM {
 		WINDOWS {
-			set_cwd("SDL3-3.2.8/build");
+			set_cwd(build_dir);
 			cmake(
 				"..",
 				"--fresh",
@@ -29,7 +32,7 @@ main :: fn () s32 {
 			copy_file(tprint("%/lib/SDL3-static.lib", tmpdir), "win32/SDL3_static.lib", true);
 		}
 		LINUX {
-			set_cwd("SDL3-3.2.8/build");
+			set_cwd(build_dir);
 			cmake(
 				"..",
 				"--fresh",
@@ -47,7 +50,7 @@ main :: fn () s32 {
 			os_execute(tprint("cp -d %/lib/libSDL* linux/", tmpdir));
 		}
 		DARWIN {
-			set_cwd("SDL3-3.2.8/build");
+			set_cwd(build_dir);
 			cmake(
 				"..",
 				"--fresh",
@@ -70,6 +73,6 @@ main :: fn () s32 {
 	}
 
 	set_cwd(rootdir);
-	os_execute("rm -rf SDL3-3.2.8");
+	os_execute(tprint("rm -rf %", SDL_SRC_DIR));
 	return 0;
 }

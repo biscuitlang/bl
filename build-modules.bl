@@ -23,9 +23,30 @@ main :: fn () s32 {
 	tmp :: str_make(TMP_DIR);
 	path_normalize(&tmp);
 
+	// Optional single-module filter passed on the command line, ex.:
+	//   blc -run build-modules.bl "lib/bl/api/extra/zlib"
+	filter := str_view_empty;
+	if command_line_arguments.len > 1 {
+		filter = command_line_arguments[1];
+		print("MODULE FILTER: '%'\n", filter);
+	}
+
+	failed := 0;
 	loop i := 0; i < MODULES.len; i += 1 {
+		if filter.len > 0 && !str_match(filter, MODULES[i]) {
+			continue;
+		}
 		print("\033[32m|\n| BUILD: %\n|\033[0m\n", MODULES[i]);
-		os_execute(tprint("blc --work-dir=\"%\" -build %", MODULES[i], tmp));
+		result := os_execute(tprint("blc --work-dir=\"%\" -build %", MODULES[i], tmp));
+		if result != 0 {
+			print("\033[31mBUILD FAILED: '%' (exit code %)\033[0m\n", MODULES[i], result);
+			failed += 1;
+		}
+	}
+
+	if failed > 0 {
+		print("\033[31m% OF % MODULE BUILD(S) FAILED\033[0m\n", failed, MODULES.len);
+		return 1;
 	}
 
 	print("DONE\n");

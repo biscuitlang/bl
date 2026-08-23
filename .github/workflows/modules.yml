@@ -1,0 +1,200 @@
+name: Modules
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to build from and commit results back to'
+        required: true
+        default: 'master'
+      module:
+        description: 'Module to build, ex. lib/bl/api/extra/sdl3 (empty means all modules)'
+        required: false
+        default: ''
+      compiler:
+        description: 'Compiler origin: download latest GitHub release or build from this branch'
+        required: false
+        default: 'release'
+        type: choice
+        options:
+          - release
+          - source
+
+permissions:
+  contents: write
+
+concurrency:
+  group: modules-${{ github.event.inputs.branch }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win32
+          - os: ubuntu-latest
+            platform: linux
+          - os: macos-14
+            platform: macos
+    runs-on: ${{ matrix.os }}
+    env:
+      MODULE: ${{ inputs.module }}
+      PLATFORM_DIR: ${{ matrix.platform }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.branch }}
+
+    - name: Setup MSVC environment
+      if: runner.os == 'Windows'
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    - name: Install LLVM
+      if: runner.os == 'Linux' && inputs.compiler == 'source'
+      run: |
+        wget https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh 18
+
+    - name: Install LLVM
+      if: runner.os == 'macOS' && inputs.compiler == 'source'
+      run: |
+        brew install llvm@18 zlib ncurses
+        TMP_PATH=$(xcrun --show-sdk-path)/user/include
+        echo "CPATH=$TMP_PATH" >> $GITHUB_ENV
+
+    - name: Download compiler from latest GitHub release
+      if: inputs.compiler == 'release'
+      shell: bash
+      run: |
+        case "$RUNNER_OS" in
+          Linux)   asset="blc-x86_64-linux.zip" ;;
+          macOS)   asset="blc-arm64-macos.zip" ;;
+          Windows) asset="blc-x86_64-windows.zip" ;;
+          *) echo "::error::Unsupported runner OS"; exit 1 ;;
+        esac
+        echo "Downloading $asset"
+        curl -sSL -o blc-release.zip "https://github.com/biscuitlang/bl/releases/latest/download/$asset"
+        if [ "$RUNNER_OS" == "Windows" ]; then UNZIP="./deps/unzip/unzip.exe"; else UNZIP="unzip"; fi
+        rm -rf blc-dist && mkdir blc-dist
+        "$UNZIP" -o -q blc-release.zip -d blc-dist
+        if [ ! -d blc-dist/bin ] && [ "$(ls -A blc-dist | wc -l)" -eq 1 ]; then
+          mv blc-dist/*/* blc-dist/
+        fi
+        cp -a blc-dist/bin .
+        exe="bin/blc"; [ "$RUNNER_OS" == "Windows" ] && exe="bin/blc.exe"
+        "$exe" --version
+
+    - name: Install module build dependencies
+      shell: bash
+      run: |
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          sudo apt-get update
+          # cmake/make/unzip are preinstalled; these are headers needed by sdl3 and clipboard builds
+          sudo apt-get install -y \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxfixes-dev \
+            libwayland-dev wayland-protocols libxkbcommon-dev libegl1-mesa-dev \
+            libasound2-dev libpulse-dev libudev-dev libdbus-1-dev
+        elif [ "$RUNNER_OS" == "Windows" ]; then
+          # unzip comes bundled in deps/unzip; cp/rm come from Git's usr/bin; cmake drives MSBuild
+          echo "C:\Program Files\Git\usr\bin" >> $GITHUB_PATH
+          echo "$(pwd)/deps/unzip" >> $GITHUB_PATH
+        fi
+
+    - name: Build compiler in release mode
+      shell: cmd
+      if: runner.os == 'Windows' && inputs.compiler == 'source'
+      run: |
+        ./build.bat release all
+
+    - name: Build compiler in release mode
+      if: runner.os != 'Windows' && inputs.compiler == 'source'
+      run: |
+        ./build.sh release all
+
+    - name: Add bin directory to PATH
+      shell: bash
+      run: echo "$(pwd)/bin" >> $GITHUB_PATH
+
+    - name: Build modules
+      shell: bash
+      run: |
+        set -o pipefail
+        if [ -n "$MODULE" ]; then
+          blc -run build-modules.bl "$MODULE"
+        else
+          blc -run build-modules.bl
+        fi
+
+    - name: Verify built libraries exist
+      shell: bash
+      run: |
+        count=$(find lib/bl/api/extra -type d -name "$PLATFORM_DIR" -empty -prune -o -type f -path "*$PLATFORM_DIR/*" -print | wc -l)
+        echo "Found $count file(s) under */$PLATFORM_DIR"
+        if [ "$count" -eq 0 ]; then
+          echo "::error::No library files produced for $PLATFORM_DIR"
+          exit 1
+        fi
+
+    - name: Collect artifacts
+      shell: bash
+      run: |
+        mkdir -p staging/lib/bl/api/extra
+        for m in lib/bl/api/extra/*/; do
+          p="${m}$PLATFORM_DIR"
+          if [ -d "$p" ]; then
+            mkdir -p "staging/$m"
+            cp -a "$p" "staging/$m"
+          fi
+        done
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: libs-${{ matrix.platform }}
+        path: staging
+
+  commit:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.branch }}
+        fetch-depth: 0
+
+    - uses: actions/download-artifact@v4
+      with:
+        pattern: libs-*
+        merge-multiple: true
+        path: .
+
+    - name: Commit and push updated libraries
+      shell: bash
+      env:
+        MODULE: ${{ inputs.module }}
+        BRANCH: ${{ inputs.branch }}
+      run: |
+        git config user.name "bl-modules-bot"
+        git config user.email "actions@github.com"
+
+        target="lib"
+        label="all modules"
+        if [ -n "$MODULE" ]; then
+          target="$MODULE"
+          label="$MODULE"
+        fi
+
+        git add "$target"
+
+        if git diff --cached --quiet; then
+          echo "No changes to commit."
+          exit 0
+        fi
+
+        git commit -m "[libs] Update prebuilt libraries for '$label' [skip ci]"
+        git push origin HEAD:"$BRANCH"
