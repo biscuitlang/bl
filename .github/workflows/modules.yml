@@ -233,6 +233,7 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         pattern: patch-*
+        merge-multiple: true
         path: patches
 
     - name: Apply all platform patches
