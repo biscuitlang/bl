@@ -28,94 +28,45 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            platform: win32
-          - os: ubuntu-latest
-            platform: linux
-          - os: macos-14
-            platform: macos
-    runs-on: ${{ matrix.os }}
+  windows:
+    runs-on: windows-latest
     env:
       MODULE: ${{ inputs.module }}
-      PLATFORM_DIR: ${{ matrix.platform }}
     steps:
     - uses: actions/checkout@v4
       with:
         ref: ${{ inputs.branch }}
 
     - name: Setup MSVC environment
-      if: runner.os == 'Windows'
       uses: ilammy/msvc-dev-cmd@v1
       with:
         arch: x64
-
-    - name: Install LLVM
-      if: runner.os == 'Linux' && inputs.compiler == 'source'
-      run: |
-        wget https://apt.llvm.org/llvm.sh
-        chmod +x llvm.sh
-        sudo ./llvm.sh 18
-
-    - name: Install LLVM
-      if: runner.os == 'macOS' && inputs.compiler == 'source'
-      run: |
-        brew install llvm@18 zlib ncurses
-        TMP_PATH=$(xcrun --show-sdk-path)/user/include
-        echo "CPATH=$TMP_PATH" >> $GITHUB_ENV
 
     - name: Download compiler from latest GitHub release
       if: inputs.compiler == 'release'
       shell: bash
       run: |
-        case "$RUNNER_OS" in
-          Linux)   asset="blc-x86_64-linux.zip" ;;
-          macOS)   asset="blc-arm64-macos.zip" ;;
-          Windows) asset="blc-x86_64-windows.zip" ;;
-          *) echo "::error::Unsupported runner OS"; exit 1 ;;
-        esac
-        echo "Downloading $asset"
-        curl -sSL -o blc-release.zip "https://github.com/biscuitlang/bl/releases/latest/download/$asset"
-        if [ "$RUNNER_OS" == "Windows" ]; then UNZIP="./deps/unzip/unzip.exe"; else UNZIP="unzip"; fi
+        curl -sSL -o blc-release.zip "https://github.com/biscuitlang/bl/releases/latest/download/blc-x86_64-windows.zip"
         rm -rf blc-dist && mkdir blc-dist
-        "$UNZIP" -o -q blc-release.zip -d blc-dist
+        ./deps/unzip/unzip.exe -o -q blc-release.zip -d blc-dist
         if [ ! -d blc-dist/bin ] && [ "$(ls -A blc-dist | wc -l)" -eq 1 ]; then
           mv blc-dist/*/* blc-dist/
         fi
         cp -a blc-dist/bin .
-        exe="bin/blc"; [ "$RUNNER_OS" == "Windows" ] && exe="bin/blc.exe"
-        "$exe" --version
+        ./bin/blc.exe --version
 
     - name: Install module build dependencies
       shell: bash
       run: |
-        if [ "$RUNNER_OS" == "Linux" ]; then
-          sudo apt-get update
-          # cmake/make/unzip are preinstalled; these are headers needed by sdl3 and clipboard builds
-          sudo apt-get install -y \
-            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxfixes-dev \
-            libwayland-dev wayland-protocols libxkbcommon-dev libegl1-mesa-dev \
-            libasound2-dev libpulse-dev libudev-dev libdbus-1-dev
-        elif [ "$RUNNER_OS" == "Windows" ]; then
-          # unzip comes bundled in deps/unzip; cp/rm come from Git's usr/bin; cmake drives MSBuild
-          echo "C:\Program Files\Git\usr\bin" >> $GITHUB_PATH
-          echo "$(pwd)/deps/unzip" >> $GITHUB_PATH
-        fi
+        # unzip comes bundled in deps/unzip; cp/rm come from Git's usr/bin; cmake drives MSBuild
+        echo "C:\Program Files\Git\usr\bin" >> $GITHUB_PATH
+        echo "$(pwd)/deps/unzip" >> $GITHUB_PATH
 
     - name: Build compiler in release mode
       shell: cmd
-      if: runner.os == 'Windows' && inputs.compiler == 'source'
+      if: inputs.compiler == 'source'
       run: |
-        ./build.bat release all
-
-    - name: Build compiler in release mode
-      if: runner.os != 'Windows' && inputs.compiler == 'source'
-      run: |
-        ./build.sh release all
+        ./build.bat release
 
     - name: Add bin directory to PATH
       shell: bash
@@ -124,43 +75,155 @@ jobs:
     - name: Build modules
       shell: bash
       run: |
-        set -o pipefail
         if [ -n "$MODULE" ]; then
           blc -run build-modules.bl "$MODULE"
         else
           blc -run build-modules.bl
         fi
 
-    - name: Verify built libraries exist
+    - name: Collect changes as patch
       shell: bash
       run: |
-        count=$(find lib/bl/api/extra -type d -name "$PLATFORM_DIR" -empty -prune -o -type f -path "*$PLATFORM_DIR/*" -print | wc -l)
-        echo "Found $count file(s) under */$PLATFORM_DIR"
-        if [ "$count" -eq 0 ]; then
-          echo "::error::No library files produced for $PLATFORM_DIR"
-          exit 1
-        fi
-
-    - name: Collect artifacts
-      shell: bash
-      run: |
-        mkdir -p staging/lib/bl/api/extra
-        for m in lib/bl/api/extra/*/; do
-          p="${m}$PLATFORM_DIR"
-          if [ -d "$p" ]; then
-            mkdir -p "staging/$m"
-            cp -a "$p" "staging/$m"
-          fi
-        done
+        git config user.name "bl-modules-bot"
+        git config user.email "actions@github.com"
+        git add -A -- lib
+        git -c color.ui=false diff --cached --binary > patch-win32.patch
+        wc -c patch-win32.patch
 
     - uses: actions/upload-artifact@v4
       with:
-        name: libs-${{ matrix.platform }}
-        path: staging
+        name: patch-win32
+        path: patch-win32.patch
+
+  linux:
+    runs-on: ubuntu-latest
+    env:
+      MODULE: ${{ inputs.module }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.branch }}
+
+    - name: Install LLVM
+      if: inputs.compiler == 'source'
+      run: |
+        wget https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh 18
+
+    - name: Download compiler from latest GitHub release
+      if: inputs.compiler == 'release'
+      run: |
+        curl -sSL -o blc-release.zip "https://github.com/biscuitlang/bl/releases/latest/download/blc-x86_64-linux.zip"
+        rm -rf blc-dist && mkdir blc-dist
+        unzip -o -q blc-release.zip -d blc-dist
+        if [ ! -d blc-dist/bin ] && [ "$(ls -A blc-dist | wc -l)" -eq 1 ]; then
+          mv blc-dist/*/* blc-dist/
+        fi
+        cp -a blc-dist/bin .
+        ./bin/blc --version
+
+    - name: Install module build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxfixes-dev \
+          libwayland-dev wayland-protocols libxkbcommon-dev libegl1-mesa-dev \
+          libasound2-dev libpulse-dev libudev-dev libdbus-1-dev libxss-dev \
+          libxtst-dev libxinerama-dev libdecor-0-dev
+
+    - name: Build compiler in release mode
+      if: inputs.compiler == 'source'
+      run: |
+        ./build.sh release
+
+    - name: Add bin directory to PATH
+      run: echo "$(pwd)/bin" >> $GITHUB_PATH
+
+    - name: Build modules
+      run: |
+        if [ -n "$MODULE" ]; then
+          blc -run build-modules.bl "$MODULE"
+        else
+          blc -run build-modules.bl
+        fi
+
+    - name: Collect changes as patch
+      run: |
+        git config user.name "bl-modules-bot"
+        git config user.email "actions@github.com"
+        git add -A -- lib
+        git -c color.ui=false diff --cached --binary > patch-linux.patch
+        wc -c patch-linux.patch
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: patch-linux
+        path: patch-linux.patch
+
+  macos:
+    runs-on: macos-14
+    env:
+      MODULE: ${{ inputs.module }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.branch }}
+
+    - name: Install LLVM
+      if: inputs.compiler == 'source'
+      run: |
+        brew install llvm@18 zlib ncurses
+        TMP_PATH=$(xcrun --show-sdk-path)/user/include
+        echo "CPATH=$TMP_PATH" >> $GITHUB_ENV
+
+    - name: Download compiler from latest GitHub release
+      if: inputs.compiler == 'release'
+      run: |
+        curl -sSL -o blc-release.zip "https://github.com/biscuitlang/bl/releases/latest/download/blc-arm64-macos.zip"
+        rm -rf blc-dist && mkdir blc-dist
+        unzip -o -q blc-release.zip -d blc-dist
+        if [ ! -d blc-dist/bin ] && [ "$(ls -A blc-dist | wc -l)" -eq 1 ]; then
+          mv blc-dist/*/* blc-dist/
+        fi
+        cp -a blc-dist/bin .
+        ./bin/blc --version
+
+    - name: Build compiler in release mode
+      if: inputs.compiler == 'source'
+      run: |
+        ./build.sh release
+
+    - name: Add bin directory to PATH
+      run: echo "$(pwd)/bin" >> $GITHUB_PATH
+
+    - name: Build modules
+      run: |
+        if [ -n "$MODULE" ]; then
+          blc -run build-modules.bl "$MODULE"
+        else
+          blc -run build-modules.bl
+        fi
+
+    - name: Collect changes as patch
+      run: |
+        git config user.name "bl-modules-bot"
+        git config user.email "actions@github.com"
+        git add -A -- lib
+        git -c color.ui=false diff --cached --binary > patch-macos.patch
+        wc -c patch-macos.patch
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: patch-macos
+        path: patch-macos.patch
 
   commit:
-    needs: build
+    needs: [windows, linux, macos]
     runs-on: ubuntu-latest
+    env:
+      BRANCH: ${{ inputs.branch }}
+      MODULE: ${{ inputs.module }}
     steps:
     - uses: actions/checkout@v4
       with:
@@ -169,27 +232,26 @@ jobs:
 
     - uses: actions/download-artifact@v4
       with:
-        pattern: libs-*
-        merge-multiple: true
-        path: .
+        pattern: patch-*
+        path: patches
+
+    - name: Apply all platform patches
+      run: |
+        for p in patches/patch-*.patch; do
+          if [ -s "$p" ]; then
+            echo "Applying $p"
+            git apply --index "$p"
+          else
+            echo "Skipping empty $p"
+          fi
+        done
 
     - name: Commit and push updated libraries
-      shell: bash
-      env:
-        MODULE: ${{ inputs.module }}
-        BRANCH: ${{ inputs.branch }}
       run: |
         git config user.name "bl-modules-bot"
         git config user.email "actions@github.com"
 
-        target="lib"
-        label="all modules"
-        if [ -n "$MODULE" ]; then
-          target="$MODULE"
-          label="$MODULE"
-        fi
-
-        git add "$target"
+        label="${MODULE:-all modules}"
 
         if git diff --cached --quiet; then
           echo "No changes to commit."

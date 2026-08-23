@@ -1,13 +1,13 @@
 #load "extra/build-lib-common.bl"
 
-SDL_SRC_DIR :: "SDL3-3.2.8";
+SDL_SRC_DIR :: "SDL3-3.4.14";
 
 main :: fn () s32 {
 	tmpdir :: get_temporary();
-	unzip(tprint("*.zip", SDL_SRC_DIR));
+	unzip(tprint("%.zip", SDL_SRC_DIR));
 
 	rootdir :: get_cwd();
-	build_dir :: tprint("%/build");
+	build_dir :: tprint("%/build", SDL_SRC_DIR);
 	create_dir(build_dir);
 
 	using Platform;
@@ -27,9 +27,9 @@ main :: fn () s32 {
 			cmake("--build", ".", "--config=Release", "--target=Install");
 			set_cwd(rootdir);
 			create_dir("win32");
-			copy_file(tprint("%/bin/SDL3.dll", tmpdir), "win32/SDL3.dll", true);
-			copy_file(tprint("%/lib/SDL3.lib", tmpdir), "win32/SDL3.lib", true);
-			copy_file(tprint("%/lib/SDL3-static.lib", tmpdir), "win32/SDL3_static.lib", true);
+			copy_file(tprint("%/bin/SDL3.dll", tmpdir), "win32/SDL3.dll", true) catch return -1;
+			copy_file(tprint("%/lib/SDL3.lib", tmpdir), "win32/SDL3.lib", true) catch return -1;
+			copy_file(tprint("%/lib/SDL3-static.lib", tmpdir), "win32/SDL3_static.lib", true) catch return -1;
 		}
 		LINUX {
 			set_cwd(build_dir);
@@ -47,7 +47,7 @@ main :: fn () s32 {
 
 			set_cwd(rootdir);
 			create_dir("linux");
-			os_execute(tprint("cp -d %/lib/libSDL* linux/", tmpdir));
+			if os_execute(tprint("cp -d %/lib/libSDL* linux/", tmpdir)) != 0 then return -1;
 		}
 		DARWIN {
 			set_cwd(build_dir);
@@ -67,7 +67,7 @@ main :: fn () s32 {
 
 			set_cwd(rootdir);
 			create_dir("macos");
-			os_execute(tprint("cp -P %/lib/libSDL* macos/", tmpdir));
+			if os_execute(tprint("cp -P %/lib/libSDL* macos/", tmpdir)) != 0 then return -1;
 		}
 		default;
 	}

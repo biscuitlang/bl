@@ -14,6 +14,9 @@ thread2:
 string:
 - Add `str_make_temporary`.
 
+extra/sdl3
+- Upgrade to 3.4.14.
+
 [Documentation]
 [Deprecated]
 `thread` - Use `thread2` module.

@@ -47,6 +47,9 @@ main :: fn () s32 {
 	if failed > 0 {
 		print("\033[31m% OF % MODULE BUILD(S) FAILED\033[0m\n", failed, MODULES.len);
 		return 1;
+	} else {
+		print("REMOVE BUILD ARTIFACTS\n");
+		os_execute(tprint("rm -rf %", tmp));
 	}
 
 	print("DONE\n");
