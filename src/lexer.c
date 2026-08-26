@@ -40,11 +40,11 @@ static inline u32 add_token_value(struct context *ctx, union token_value value) 
 	return index;
 }
 
-#define report_error(ctx, code, ln, cl, len, cursor_position, format, ...)                                       \
-	{                                                                                                            \
+#define report_error(ctx, code, ln, cl, len, cursor_position, format, ...) \
+	{ \
 		_report((ctx), MSG_ERR, ERR_##code, (ln), (cl), (s32)(len), (cursor_position), (format), ##__VA_ARGS__); \
-		longjmp((ctx)->jmp_error, ERR_##code);                                                                   \
-	}                                                                                                            \
+		longjmp((ctx)->jmp_error, ERR_##code); \
+	} \
 	(void)0
 
 static inline void _report(struct context *ctx, enum builder_msg_type type, s32 code, s32 ln, s32 cl, s32 len, enum builder_cur_pos cursor_position, const char *format, ...) {
@@ -132,7 +132,8 @@ bool scan_ident(struct context *ctx, struct token *tok) {
 
 #ifdef BL_USE_SIMD
 	while (true) {
-		// Process by 16 chars
+		// Process by 16 chars.
+		// @Note 2026-08-26: We process 16 bytes at once thus in file_loader.c we allocate +15 bytes to prevent out of the bounds reads.
 		const __m128i src = _mm_loadu_si128((__m128i *)(begin + len));
 
 		// Convert to uppercase

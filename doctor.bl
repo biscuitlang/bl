@@ -36,6 +36,7 @@ MODULES :: [_]string_view.{
 	"lib/bl/api/std/arena/arena.test.bl",
 	"lib/bl/api/std/array/array.test.bl",
 	"lib/bl/api/std/async/async.test.bl",
+	"lib/bl/api/std/atomic/atomic.test.bl",
 	"lib/bl/api/std/bucket_array/bucket_array.test.bl",
 	"lib/bl/api/std/debug_allocator/debug_allocator.test.bl",
 	"lib/bl/api/std/dlib/dlib.test.bl",
@@ -51,6 +52,10 @@ MODULES :: [_]string_view.{
 	"lib/bl/api/std/thread/thread.test.bl",
 	"lib/bl/api/std/thread2/thread2.test.bl",
 	"lib/bl/api/std/type_utils/type_utils.test.bl",
+};
+
+MODULES_RUN :: [_]string_view.{
+	"lib/bl/api/std/atomic/atomic.test.bl",
 };
 
 TestKind :: enum {
@@ -185,6 +190,10 @@ main :: fn () s32 {
 	if print_sections { print("\nModules RELEASE:\n"); }
 	loop i := 0; i < MODULES.len; i += 1 {
 		test_file(&results, get_full_path(MODULES[i]), TEST_EXECUTE_RELEASE);
+	}
+	if print_sections { print("\nModules RUN:\n"); }
+	loop i := 0; i < MODULES_RUN.len; i += 1 {
+		test_file(&results, get_full_path(MODULES_RUN[i]), TEST_RUN);
 	}
 
 	// Test examples

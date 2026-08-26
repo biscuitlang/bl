@@ -5873,6 +5873,14 @@ struct result analyze_instr_addrof(struct context *ctx, struct mir_instr_addrof 
 	if (type->kind == MIR_TYPE_FN) {
 		struct mir_fn *fn = MIR_CEV_READ_AS(struct mir_fn *, &src->value);
 		bmagic_assert(fn);
+		if (isflag(fn->flags, FLAG_INTRINSIC)) {
+			report_error(EXPECTED_DECL,
+			             addrof->base.node,
+			             "Cannot take the address of an intrinsic function.");
+			report_note(fn->decl_node, "Function declared here:");
+			return_zone(FAIL);
+		}
+
 		if (fn->generated_flavor) {
 			if (isflag(fn->generated_flavor, MIR_FN_GENERATED_POLY)) {
 				report_error(EXPECTED_DECL,
@@ -12973,61 +12981,57 @@ static void provide_builtin_env(struct context *ctx) {
 
 str_t get_intrinsic(const str_t name) {
 	if (!name.len) return str_empty;
-	const str_t map[] = {
-	    cstr("memmove.p0.p0.i64"),
-	    cstr("__intrinsic_memmove_p0_p0_i64"),
 
-	    cstr("sin.f32"),
-	    cstr("__intrinsic_sin_f32"),
-	    cstr("sin.f64"),
-	    cstr("__intrinsic_sin_f64"),
-	    cstr("cos.f32"),
-	    cstr("__intrinsic_cos_f32"),
-	    cstr("cos.f64"),
-	    cstr("__intrinsic_cos_f64"),
-	    cstr("pow.f32"),
-	    cstr("__intrinsic_pow_f32"),
-	    cstr("pow.f64"),
-	    cstr("__intrinsic_pow_f64"),
-	    cstr("exp.f32"),
-	    cstr("__intrinsic_exp_f32"),
-	    cstr("exp.f64"),
-	    cstr("__intrinsic_exp_f64"),
-	    cstr("log.f32"),
-	    cstr("__intrinsic_log_f32"),
-	    cstr("log.f64"),
-	    cstr("__intrinsic_log_f64"),
+	// clang-format off
+	static const str_t map[] = {
+		cstr2("memmove.p0.p0.i64"),       cstr2("__intrinsic_memmove_p0_p0_i64"),
+		cstr2("sin.f32"),                 cstr2("__intrinsic_sin_f32"),
+		cstr2("sin.f64"),                 cstr2("__intrinsic_sin_f64"),
+		cstr2("cos.f32"),                 cstr2("__intrinsic_cos_f32"),
+		cstr2("cos.f64"),                 cstr2("__intrinsic_cos_f64"),
+		cstr2("pow.f32"),                 cstr2("__intrinsic_pow_f32"),
+		cstr2("pow.f64"),                 cstr2("__intrinsic_pow_f64"),
+		cstr2("exp.f32"),                 cstr2("__intrinsic_exp_f32"),
+		cstr2("exp.f64"),                 cstr2("__intrinsic_exp_f64"),
+		cstr2("log.f32"),                 cstr2("__intrinsic_log_f32"),
+		cstr2("log.f64"),                 cstr2("__intrinsic_log_f64"),
+		cstr2("log2.f32"),                cstr2("__intrinsic_log2_f32"),
+		cstr2("log2.f64"),                cstr2("__intrinsic_log2_f64"),
+		cstr2("sqrt.f32"),                cstr2("__intrinsic_sqrt_f32"),
+		cstr2("sqrt.f64"),                cstr2("__intrinsic_sqrt_f64"),
+		cstr2("ceil.f32"),                cstr2("__intrinsic_ceil_f32"),
+		cstr2("ceil.f64"),                cstr2("__intrinsic_ceil_f64"),
+		cstr2("round.f32"),               cstr2("__intrinsic_round_f32"),
+		cstr2("round.f64"),               cstr2("__intrinsic_round_f64"),
+		cstr2("floor.f32"),               cstr2("__intrinsic_floor_f32"),
+		cstr2("floor.f64"),               cstr2("__intrinsic_floor_f64"),
+		cstr2("log10.f32"),               cstr2("__intrinsic_log10_f32"),
+		cstr2("log10.f64"),               cstr2("__intrinsic_log10_f64"),
+		cstr2("trunc.f32"),               cstr2("__intrinsic_trunc_f32"),
+		cstr2("trunc.f64"),               cstr2("__intrinsic_trunc_f64"),
 
-	    cstr("log2.f32"),
-	    cstr("__intrinsic_log2_f32"),
-	    cstr("log2.f64"),
-	    cstr("__intrinsic_log2_f64"),
-	    cstr("sqrt.f32"),
-	    cstr("__intrinsic_sqrt_f32"),
-	    cstr("sqrt.f64"),
-	    cstr("__intrinsic_sqrt_f64"),
-	    cstr("ceil.f32"),
-	    cstr("__intrinsic_ceil_f32"),
-	    cstr("ceil.f64"),
-	    cstr("__intrinsic_ceil_f64"),
+		// Custom ones, not part of LLVM.
+		cstr2("atomic_rmw.i64"),          cstr2("__intrinsic_atomic_rmw_i64"),
+		cstr2("atomic_rmw.i32"),          cstr2("__intrinsic_atomic_rmw_i32"),
+		cstr2("atomic_rmw.i16"),          cstr2("__intrinsic_atomic_rmw_i16"),
+		cstr2("atomic_rmw.i8"),           cstr2("__intrinsic_atomic_rmw_i8"),
 
-	    cstr("round.f32"),
-	    cstr("__intrinsic_round_f32"),
-	    cstr("round.f64"),
-	    cstr("__intrinsic_round_f64"),
-	    cstr("floor.f32"),
-	    cstr("__intrinsic_floor_f32"),
-	    cstr("floor.f64"),
-	    cstr("__intrinsic_floor_f64"),
-	    cstr("log10.f32"),
-	    cstr("__intrinsic_log10_f32"),
-	    cstr("log10.f64"),
-	    cstr("__intrinsic_log10_f64"),
-	    cstr("trunc.f32"),
-	    cstr("__intrinsic_trunc_f32"),
-	    cstr("trunc.f64"),
-	    cstr("__intrinsic_trunc_f64"),
+		cstr2("atomic_load.i64"),         cstr2("__intrinsic_atomic_load_i64"),
+		cstr2("atomic_load.i32"),         cstr2("__intrinsic_atomic_load_i32"),
+		cstr2("atomic_load.i16"),         cstr2("__intrinsic_atomic_load_i16"),
+		cstr2("atomic_load.i8"),          cstr2("__intrinsic_atomic_load_i8"),
+
+		cstr2("atomic_store.i64"),        cstr2("__intrinsic_atomic_store_i64"),
+		cstr2("atomic_store.i32"),        cstr2("__intrinsic_atomic_store_i32"),
+		cstr2("atomic_store.i16"),        cstr2("__intrinsic_atomic_store_i16"),
+		cstr2("atomic_store.i8"),         cstr2("__intrinsic_atomic_store_i8"),
+
+		cstr2("atomic_cmpxchg.i64"),      cstr2("__intrinsic_atomic_cmpxchg_i64"),
+		cstr2("atomic_cmpxchg.i32"),      cstr2("__intrinsic_atomic_cmpxchg_i32"),
+		cstr2("atomic_cmpxchg.i16"),      cstr2("__intrinsic_atomic_cmpxchg_i16"),
+		cstr2("atomic_cmpxchg.i8"),       cstr2("__intrinsic_atomic_cmpxchg_i8"),
 	};
+	// clang-format on
 
 	for (usize i = 0; i < static_arrlenu(map); i += 2) {
 		if (str_match(name, map[i])) return map[i + 1];

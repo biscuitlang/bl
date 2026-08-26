@@ -1,0 +1,246 @@
+//! # Atomic
+//!
+//! `#import "std/atomic"`
+//!
+//! Module providing a set of functions to manipulate data shared between multiple threads without locking.
+//!
+//! !!! todo
+//!     Consider introducing dedicated atomic types as: `atomic_s32 :: struct #base s32 {}`.
+
+/// Memory ordering mirrors [LLVM](https://llvm.org/docs/Atomics.html#atomic-orderings). All atomic operations here are
+/// `SEQUENTIALLY_CONSISTENT` by default.
+MemoryOrdering :: enum {
+	UNORDERED               = 1;
+	MONOTONIC               = 2;
+	ACQUIRE                 = 4;
+	RELEASE                 = 5;
+	ACQUIRE_RELEASE         = 6;
+	SEQUENTIALLY_CONSISTENT = 7;
+}
+
+/// Performs atomic addition of the value pointed to by `ptr` with `v` and writes the result back to the value pointed to by `ptr`. Returns the previous value
+/// held by `ptr`.
+fetch_add :: fn (ptr: *?TInteger, v: TInteger, ordering := MemoryOrdering.SEQUENTIALLY_CONSISTENT #comptime) TInteger #inline {
+	#if ordering == MemoryOrdering.UNORDERED {
+		compiler_error("Invalid memory ordering 'MemoryOrdering.UNORDERED' for 'fetch_add'.");
+	}
+	#if !is_number(TInteger) {
+		compiler_error("Integer type is required for 'fetch_add'.");
+	}
+	return _atomic_rmw(ptr, v, ordering, OpKind.ADD);
+}
+
+/// Performs atomic subtraction of the value pointed to by `ptr` with `v` and writes the result back to the value pointed to by `ptr`. Returns the previous value
+/// held by `ptr`.
+fetch_sub :: fn (ptr: *?TInteger, v: TInteger, ordering := MemoryOrdering.SEQUENTIALLY_CONSISTENT #comptime) TInteger #inline {
+	#if ordering == MemoryOrdering.UNORDERED {
+		compiler_error("Invalid memory ordering 'MemoryOrdering.UNORDERED' for 'fetch_sub'.");
+	}
+	#if !is_number(TInteger) {
+		compiler_error("Integer type is required for 'fetch_sub'.");
+	}
+	return _atomic_rmw(ptr, v, ordering, OpKind.SUB);
+}
+
+/// Performs atomic *and* operation of the value pointed to by `ptr` with `v` and writes the result back to the value pointed to by `ptr`. Returns the previous value
+/// held by `ptr`.
+fetch_and :: fn (ptr: *?TInteger, v: TInteger, ordering := MemoryOrdering.SEQUENTIALLY_CONSISTENT #comptime) TInteger #inline {
+	#if ordering == MemoryOrdering.UNORDERED {
+		compiler_error("Invalid memory ordering 'MemoryOrdering.UNORDERED' for 'fetch_and'.");
+	}
+	#if !is_number(TInteger) {
+		compiler_error("Integer type is required for 'fetch_and'.");
+	}
+	return _atomic_rmw(ptr, v, ordering, OpKind.AND);
+}
+
+/// Performs atomic *or* operation of the value pointed to by `ptr` with `v` and writes the result back to the value pointed to by `ptr`. Returns the previous value
+/// held by `ptr`.
+fetch_or :: fn (ptr: *?TInteger, v: TInteger, ordering := MemoryOrdering.SEQUENTIALLY_CONSISTENT #comptime) TInteger #inline {
+	#if ordering == MemoryOrdering.UNORDERED {
+		compiler_error("Invalid memory ordering 'MemoryOrdering.UNORDERED' for 'fetch_or'.");
+	}
+	#if !is_number(TInteger) {
+		compiler_error("Integer type is required for 'fetch_or'.");
+	}
+	return _atomic_rmw(ptr, v, ordering, OpKind.OR);
+}
+
+/// Performs atomic *xor* operation of the value pointed to by `ptr` with `v` and writes the result back to the value pointed to by `ptr`. Returns the previous value
+/// held by `ptr`.
+fetch_xor :: fn (ptr: *?TInteger, v: TInteger, ordering := MemoryOrdering.SEQUENTIALLY_CONSISTENT #comptime) TInteger #inline {
+	#if ordering == MemoryOrdering.UNORDERED {
+		compiler_error("Invalid memory ordering 'MemoryOrdering.UNORDERED' for 'fetch_xor'.");
+	}
+	#if !is_number(TInteger) {
+		compiler_error("Integer type is required for 'fetch_xor'.");
+	}
+	return _atomic_rmw(ptr, v, ordering, OpKind.XOR);
+}
+
+/// Atomically stores `v` value into the value pointed to by `ptr` and returns the previous value of `ptr`.
+exchange :: fn (ptr: *?TInteger, v: TInteger, ordering := MemoryOrdering.SEQUENTIALLY_CONSISTENT #comptime) TInteger #inline {
+	#if ordering == MemoryOrdering.UNORDERED {
+		compiler_error("Invalid memory ordering 'MemoryOrdering.UNORDERED' for 'exchange'.");
+	}
+	#if !is_number(TInteger) {
+		compiler_error("Integer type is required for 'exchange'.");
+	}
+	return _atomic_rmw(ptr, v, ordering, OpKind.XCH);
+}
+
+/// Atomically compares values held by `ptr` and `expected`. If they are equal, `desired` value is atomically written into `ptr`, otherwise `ptr` value is written to `expected`.
+/// Returns `true` in case the value pointed to by `ptr` was modified.
+compare_exchange :: fn (ptr: *?TInteger, expected: *TInteger, desired: TInteger, success_ordering := MemoryOrdering.SEQUENTIALLY_CONSISTENT #comptime, failure_ordering := MemoryOrdering.SEQUENTIALLY_CONSISTENT #comptime) bool #inline {
+	#if success_ordering == MemoryOrdering.UNORDERED {
+		compiler_error("Invalid memory success ordering 'MemoryOrdering.UNORDERED' for 'compare_exchange'.");
+	}
+	#if failure_ordering == MemoryOrdering.UNORDERED {
+		compiler_error("Invalid memory failure ordering 'MemoryOrdering.UNORDERED' for 'compare_exchange'.");
+	}
+	#if !is_number(TInteger) {
+		compiler_error("Integer type is required for 'compare_exchange'.");
+	}
+	return _atomic_cmpxchg(ptr, expected, desired, success_ordering, failure_ordering);
+}
+
+/// Atomically loads the value pointed to by `ptr`.
+load :: fn (ptr: *?TInteger, ordering := MemoryOrdering.SEQUENTIALLY_CONSISTENT #comptime) TInteger #inline {
+	#if ordering == MemoryOrdering.RELEASE {
+		compiler_error("Invalid memory ordering 'MemoryOrdering.RELEASE' for 'load'.");
+	} else if ordering == MemoryOrdering.ACQUIRE_RELEASE {
+		compiler_error("Invalid memory ordering 'MemoryOrdering.ACQUIRE_RELEASE' for 'load'.");
+	}
+	#if !is_number(TInteger) {
+		compiler_error("Integer type is required for 'load'.");
+	}
+	return auto _atomic_load(auto ptr, ordering);
+}
+
+/// Atomically stores `v` value to the value pointed to by `ptr`.
+store :: fn (ptr: *?TInteger, v: TInteger, ordering := MemoryOrdering.SEQUENTIALLY_CONSISTENT #comptime) #inline {
+	#if ordering == MemoryOrdering.ACQUIRE {
+		compiler_error("Invalid memory ordering 'MemoryOrdering.ACQUIRE' for 'store'.");
+	} else if ordering == MemoryOrdering.ACQUIRE_RELEASE {
+		compiler_error("Invalid memory ordering 'MemoryOrdering.ACQUIRE_RELEASE' for 'store'.");
+	}
+	#if !is_number(TInteger) {
+		compiler_error("Integer type is required for 'store'.");
+	}
+	_atomic_store(auto ptr, auto v, ordering);
+}
+
+#scope_module
+#import "std/type_utils"
+
+/*
+
+Implementation Notes
+
+We use combination of explicit intrinsic definition for all supported types and function overloads because every
+intrinsic here is replaced by a single LLVM IR instruction (except cmpxchg), we don't want to introduce any casting
+or temporary variables.
+
+Note that every atomic call is wrapped into polymorph, reasons:
+- The ordering must be compile-time known, but this cannot be achieved with bare intrinsic exposed to user
+  due to restriction of intrinsic requiring C ABI compatible interface.
+- We can compile-time check if ordering is valid for particular atomic instruction.
+- We can validate input type.
+
+Polymorph wrappers are completely optimized out in release mode.
+
+*/
+
+// Keep in sync: enum bl_atomic_op
+OpKind :: enum {
+	XCH = 0;
+	ADD = 1;
+	SUB = 2;
+	AND = 3;
+	OR  = 4;
+	XOR = 5;
+}
+
+_atomic_rmw_s64 :: fn (ptr: *s64, v: s64, ordering: MemoryOrdering, op: OpKind) s64 #intrinsic "atomic_rmw.i64";
+_atomic_rmw_s32 :: fn (ptr: *s32, v: s32, ordering: MemoryOrdering, op: OpKind) s32 #intrinsic "atomic_rmw.i32";
+_atomic_rmw_s16 :: fn (ptr: *s16, v: s16, ordering: MemoryOrdering, op: OpKind) s16 #intrinsic "atomic_rmw.i16";
+_atomic_rmw_s8  :: fn (ptr: *s8,  v: s8,  ordering: MemoryOrdering, op: OpKind) s8  #intrinsic "atomic_rmw.i8";
+_atomic_rmw_u64 :: fn (ptr: *u64, v: u64, ordering: MemoryOrdering, op: OpKind) u64 #intrinsic "atomic_rmw.i64";
+_atomic_rmw_u32 :: fn (ptr: *u32, v: u32, ordering: MemoryOrdering, op: OpKind) u32 #intrinsic "atomic_rmw.i32";
+_atomic_rmw_u16 :: fn (ptr: *u16, v: u16, ordering: MemoryOrdering, op: OpKind) u16 #intrinsic "atomic_rmw.i16";
+_atomic_rmw_u8  :: fn (ptr: *u8,  v: u8,  ordering: MemoryOrdering, op: OpKind) u8  #intrinsic "atomic_rmw.i8";
+
+_atomic_rmw :: fn {
+	_atomic_rmw_s64;
+	_atomic_rmw_s32;
+	_atomic_rmw_s16;
+	_atomic_rmw_s8;
+	_atomic_rmw_u64;
+	_atomic_rmw_u32;
+	_atomic_rmw_u16;
+	_atomic_rmw_u8;
+}
+
+_atomic_cmpxchg_s64 :: fn (ptr: *s64, expected: *s64, desired: s64, success: MemoryOrdering, failure: MemoryOrdering) bool #intrinsic "atomic_cmpxchg.i64";
+_atomic_cmpxchg_s32 :: fn (ptr: *s32, expected: *s32, desired: s32, success: MemoryOrdering, failure: MemoryOrdering) bool #intrinsic "atomic_cmpxchg.i32";
+_atomic_cmpxchg_s16 :: fn (ptr: *s16, expected: *s16, desired: s16, success: MemoryOrdering, failure: MemoryOrdering) bool #intrinsic "atomic_cmpxchg.i16";
+_atomic_cmpxchg_s8  :: fn (ptr: *s8,  expected: *s8,  desired: s8,  success: MemoryOrdering, failure: MemoryOrdering) bool #intrinsic "atomic_cmpxchg.i8";
+_atomic_cmpxchg_u64 :: fn (ptr: *u64, expected: *u64, desired: u64, success: MemoryOrdering, failure: MemoryOrdering) bool #intrinsic "atomic_cmpxchg.i64";
+_atomic_cmpxchg_u32 :: fn (ptr: *u32, expected: *u32, desired: u32, success: MemoryOrdering, failure: MemoryOrdering) bool #intrinsic "atomic_cmpxchg.i32";
+_atomic_cmpxchg_u16 :: fn (ptr: *u16, expected: *u16, desired: u16, success: MemoryOrdering, failure: MemoryOrdering) bool #intrinsic "atomic_cmpxchg.i16";
+_atomic_cmpxchg_u8  :: fn (ptr: *u8,  expected: *u8,  desired: u8,  success: MemoryOrdering, failure: MemoryOrdering) bool #intrinsic "atomic_cmpxchg.i8";
+
+_atomic_cmpxchg :: fn {
+	_atomic_cmpxchg_s64;
+	_atomic_cmpxchg_s32;
+	_atomic_cmpxchg_s16;
+	_atomic_cmpxchg_s8;
+	_atomic_cmpxchg_u64;
+	_atomic_cmpxchg_u32;
+	_atomic_cmpxchg_u16;
+	_atomic_cmpxchg_u8;
+}
+
+_atomic_load_s64 :: fn (ptr: *s64, ordering: MemoryOrdering) s64 #intrinsic "atomic_load.i64";
+_atomic_load_s32 :: fn (ptr: *s32, ordering: MemoryOrdering) s32 #intrinsic "atomic_load.i32";
+_atomic_load_s16 :: fn (ptr: *s16, ordering: MemoryOrdering) s16 #intrinsic "atomic_load.i16";
+_atomic_load_s8  :: fn (ptr: *s8,  ordering: MemoryOrdering) s8  #intrinsic "atomic_load.i8";
+_atomic_load_u64 :: fn (ptr: *u64, ordering: MemoryOrdering) u64 #intrinsic "atomic_load.i64";
+_atomic_load_u32 :: fn (ptr: *u32, ordering: MemoryOrdering) u32 #intrinsic "atomic_load.i32";
+_atomic_load_u16 :: fn (ptr: *u16, ordering: MemoryOrdering) u16 #intrinsic "atomic_load.i16";
+_atomic_load_u8  :: fn (ptr: *u8,  ordering: MemoryOrdering) u8  #intrinsic "atomic_load.i8";
+
+_atomic_load :: fn {
+	_atomic_load_s64;
+	_atomic_load_s32;
+	_atomic_load_s16;
+	_atomic_load_s8;
+	_atomic_load_u64;
+	_atomic_load_u32;
+	_atomic_load_u16;
+	_atomic_load_u8;
+}
+
+_atomic_store_s64     :: fn (ptr: *s64, v: s64, ordering: MemoryOrdering) #intrinsic "atomic_store.i64";
+_atomic_store_s32     :: fn (ptr: *s32, v: s32, ordering: MemoryOrdering) #intrinsic "atomic_store.i32";
+_atomic_store_s16     :: fn (ptr: *s16, v: s16, ordering: MemoryOrdering) #intrinsic "atomic_store.i16";
+_atomic_store_s8      :: fn (ptr: *s8,  v: s8,  ordering: MemoryOrdering) #intrinsic "atomic_store.i8";
+_atomic_store_u64     :: fn (ptr: *u64, v: u64, ordering: MemoryOrdering) #intrinsic "atomic_store.i64";
+_atomic_store_u32     :: fn (ptr: *u32, v: u32, ordering: MemoryOrdering) #intrinsic "atomic_store.i32";
+_atomic_store_u16     :: fn (ptr: *u16, v: u16, ordering: MemoryOrdering) #intrinsic "atomic_store.i16";
+_atomic_store_u8      :: fn (ptr: *u8,  v: u8,  ordering: MemoryOrdering) #intrinsic "atomic_store.i8";
+
+_atomic_store :: fn {
+	_atomic_store_s64;
+	_atomic_store_s32;
+	_atomic_store_s16;
+	_atomic_store_s8;
+	_atomic_store_u64;
+	_atomic_store_u32;
+	_atomic_store_u16;
+	_atomic_store_u8;
+}
+
+
+
+
