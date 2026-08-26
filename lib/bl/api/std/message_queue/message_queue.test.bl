@@ -11,7 +11,7 @@ Context :: struct {
 
 init_ctx :: fn (ctx: *Context) {
 	msg.init(&ctx.queue);
-	ctx.mtid = threading.get_current_thread_id();
+	ctx.mtid = threading.get_current_thread_wid();
 }
 
 terminate_ctx :: fn (ctx: *Context) {
@@ -59,7 +59,7 @@ simple_blocking_sequence :: fn () #test {
 	defer terminate_ctx(&ctx);
 
 	thread :: threading.spawn_with_context(&ctx, &worker);
-	consumer_id :: threading.get_thread_id(thread);
+	consumer_id :: thread.wid;
 
 	msg.post(consumer_id, msg.make_message(Message, &ctx.queue));
 
@@ -108,7 +108,7 @@ simple_blocking_procude_only :: fn () #test {
 	defer terminate_ctx(&ctx);
 
 	thread :: threading.spawn_with_context(&ctx, &worker);
-	consumer_id :: threading.get_thread_id(thread);
+	consumer_id :: thread.wid;
 
 	loop i := 0; i < 5; i += 1 {
 		m :: msg.make_message(Message, &ctx.queue);
@@ -175,7 +175,7 @@ simple_blocking_multiple_pending :: fn () #test {
 	defer terminate_ctx(&ctx);
 
 	thread :: threading.spawn_with_context(&ctx, &worker);
-	consumer_id :: threading.get_thread_id(thread);
+	consumer_id :: thread.wid;
 
 	loop i := 0; i < 5; i += 1 {
 		m :: msg.make_message(Message, &ctx.queue);

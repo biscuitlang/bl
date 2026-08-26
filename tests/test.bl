@@ -21,8 +21,23 @@ x :: foo() catch {}
  */
 
 #import "std/print"
+#import "std/thread2"
 
 main :: fn () s32 {
-	print("Hello world!\n");
+	worker :: fn () s32 {
+		print("Worker thread: %\n", get_current_thread_wid());
+		return 0;
+	};
+
+	print("Main thread: %\n", get_current_thread_wid());
+
+	threads: [10]*Thread;
+	loop i := 0; i < threads.len; i += 1 {
+		threads[i] = spawn(&worker);
+	}
+
+	join_all(threads);
+	destroy_all(threads);
+
 	return 0;
 }
