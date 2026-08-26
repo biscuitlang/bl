@@ -1,31 +1,3 @@
-// =================================================================================================
-// bl
-//
-// File:   llvm_api.h
-// Author: Martin Dorazil
-// Date:   9/21/19
-//
-// Copyright 2019 Martin Dorazil
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
-// =================================================================================================
-
 #ifndef BL_LLVM_API_H
 #define BL_LLVM_API_H
 
@@ -114,6 +86,18 @@ LLVMTypeRef        llvm_struct_type_in_context(llvm_context_ref_t ctx, LLVMTypeR
 LLVMModuleRef      llvm_module_create_with_name_in_context(llvm_context_ref_t ctx, const char *name);
 LLVMTypeRef        llvm_intrinsic_get_type(llvm_context_ref_t ctx, u32 id, LLVMTypeRef *types, size_t types_num);
 LLVMBuilderRef     llvm_create_builder_in_context(llvm_context_ref_t ctx);
+LLVMValueRef       llvm_build_aligned_load(LLVMBuilderRef B, LLVMTypeRef Ty, LLVMValueRef Ptr, const u32 AlignmentBytes, str_t Name);
+LLVMValueRef       llvm_build_extract_value(LLVMBuilderRef B, LLVMValueRef AggVal, u32 Index, const str_t Name);
+LLVMValueRef       llvm_build_cond_br(LLVMBuilderRef B, LLVMValueRef If, LLVMBasicBlockRef Then, LLVMBasicBlockRef Else);
+LLVMValueRef       llvm_build_br(LLVMBuilderRef B, LLVMBasicBlockRef Dest);
+LLVMValueRef       llvm_build_aligned_store(LLVMBuilderRef B, LLVMValueRef Val, LLVMValueRef Ptr, const u32 AlignmentBytes, bool isVolatile);
+void               llvm_position_builder_at_end(LLVMBuilderRef B, LLVMBasicBlockRef Block);
+
+// Atomic
+LLVMValueRef llvm_build_atomic_rmw(LLVMBuilderRef B, LLVMAtomicRMWBinOp Op, LLVMValueRef Ptr, LLVMValueRef Val, const u32 AlignmentBytes, LLVMAtomicOrdering Ordering);
+LLVMValueRef llvm_build_atomic_cmpxchg(LLVMBuilderRef B, LLVMValueRef Ptr, LLVMValueRef Cmp, LLVMValueRef New, const u32 AlignmentBytes, LLVMAtomicOrdering SuccessOrdering, LLVMAtomicOrdering FailureOrdering);
+LLVMValueRef llvm_build_atomic_load(LLVMBuilderRef B, LLVMTypeRef Ty, const u32 AlignmentBytes, LLVMValueRef Val, LLVMAtomicOrdering Ordering, const str_t Name);
+LLVMValueRef llvm_build_atomic_store(LLVMBuilderRef B, LLVMValueRef Src, LLVMValueRef Dst, const u32 AlignmentBytes, LLVMAtomicOrdering Ordering);
 
 #ifdef __cplusplus
 }

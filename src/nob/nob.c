@@ -120,7 +120,7 @@ void blc(void) {
 	Cmd  cmd = {0};
 	Proc procs[ARRAY_LEN(src)];
 
-#define CL_OPTIONS         "-D_WIN32", "-D_WINDOWS", "-DNOMINMAX", "-D_HAS_EXCEPTIONS=0", "-GF", "-MT"
+#define CL_OPTIONS         "-D_WIN32", "-D_WINDOWS", "-D_AMD64_", "-DNOMINMAX", "-D_HAS_EXCEPTIONS=0", "-GF", "-MT"
 #define CL_OPTIONS_DEBUG   "-Od", "-Ob0", "-Zi", "-FS"
 #define CL_OPTIONS_RELEASE "-O2", "-Oi", "-DNDEBUG"
 

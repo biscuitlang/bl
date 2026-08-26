@@ -88,6 +88,16 @@ static LLVMValueRef    testing_emit_meta_case(struct context *ctx, struct mir_fn
 // =================================================================================================
 static LLVMValueRef build_call_memcpy(struct context *ctx, LLVMValueRef src, LLVMValueRef dest, const usize size_bytes);
 
+enum custom_intrinsic_kind {
+	CUSTOM_INTRINSIC_NONE,
+	CUSTOM_INTRINSIC_ATOMIC_RMW,
+	CUSTOM_INTRINSIC_ATOMIC_CMPXCHG,
+	CUSTOM_INTRINSIC_ATOMIC_LOAD,
+	CUSTOM_INTRINSIC_ATOMIC_STORE,
+};
+
+static enum state emit_inlined_custom_intrinsic(struct context *ctx, struct mir_instr_call *call, enum custom_intrinsic_kind kind);
+
 // =================================================================================================
 // RTTI
 // =================================================================================================
@@ -279,35 +289,65 @@ static void process_queue(struct context *ctx) {
 	}
 }
 
-str_t get_intrinsic(const str_t name) {
-	if (!name.len) return str_empty;
-	if (str_match(name, cstr("sin.f32"))) return cstr("llvm.sin.f32");
-	if (str_match(name, cstr("sin.f64"))) return cstr("llvm.sin.f64");
-	if (str_match(name, cstr("cos.f32"))) return cstr("llvm.cos.f32");
-	if (str_match(name, cstr("cos.f64"))) return cstr("llvm.cos.f64");
-	if (str_match(name, cstr("pow.f32"))) return cstr("llvm.pow.f32");
-	if (str_match(name, cstr("pow.f64"))) return cstr("llvm.pow.f64");
-	if (str_match(name, cstr("exp.f32"))) return cstr("llvm.exp.f32");
-	if (str_match(name, cstr("exp.f64"))) return cstr("llvm.exp.f64");
-	if (str_match(name, cstr("log.f32"))) return cstr("llvm.log.f32");
-	if (str_match(name, cstr("log.f64"))) return cstr("llvm.log.f64");
-	if (str_match(name, cstr("log2.f32"))) return cstr("llvm.log2.f32");
-	if (str_match(name, cstr("log2.f64"))) return cstr("llvm.log2.f64");
-	if (str_match(name, cstr("sqrt.f32"))) return cstr("llvm.sqrt.f32");
-	if (str_match(name, cstr("sqrt.f64"))) return cstr("llvm.sqrt.f64");
-	if (str_match(name, cstr("ceil.f32"))) return cstr("llvm.ceil.f32");
-	if (str_match(name, cstr("ceil.f64"))) return cstr("llvm.ceil.f64");
-	if (str_match(name, cstr("round.f32"))) return cstr("llvm.round.f32");
-	if (str_match(name, cstr("round.f64"))) return cstr("llvm.round.f64");
-	if (str_match(name, cstr("floor.f32"))) return cstr("llvm.floor.f32");
-	if (str_match(name, cstr("floor.f64"))) return cstr("llvm.floor.f64");
-	if (str_match(name, cstr("log10.f32"))) return cstr("llvm.log10.f32");
-	if (str_match(name, cstr("log10.f64"))) return cstr("llvm.log10.f64");
-	if (str_match(name, cstr("trunc.f32"))) return cstr("llvm.trunc.f32");
-	if (str_match(name, cstr("trunc.f64"))) return cstr("llvm.trunc.f64");
-	if (str_match(name, cstr("memmove.p0.p0.i64"))) return cstr("llvm.memmove.p0.p0.i64");
+struct intrinsic_info {
+	str_t                      linkage_name;
+	enum custom_intrinsic_kind custom_kind;
+};
 
-	return str_empty;
+static struct intrinsic_info get_intrinsic(const str_t name) {
+#define INTRINSIC_CASE(name, str, linkage_prefix, custom_kind) \
+	if (str_match((name), cstr(str))) return (struct intrinsic_info){cstr(linkage_prefix "." str), (custom_kind)}
+
+	INTRINSIC_CASE(name, "sin.f32", "llvm", CUSTOM_INTRINSIC_NONE);
+	INTRINSIC_CASE(name, "sin.f64", "llvm", CUSTOM_INTRINSIC_NONE);
+	INTRINSIC_CASE(name, "cos.f32", "llvm", CUSTOM_INTRINSIC_NONE);
+	INTRINSIC_CASE(name, "cos.f64", "llvm", CUSTOM_INTRINSIC_NONE);
+	INTRINSIC_CASE(name, "pow.f32", "llvm", CUSTOM_INTRINSIC_NONE);
+	INTRINSIC_CASE(name, "pow.f64", "llvm", CUSTOM_INTRINSIC_NONE);
+	INTRINSIC_CASE(name, "exp.f32", "llvm", CUSTOM_INTRINSIC_NONE);
+	INTRINSIC_CASE(name, "exp.f64", "llvm", CUSTOM_INTRINSIC_NONE);
+	INTRINSIC_CASE(name, "log.f32", "llvm", CUSTOM_INTRINSIC_NONE);
+	INTRINSIC_CASE(name, "log.f64", "llvm", CUSTOM_INTRINSIC_NONE);
+	INTRINSIC_CASE(name, "log2.f32", "llvm", CUSTOM_INTRINSIC_NONE);
+	INTRINSIC_CASE(name, "log2.f64", "llvm", CUSTOM_INTRINSIC_NONE);
+	INTRINSIC_CASE(name, "sqrt.f32", "llvm", CUSTOM_INTRINSIC_NONE);
+	INTRINSIC_CASE(name, "sqrt.f64", "llvm", CUSTOM_INTRINSIC_NONE);
+	INTRINSIC_CASE(name, "ceil.f32", "llvm", CUSTOM_INTRINSIC_NONE);
+	INTRINSIC_CASE(name, "ceil.f64", "llvm", CUSTOM_INTRINSIC_NONE);
+	INTRINSIC_CASE(name, "round.f32", "llvm", CUSTOM_INTRINSIC_NONE);
+	INTRINSIC_CASE(name, "round.f64", "llvm", CUSTOM_INTRINSIC_NONE);
+	INTRINSIC_CASE(name, "floor.f32", "llvm", CUSTOM_INTRINSIC_NONE);
+	INTRINSIC_CASE(name, "floor.f64", "llvm", CUSTOM_INTRINSIC_NONE);
+	INTRINSIC_CASE(name, "log10.f32", "llvm", CUSTOM_INTRINSIC_NONE);
+	INTRINSIC_CASE(name, "log10.f64", "llvm", CUSTOM_INTRINSIC_NONE);
+	INTRINSIC_CASE(name, "trunc.f32", "llvm", CUSTOM_INTRINSIC_NONE);
+	INTRINSIC_CASE(name, "trunc.f64", "llvm", CUSTOM_INTRINSIC_NONE);
+	INTRINSIC_CASE(name, "memmove.p0.p0.i64", "llvm", CUSTOM_INTRINSIC_NONE);
+
+	// Custom.
+	INTRINSIC_CASE(name, "atomic_rmw.i64", "bl", CUSTOM_INTRINSIC_ATOMIC_RMW);
+	INTRINSIC_CASE(name, "atomic_rmw.i32", "bl", CUSTOM_INTRINSIC_ATOMIC_RMW);
+	INTRINSIC_CASE(name, "atomic_rmw.i16", "bl", CUSTOM_INTRINSIC_ATOMIC_RMW);
+	INTRINSIC_CASE(name, "atomic_rmw.i8", "bl", CUSTOM_INTRINSIC_ATOMIC_RMW);
+
+	INTRINSIC_CASE(name, "atomic_cmpxchg.i64", "bl", CUSTOM_INTRINSIC_ATOMIC_CMPXCHG);
+	INTRINSIC_CASE(name, "atomic_cmpxchg.i32", "bl", CUSTOM_INTRINSIC_ATOMIC_CMPXCHG);
+	INTRINSIC_CASE(name, "atomic_cmpxchg.i16", "bl", CUSTOM_INTRINSIC_ATOMIC_CMPXCHG);
+	INTRINSIC_CASE(name, "atomic_cmpxchg.i8", "bl", CUSTOM_INTRINSIC_ATOMIC_CMPXCHG);
+
+	INTRINSIC_CASE(name, "atomic_load.i64", "bl", CUSTOM_INTRINSIC_ATOMIC_LOAD);
+	INTRINSIC_CASE(name, "atomic_load.i32", "bl", CUSTOM_INTRINSIC_ATOMIC_LOAD);
+	INTRINSIC_CASE(name, "atomic_load.i16", "bl", CUSTOM_INTRINSIC_ATOMIC_LOAD);
+	INTRINSIC_CASE(name, "atomic_load.i8", "bl", CUSTOM_INTRINSIC_ATOMIC_LOAD);
+
+	INTRINSIC_CASE(name, "atomic_store.i64", "bl", CUSTOM_INTRINSIC_ATOMIC_STORE);
+	INTRINSIC_CASE(name, "atomic_store.i32", "bl", CUSTOM_INTRINSIC_ATOMIC_STORE);
+	INTRINSIC_CASE(name, "atomic_store.i16", "bl", CUSTOM_INTRINSIC_ATOMIC_STORE);
+	INTRINSIC_CASE(name, "atomic_store.i8", "bl", CUSTOM_INTRINSIC_ATOMIC_STORE);
+
+#undef INTRINSIC_CASE
+
+	return (struct intrinsic_info){str_empty, false};
 }
 
 // impl
@@ -735,7 +775,8 @@ LLVMValueRef emit_fn_proto(struct context *ctx, struct mir_fn *fn, bool schedule
 	bassert(fn);
 	str_t linkage_name = str_empty;
 	if (isflag(fn->flags, FLAG_INTRINSIC)) {
-		linkage_name = get_intrinsic(fn->linkage_name);
+		struct intrinsic_info info = get_intrinsic(fn->linkage_name);
+		linkage_name               = info.linkage_name;
 		bassert(linkage_name.len && "Unknown LLVM intrinsic!");
 	} else {
 		linkage_name = fn->linkage_name;
@@ -913,6 +954,7 @@ enum state emit_instr_decl_ref(struct context *ctx, struct mir_instr_decl_ref *r
 	default:
 		BL_UNIMPLEMENTED;
 	}
+
 	bassert(ref->base.llvm_value);
 	return STATE_PASSED;
 }
@@ -1884,8 +1926,7 @@ enum state emit_instr_load(struct context *ctx, struct mir_instr_load *load) {
 	return STATE_PASSED;
 }
 
-static LLVMValueRef
-build_call_memcpy(struct context *ctx, LLVMValueRef src, LLVMValueRef dest, const usize size_bytes) {
+LLVMValueRef build_call_memcpy(struct context *ctx, LLVMValueRef src, LLVMValueRef dest, const usize size_bytes) {
 	LLVMValueRef llvm_args[4];
 
 	llvm_args[0] = dest;
@@ -1901,6 +1942,141 @@ build_call_memcpy(struct context *ctx, LLVMValueRef src, LLVMValueRef dest, cons
 	                                        "");
 
 	return llvm_call;
+}
+
+// https://llvm.org/docs/Atomics.html#atomic-orderings
+static LLVMAtomicOrdering read_atomic_ordering(struct context *ctx, struct mir_instr *instr) {
+	bassert(instr->value.is_comptime);
+	const s32 ordering_value = (s32)vm_read_int(ctx->builtin_types->t_s32, instr->value.data);
+	switch (ordering_value) {
+	case LLVMAtomicOrderingUnordered:
+		return LLVMAtomicOrderingUnordered;
+	case LLVMAtomicOrderingMonotonic:
+		return LLVMAtomicOrderingMonotonic;
+	case LLVMAtomicOrderingAcquire:
+		return LLVMAtomicOrderingAcquire;
+	case LLVMAtomicOrderingRelease:
+		return LLVMAtomicOrderingRelease;
+	case LLVMAtomicOrderingAcquireRelease:
+		return LLVMAtomicOrderingAcquireRelease;
+	case LLVMAtomicOrderingSequentiallyConsistent:
+		return LLVMAtomicOrderingSequentiallyConsistent;
+	default:
+		babort("Invalid value provided for atomic ordering.");
+	}
+
+	BL_UNREACHABLE;
+}
+
+static LLVMAtomicRMWBinOp read_atomic_rmw_operation(struct context *ctx, struct mir_instr *instr) {
+	bassert(instr->value.is_comptime);
+	const enum bl_atomic_op op = (enum bl_atomic_op)vm_read_int(ctx->builtin_types->t_s32, instr->value.data);
+	switch (op) {
+	case BL_ATOMIC_OP_XCHG:
+		return LLVMAtomicRMWBinOpXchg;
+	case BL_ATOMIC_OP_ADD:
+		return LLVMAtomicRMWBinOpAdd;
+	case BL_ATOMIC_OP_SUB:
+		return LLVMAtomicRMWBinOpSub;
+	case BL_ATOMIC_OP_AND:
+		return LLVMAtomicRMWBinOpAnd;
+	case BL_ATOMIC_OP_OR:
+		return LLVMAtomicRMWBinOpOr;
+	case BL_ATOMIC_OP_XOR:
+		return LLVMAtomicRMWBinOpXor;
+	default:
+		babort("Invalid value provided for atomic rwm operation.");
+	}
+
+	BL_UNREACHABLE;
+}
+
+enum state emit_inlined_custom_intrinsic(struct context *ctx, struct mir_instr_call *call, enum custom_intrinsic_kind kind) {
+	mir_instrs_t *args = call->args;
+	bassert(args);
+
+	switch (kind) {
+	case CUSTOM_INTRINSIC_NONE:
+		babort("Invalid custom intrinsic kind.");
+
+	case CUSTOM_INTRINSIC_ATOMIC_RMW: {
+		bassert(sarrlenu(args) == 4);
+		struct mir_instr *ptr       = sarrpeek(args, 0);
+		struct mir_instr *value     = sarrpeek(args, 1);
+		struct mir_instr *ordering  = sarrpeek(args, 2);
+		struct mir_instr *operation = sarrpeek(args, 3);
+
+		bassert(ptr->llvm_value);
+		bassert(value->llvm_value);
+
+		const LLVMAtomicRMWBinOp op = read_atomic_rmw_operation(ctx, operation);
+
+		call->base.llvm_value = llvm_build_atomic_rmw(ctx->llvm_builder, op, ptr->llvm_value, value->llvm_value, value->value.type->alignment, read_atomic_ordering(ctx, ordering));
+		return STATE_PASSED;
+	}
+
+	case CUSTOM_INTRINSIC_ATOMIC_CMPXCHG: {
+		bassert(sarrlenu(args) == 5);
+		struct mir_instr *ptr = sarrpeek(args, 0);
+		struct mir_instr *exp = sarrpeek(args, 1);
+		struct mir_instr *nw  = sarrpeek(args, 2);
+		struct mir_instr *so  = sarrpeek(args, 3);
+		struct mir_instr *fo  = sarrpeek(args, 4);
+
+		struct mir_type *type      = nw->value.type;
+		const u32        alignment = type->alignment;
+
+		struct mir_fn *owner_fn = mir_instr_owner_fn(&call->base);
+		bassert(owner_fn && "Intrinsic generated outside of function!");
+
+		LLVMValueRef llvm_exp = llvm_build_aligned_load(ctx->llvm_builder, get_type(ctx, type), exp->llvm_value, alignment, str_empty);
+
+		const LLVMAtomicOrdering success_ordering = read_atomic_ordering(ctx, so);
+		const LLVMAtomicOrdering failure_ordering = read_atomic_ordering(ctx, fo);
+
+		LLVMValueRef llvm_res     = llvm_build_atomic_cmpxchg(ctx->llvm_builder, ptr->llvm_value, llvm_exp, nw->llvm_value, alignment, success_ordering, failure_ordering);
+		LLVMValueRef llvm_old     = llvm_build_extract_value(ctx->llvm_builder, llvm_res, 0, cstr("old"));
+		LLVMValueRef llvm_success = llvm_build_extract_value(ctx->llvm_builder, llvm_res, 1, cstr("success"));
+
+		LLVMBasicBlockRef llvm_write_old_block = llvm_append_basic_block_in_context(ctx->llvm_cnt, owner_fn->llvm_value, cstr("write_old"));
+		LLVMBasicBlockRef llvm_continue_block  = llvm_append_basic_block_in_context(ctx->llvm_cnt, owner_fn->llvm_value, cstr("continue"));
+
+		llvm_build_cond_br(ctx->llvm_builder, llvm_success, llvm_continue_block, llvm_write_old_block);
+
+		llvm_position_builder_at_end(ctx->llvm_builder, llvm_write_old_block);
+		llvm_build_aligned_store(ctx->llvm_builder, llvm_old, exp->llvm_value, alignment, false);
+		llvm_build_br(ctx->llvm_builder, llvm_continue_block);
+
+		llvm_position_builder_at_end(ctx->llvm_builder, llvm_continue_block);
+		call->base.llvm_value = llvm_success;
+		return STATE_PASSED;
+	}
+
+	case CUSTOM_INTRINSIC_ATOMIC_LOAD: {
+		bassert(sarrlenu(args) == 2);
+		struct mir_instr *ptr      = sarrpeek(args, 0);
+		struct mir_instr *ordering = sarrpeek(args, 1);
+		struct mir_type  *ptr_type = mir_deref_type(ptr->value.type);
+
+		call->base.llvm_value = llvm_build_atomic_load(ctx->llvm_builder, get_type(ctx, ptr_type), (u32)ptr_type->alignment, ptr->llvm_value, read_atomic_ordering(ctx, ordering), cstr(""));
+		return STATE_PASSED;
+	}
+
+	case CUSTOM_INTRINSIC_ATOMIC_STORE: {
+		bassert(sarrlenu(args) == 3);
+		struct mir_instr *ptr      = sarrpeek(args, 0);
+		struct mir_instr *value    = sarrpeek(args, 1);
+		struct mir_instr *ordering = sarrpeek(args, 2);
+
+		bassert(ptr->llvm_value);
+		bassert(value->llvm_value);
+
+		call->base.llvm_value = llvm_build_atomic_store(ctx->llvm_builder, ptr->llvm_value, value->llvm_value, value->value.type->alignment, read_atomic_ordering(ctx, ordering));
+		return STATE_PASSED;
+	}
+	}
+
+	BL_UNREACHABLE;
 }
 
 static LLVMValueRef
@@ -2338,6 +2514,13 @@ enum state emit_instr_call(struct context *ctx, struct mir_instr_call *call) {
 	// 3) We call immediate inline defined anonymous function (we have to generate one eventually).
 	struct mir_fn *fn             = mir_is_comptime(callee) ? MIR_CEV_READ_AS(struct mir_fn *, &callee->value) : NULL;
 	LLVMValueRef   llvm_called_fn = callee->llvm_value ? callee->llvm_value : emit_fn_proto(ctx, fn, true);
+
+	if (fn && isflag(fn->flags, FLAG_INTRINSIC)) {
+		struct intrinsic_info info = get_intrinsic(fn->linkage_name);
+		if (info.custom_kind != CUSTOM_INTRINSIC_NONE) {
+			return emit_inlined_custom_intrinsic(ctx, call, info.custom_kind);
+		}
+	}
 
 	bool       has_byval_arg = false;
 	const bool has_args      = sarrlen(call->args) > 0;

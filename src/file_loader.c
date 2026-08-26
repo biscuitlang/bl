@@ -35,7 +35,14 @@ void file_loader_run(struct assembly *UNUSED(assembly), struct unit *unit) {
 	}
 	fseek(file, 0, SEEK_SET);
 
-	char *src = bmalloc(fsize + 1);
+	size_t adjusted_size;
+#if BL_USE_SIMD
+	adjusted_size = fsize + 1 + 15; // +1 for EOF, +15 padding to make SIMD scans safe (see lexer.c -> scan_ident()).
+#else
+	adjusted_size = fsize + 1; // +1 for EOF
+#endif
+
+	char *src = bmalloc(adjusted_size);
 	if (!fread(src, sizeof(char), fsize, file)) {
 		fclose(file);
 		builder_msg(MSG_ERR, ERR_FILE_EMPTY, TOKEN_OPTIONAL_LOCATION(unit->loaded_from), CARET_WORD, "Invalid or source file '" STR_FMT "'.", STR_ARG(path));

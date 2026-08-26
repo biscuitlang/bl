@@ -1,13 +1,20 @@
 #ifndef BL_COMMON_H
 #define BL_COMMON_H
 
+#include "config.h"
+
+#if BL_PLATFORM_WIN
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#undef WIN32_LEAN_AND_MEAN
+#endif
+
 // clang-format off
 #include "blmemory.h"
 // clang-format on
 #include "TracyC.h"
 #include "basic_types.h"
 #include "bldebug.h"
-#include "config.h"
 #include "error.h"
 #include "math.h"
 
@@ -23,7 +30,6 @@ struct target;
 struct config;
 
 #if BL_PLATFORM_WIN
-#include <Shlwapi.h>
 #define PATH_MAX MAX_PATH
 #ifndef strtok_r
 #define strtok_r strtok_s
@@ -159,9 +165,9 @@ enum { BL_RED,
 		.ptr = (char *)(p), .len = (s32)(l) \
 	}
 
-#define cstr(P) \
-	(str_t){ \
-	    .ptr = (P), .len = (sizeof(P) / sizeof((P)[0])) - 1}
+#define cstr(P) (str_t){.ptr = (P), .len = (sizeof(P) / sizeof((P)[0])) - 1}
+// We sometimes need this version in comptime initializers due to MS compiler being piece of shit.
+#define cstr2(P) {.ptr = (P), .len = (sizeof(P) / sizeof((P)[0])) - 1}
 
 #define make_str_from_c(p) \
 	(str_t) { \

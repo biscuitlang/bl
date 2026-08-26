@@ -1,0 +1,200 @@
+#scope_private
+#import "std/atomic"
+#import "std/thread2"
+
+run_in_parallel :: fn (ctx: *?T, worker: *fn (ctx: *?T) s32, NUM_THREADS := 8 #comptime) {
+	if IS_COMPTIME_RUN {
+		loop i := 0; i < NUM_THREADS; i += 1 {
+			worker(ctx);
+		}
+		return;
+	}
+
+	threads: [NUM_THREADS]*Thread;
+	loop i := 0; i < threads.len; i += 1 {
+		threads[i] = spawn_with_context(ctx, worker);
+	}
+
+	join_all(threads);
+	destroy_all(threads);
+}
+
+simple_counter_add :: fn () #test {
+	counter: s32;
+	run_in_parallel(&counter, &fn (c: *s32) s32 {
+			loop i := 0; i < 100; i += 1 {
+				fetch_add(c, 1);
+			}
+			return 0;
+		});
+
+	test_eq(counter, 800);
+}
+
+simple_counter_sub :: fn () #test {
+	counter: s32;
+	run_in_parallel(&counter, &fn (c: *s32) s32 {
+			loop i := 0; i < 100; i += 1 {
+				fetch_sub(c, 1);
+			}
+			return 0;
+		});
+
+	test_eq(counter, -800);
+}
+
+fetch_add_test :: fn (T: type #comptime) {
+	n: T = 1;
+	test_eq(fetch_add(&n, 1), 1);
+	test_eq(n, 2);
+}
+
+simple_fetch_add :: fn () #test {
+	fetch_add_test(u8);
+	fetch_add_test(u16);
+	fetch_add_test(u32);
+	fetch_add_test(u64);
+	fetch_add_test(s8);
+	fetch_add_test(s16);
+	fetch_add_test(s32);
+	fetch_add_test(s64);
+}
+
+fetch_sub_test :: fn (T: type #comptime) {
+	n: T = 1;
+	test_eq(fetch_sub(&n, 1), 1);
+	test_eq(n, 0);
+}
+
+simple_fetch_sub :: fn () #test {
+	fetch_sub_test(u8);
+	fetch_sub_test(u16);
+	fetch_sub_test(u32);
+	fetch_sub_test(u64);
+	fetch_sub_test(s8);
+	fetch_sub_test(s16);
+	fetch_sub_test(s32);
+	fetch_sub_test(s64);
+}
+
+fetch_or_test :: fn (T: type #comptime) {
+	n: T = 0b1010;
+	test_eq(fetch_or(&n, 0b101), 0b1010);
+	test_eq(n, 0b1111);
+}
+
+simple_fetch_or :: fn () #test {
+	fetch_or_test(u8);
+	fetch_or_test(u16);
+	fetch_or_test(u32);
+	fetch_or_test(u64);
+	fetch_or_test(s8);
+	fetch_or_test(s16);
+	fetch_or_test(s32);
+	fetch_or_test(s64);
+}
+
+fetch_and_test :: fn (T: type #comptime) {
+	n: T = 0b1010;
+	test_eq(fetch_and(&n, 0b101), 0b1010);
+	test_eq(n, 0);
+}
+
+simple_fetch_and :: fn () #test {
+	fetch_and_test(u8);
+	fetch_and_test(u16);
+	fetch_and_test(u32);
+	fetch_and_test(u64);
+	fetch_and_test(s8);
+	fetch_and_test(s16);
+	fetch_and_test(s32);
+	fetch_and_test(s64);
+}
+
+fetch_xor_test :: fn (T: type #comptime) {
+	n: T = 0b1010;
+	test_eq(fetch_xor(&n, 0b101), 0b1010);
+	test_eq(n, 0b1111);
+}
+
+simple_fetch_xor :: fn () #test {
+	fetch_xor_test(u8);
+	fetch_xor_test(u16);
+	fetch_xor_test(u32);
+	fetch_xor_test(u64);
+	fetch_xor_test(s8);
+	fetch_xor_test(s16);
+	fetch_xor_test(s32);
+	fetch_xor_test(s64);
+}
+
+exchange_test :: fn (T: type #comptime) {
+	n: T = 0b1010;
+	test_eq(exchange(&n, 0b101), 0b1010);
+	test_eq(n, 0b101);
+}
+
+simple_exchange :: fn () #test {
+	exchange_test(u8);
+	exchange_test(u16);
+	exchange_test(u32);
+	exchange_test(u64);
+	exchange_test(s8);
+	exchange_test(s16);
+	exchange_test(s32);
+	exchange_test(s64);
+}
+
+compare_exchange_test :: fn (T: type #comptime) {
+	n: T = 10;
+	e: T = 10;
+	test_true(compare_exchange(&n, &e, 15));
+	test_eq(n, 15);
+	test_eq(e, 10);
+	test_false(compare_exchange(&n, &e, 20));
+	test_eq(n, 15);
+}
+
+simple_compare_exchange :: fn () #test {
+	compare_exchange_test(u8);
+	compare_exchange_test(u16);
+	compare_exchange_test(u32);
+	compare_exchange_test(u64);
+	compare_exchange_test(s8);
+	compare_exchange_test(s16);
+	compare_exchange_test(s32);
+	compare_exchange_test(s64);
+}
+
+load_test :: fn (T: type #comptime) {
+	n: T = 10;
+	test_eq(load(&n), 10);
+}
+
+simple_load :: fn () #test {
+	load_test(u8);
+	load_test(u16);
+	load_test(u32);
+	load_test(u64);
+	load_test(s8);
+	load_test(s16);
+	load_test(s32);
+	load_test(s64);
+}
+
+store_test :: fn (T: type #comptime) {
+	n: T = 10;
+	store(&n, 20);
+	test_eq(n, 20);
+}
+
+simple_store :: fn () #test {
+	store_test(u8);
+	store_test(u16);
+	store_test(u32);
+	store_test(u64);
+	store_test(s8);
+	store_test(s16);
+	store_test(s32);
+	store_test(s64);
+}
