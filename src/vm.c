@@ -990,9 +990,9 @@ void interp_extern_call(struct virtual_machine *vm, struct mir_instr_call *call,
 		dyncall_push_arg(vm, arg_ptr, arg_value->value.type);
 	}
 
-	bool does_return = true;
+	vm_value_t result      = {0};
+	bool       push_result = true;
 
-	vm_value_t result = {0};
 	switch (ret_type->kind) {
 	case MIR_TYPE_ENUM:
 	case MIR_TYPE_INT:
@@ -1035,19 +1035,15 @@ void interp_extern_call(struct virtual_machine *vm, struct mir_instr_call *call,
 
 	case MIR_TYPE_VOID:
 		dcCallVoid(dvm, handle);
-		does_return = false;
+		push_result = false;
 		break;
 
 	case MIR_TYPE_STRUCT: {
-		babort("External function '" STR_FMT "' returning structure cannot be executed by interpreter on "
-		       "this platform.",
-		       STR_ARG(linkage_name));
+		babort("External function '" STR_FMT "' returning structure cannot be executed by interpreter on this platform.", STR_ARG(linkage_name));
 	}
 
 	case MIR_TYPE_ARRAY: {
-		babort("External function '" STR_FMT "' returning array cannot be executed by interpreter on "
-		       "this platform.",
-		       STR_ARG(linkage_name));
+		babort("External function '" STR_FMT "' returning array cannot be executed by interpreter on this platform.", STR_ARG(linkage_name));
 	}
 
 	case MIR_TYPE_BOOL: {
@@ -1062,7 +1058,7 @@ void interp_extern_call(struct virtual_machine *vm, struct mir_instr_call *call,
 	}
 
 	// PUSH result only if it is used
-	if (call->base.ref_count > 1 && does_return) {
+	if (call->base.ref_count > 1 && push_result) {
 		stack_push(vm, (vm_stack_ptr_t)&result, ret_type);
 	}
 }

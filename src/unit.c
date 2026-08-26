@@ -5,10 +5,6 @@
 #include "table.h"
 #include <string.h>
 
-#if BL_PLATFORM_WIN
-#include <windows.h>
-#endif
-
 // public
 struct unit *unit_new(struct assembly *assembly, const str_t filepath, const str_t name, const hash_t hash, struct token *load_from, struct scope *parent_scope, struct module *module) {
 	struct unit *unit = bmalloc(sizeof(struct unit)); // @Performance 2024-09-14 Use arena?

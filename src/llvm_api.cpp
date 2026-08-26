@@ -121,8 +121,8 @@ LLVMModuleRef llvm_module_create_with_name_in_context(llvm_context_ref_t ctx, co
 }
 
 static Intrinsic::ID llvm_map_to_intrinsic_id(unsigned ID) {
-	assert(ID < llvm::Intrinsic::num_intrinsics && "Intrinsic ID out of range");
-	return llvm::Intrinsic::ID(ID);
+	assert(ID < Intrinsic::num_intrinsics && "Intrinsic ID out of range");
+	return Intrinsic::ID(ID);
 }
 
 LLVMTypeRef llvm_intrinsic_get_type(llvm_context_ref_t ctx, u32 id, LLVMTypeRef *types, size_t types_num) {
@@ -133,4 +133,54 @@ LLVMTypeRef llvm_intrinsic_get_type(llvm_context_ref_t ctx, u32 id, LLVMTypeRef 
 
 LLVMBuilderRef llvm_create_builder_in_context(llvm_context_ref_t ctx) {
 	return wrap(new IRBuilder<>(ctx->ctx));
+}
+
+LLVMValueRef llvm_build_atomic_rmw(LLVMBuilderRef B, LLVMAtomicRMWBinOp Op, LLVMValueRef Ptr, LLVMValueRef Val, const u32 AlignmentBytes, LLVMAtomicOrdering Ordering) {
+	return wrap(unwrap(B)->CreateAtomicRMW(AtomicRMWInst::BinOp(Op), unwrap(Ptr), unwrap(Val), MaybeAlign(AlignmentBytes), AtomicOrdering(Ordering)));
+}
+
+LLVMValueRef llvm_build_atomic_cmpxchg(LLVMBuilderRef B, LLVMValueRef Ptr, LLVMValueRef Cmp, LLVMValueRef New, const u32 AlignmentBytes, LLVMAtomicOrdering SuccessOrdering, LLVMAtomicOrdering FailureOrdering) {
+	return wrap(unwrap(B)->CreateAtomicCmpXchg(unwrap(Ptr), unwrap(Cmp), unwrap(New), MaybeAlign(AlignmentBytes), AtomicOrdering(SuccessOrdering), AtomicOrdering(FailureOrdering)));
+}
+
+LLVMValueRef llvm_build_atomic_load(LLVMBuilderRef B, LLVMTypeRef Ty, const u32 AlignmentBytes, LLVMValueRef Val, LLVMAtomicOrdering Ordering, const str_t Name) {
+	StringRef sName(Name.ptr, (size_t)Name.len);
+	auto      result = unwrap(B)->CreateLoad(unwrap(Ty), unwrap(Val), sName);
+	result->setAlignment(Align(AlignmentBytes));
+	result->setAtomic(AtomicOrdering(Ordering));
+	return wrap(result);
+}
+
+LLVMValueRef llvm_build_atomic_store(LLVMBuilderRef B, LLVMValueRef Dst, LLVMValueRef Src, const u32 AlignmentBytes, LLVMAtomicOrdering Ordering) {
+	auto result = unwrap(B)->CreateStore(unwrap(Src), unwrap(Dst));
+	result->setAlignment(Align(AlignmentBytes));
+	result->setAtomic(AtomicOrdering(Ordering));
+
+	return wrap(result);
+}
+
+LLVMValueRef llvm_build_aligned_load(LLVMBuilderRef B, LLVMTypeRef Ty, LLVMValueRef Ptr, const u32 AlignmentBytes, str_t Name) {
+	StringRef sName(Name.ptr, (size_t)Name.len);
+	return wrap(unwrap(B)->CreateAlignedLoad(unwrap(Ty), unwrap(Ptr), MaybeAlign(AlignmentBytes), sName));
+}
+
+LLVMValueRef llvm_build_extract_value(LLVMBuilderRef B, LLVMValueRef AggVal, u32 Index, const str_t Name) {
+	StringRef sName(Name.ptr, (size_t)Name.len);
+	return wrap(unwrap(B)->CreateExtractValue(unwrap(AggVal), {Index}, sName));
+}
+
+LLVMValueRef llvm_build_cond_br(LLVMBuilderRef B, LLVMValueRef If, LLVMBasicBlockRef Then, LLVMBasicBlockRef Else) {
+	return wrap(unwrap(B)->CreateCondBr(unwrap(If), unwrap(Then), unwrap(Else)));
+}
+
+LLVMValueRef llvm_build_br(LLVMBuilderRef B, LLVMBasicBlockRef Dest) {
+	return wrap(unwrap(B)->CreateBr(unwrap(Dest)));
+}
+
+LLVMValueRef llvm_build_aligned_store(LLVMBuilderRef B, LLVMValueRef Val, LLVMValueRef Ptr, const u32 AlignmentBytes, bool isVolatile) {
+	return wrap(unwrap(B)->CreateAlignedStore(unwrap(Val), unwrap(Ptr), MaybeAlign(AlignmentBytes), isVolatile));
+}
+
+void llvm_position_builder_at_end(LLVMBuilderRef B, LLVMBasicBlockRef Block) {
+	unwrap(B)->SetInsertPoint(unwrap(Block));
 }

@@ -1,32 +1,5 @@
-// =================================================================================================
-// bl
-//
-// File:   intrinsic.c
-// Author: Martin Dorazil
-// Date:   8/1/20
-//
-// Copyright 2020 Martin Dorazil
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
-// =================================================================================================
-
 #include "common.h"
+#include "atomics.h"
 #include <math.h>
 
 BL_EXPORT void __intrinsic_memmove_p0_p0_i64(u8 *dest, u8 *src, usize size, bool is_volatile) {
@@ -127,4 +100,91 @@ BL_EXPORT f32 __intrinsic_trunc_f32(f32 v) {
 
 BL_EXPORT f64 __intrinsic_trunc_f64(f64 v) {
 	return trunc(v);
+}
+
+static int bl_ordering_to_c11(s32 ordering) {
+	switch (ordering) {
+	case 1:
+		return BL_MEMORY_ORDER_RELAXED;
+	case 2:
+		return BL_MEMORY_ORDER_RELAXED;
+	case 4:
+		return BL_MEMORY_ORDER_ACQUIRE;
+	case 5:
+		return BL_MEMORY_ORDER_RELEASE;
+	case 6:
+		return BL_MEMORY_ORDER_ACQ_REL;
+	case 7:
+		return BL_MEMORY_ORDER_SEQ_CST;
+	default:
+		return BL_MEMORY_ORDER_SEQ_CST;
+	}
+}
+
+// RMW
+BL_EXPORT s64 __intrinsic_atomic_rmw_i64(s64 *ptr, s64 v, s32 ordering, s32 op) {
+	return batomic_exchange_i64((batomic_s64 *)ptr, v, bl_ordering_to_c11(ordering), op);
+}
+
+BL_EXPORT s32 __intrinsic_atomic_rmw_i32(s32 *ptr, s32 v, s32 ordering, s32 op) {
+	return batomic_exchange_i32((batomic_s32 *)ptr, v, bl_ordering_to_c11(ordering), op);
+}
+
+BL_EXPORT s16 __intrinsic_atomic_rmw_i16(s16 *ptr, s16 v, s32 ordering, s32 op) {
+	return batomic_exchange_i16((batomic_s16 *)ptr, v, bl_ordering_to_c11(ordering), op);
+}
+
+BL_EXPORT s8 __intrinsic_atomic_rmw_i8(s8 *ptr, s8 v, s32 ordering, s32 op) {
+	return batomic_exchange_i8((batomic_s8 *)ptr, v, bl_ordering_to_c11(ordering), op);
+}
+
+// Load
+BL_EXPORT s64 __intrinsic_atomic_load_i64(s64 *ptr, s64 v, s32 ordering) {
+	return batomic_load_i64((batomic_s64 *)ptr, bl_ordering_to_c11(ordering));
+}
+
+BL_EXPORT s32 __intrinsic_atomic_load_i32(s32 *ptr, s32 v, s32 ordering) {
+	return batomic_load_i32((batomic_s32 *)ptr, bl_ordering_to_c11(ordering));
+}
+
+BL_EXPORT s16 __intrinsic_atomic_load_i16(s16 *ptr, s16 v, s32 ordering) {
+	return batomic_load_i16((batomic_s16 *)ptr, bl_ordering_to_c11(ordering));
+}
+
+BL_EXPORT s8 __intrinsic_atomic_load_i8(s8 *ptr, s8 v, s32 ordering) {
+	return batomic_load_i8((batomic_s8 *)ptr, bl_ordering_to_c11(ordering));
+}
+
+// Store
+BL_EXPORT void __intrinsic_atomic_store_i64(s64 *ptr, s64 v, s32 ordering) {
+	batomic_store_i64((batomic_s64 *)ptr, v, bl_ordering_to_c11(ordering));
+}
+
+BL_EXPORT void __intrinsic_atomic_store_i32(s32 *ptr, s32 v, s32 ordering) {
+	batomic_store_i32((batomic_s32 *)ptr, v, bl_ordering_to_c11(ordering));
+}
+
+BL_EXPORT void __intrinsic_atomic_store_i16(s16 *ptr, s16 v, s32 ordering) {
+	batomic_store_i16((batomic_s16 *)ptr, v, bl_ordering_to_c11(ordering));
+}
+
+BL_EXPORT void __intrinsic_atomic_store_i8(s8 *ptr, s8 v, s32 ordering) {
+	batomic_store_i8((batomic_s8 *)ptr, v, bl_ordering_to_c11(ordering));
+}
+
+// Cmpxchg
+BL_EXPORT bool __intrinsic_atomic_cmpxchg_i64(s64 *ptr, s64 *expected, s64 desired, s32 success, s32 failure) {
+	return batomic_cmpxchg_i64((batomic_s64 *)ptr, expected, desired, bl_ordering_to_c11(success), bl_ordering_to_c11(failure));
+}
+
+BL_EXPORT bool __intrinsic_atomic_cmpxchg_i32(s32 *ptr, s32 *expected, s32 desired, s32 success, s32 failure) {
+	return batomic_cmpxchg_i32((batomic_s32 *)ptr, expected, desired, bl_ordering_to_c11(success), bl_ordering_to_c11(failure));
+}
+
+BL_EXPORT bool __intrinsic_atomic_cmpxchg_i16(s16 *ptr, s16 *expected, s16 desired, s32 success, s32 failure) {
+	return batomic_cmpxchg_i16((batomic_s16 *)ptr, expected, desired, bl_ordering_to_c11(success), bl_ordering_to_c11(failure));
+}
+
+BL_EXPORT bool __intrinsic_atomic_cmpxchg_i8(s8 *ptr, s8 *expected, s8 desired, s32 success, s32 failure) {
+	return batomic_cmpxchg_i8((batomic_s8 *)ptr, expected, desired, bl_ordering_to_c11(success), bl_ordering_to_c11(failure));
 }

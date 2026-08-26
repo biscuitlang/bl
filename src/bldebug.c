@@ -4,7 +4,6 @@
 
 #if BL_PLATFORM_WIN
 // clang-format off
-#include <Windows.h>
 #include <DbgHelp.h>
 // clang-format on
 #endif

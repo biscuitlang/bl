@@ -5,6 +5,13 @@ master
 - Report invalid source file instead of abort on unit path pointing to valid directory.
 - Add `add_int_constant` into the build api.
 - Add simple `delete` polymorphic function to free any pointer without casting.
+- Extend internal compiler atomic API.
+- Add missinch check for taking address of intrinsic functions.
+- Fix `str_match` bug present when SIMD version was enabled. Replaced by simple memcmp since it most likely already include SIMD optimizations.
+- Using reduced version of `windows.h` monster.
+- Fix SIMD bug in lexer ident scans by adding safety padding to loaded source files.
+- Add atomic intrinsic functions and custom generation of these to LLVM.
+- Add new functions to custom LLVM wrapper.
 
 [Modules]
 
@@ -13,6 +20,12 @@ thread2:
 
 string:
 - Add `str_make_temporary`.
+
+extra/sdl3
+- Upgrade to 3.4.14.
+
+std/atomic
+- Added module.
 
 [Documentation]
 [Deprecated]
