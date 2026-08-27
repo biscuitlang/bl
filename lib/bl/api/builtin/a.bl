@@ -198,7 +198,7 @@ TypeInfoStructMember :: struct #compiler {
 	/// Member type name.
 	name: string_view;
 	/// Member type info.
-	base_type: *TypeInfo;
+	base_type: *TypeInfo; // @Cleanup 2026-08-27: Confusing with `is_base`.
 	/// Byte-offset of member inside structure ABI.
 	offset_bytes: s32;
 	/// Order in structure.

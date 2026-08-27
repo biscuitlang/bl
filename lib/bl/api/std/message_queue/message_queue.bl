@@ -1,15 +1,43 @@
-Queue :: struct {
-	pool:      *MessagePool;
-	pool_owned: bool;
+//! # Message Queue
+//!
+//! `#import "std/message_queue"`
+//!
+//! Thread-safe FIFO message queue with blocking/non-blocking post-poll mechanics.
+//!
+//! This is particularly useful for passing user-defined messages from one thread to another. Consider you have a worker
+//! thread doing some job controlled by the main thread. The worker thread simply waits on the `poll` procedure, when a
+//! new message arrives from the main thread, the worker thread wakes and processes the message.
+//!
+//! Messages can contain any arbitrary data, an allocator from `MessagePool` is used to allocate every message, and the
+//! same allocator might be used to allocate any additional data carried with the message, this way, payload data
+//! lifetime is scoped into the message and is automatically released on `terminate_message` call when message was
+//! consumed by the worker.
 
-	head:     *Message;
-	mutex:     Mutex;
-	condition: Condition;
-	num:       s32;
+/// Default maximum count of pending messages in the queue.
+DEFAULT_MAX_MESSAGES :: 1000;
 
-	max_messages_per_thread: s32;
+/// Default memory size reserved for every message.
+DEFAULT_MESSAGE_SIZE : usize : 8192; // 8kB
+
+/// Creates new `Queue` type to manage messages of `TMessage` type. `Message` is supposed to be the base of `TMessage`.
+Queue :: fn (TMessage: type #comptime) type #comptime {
+	assert(is_base_of(Message, TMessage), "Message is supposed to be the base type of TMessage");
+	return struct {
+		pool:      *MessagePool;
+		pool_owned: bool;
+
+		head:     *TMessage;
+		mutex:     Mutex;
+		condition: Condition;
+
+		/// Count of messages pending in the queue. (Should be read with `mutex` locked).
+		num: s32;
+		max_messages: s32;
+	};
 }
 
+/// Message pool stores individual allocators used for every message. When message is released, its allocator
+/// is returned to the pool and reused later.
 MessagePool :: struct {
 	pools:          BucketArray(PoolAllocator);
 	available: [..]*Allocator;
@@ -18,12 +46,20 @@ MessagePool :: struct {
 	expected_message_bytes: usize;
 }
 
+/// Initialize `pool` to store allocators used by messages. In case the pool is empty, a new allocator
+/// is created with `expected_message_bytes` page size. Note the size of individual messages is not limited by
+/// this number, allocated memory might grow if message is bigger; however you might reduce some overhead by
+/// preallocating pool to the common size of messages used. Also note that the message itself use the same
+/// allocator as any additional payload attached to it.
+///
+/// Pool is supposed to be terminated by [terminate_pool](modules_message_queue.html#terminate_pool).
 init_pool :: fn (pool: *MessagePool, expected_message_bytes := DEFAULT_MESSAGE_SIZE) {
 	assert(expected_message_bytes >= sizeof(Message));
 	zeroinit(pool);
 	mutex_init(&pool.mutex);
 }
 
+/// Terminates the `pool`.
 terminate_pool :: fn (pool: *MessagePool) {
 	loop it := bucket_array_begin(&pool.pools); it; it = bucket_array_iter_next(&pool.pools, it) {
 		release_allocator(&it.value);
@@ -35,15 +71,21 @@ terminate_pool :: fn (pool: *MessagePool) {
 	zeroinit(pool);
 }
 
+/// Message base structure. Every message passed to the queue must inherit this type.
 Message :: struct {
-	typeid:        u64;
 	allocator:    *Allocator;
-	parent_queue: *Queue;
+	parent_queue: *u8;
 	_next:        *Message;
+	is_posted:     bool;
 }
 
-init :: fn (queue: *Queue, pool: *MessagePool = null, max_messages_per_thread := DEFAULT_MAX_MESSAGES) {
-	assert(max_messages_per_thread > 0);
+/// Initialize `queue`. The `pool` message pool might be provided explicitly (one pool might be shared across
+/// multiple queues). When the `pool` is not provided, a new one is created implicitly, sharing the lifetime with
+/// the `queue`. The `max_messages` limits the maximum count of unprocessed (pending) messages in the `queue`.
+///
+/// Queue is supposed to be terminated by [terminate](modules_message_queue.html#terminate).
+init :: fn (queue: *?TQueue, pool: *MessagePool = null, max_messages := DEFAULT_MAX_MESSAGES) {
+	assert(max_messages > 0);
 
 	if !pool {
 		queue.pool = pool;
@@ -56,14 +98,15 @@ init :: fn (queue: *Queue, pool: *MessagePool = null, max_messages_per_thread :=
 	mutex_init(&queue.mutex);
 	condition_init(&queue.condition);
 
-	queue.max_messages_per_thread = max_messages_per_thread;
+	queue.max_messages = max_messages;
 }
 
-terminate :: fn (queue: *Queue) {
+/// Terminates the `queue`.
+terminate :: fn (queue: *?TQueue) {
 	loop msg := queue.head; msg; {
 		next :: msg._next;
 		put_allocator(queue.pool, msg.allocator);
-		msg = next;
+		msg = auto next;
 	}
 
 	mutex_terminate(&queue.mutex);
@@ -76,34 +119,47 @@ terminate :: fn (queue: *Queue) {
 	zeroinit(queue);
 }
 
-make_message :: fn (TMessage: type #comptime, queue: *Queue) *TMessage {
+/// Allocates a new message for the `queue`. Once created, the message  should be posted to the queue using `post`
+/// function or terminated by `terminate_message` function, otherwise it leaks.
+make_message :: fn (queue: *?TQueue) *type_of_message(TQueue) {
+	TMessage :: type_of_message(TQueue);
+
 	allocator :: get_allocator(queue.pool);
 	msg :: new(TMessage, false, allocator);
-	msg.typeid       = typeid(TMessage);
 	msg.allocator    = allocator;
-	msg.parent_queue = queue;
+	msg.parent_queue = auto queue;
 
 	return msg;
 }
 
-terminate_message :: fn (message: *?TMessage) #inline {
+/// Terminates the message.
+terminate_message :: fn (message: *Message) #inline {
 	assert(message);
-	queue :: message.parent_queue;
+
+	queue :: cast(*AnyQueue) message.parent_queue;
 	put_allocator(queue.pool, message.allocator);
 	zeroinit(message);
 }
 
-post :: fn (message: *Message) {
+/// Post a new `message` into the queue in which the `message` was created by `make_message` call. Post might fail when
+/// the target queue is full, and returns an error. In case of failure, message ownership stays on caller side, and
+/// the message might be reposted later or should be terminated by `terminate_message` call to prevent any leaks.
+///
+/// Once posted message cannot be reposted again (checked by assert).
+///
+/// Worker thread sleeping on `poll` wakes and process the message.
+post :: fn (message: *?TMessage) Error {
 	assert(message);
-	queue :: message.parent_queue;
+	assert(!message.is_posted, "Attempt to repost already posted message.");
+
+	queue :: cast(*AnyQueue) message.parent_queue;
 	assert(queue);
 
 	mutex_lock(&queue.mutex);
 	defer mutex_unlock(&queue.mutex);
 
-	if queue.num >= queue.max_messages_per_thread {
-		assert(false, "Maximum message count reached. Message ignored.");
-		return;
+	if queue.num >= queue.max_messages {
+		return error("Maximum message count reached. Message ignored.");
 	}
 
 	slot := &queue.head;
@@ -113,10 +169,16 @@ post :: fn (message: *Message) {
 	@slot = message;
 	queue.num += 1;
 
+	message.is_posted = true;
+
 	condition_signal(&queue.condition);
+	return OK;
 }
 
-poll :: fn (queue: *Queue, message: **Message, blocking := false) bool {
+/// Polls a posted `message` from the `queue` into the `message` and returns `true`. Otherwise blocks in case `blocking`
+/// is `true`. In non-blocking mode `false` is returned in case there is currently no message in the queue. Once message
+/// is polled, it should be released by `terminate_message` call.
+poll :: fn (queue: *?TQueue, message: **type_of_message(TQueue), blocking := false) bool {
 	mutex_lock(&queue.mutex);
 	defer mutex_unlock(&queue.mutex);
 
@@ -126,25 +188,16 @@ poll :: fn (queue: *Queue, message: **Message, blocking := false) bool {
 	}
 
 	current :: queue.head;
-	queue.head = queue.head._next;
+	assert(current.is_posted);
+
+	queue.head = auto queue.head._next;
 	@message   = current;
 
 	queue.num -= 1;
 	return true;
 }
 
-poll_as :: fn (queue: *Queue, message: **?TMessage, blocking := false) bool {
-	tmp: *Message;
-	if !poll(queue, &tmp, blocking) then return false;
-	assert(tmp.typeid == typeid(TMessage), "Unexpected message type.");
-	@message = auto tmp;
-	return true;
-}
-
 #scope_module
-
-DEFAULT_MAX_MESSAGES :: 1000;
-DEFAULT_MESSAGE_SIZE : usize : 8192; // 8kB
 
 threading :: #import "std/thread2";
 
@@ -153,6 +206,12 @@ threading :: #import "std/thread2";
 #import "std/sync"
 #import "std/array"
 #import "std/pool"
+
+AnyQueue :: Queue(Message);
+
+type_of_message :: fn (TQueue: type #comptime) type #comptime {
+	return @TQueue.head;
+}
 
 get_allocator :: fn (pool: *MessagePool) *Allocator #inline {
 	mutex_lock(&pool.mutex);

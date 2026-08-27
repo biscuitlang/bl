@@ -4,55 +4,82 @@ msg       :: #import "std/message_queue";
 #import "std/print"
 
 Context :: struct {
-	pool:        msg.MessagePool;
-	to_worker:   msg.Queue;
-	from_worker: msg.Queue;
-
-	s: string;
+	pool:           msg.MessagePool;
+	main_to_worker: msg.Queue(Request);
+	worker_to_main: msg.Queue(Response);
 }
 
 init_ctx :: fn (ctx: *Context) {
 	msg.init_pool(&ctx.pool);
-	msg.init(&ctx.to_worker, &ctx.pool);
-	msg.init(&ctx.from_worker, &ctx.pool);
+	msg.init(&ctx.main_to_worker, &ctx.pool);
+	msg.init(&ctx.worker_to_main, &ctx.pool);
 }
 
 terminate_ctx :: fn (ctx: *Context) {
-	msg.terminate(&ctx.from_worker);
-	msg.terminate(&ctx.to_worker);
+	msg.terminate(&ctx.worker_to_main);
+	msg.terminate(&ctx.main_to_worker);
 	msg.terminate_pool(&ctx.pool);
-	str_terminate(&ctx.s);
 }
 
-Message :: struct #base msg.Message {
-	n: s32;
+RequestKind :: enum {
+	PROCESS;
+	QUIT;
 }
+
+Request :: struct #base msg.Message {
+	kind: RequestKind;
+	text: string_view;
+}
+
+ResponseKind :: enum {
+	COUNT;
+	DONE;
+}
+
+Response :: struct #base msg.Message {
+	kind:  ResponseKind;
+	count: s32;
+}
+
+DATA :: [_]string_view.{
+	"Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+	"Sed do eiusmod tempor incididunt ut labore et dolore magna.",
+	"Ut enim ad minim veniam, quis nostrud exercitation ullamco.",
+	"Duis aute irure dolor in reprehenderit.",
+};
 
 main :: fn () s32 {
 	worker :: fn (ctx: *Context) s32 {
-		m: *Message;
-		loop msg.poll_as(&ctx.to_worker, &m, true) {
-			defer msg.terminate_message(m);
-			str_append(&ctx.s, m.n);
+		print("Worker is waiting for requests...\n");
 
-			print(">> %\n", @m);
+		request: *Request;
+		loop msg.poll(&ctx.main_to_worker, &request, true) { // blocking
+			defer msg.terminate_message(request);
+			os_sleep_ms(200);
 
-			switch m.n {
-				0 {
-					m :: msg.make_message(Message, &ctx.from_worker);
-					m.n = 1;
-					msg.post(m);
+			switch request.kind {
+				.PROCESS {
+					print("Worker received: %.\n", request.text);
+
+					tokens :: str_split_by(request.text, ' ', application_context.temporary_allocator);
+
+					response :: msg.make_message(&ctx.worker_to_main);
+					response.kind  = .COUNT;
+					response.count = auto tokens.len;
+					msg.post(response);
 				}
-				2 {
-					m :: msg.make_message(Message, &ctx.from_worker);
-					m.n = 3;
-					msg.post(m);
-				}
-				4 {
+				.QUIT {
+					print("Worker quiting.\n");
+
+					response :: msg.make_message(&ctx.worker_to_main);
+					response.kind = .DONE;
+					msg.post(response);
+
 					break;
 				}
 			}
 		}
+
 		return 0;
 	};
 
@@ -61,27 +88,43 @@ main :: fn () s32 {
 	init_ctx(&ctx);
 	defer terminate_ctx(&ctx);
 
+	// Start worker.
 	thread :: threading.spawn_with_context(&ctx, &worker);
 
-	msg.post(msg.make_message(Message, &ctx.to_worker));
+	os_sleep_ms(1000);
+	print("Sending requests.\n");
 
-	m: *Message;
-	loop msg.poll_as(&ctx.from_worker, &m, true) {
-		defer msg.terminate_message(m);
+	// Post intial requests.
+	loop i := 0; i < DATA.len; i += 1 {
+		request :: msg.make_message(&ctx.main_to_worker);
+		request.kind = .PROCESS;
+		request.text = str_make(DATA[i], request.allocator);
+		msg.post(request);
+	}
 
-		switch m.n {
-			1 {
-				m :: msg.make_message(Message, &ctx.to_worker);
-				m.n = 2;
-				msg.post(m);
-			}
-			3 {
-				m :: msg.make_message(Message, &ctx.to_worker);
-				m.n = 4;
-				msg.post(m);
-				break;
+	// Post QUIT message as last.
+	request :: msg.make_message(&ctx.main_to_worker);
+	request.kind = .QUIT;
+	msg.post(request);
+
+	loop {
+		response: *Response;
+		if msg.poll(&ctx.worker_to_main, &response, false) { // non-blocking
+			// Terminate message at the end of the scope.
+			defer msg.terminate_message(response);
+
+			switch response.kind {
+				.COUNT {
+					print("Main thread received: %\n", response.count);
+				}
+				.DONE {
+					break;
+				}
 			}
 		}
+
+		// Do something useful here while waiting for data to arive.
+		os_sleep_ms(500);
 	}
 
 	threading.join(thread);

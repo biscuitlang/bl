@@ -275,3 +275,25 @@ test_member_ptr :: fn () #test {
 	test_eq(member_ptr(s32, outer_ptr, "mid/inner/x"), auto ptr_shift_bytes(outer_ptr, expected_x_offset));
 	test_eq(member_ptr(s32, outer_ptr, "mid/inner/XXX", true), null);
 }
+
+A :: struct {
+	_: s32
+}
+
+B :: struct #base A {
+}
+
+C :: struct #base B {
+}
+
+test_base :: fn () #test {
+	test_true(is_base_of(A, A));
+	test_true(is_base_of(B, B));
+	test_true(is_base_of(C, C));
+	test_true(is_base_of(A, B));
+	test_true(is_base_of(B, C));
+	test_true(is_base_of(A, C));
+	test_false(is_base_of(B, A));
+	test_false(is_base_of(C, B));
+	test_false(is_base_of(C, A));
+}
