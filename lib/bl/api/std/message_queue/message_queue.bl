@@ -1,8 +1,11 @@
 Queue :: struct {
-	pool: MessagePool;
+	pool:      *MessagePool;
+	pool_owned: bool;
 
-	tags: [..]*Tag;
+	head:     *Message;
 	mutex:     Mutex;
+	condition: Condition;
+	num:       s32;
 
 	max_messages_per_thread: s32;
 }
@@ -15,7 +18,7 @@ MessagePool :: struct {
 	expected_message_bytes: usize;
 }
 
-init_pool :: fn (pool: *MessagePool, expected_message_bytes: usize) {
+init_pool :: fn (pool: *MessagePool, expected_message_bytes := DEFAULT_MESSAGE_SIZE) {
 	assert(expected_message_bytes >= sizeof(Message));
 	zeroinit(pool);
 	mutex_init(&pool.mutex);
@@ -34,64 +37,47 @@ terminate_pool :: fn (pool: *MessagePool) {
 
 Message :: struct {
 	typeid:        u64;
-	sender:        u64;
 	allocator:    *Allocator;
 	parent_queue: *Queue;
 	_next:        *Message;
 }
 
-init :: fn (queue: *Queue, max_messages_per_thread := DEFAULT_MAX_MESSAGES, expected_message_bytes := DEFAULT_MESSAGE_SIZE) {
+init :: fn (queue: *Queue, pool: *MessagePool = null, max_messages_per_thread := DEFAULT_MAX_MESSAGES) {
 	assert(max_messages_per_thread > 0);
-	init_pool(&queue.pool, expected_message_bytes);
+
+	if !pool {
+		queue.pool = pool;
+	} else {
+		queue.pool = new(MessagePool);
+		queue.pool_owned = true;
+		init_pool(queue.pool);
+	}
+
 	mutex_init(&queue.mutex);
+	condition_init(&queue.condition);
+
 	queue.max_messages_per_thread = max_messages_per_thread;
 }
 
 terminate :: fn (queue: *Queue) {
-	loop i := 0; i < queue.tags.len; i += 1 {
-		delete_tag(queue, queue.tags[i]);
+	loop msg := queue.head; msg; {
+		next :: msg._next;
+		put_allocator(queue.pool, msg.allocator);
+		msg = next;
 	}
 
-	array_terminate(&queue.tags);
 	mutex_terminate(&queue.mutex);
-	terminate_pool(&queue.pool);
+	condition_terminate(&queue.condition);
+
+	if queue.pool_owned {
+		terminate_pool(queue.pool);
+		delete(queue.pool);
+	}
 	zeroinit(queue);
 }
 
-register_thread :: fn (queue: *Queue, wid: u64) s32 {
-	tag :: new(Tag);
-	tag.wid = wid;
-	mutex_init(&tag.mutex);
-	condition_init(&tag.condition);
-	index :: cast(s32) queue.tags.len;
-	array_push(&queue.tags, tag);
-	return index;
-}
-
-unregister_thread :: fn (queue: *Queue, wid: u64) {
-	mutex_lock(&queue.mutex);
-	defer mutex_unlock(&queue.mutex);
-
-	tag_index :: find_tag(queue, wid);
-	if tag_index == -1 {
-		assert(false, "Thread is not registered for messages.");
-		return;
-	}
-
-	tag :: queue.tags[tag_index];
-	{
-		mutex_lock(&tag.mutex);
-		defer mutex_unlock(&tag.mutex);
-
-		tag.state = .CLOSING;
-		clear_tag_messages(queue, tag);
-	}
-
-	// Tag is kept so we can later detect posting to terminated threads.
-}
-
 make_message :: fn (TMessage: type #comptime, queue: *Queue) *TMessage {
-	allocator :: get_allocator(&queue.pool);
+	allocator :: get_allocator(queue.pool);
 	msg :: new(TMessage, false, allocator);
 	msg.typeid       = typeid(TMessage);
 	msg.allocator    = allocator;
@@ -103,87 +89,47 @@ make_message :: fn (TMessage: type #comptime, queue: *Queue) *TMessage {
 terminate_message :: fn (message: *?TMessage) #inline {
 	assert(message);
 	queue :: message.parent_queue;
-	put_allocator(&queue.pool, message.allocator);
+	put_allocator(queue.pool, message.allocator);
 	zeroinit(message);
 }
 
-post :: fn (wid: u64, message: *Message) {
+post :: fn (message: *Message) {
 	assert(message);
-	assert(message.sender == 0);
 	queue :: message.parent_queue;
 	assert(queue);
 
-	message.sender = threading.get_current_thread_wid();
+	mutex_lock(&queue.mutex);
+	defer mutex_unlock(&queue.mutex);
 
-	tag: *Tag;
-	{
-		mutex_lock(&queue.mutex);
-		defer mutex_unlock(&queue.mutex);
-		tag_index := find_tag(queue, wid);
-		if tag_index == -1 {
-			tag_index = register_thread(queue, wid);
-		}
-		assert(tag_index != -1, "Target thread is not registered for message polling.");
-		tag = queue.tags[tag_index];
+	if queue.num >= queue.max_messages_per_thread {
+		assert(false, "Maximum message count reached. Message ignored.");
+		return;
 	}
 
-	{
-		mutex_lock(&tag.mutex);
-		defer mutex_unlock(&tag.mutex);
-
-		if tag.state != .ACTIVE {
-			assert(false, "Attempt to post message into inactive thread.");
-			return;
-		}
-
-		if tag.num >= queue.max_messages_per_thread {
-			assert(false, "Maximum message count reached. Message ignored.");
-			return;
-		}
-		tag.num += 1;
-
-		defer condition_signal(&tag.condition);
-
-		slot := &tag.head;
-		loop @slot {
-			slot = &((@slot)._next);
-		}
-		@slot = message;
+	slot := &queue.head;
+	loop @slot {
+		slot = &((@slot)._next);
 	}
+	@slot = message;
+	queue.num += 1;
+
+	condition_signal(&queue.condition);
 }
 
 poll :: fn (queue: *Queue, message: **Message, blocking := false) bool {
-	wid :: threading.get_current_thread_wid();
-	tag: *Tag;
+	mutex_lock(&queue.mutex);
+	defer mutex_unlock(&queue.mutex);
 
-	{
-		mutex_lock(&queue.mutex);
-		defer mutex_unlock(&queue.mutex);
-		tag_index := find_tag(queue, wid);
-		if tag_index == -1 {
-			tag_index = register_thread(queue, wid);
-		}
-		tag = queue.tags[tag_index];
+	if !blocking && !queue.head then return false;
+	loop !queue.head {
+		condition_wait(&queue.condition, &queue.mutex);
 	}
 
-	{
-		mutex_lock(&tag.mutex);
-		defer mutex_unlock(&tag.mutex);
+	current :: queue.head;
+	queue.head = queue.head._next;
+	@message   = current;
 
-		assert(tag.state == .ACTIVE);
-
-		if !blocking && !tag.head then return false;
-		loop !tag.head {
-			condition_wait(&tag.condition, &tag.mutex);
-		}
-
-		current :: tag.head;
-		tag.head   = tag.head._next;
-		@message  = current;
-
-		tag.num -= 1;
-	}
-
+	queue.num -= 1;
 	return true;
 }
 
@@ -208,27 +154,6 @@ threading :: #import "std/thread2";
 #import "std/array"
 #import "std/pool"
 
-TagState :: enum { ACTIVE; CLOSING; }
-
-Tag :: struct {
-	wid:       u64;
-	state:     TagState;
-	head:     *Message;
-	mutex:     Mutex;
-	condition: Condition;
-	num:       s32;
-}
-
-find_tag :: fn (queue: *Queue, wid: u64) s32 {
-	loop i := 0; i < queue.tags.len; i += 1 {
-		if queue.tags[i].wid == wid {
-			return i;
-		}
-	}
-
-	return -1;
-}
-
 get_allocator :: fn (pool: *MessagePool) *Allocator #inline {
 	mutex_lock(&pool.mutex);
 	defer mutex_unlock(&pool.mutex);
@@ -250,17 +175,3 @@ put_allocator :: fn (pool: *MessagePool, allocator: *Allocator)  #inline {
 	array_push(&pool.available, auto allocator);
 }
 
-clear_tag_messages :: fn (queue: *Queue, tag: *Tag) {
-	loop msg := tag.head; msg; {
-		next :: msg._next;
-		put_allocator(&queue.pool, msg.allocator);
-		msg = next;
-	}
-}
-
-delete_tag :: fn (queue: *Queue, tag: *Tag) {
-	clear_tag_messages(queue, tag);
-	mutex_terminate(&tag.mutex);
-	condition_terminate(&tag.condition);
-	delete(tag);
-}

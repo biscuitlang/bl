@@ -1,43 +1,91 @@
-/*
-
-Unified term: 'multi-value expression'.
-
-CHECK:
-Foo.{ x += 1 }
-#if #if
-x, y;
-XX, YY: s32 = foo(); // type must be inferred
-
-
-Single value:
-
-a, b    := 10;
-a, b, c := foo(); // foo returns single value
-
-foo() catch {}
-x :: foo();
-x :: foo() catch {}
-
- */
-
+threading :: #import "std/thread2";
+msg       :: #import "std/message_queue";
+#import "std/string"
 #import "std/print"
-#import "std/thread2"
+
+Context :: struct {
+	pool:        msg.MessagePool;
+	to_worker:   msg.Queue;
+	from_worker: msg.Queue;
+
+	s: string;
+}
+
+init_ctx :: fn (ctx: *Context) {
+	msg.init_pool(&ctx.pool);
+	msg.init(&ctx.to_worker, &ctx.pool);
+	msg.init(&ctx.from_worker, &ctx.pool);
+}
+
+terminate_ctx :: fn (ctx: *Context) {
+	msg.terminate(&ctx.from_worker);
+	msg.terminate(&ctx.to_worker);
+	msg.terminate_pool(&ctx.pool);
+	str_terminate(&ctx.s);
+}
+
+Message :: struct #base msg.Message {
+	n: s32;
+}
 
 main :: fn () s32 {
-	worker :: fn () s32 {
-		print("Worker thread: %\n", get_current_thread_wid());
+	worker :: fn (ctx: *Context) s32 {
+		m: *Message;
+		loop msg.poll_as(&ctx.to_worker, &m, true) {
+			defer msg.terminate_message(m);
+			str_append(&ctx.s, m.n);
+
+			print(">> %\n", @m);
+
+			switch m.n {
+				0 {
+					m :: msg.make_message(Message, &ctx.from_worker);
+					m.n = 1;
+					msg.post(m);
+				}
+				2 {
+					m :: msg.make_message(Message, &ctx.from_worker);
+					m.n = 3;
+					msg.post(m);
+				}
+				4 {
+					break;
+				}
+			}
+		}
 		return 0;
 	};
 
-	print("Main thread: %\n", get_current_thread_wid());
+	ctx: Context;
 
-	threads: [10]*Thread;
-	loop i := 0; i < threads.len; i += 1 {
-		threads[i] = spawn(&worker);
+	init_ctx(&ctx);
+	defer terminate_ctx(&ctx);
+
+	thread :: threading.spawn_with_context(&ctx, &worker);
+
+	msg.post(msg.make_message(Message, &ctx.to_worker));
+
+	m: *Message;
+	loop msg.poll_as(&ctx.from_worker, &m, true) {
+		defer msg.terminate_message(m);
+
+		switch m.n {
+			1 {
+				m :: msg.make_message(Message, &ctx.to_worker);
+				m.n = 2;
+				msg.post(m);
+			}
+			3 {
+				m :: msg.make_message(Message, &ctx.to_worker);
+				m.n = 4;
+				msg.post(m);
+				break;
+			}
+		}
 	}
 
-	join_all(threads);
-	destroy_all(threads);
+	threading.join(thread);
+	threading.destroy(thread);
 
 	return 0;
 }

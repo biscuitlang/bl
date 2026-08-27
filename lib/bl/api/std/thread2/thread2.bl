@@ -14,8 +14,6 @@
 //! !!! note
 //!     Currently provides only basic functionality, and should be extended in future.
 
-MAIN_THREAD_WID : u64 : 0;
-
 /// Thread handle.
 Thread :: struct {
 	/// Platform dependent native thread handle.
@@ -26,8 +24,6 @@ Thread :: struct {
 	worker_ctx: *u8;
 	/// Pointer to user worker function.
 	worker_fn:  *fn (*u8) s32;
-	/// Unique worker thread identificator, `MAIN_THREAD_WID` is reserved for main thread.
-	wid: u64;
 };
 
 State :: enum {
@@ -52,11 +48,8 @@ spawn :: fn (worker_fn: *fn () s32) (thread: *Thread, err: Error) {
 	thread :: new(Thread) catch panic($);
 	thread.worker_fn = auto worker_fn;
 	thread.state     = .STARTED;
-	thread.wid       = atomic.fetch_add(&global_wid_counter, 1);
 
 	wrapper :: fn (thread: *Thread) s32 {
-		tl_wid = thread.wid;
-
 		defer temporary_release();
 		return (cast(*fn () s32) thread.worker_fn)();
 	};
@@ -85,11 +78,8 @@ spawn_with_context :: fn (worker_ctx: *?TContext, worker_fn: *fn (*TContext) s32
 	thread :: new(Thread) catch panic($);
 	thread.worker_fn  = auto worker_fn;
 	thread.worker_ctx = auto worker_ctx;
-	thread.wid        = atomic.fetch_add(&global_wid_counter, 1);
 
 	wrapper :: fn (thread: *Thread) s32 {
-		tl_wid = thread.wid;
-
 		defer temporary_release();
 		return thread.worker_fn(thread.worker_ctx);
 	};
@@ -151,13 +141,3 @@ get_current_thread_id :: fn () u64 #inline {
 get_thread_id :: fn (thread: *Thread) u64 #inline {
 	return auto thread.handle;
 }
-
-get_current_thread_wid :: fn () u64 #inline {
-	return tl_wid;
-}
-
-#scope_module
-atomic :: #import "std/atomic";
-
-global_wid_counter: u64 = 1; // 0 reserve for main thread.
-tl_wid: u64 #thread_local;
