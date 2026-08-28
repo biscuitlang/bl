@@ -27,6 +27,12 @@ extra/sdl3
 std/atomic
 - Added module.
 
+std/message_queue
+- Added module.
+
+std/type_utils
+- Add `is_base_of`.
+
 [Documentation]
 [Deprecated]
 `thread` - Use `thread2` module.
