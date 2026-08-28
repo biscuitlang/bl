@@ -1,0 +1,135 @@
+threading :: #import "std/thread2";
+msg       :: #import "std/message_queue";
+#import "std/string"
+#import "std/print"
+
+Context :: struct {
+	pool:           msg.MessagePool;
+	main_to_worker: msg.Queue;
+	worker_to_main: msg.Queue;
+}
+
+init_ctx :: fn (ctx: *Context) {
+	msg.init_pool(&ctx.pool);
+	msg.init(&ctx.main_to_worker, &ctx.pool);
+	msg.init(&ctx.worker_to_main, &ctx.pool);
+}
+
+terminate_ctx :: fn (ctx: *Context) {
+	msg.terminate(&ctx.worker_to_main);
+	msg.terminate(&ctx.main_to_worker);
+	msg.terminate_pool(&ctx.pool);
+}
+
+RequestKind :: enum {
+	PROCESS;
+	QUIT;
+}
+
+Request :: struct #base msg.Message {
+	kind: RequestKind;
+	text: string_view;
+}
+
+ResponseKind :: enum {
+	COUNT;
+	DONE;
+}
+
+Response :: struct #base msg.Message {
+	kind:  ResponseKind;
+	count: s32;
+}
+
+DATA :: [_]string_view.{
+	"Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+	"Sed do eiusmod tempor incididunt ut labore et dolore magna.",
+	"Ut enim ad minim veniam, quis nostrud exercitation ullamco.",
+	"Duis aute irure dolor in reprehenderit.",
+};
+
+main :: fn () s32 {
+	worker :: fn (ctx: *Context) s32 {
+		print("Worker is waiting for requests...\n");
+
+		request: *Request;
+		loop msg.poll_as(&ctx.main_to_worker, &request, true) { // blocking
+			// Terminate message at the end of the scope.
+			defer msg.terminate_message(request);
+			os_sleep_ms(200);
+
+			switch request.kind {
+				.PROCESS {
+					print("Worker received: %.\n", request.text);
+
+					tokens :: str_split_by(request.text, ' ', application_context.temporary_allocator);
+
+					response :: msg.make_message(Response, &ctx.worker_to_main);
+					response.kind  = .COUNT;
+					response.count = auto tokens.len;
+					msg.post(response);
+				}
+				.QUIT {
+					print("Worker quiting.\n");
+
+					response :: msg.make_message(Response, &ctx.worker_to_main);
+					response.kind = .DONE;
+					msg.post(response);
+
+					break;
+				}
+			}
+		}
+
+		return 0;
+	};
+
+	ctx: Context;
+
+	init_ctx(&ctx);
+	defer terminate_ctx(&ctx);
+
+	// Start worker.
+	thread :: threading.spawn_with_context(&ctx, &worker);
+
+	os_sleep_ms(1000);
+	print("Sending requests.\n");
+
+	// Post intial requests.
+	loop i := 0; i < DATA.len; i += 1 {
+		request :: msg.make_message(Request, &ctx.main_to_worker);
+		request.kind = .PROCESS;
+		request.text = str_make(DATA[i], request.allocator);
+		msg.post(request);
+	}
+
+	// Post QUIT message as the last.
+	request :: msg.make_message(Request, &ctx.main_to_worker);
+	request.kind = .QUIT;
+	msg.post(request);
+
+	loop {
+		response: *Response;
+		if msg.poll_as(&ctx.worker_to_main, &response, false) { // non-blocking
+			// Terminate message at the end of the scope.
+			defer msg.terminate_message(response);
+
+			switch response.kind {
+				.COUNT {
+					print("Main thread received: %\n", response.count);
+				}
+				.DONE {
+					break;
+				}
+			}
+		}
+
+		// Do something useful here while waiting for data to arive.
+		os_sleep_ms(500);
+	}
+
+	threading.join(thread);
+	threading.destroy(thread);
+
+	return 0;
+}

@@ -44,6 +44,7 @@
 
 * [Basics]($GITHUB$/docs/src/examples/threading.bl)
 * [Thread Local Variables]($GITHUB$/docs/src/examples/thread_local_variable.bl)
+* [Message Queue]($GITHUB$/docs/src/examples/message_queue.bl)
 
 ## Misc
 

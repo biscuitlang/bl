@@ -43,6 +43,7 @@ MODULES :: [_]string_view.{
 	"lib/bl/api/std/fs/fs.test.bl",
 	"lib/bl/api/std/growing_buffer_stream/growing_buffer_stream.test.bl",
 	"lib/bl/api/std/io/io.test.bl",
+	"lib/bl/api/std/message_queue/message_queue.test.bl",
 	"lib/bl/api/std/pool/pool.test.bl",
 	"lib/bl/api/std/print/print.test.bl",
 	"lib/bl/api/std/static_array/static_array.test.bl",

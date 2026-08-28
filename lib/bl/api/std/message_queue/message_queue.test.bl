@@ -1,0 +1,208 @@
+threading :: #import "std/thread2";
+msg       :: #import "std/message_queue";
+#import "std/string"
+
+Context :: struct {
+	pool:        msg.MessagePool;
+	to_worker:   msg.Queue;
+	to_main: msg.Queue;
+
+	s: string;
+}
+
+init_ctx :: fn (ctx: *Context) {
+	msg.init_pool(&ctx.pool);
+	msg.init(&ctx.to_worker, &ctx.pool);
+	msg.init(&ctx.to_main, &ctx.pool);
+}
+
+terminate_ctx :: fn (ctx: *Context) {
+	msg.terminate(&ctx.to_main);
+	msg.terminate(&ctx.to_worker);
+	msg.terminate_pool(&ctx.pool);
+	str_terminate(&ctx.s);
+}
+
+Message :: struct #base msg.Message {
+	n: s32;
+}
+
+make_message :: fn (q: *msg.Queue, n: s32) *Message #inline {
+	m :: msg.make_message(Message, q);
+	m.n = n;
+	return m;
+}
+
+simple_sequence :: fn () #test {
+	worker :: fn (ctx: *Context) s32 {
+		loop_count := 0;
+
+		m: *Message;
+		loop msg.poll_as(&ctx.to_worker, &m, true) {
+			defer msg.terminate_message(m);
+			str_append(&ctx.s, m.n);
+
+			loop_count += 1;
+
+			switch m.n {
+				0 {
+					msg.post(make_message(&ctx.to_main, 1));
+				}
+				2 {
+					msg.post(make_message(&ctx.to_main, 3));
+				}
+				4 {
+					break;
+				}
+			}
+		}
+
+		test_eq(loop_count, 3);
+		return 0;
+	};
+
+	ctx: Context;
+
+	init_ctx(&ctx);
+	defer terminate_ctx(&ctx);
+
+	thread :: threading.spawn_with_context(&ctx, &worker);
+
+	msg.post(msg.make_message(Message, &ctx.to_worker));
+
+	m: *Message;
+	loop msg.poll_as(&ctx.to_main, &m, true) {
+		defer msg.terminate_message(m);
+
+		switch m.n {
+			1 {
+				msg.post(make_message(&ctx.to_worker, 2));
+			}
+			3 {
+				msg.post(make_message(&ctx.to_worker, 4));
+				break;
+			}
+		}
+	}
+
+	threading.join(thread);
+	threading.destroy(thread);
+
+	test_eq(ctx.s, "024");
+}
+
+simple_sequence_non_blocking :: fn () #test {
+	worker :: fn (ctx: *Context) s32 {
+		loop_count := 0;
+
+		m: *Message;
+		loop {
+			if msg.poll_as(&ctx.to_worker, &m, true) {
+				defer msg.terminate_message(m);
+				str_append(&ctx.s, m.n);
+
+				loop_count += 1;
+
+				switch m.n {
+					0 {
+						msg.post(make_message(&ctx.to_main, 1));
+					}
+					2 {
+						msg.post(make_message(&ctx.to_main, 3));
+					}
+					4 {
+						break;
+					}
+				}
+			}
+
+			os_sleep_ms(10);
+		}
+
+		test_eq(loop_count, 3);
+		return 0;
+	};
+
+	ctx: Context;
+
+	init_ctx(&ctx);
+	defer terminate_ctx(&ctx);
+
+	thread :: threading.spawn_with_context(&ctx, &worker);
+
+	msg.post(msg.make_message(Message, &ctx.to_worker));
+
+	m: *Message;
+	loop {
+		if msg.poll_as(&ctx.to_main, &m) {
+			defer msg.terminate_message(m);
+
+			switch m.n {
+				1 {
+					msg.post(make_message(&ctx.to_worker, 2));
+				}
+				3 {
+					msg.post(make_message(&ctx.to_worker, 4));
+					break;
+				}
+			}
+		}
+		os_sleep_ms(10);
+	}
+
+	threading.join(thread);
+	threading.destroy(thread);
+
+	test_eq(ctx.s, "024");
+}
+
+pending :: fn () #test {
+	worker :: fn (ctx: *Context) s32 {
+		m: *Message;
+		loop msg.poll_as(&ctx.to_worker, &m, true) {
+			defer msg.terminate_message(m);
+			str_append(&ctx.s, m.n);
+
+			if m.n == 3 then break;
+		}
+		return 0;
+	};
+
+	ctx: Context;
+
+	init_ctx(&ctx);
+	defer terminate_ctx(&ctx);
+
+	msg.post(make_message(&ctx.to_worker, 0));
+	msg.post(make_message(&ctx.to_worker, 1));
+	msg.post(make_message(&ctx.to_worker, 2));
+	msg.post(make_message(&ctx.to_worker, 3));
+
+	thread :: threading.spawn_with_context(&ctx, &worker);
+
+	threading.join(thread);
+	threading.destroy(thread);
+
+	test_eq(ctx.s, "0123");
+}
+
+queue_overflow :: fn () #test {
+	ctx: Context;
+
+	init_ctx(&ctx);
+	defer terminate_ctx(&ctx);
+
+	failed := false;
+	loop i := 0; i <= msg.DEFAULT_MAX_MESSAGES; i += 1 {
+		m :: make_message(&ctx.to_worker, 0);
+		msg.post(m) catch {
+			msg.terminate_message(m);
+			test_eq(i, msg.DEFAULT_MAX_MESSAGES);
+			failed = true;
+		};
+	}
+
+	test_true(failed);
+}
+
+

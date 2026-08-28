@@ -51,6 +51,22 @@ is_enum :: fn (T: type #comptime) bool #comptime {
 	return typeinfo(T).kind == TypeKind.ENUM;
 }
 
+/// Returns `true` when struct `TBase` is a base struct for `TStruct` or `TBase` and `TStruct` are the same types.
+is_base_of :: fn (TBase: type #comptime, TStruct: type #comptime) bool #comptime {
+	base_info   :: cast(*TypeInfoStruct) typeinfo(TBase);
+	struct_info := cast(*TypeInfoStruct) typeinfo(TStruct);
+	assert(base_info.kind == TypeKind.STRUCT);
+	if struct_info.kind != TypeKind.STRUCT then return false;
+	if base_info == struct_info then return true;
+	loop struct_info && struct_info.kind == TypeKind.STRUCT && struct_info.members.len > 0 {
+		first :: struct_info.members[0];
+		if !first.is_base then return false;
+		if first.base_type == base_info then return true;
+		struct_info = auto first.base_type;
+	}
+	return false;
+}
+
 //
 // Enum utility functions.
 //
