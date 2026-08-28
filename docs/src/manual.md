@@ -2532,7 +2532,7 @@ main :: fn () s32 {
 
 # Compiler Builtins
 
-## Variables
+## Builtin Variables
 
 List of builtin variables set by compiler:
 
@@ -2900,7 +2900,7 @@ Print path to default `bl.yaml` configuration file and exit.
 Set current working directory. The compiler uses the current working directory by default to output all files.
 
 
-## Configuration
+## Compiler Configuration
 
 Use `blc --config` to change compiler configuration; this command generates a new `bl.yaml` configuration file containing all the needed information about your system. This configuration runs automatically in case the config file was not found.
 
