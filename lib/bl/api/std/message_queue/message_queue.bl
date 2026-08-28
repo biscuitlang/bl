@@ -91,7 +91,7 @@ Message :: struct {
 init :: fn (queue: *Queue, pool: *MessagePool = null, max_messages := DEFAULT_MAX_MESSAGES) {
 	assert(max_messages > 0);
 
-	if !pool {
+	if pool {
 		queue.pool = pool;
 	} else {
 		queue.pool = new(MessagePool);
@@ -183,7 +183,7 @@ post :: fn (message: *Message) Error {
 ///
 /// This version polls general `Message` type, you might distinguish messages by `message.typeid` before casting to
 /// specific type; for example `if message.typeid == typeid(MyMessage) ...`. In case you only have one message type
-/// [poll_as](modules_message_queue.html#poll_as) might be more convinient.
+/// [poll_as](modules_message_queue.html#poll_as) might be more convenient.
 poll :: fn (queue: *Queue, message: **Message, blocking := false) bool {
 	mutex_lock(&queue.mutex);
 	defer mutex_unlock(&queue.mutex);
