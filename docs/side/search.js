@@ -29,17 +29,18 @@ function fuzzy_cmp(str, other) {
 }
 
 function search(subject) {
-    let result = []
-    db.forEach(item => {
-        let score = fuzzy_cmp(item.text, subject)
-        if (score >= 0) {
-            result.push({
-                score: score,
-                text: item.text,
-                url: item.file + "#" + item.id
-            })
-        }
-    });
+	let result = []
+	db.forEach(item => {
+		let score = fuzzy_cmp(item.text, subject)
+		if (score >= 0) {
+			result.push({
+				score: score,
+				text: item.text,
+				url: item.file + "#" + item.id,
+				module: item.module
+			})
+		}
+	});
 
     result.sort((a, b) => b.score - a.score)
     return result
@@ -52,15 +53,21 @@ function update_search_results(subject) {
     }
     let results = search(subject)
     results.forEach(item => {
-        if (item.text.includes(subject)) {
-            const li = document.createElement('li')
-            const a = document.createElement('a')
-            a.textContent = item.text
-            a.href = item.url
-            li.appendChild(a)
-            bl_search_results.appendChild(li)
-        }
-    });
+		if (item.text.includes(subject)) {
+			const li = document.createElement('li')
+			const a = document.createElement('a')
+			a.href = item.url
+			a.textContent = item.text
+
+			const mod = document.createElement('span')
+			mod.className = 'bl-search-result-module'
+			mod.textContent = item.module
+
+			li.appendChild(a)
+			li.appendChild(mod)
+			bl_search_results.appendChild(li)
+		}
+	});
 }
 
 bl_search.addEventListener("input", (e) => {
