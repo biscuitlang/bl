@@ -55,9 +55,6 @@
 /// i.e. `glfw` or similar tool to create window and proper OpenGL context.
 ///
 /// The `gl_init` function is called internally.
-///
-/// !!! note
-///     Window resizing is not supported right now.
 init :: fn (viewport_width: s32, viewport_height: s32, initialize_opengl := true) Error {
 	if initialize_opengl { gl_init(); }
 	current_gl_major_version, current_gl_minor_version :: gl_get_version_numbers();
