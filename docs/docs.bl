@@ -459,14 +459,16 @@ generate_page :: fn (filepath: string_view, menu: string_view, content: string_v
 		"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
 		"<link rel=\"stylesheet\" href=\"styles.css\">\n"
 		"<link rel=\"icon\" type=\"image/x-icon\" href=\"favicon.png\">\n"
+		"<script src=\"theme.js\"></script>\n"
 		"</head>\n"
 		"<body>\n"
 		"<div class=\"container\">\n"
 		"<div class=\"column\" id=\"column1\">\n"
 		"<div class=\"logo\">\n"
-		"<a href=\"https://biscuitlang.org\"><img src=\"biscuit_logo.svg\"></a>\n"
+		"<a href=\"https://biscuitlang.org\"><img class=\"logo-theme logo-theme-dark\" src=\"biscuit_logo.svg\" alt=\"Biscuit\"><img class=\"logo-theme logo-theme-light\" src=\"biscuit_logo_light.svg\" alt=\"Biscuit\"></a>\n"
 		"<label class=\"version\">%</label>\n"
-		"</div>\n",
+		"</div>\n"
+		"<button id=\"bl-theme-toggle\" class=\"theme-toggle\" title=\"Switch to light theme\" aria-label=\"Switch theme\">Light</button>\n",
 		GIT_BRANCH)
 	);
 
