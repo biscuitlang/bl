@@ -21,8 +21,22 @@ x :: foo() catch {}
  */
 
 #import "std/print"
+atomic :: #import "std/atomic";
 
 main :: fn () s32 {
-	print("Hello world!\n");
+	{
+		n: atomic.s32_a;
+		atomic.store(&n, 10);
+		v :: atomic.load(&n);
+		print_log("v = %\n", v);
+	}
+
+	{
+		n: atomic.bool_a;
+		atomic.store(&n, true);
+		v :: atomic.load(&n);
+		print_log("v = %\n", v);
+	}
+
 	return 0;
 }
