@@ -44,7 +44,9 @@ _Pragma("GCC diagnostic push") \
 _Pragma("GCC diagnostic ignored \"-Wcast-qual\"") \
 _Pragma("GCC diagnostic ignored \"-Wpedantic\"") \
 _Pragma("GCC diagnostic ignored \"-Wsign-conversion\"")
+#if !BL_COMPILER_APPLE_CLANG
 _Pragma("GCC diagnostic ignored \"-Wmaybe-uninitialized\"")
+#endif
 // clang-format on
 
 #define _SHUT_UP_END  _Pragma("GCC diagnostic pop")

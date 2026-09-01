@@ -35,15 +35,21 @@
 #error "Unknown platform"
 #endif
 
+
 #ifdef __clang__
+#if defined(__apple_build_version__)
+#define BL_COMPILER_APPLE_CLANG 1
+#endif
 #define BL_COMPILER_CLANG 1
 #define BL_COMPILER_GNUC  0
 #define BL_COMPILER_MSVC  0
 #elif defined(__GNUC__) || defined(__MINGW32__)
+#define BL_COMPILER_APPLE_CLANG 0
 #define BL_COMPILER_CLANG 0
 #define BL_COMPILER_GNUC  1
 #define BL_COMPILER_MSVC  0
 #elif _MSC_VER
+#define BL_COMPILER_APPLE_CLANG 0
 #define BL_COMPILER_CLANG 0
 #define BL_COMPILER_GNUC  0
 #define BL_COMPILER_MSVC  1
