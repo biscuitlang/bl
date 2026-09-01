@@ -260,7 +260,7 @@ void blc(void) {
 		File_Paths files = {0};
 		nob_read_entire_dir(BUILD_DIR, &files);
 #ifdef __APPLE__
-		cmd_append(&cmd, "c++", "-arch", "arm64", "-lm", "-mmacosx-version-min=14.3", "-Wl,-deployment_target_mismatches,suppress");
+		cmd_append(&cmd, "c++", "-arch", "arm64", "-lm", "-mmacosx-version-min=14.3");
 #else
 		cmd_append(&cmd, "c++", "-D_GNU_SOURCE", "-lrt", "-ldl", "-lm", "-rdynamic", "-Wl,--export-dynamic");
 #endif
