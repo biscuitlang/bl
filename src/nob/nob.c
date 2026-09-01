@@ -229,7 +229,7 @@ void blc(void) {
 		           "-DBL_VERSION_PATCH=" STR(BL_VERSION_PATCH),
 		           "-DYAML_DECLARE_STATIC");
 #ifdef __APPLE__
-		cmd_append(&cmd, "-fcolor-diagnostics", "-arch", "arm64", "-isysroot", MACOS_SDK);
+		cmd_append(&cmd, "-fcolor-diagnostics", "-arch", "arm64", "-isysroot", MACOS_SDK, "-mmacosx-version-min=14.3");
 		if (IS_DEBUG) {
 			cmd_append(&cmd, "-O0", "-g");
 		} else {
@@ -260,7 +260,7 @@ void blc(void) {
 		File_Paths files = {0};
 		nob_read_entire_dir(BUILD_DIR, &files);
 #ifdef __APPLE__
-		cmd_append(&cmd, "c++", "-arch", "arm64", "-lm", "-mmacosx-version-min=14.3");
+		cmd_append(&cmd, "c++", "-arch", "arm64", "-lm", "-mmacosx-version-min=14.3", "-Wl,-deployment_target_mismatches,suppress");
 #else
 		cmd_append(&cmd, "c++", "-D_GNU_SOURCE", "-lrt", "-ldl", "-lm", "-rdynamic", "-Wl,--export-dynamic");
 #endif
@@ -286,6 +286,13 @@ void blc(void) {
 
 		if (!cmd_run_sync_and_reset(&cmd)) exit(1);
 	}
+
+#ifdef __APPLE__
+	if (IS_DEBUG) {
+		cmd_append(&cmd, "dsymutil", BIN_DIR "/blc");
+		if (!cmd_run_sync_and_reset(&cmd)) exit(1);
+	}
+#endif
 
 	shell("rm -f " BUILD_DIR "/*.o");
 
