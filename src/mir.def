@@ -54,6 +54,7 @@ union __INSTR_T {\
     struct mir_instr_cond_insert     cond_insert; \
     struct mir_instr_defer           defer; \
     struct mir_instr_defer_insert    defer_insert; \
+    struct mir_instr_is_produced_by  is_produced_by; \
 };
 
 #define SIZEOF_MIR_INSTR sizeof(union __INSTR_T)
@@ -115,5 +116,6 @@ union __INSTR_T {\
     MIR_INSTR_COND_INSERT,
     MIR_INSTR_DEFER,
     MIR_INSTR_DEFER_INSERT,
+    MIR_INSTR_IS_PRODUCED_BY,
 #endif
 

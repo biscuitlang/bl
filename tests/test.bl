@@ -21,8 +21,73 @@ x :: foo() catch {}
  */
 
 #import "std/print"
+hash_table :: #import "std/table";
+
+Foo :: fn (T: type #comptime) type #comptime {
+	return struct {
+		n: T;
+	};
+}
+
+foo :: fn (_: ?T) {
+	if is_produced_by(T, Foo) {
+		print("OK\n");
+	} else {
+		print("Nope\n");
+	}
+}
+
+// Hogo :: fn (TMember: type #comptime) type #comptime {
+// 	return struct {
+// 		a: TMember;
+// 	};
+// }
+
+// do_something :: fn (h: *Hogo(?T)) {
+// }
 
 main :: fn () s32 {
-	print("Hello world!\n");
+	// bar: Hogo(s32);
+	// do_something(&bar);
+
+	// yyy: hash_table.Table(s32, bool);
+	// ggg: hash_table.Table(s32, bool);
+
+	// #if is_produced_by(yyy, hash_table.Table) {
+	// 	print("yyy is Table\n");
+	// } else {
+	// 	print("yyy is not Table\n");
+	// }
+
+	// #if is_produced_by(ggg, hash_table.Table) {
+	// 	print("ggg is Table\n");
+	// } else {
+	// 	print("ggg is not Table\n");
+	// }
+
+	// #if is_produced_by(main, hash_table.Table) {
+	// 	print("main is Table\n");
+	// } else {
+	// 	print("main is not Table\n");
+	// }
+
+	// #if is_produced_by(10, hash_table.Table) {
+	// 	print("10 is Table\n");
+	// } else {
+	// 	print("10 is not Table\n");
+	// }
+
+	// is_produced_by(10, hash_table.Table);
+	// is_produced_by(null, hash_table.Table);
+
+	if Foo(s32) == Foo(s32) {
+		print("YES\n");
+	} else {
+		print("NO\n");
+	}
+
+	// foo(xxx);
+	// foo(10);
+
 	return 0;
 }

@@ -259,6 +259,7 @@ static void print_instr_toany(struct context *ctx, struct mir_instr_to_any *toan
 static void print_instr_phi(struct context *ctx, struct mir_instr_phi *phi);
 static void print_instr_cast(struct context *ctx, struct mir_instr_cast *cast);
 static void print_instr_sizeof(struct context *ctx, struct mir_instr_sizeof *szof);
+static void print_instr_is_produced_by(struct context *ctx, struct mir_instr_is_produced_by *ipb);
 static void print_instr_type_info(struct context *ctx, struct mir_instr_type_info *type_info);
 static void print_instr_typeof(struct context *ctx, struct mir_instr_typeof *type_of);
 static void print_instr_alignof(struct context *ctx, struct mir_instr_alignof *szof);
@@ -585,6 +586,12 @@ void print_instr_alignof(struct context *ctx, struct mir_instr_alignof *szof) {
 	print_instr_head(ctx, &szof->base, "alignof");
 	fprintf(ctx->stream, " ");
 	print_comptime_value_or_id(ctx, szof->expr);
+}
+
+void print_instr_is_produced_by(struct context *ctx, struct mir_instr_is_produced_by *ipb) {
+	print_instr_head(ctx, &ipb->base, "is_produced_by");
+	fprintf(ctx->stream, " ");
+	print_comptime_value_or_id(ctx, ipb->expr);
 }
 
 void print_instr_elem_ptr(struct context *ctx, struct mir_instr_elem_ptr *elem_ptr) {
@@ -1127,6 +1134,9 @@ void print_instr(struct context *ctx, struct mir_instr *instr) {
 		break;
 	case MIR_INSTR_ALIGNOF:
 		print_instr_alignof(ctx, (struct mir_instr_alignof *)instr);
+		break;
+	case MIR_INSTR_IS_PRODUCED_BY:
+		print_instr_is_produced_by(ctx, (struct mir_instr_is_produced_by *)instr);
 		break;
 	case MIR_INSTR_COMPOUND:
 		print_instr_compound(ctx, (struct mir_instr_compound *)instr);

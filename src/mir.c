@@ -1,4 +1,3 @@
-#include "mir.h"
 #include "basic_types.h"
 #include "bldebug.h"
 #include "builder.h"
@@ -189,6 +188,7 @@ static struct mir_codegen *swap_current_codegen(struct context *ctx, struct mir_
 
 // Create new type. The 'user_id' is optional.
 static struct mir_type *create_type(struct context *ctx, enum mir_type_kind kind, struct id *user_id);
+static struct mir_type *shallow_duplicate_type(struct context *ctx, struct mir_type *type);
 static struct mir_type *create_type_type(struct context *ctx);
 static struct mir_type *create_type_named_scope(struct context *ctx);
 static struct mir_type *create_type_null(struct context *ctx, struct mir_type *base_type);
@@ -229,6 +229,7 @@ typedef struct
 	bool               is_packed;
 	bool               is_multi_value;
 	bool               is_string_literal;
+	struct mir_fn     *declared_in_fn;
 } create_type_struct_args_t;
 
 static struct mir_type *_create_type_struct(struct context *ctx, create_type_struct_args_t *args);
@@ -247,11 +248,13 @@ typedef struct
 	bool              is_packed;
 	bool              is_union;
 	bool              is_multi_value;
+	struct mir_fn    *declared_in_fn;
 } complete_type_struct_args_t;
 
 // Make incomplete type struct declaration complete. This function sets all desired information
 // about struct to the forward declaration type.
-static struct mir_type *complete_type_struct(struct context *ctx, complete_type_struct_args_t *args);
+static struct mir_type *_complete_type_struct(struct context *ctx, complete_type_struct_args_t *args);
+#define complete_type_struct(ctx, ...) _complete_type_struct((ctx), &(complete_type_struct_args_t){__VA_ARGS__})
 
 typedef struct
 {
@@ -322,6 +325,7 @@ typedef struct
 	bool                               is_global;
 	enum builtin_id_kind               builtin_id;
 	enum mir_fn_generated_flavor_flags generated_flags;
+	bool                               is_implicit_type_resolver;
 } create_fn_args_t;
 
 static struct mir_fn *_create_fn(struct context *ctx, create_fn_args_t *args);
@@ -557,6 +561,7 @@ static struct mir_instr *append_instr_addrof(struct context *ctx, struct ast *no
 static struct mir_instr *append_instr_cond_insert(struct context *ctx, struct ast *node, struct mir_instr *cond, struct ast *then_block, struct ast *else_block);
 static struct mir_instr *append_instr_defer(struct context *ctx, struct ast *node, struct ast *code);
 static struct mir_instr *append_instr_defer_insert(struct context *ctx, struct ast *node, bool whole_tree);
+static struct mir_instr *append_instr_is_produced_by(struct context *ctx, struct ast *node, mir_instrs_t *args);
 
 // This will erase whole instruction tree of instruction with ref_count == 0. When force is set
 // ref_count is ignored.
@@ -762,6 +767,7 @@ static struct result analyze_instr_call(struct context *ctx, struct mir_instr_ca
 static struct result analyze_call_slot(struct context *ctx, struct mir_instr_call *call, struct mir_arg *fn_arg);
 static struct result analyze_instr_cast(struct context *ctx, struct mir_instr_cast *cast, bool analyze_op_only);
 static struct result analyze_instr_sizeof(struct context *ctx, struct mir_instr_sizeof *szof);
+static struct result analyze_instr_is_produced_by(struct context *ctx, struct mir_instr_is_produced_by *ipb);
 static struct result analyze_instr_type_info(struct context *ctx, struct mir_instr_type_info *type_info);
 static struct result analyze_instr_typeof(struct context *ctx, struct mir_instr_typeof *type_of);
 static struct result analyze_instr_alignof(struct context *ctx, struct mir_instr_alignof *alof);
@@ -1647,6 +1653,13 @@ struct mir_type *create_type(struct context *ctx, enum mir_type_kind kind, struc
 	return type;
 }
 
+struct mir_type *shallow_duplicate_type(struct context *ctx, struct mir_type *type) {
+	struct mir_type *dup = arena_alloc(&ctx->mir_arenas->type);
+	memcpy(dup, type, sizeof(*dup));
+	bmagic_set(dup);
+	return dup;
+}
+
 struct mir_codegen *duplicate_codegen(struct context *ctx, struct mir_codegen *orig) {
 	struct mir_codegen *codegen = arena_alloc(&ctx->mir_arenas->codegen);
 	if (!orig) return codegen;
@@ -2306,6 +2319,7 @@ struct mir_type *_create_type_struct(struct context *ctx, create_type_struct_arg
 	result->data.strct.is_multi_value    = args->is_multi_value;
 	result->data.strct.base_type         = args->base_type;
 	result->data.strct.is_string_literal = args->is_string_literal;
+	result->data.strct.declared_in_fn    = args->declared_in_fn;
 
 	type_init_llvm_struct(ctx, result);
 
@@ -2313,7 +2327,7 @@ struct mir_type *_create_type_struct(struct context *ctx, create_type_struct_arg
 	return result;
 }
 
-static struct mir_type *complete_type_struct(struct context *ctx, complete_type_struct_args_t *args) {
+static struct mir_type *_complete_type_struct(struct context *ctx, complete_type_struct_args_t *args) {
 	bcheck_main_thread();
 
 	bassert(args->fwd_decl && "Invalid fwd_decl pointer!");
@@ -2331,6 +2345,7 @@ static struct mir_type *complete_type_struct(struct context *ctx, complete_type_
 	incomplete_type->data.strct.is_packed      = args->is_packed;
 	incomplete_type->data.strct.is_union       = args->is_union;
 	incomplete_type->data.strct.is_multi_value = args->is_multi_value;
+	incomplete_type->data.strct.declared_in_fn = args->declared_in_fn;
 	incomplete_type->data.strct.fwd_state      = MIR_TYPE_STRUCT_FWD_COMPLETE;
 
 #if TRACY_ENABLE
@@ -2917,14 +2932,15 @@ struct mir_fn *_create_fn(struct context *ctx, create_fn_args_t *args) {
 
 	struct mir_fn *tmp = arena_alloc(&ctx->mir_arenas->fn);
 	bmagic_set(tmp);
-	tmp->linkage_name     = args->linkage_name;
-	tmp->id               = args->id;
-	tmp->flags            = args->flags;
-	tmp->decl_node        = args->node;
-	tmp->prototype        = &args->prototype->base;
-	tmp->is_global        = args->is_global;
-	tmp->builtin_id       = args->builtin_id;
-	tmp->generated_flavor = args->generated_flags;
+	tmp->linkage_name              = args->linkage_name;
+	tmp->id                        = args->id;
+	tmp->flags                     = args->flags;
+	tmp->decl_node                 = args->node;
+	tmp->prototype                 = &args->prototype->base;
+	tmp->is_global                 = args->is_global;
+	tmp->builtin_id                = args->builtin_id;
+	tmp->generated_flavor          = args->generated_flags;
+	tmp->is_implicit_type_resolver = args->is_implicit_type_resolver;
 
 	return tmp;
 }
@@ -3764,6 +3780,19 @@ struct mir_instr *append_instr_type_info(struct context *ctx, struct ast *node, 
 	return &tmp->base;
 }
 
+static struct mir_instr *append_instr_is_produced_by(struct context *ctx, struct ast *node, mir_instrs_t *args) {
+	struct mir_instr_typeof *tmp = create_instr(ctx, MIR_INSTR_IS_PRODUCED_BY, node);
+	tmp->base.value.type         = ctx->builtin_types->t_bool;
+	tmp->base.value.addr_mode    = MIR_VAM_RVALUE;
+	tmp->base.value.is_comptime  = true;
+	for (usize i = 0; i < sarrlenu(args); ++i) {
+		ref_instr(sarrpeek(args, i));
+	}
+	tmp->args = args;
+	append_current_block(ctx, &tmp->base);
+	return &tmp->base;
+}
+
 struct mir_instr *append_instr_msg(struct context *ctx, struct ast *node, mir_instrs_t *args, enum mir_user_msg_kind kind) {
 	struct mir_instr_msg *tmp = create_instr(ctx, MIR_INSTR_MSG, node);
 	tmp->message_kind         = kind;
@@ -4334,6 +4363,13 @@ void erase_instr_tree(struct mir_instr *instr, bool keep_root, bool force) {
 			break;
 		}
 
+		case MIR_INSTR_IS_PRODUCED_BY: {
+			struct mir_instr_is_produced_by *ipb = (struct mir_instr_is_produced_by *)top;
+			erase(ipb->expr);
+			erase(ipb->expected);
+			break;
+		}
+
 		case MIR_INSTR_ELEM_PTR: {
 			struct mir_instr_elem_ptr *ep = (struct mir_instr_elem_ptr *)top;
 			erase(ep->arr_ptr);
@@ -4506,6 +4542,16 @@ void erase_instr_tree(struct mir_instr *instr, bool keep_root, bool force) {
 #undef erase
 }
 
+// Detects whether passed comptime analyzed function is type producer.
+static bool is_poly_type_producer(struct mir_fn *fn) {
+	bassert(fn);
+	bassert(fn->is_fully_analyzed);
+	struct mir_type *callee_type = fn->type;
+
+	// Currently `type` type cannot be used as struct member, that restricts multi-return value, so only compile time functions returning a single type value are considered to be proucers.
+	return !fn->is_implicit_type_resolver && callee_type->data.fn.ret_type && callee_type->data.fn.ret_type->kind == MIR_TYPE_TYPE;
+}
+
 enum vm_interp_state evaluate(struct context *ctx, struct mir_instr *instr) {
 	if (!instr) return VM_INTERP_PASSED;
 	bassert(instr->state == MIR_IS_ANALYZED && "Non-analyzed instruction cannot be evaluated!");
@@ -4523,12 +4569,42 @@ enum vm_interp_state evaluate(struct context *ctx, struct mir_instr *instr) {
 		// Compile-time evaluated calls should be skipped while in function type recipe!
 		if (!call->is_inside_recipe) {
 			struct mir_fn *fn = mir_get_callee(call);
+			blog("Execute " STR_FMT, STR_ARG(fn->linkage_name));
+
 			if (!fn->is_fully_analyzed) return VM_INTERP_POSTPONE;
 			const enum vm_interp_state state = vm_execute_comptime_call(ctx->vm, ctx->assembly, call);
 
 			if (state != VM_INTERP_PASSED) {
 				return state;
 			}
+
+			// Mark result type if function is poly-type producer.
+			if (is_poly_type_producer(fn)) {
+
+				struct mir_type *produced_type = MIR_CEV_READ_AS(struct mir_type *, &call->base.value);
+				bmagic_assert(produced_type);
+				struct mir_fn *producer_fn = fn->generated.recipe_fn ? fn->generated.recipe_fn : fn;
+
+				if (produced_type->kind == MIR_TYPE_STRUCT && produced_type->data.strct.declared_in_fn == producer_fn) {
+					str_buf_t type_name = mir_type2str(produced_type, true);
+					blog("Type producer: `" STR_FMT "` generating: `" STR_FMT "` (%p; %i).", STR_ARG(producer_fn->linkage_name), STR_ARG(type_name), produced_type, produced_type->can_use_cache);
+					put_tmp_str(type_name);
+				}
+
+				/*
+			// Type might be shared so we have to duplicate it to record producer correctly
+			if (produced_type->can_use_cache && produced_type->producer != producer_fn) {
+				blog("Duplicate due to producer record.");
+				produced_type                = shallow_duplicate_type(ctx, produced_type);
+				produced_type->can_use_cache = false;
+
+				MIR_CEV_WRITE_AS(struct mir_type *, &call->base.value, produced_type);
+			}
+
+			produced_type->producer = producer_fn;
+				*/
+			}
+
 		} else if (call->base.value.type->kind != MIR_TYPE_VOID) {
 			// Replace call type inside recipe by placeholder since the function cannot be called.
 			call->base.value.type = ctx->builtin_types->t_placeholer;
@@ -5897,7 +5973,7 @@ struct result analyze_instr_addrof(struct context *ctx, struct mir_instr_addrof 
 			}
 			return_zone(FAIL);
 		} else if (isflag(fn->flags, FLAG_COMPTIME)) {
-			report_error(EXPECTED_DECL, addrof->base.node, "Cannot take the address of comptime marked function. It has no valid representation in runtime.");
+			report_error(EXPECTED_DECL, addrof->base.node, "Cannot take the address of comptime marked function. Compile time functions has no representation in runtime.");
 			report_note(fn->decl_node, "Function declared here:");
 		}
 
@@ -5989,7 +6065,7 @@ struct result analyze_instr_sizeof(struct context *ctx, struct mir_instr_sizeof 
 	bassert(szof->resolved_type);
 
 	if (is_incomplete_struct_type(szof->resolved_type)) {
-		// No need to do e deep check, only pointers to incomplete types are allowed so far.
+		// No need to do a deep check, only pointers to incomplete types are allowed so far.
 		struct mir_type *incomplete = szof->resolved_type;
 		if (incomplete->user_id) return_zone(WAIT(incomplete->user_id->hash));
 		return_zone(POSTPONE);
@@ -6054,6 +6130,49 @@ struct result analyze_instr_typeof(struct context *ctx, struct mir_instr_typeof 
 	default:
 		break;
 	}
+	return_zone(PASS);
+}
+
+struct result analyze_instr_is_produced_by(struct context *ctx, struct mir_instr_is_produced_by *ipb) {
+	zone();
+
+	if (!ipb->expr_type) {
+		if (sarrlenu(ipb->args) != 2) {
+			report_invalid_call_argument_count(ctx, ipb->base.node, 1, sarrlenu(ipb->args));
+			return_zone(FAIL);
+		}
+		ipb->expr     = sarrpeek(ipb->args, 0);
+		ipb->expected = sarrpeek(ipb->args, 1);
+
+		if (analyze_slot(ctx, analyze_slot_conf_basic, &ipb->expr, NULL) != ANALYZE_PASSED) {
+			return_zone(FAIL);
+		}
+
+		if (analyze_slot(ctx, analyze_slot_conf_basic, &ipb->expected, NULL) != ANALYZE_PASSED) {
+			return_zone(FAIL);
+		}
+
+		if (ipb->expected->value.type->kind != MIR_TYPE_FN) {
+			report_error(INVALID_TYPE, ipb->expected->node, "Type producer is supposed to be a function.");
+			return_zone(FAIL);
+		}
+
+		ipb->expr_type = ipb->expr->value.type;
+	}
+
+	bassert(ipb->expr_type);
+
+	if (is_incomplete_struct_type(ipb->expr_type)) {
+		struct mir_type *incomplete = ipb->expr_type;
+		if (incomplete->user_id) return_zone(WAIT(incomplete->user_id->hash));
+		return_zone(POSTPONE);
+	}
+
+	if (ipb->expr_type->kind == MIR_TYPE_TYPE) {
+		ipb->expr_type = MIR_CEV_READ_AS(struct mir_type *, &ipb->expr->value);
+		bmagic_assert(ipb->expr_type);
+	}
+
 	return_zone(PASS);
 }
 
@@ -7336,20 +7455,21 @@ struct result analyze_instr_type_struct(struct context *ctx, struct mir_instr_ty
 
 	struct mir_type *result_type = NULL;
 
+	struct mir_fn *declared_in_fn = mir_instr_owner_fn(&type_struct->base);
+
 	if (type_struct->fwd_decl) {
 		// Type has fwd declaration. In this case we set all desired information
 		// about struct type into previously created forward declaration.
 		result_type = complete_type_struct(ctx,
-		                                   &(complete_type_struct_args_t){
-		                                       .fwd_decl       = type_struct->fwd_decl,
-		                                       .scope          = type_struct->scope,
-		                                       .scope_layer    = type_struct->scope_layer,
-		                                       .members        = members,
-		                                       .base_type      = base_type,
-		                                       .is_packed      = type_struct->is_packed,
-		                                       .is_union       = type_struct->is_union,
-		                                       .is_multi_value = type_struct->is_multi_value,
-		                                   });
+		                                   .fwd_decl       = type_struct->fwd_decl,
+		                                   .scope          = type_struct->scope,
+		                                   .scope_layer    = type_struct->scope_layer,
+		                                   .members        = members,
+		                                   .base_type      = base_type,
+		                                   .is_packed      = type_struct->is_packed,
+		                                   .is_union       = type_struct->is_union,
+		                                   .is_multi_value = type_struct->is_multi_value,
+		                                   .declared_in_fn = declared_in_fn);
 
 		analyze_notify_provided(ctx, result_type->user_id->hash);
 	} else {
@@ -7361,7 +7481,8 @@ struct result analyze_instr_type_struct(struct context *ctx, struct mir_instr_ty
 		                                 .base_type      = base_type,
 		                                 .is_union       = is_union,
 		                                 .is_packed      = type_struct->is_packed,
-		                                 .is_multi_value = type_struct->is_multi_value);
+		                                 .is_multi_value = type_struct->is_multi_value,
+		                                 .declared_in_fn = declared_in_fn);
 	}
 
 	bassert(result_type);
@@ -8005,6 +8126,16 @@ struct result analyze_instr_ret(struct context *ctx, struct mir_instr_ret *ret) 
 			report_error(EXPECTED_COMPTIME, value->node, "Expected compile-time known value.");
 			return_zone(FAIL);
 		}
+
+		// struct mir_fn *fn = mir_instr_owner_fn(&ret->base);
+		// bassert(fn);
+		// if (value->value.type->kind == MIR_TYPE_TYPE && !fn->is_implicit_type_resolver) {
+		// 	struct mir_type *produced_type = MIR_CEV_READ_AS(struct mir_type *, &value->value);
+		// 	bmagic_assert(produced_type);
+		// 	str_buf_t type_name = mir_type2str(produced_type, true);
+		// 	blog("Type producer: `" STR_FMT "` generating: `" STR_FMT "` (%p; %i).", STR_ARG(fn->linkage_name), STR_ARG(type_name), produced_type, produced_type->can_use_cache);
+		// 	put_tmp_str(type_name);
+		// }
 	}
 
 	return_zone(PASS);
@@ -8827,6 +8958,7 @@ struct result analyze_call_stage_generate(struct context *ctx, struct mir_instr_
 			tbl_insert(recipe->entries, entry);
 		}
 
+		replacement_fn->generated.recipe_fn = recipe_fn;
 		batomic_fetch_add_s32(&ctx->assembly->stats.polymorph_count, 1);
 	} else {
 		replacement_fn = recipe->entries[index].replacement;
@@ -9813,6 +9945,9 @@ struct result analyze_instr(struct context *ctx, struct mir_instr *instr) {
 			break;
 		case MIR_INSTR_CAST:
 			state = analyze_instr_cast(ctx, (struct mir_instr_cast *)instr, false);
+			break;
+		case MIR_INSTR_IS_PRODUCED_BY:
+			state = analyze_instr_is_produced_by(ctx, (struct mir_instr_is_produced_by *)instr);
 			break;
 		case MIR_INSTR_SIZEOF:
 			state = analyze_instr_sizeof(ctx, (struct mir_instr_sizeof *)instr);
@@ -11365,6 +11500,8 @@ struct mir_instr *ast_expr_call(struct context *ctx, struct ast *call) {
 			return append_instr_msg(ctx, call, args, MIR_USER_MSG_ERROR);
 		} else if (is_builtin(ident, BUILTIN_ID_COMPILER_WARNING)) {
 			return append_instr_msg(ctx, call, args, MIR_USER_MSG_WARNING);
+		} else if (is_builtin(ident, BUILTIN_ID_IS_PRODUCED_BY)) {
+			return append_instr_is_produced_by(ctx, call, args);
 		}
 	}
 
@@ -12459,9 +12596,10 @@ struct mir_instr *ast_create_expr_resolver_call(struct context *ctx, str_t fn_na
 	fn_proto->value.type               = fn_type;
 
 	struct mir_fn *fn = create_fn(ctx,
-	                              .linkage_name = fn_name,
-	                              .prototype    = (struct mir_instr_fn_proto *)fn_proto,
-	                              .is_global    = true);
+	                              .linkage_name              = fn_name,
+	                              .prototype                 = (struct mir_instr_fn_proto *)fn_proto,
+	                              .is_global                 = true,
+	                              .is_implicit_type_resolver = true);
 
 	MIR_CEV_WRITE_AS(struct mir_fn *, &fn_proto->value, fn);
 
@@ -12679,6 +12817,8 @@ const char *mir_instr_name(const struct mir_instr *instr) {
 		return "InstrTypePtr";
 	case MIR_INSTR_TYPE_POLY:
 		return "InstrTypePoly";
+	case MIR_INSTR_IS_PRODUCED_BY:
+		return "InstrIsProducedBy";
 	case MIR_INSTR_ADDROF:
 		return "InstrAddrOf";
 	case MIR_INSTR_MEMBER_PTR:

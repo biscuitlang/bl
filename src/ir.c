@@ -3185,6 +3185,7 @@ enum state emit_instr(struct context *ctx, struct mir_instr *instr) {
 
 	case MIR_INSTR_SIZEOF:
 	case MIR_INSTR_ALIGNOF:
+	case MIR_INSTR_IS_PRODUCED_BY:
 	case MIR_INSTR_DECL_VARIANT:
 	case MIR_INSTR_DECL_MEMBER:
 	case MIR_INSTR_DECL_ARG:

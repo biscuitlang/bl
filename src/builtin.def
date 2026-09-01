@@ -72,6 +72,7 @@
     BUILTIN_ID_TYPEINFO,
     BUILTIN_ID_COMPILER_ERROR,
     BUILTIN_ID_COMPILER_WARNING,
+    BUILTIN_ID_IS_PRODUCED_BY,
 #endif
 
 #ifdef GEN_BUILTIN_IDS
@@ -148,4 +149,5 @@
     {.str.ptr = "typeinfo"              , .str.len = 8  },
     {.str.ptr = "compiler_error"        , .str.len = 14 },
     {.str.ptr = "compiler_warning"      , .str.len = 16 },
+    {.str.ptr = "is_produced_by"        , .str.len = 14 },
 #endif

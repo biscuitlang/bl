@@ -288,6 +288,9 @@ struct mir_fn {
 		// the function is comptime or has mixed arguments without any polymorph replacements this
 		// string may be NULL.
 		str_t debug_replacement_types;
+
+		// The original recipe function used to generate this function.
+		struct mir_fn *recipe_fn;
 	} generated;
 
 	// function body scope if there is one (optional)
@@ -304,6 +307,7 @@ struct mir_fn {
 	bool                 is_fully_analyzed;
 	bool                 is_global;
 	bool                 is_disabled; // Set based on optional enable_if expression in function prototype.
+	bool                 is_implicit_type_resolver;
 	s32                  ref_count;
 	enum ast_flags       flags;
 	enum builtin_id_kind builtin_id;
@@ -431,6 +435,8 @@ struct mir_type_struct {
 	// information.
 	struct mir_type *base_type;
 
+	struct mir_fn *declared_in_fn;
+
 	// Forward declaration struct type state.
 	enum mir_type_struct_fwd_state fwd_state;
 
@@ -477,6 +483,9 @@ struct mir_type {
 	// In case this is true, the type does not hold any unique state (e.g. s32, pointer to s32,
 	// etc.) and thus it can be cached instead of created each time when needed.
 	bool can_use_cache;
+
+	// Set once the type was created with polymorph function type generator.
+	struct mir_fn *producer;
 
 	union {
 		struct mir_type_int      integer;
@@ -665,7 +674,7 @@ struct mir_instr_sizeof {
 	struct mir_instr *expr;
 
 	// Used mainly to skip input expression analyze pass in case the type was incomplete.
-	struct mir_type *resolved_type;
+	struct mir_type *resolved_type; // @Cleanup 2026-08-31
 };
 
 struct mir_instr_alignof {
@@ -678,6 +687,14 @@ struct mir_instr_typeof {
 	struct mir_instr  base;
 	mir_instrs_t     *args; // Used only as temporary for analyze.
 	struct mir_instr *expr;
+};
+
+struct mir_instr_is_produced_by {
+	struct mir_instr  base;
+	mir_instrs_t     *args; // Used only as temporary for analyze.
+	struct mir_instr *expr;
+	struct mir_instr *expected;
+	struct mir_type  *expr_type;
 };
 
 enum mir_user_msg_kind {
