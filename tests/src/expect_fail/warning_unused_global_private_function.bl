@@ -2,5 +2,5 @@
 main :: fn () s32 {
 	return 0;
 }
-#private
+#scope_private
 foo :: fn () {}

@@ -1568,6 +1568,8 @@ main :: fn () s32 {
 
 So the comptime function has no runtime overhead.
 
+Note that the result of a compile-time evaluated function call may be cached and reused on subsequent calls instead of re-executing the function body. See the [#nocache](manual.html#nocache) directive for more details.
+
 **Pros:**
 
 - Since all comptime functions are evaluated in compile-time, there is no runtime overhead.
@@ -1611,6 +1613,16 @@ measure_runtime_in_debug_only_end :: fn () #enable_if IS_DEBUG {
 - The conditional function might return values, but in case the function is disabled the returned value on the call side is implicitly changed to `void` type. Such behavior is intentionally chosen to prevent possible issues with uninitialized variables.
 
 See also [static if](manual.html#Static-If).
+
+### nocache
+
+Compiler might cache result of compile-time execution in some cases when function is called, and later reuse cached value instead of invoking the function. Caching is used in case function meets following criteria:
+
+- Returns value which can be cached.
+- Is compile-time (`#comptime`).
+- Has no arguments or all passed arguments are compile-time (`#comptime`).
+
+Directive `#nocache` can be used to disable this functionality in case you really need function body to be invoked every time function is called.
 
 # Comments
 
@@ -2613,15 +2625,13 @@ Report warning in compile-time.
 - `#line` - Evaluates in `s32` number of current line in the file.
 - `#load` - See [here](manual.html#Load).
 - `#maybe_unused` - See [here](manual.html#Usage-Checks).
+- `#nocache` - See [here](manual.html#nocache).
 - `#noinit` - See [here](manual.html#Initialization).
 - `#noinline` - Disable function inlining.
-- `#obsolete` - Mark function as obsolete.
-	```bl
-	foo :: fn () #obsolete "Use bar instead!" {}
-	```
+- `#obsolete` - Mark function as obsolete. `foo :: fn () #obsolete "Use bar instead!" {}`
+- `#scope_module` - See [here](manual.html#Module-Scope).
 - `#scope_private` - See [here](manual.html#Private-Scope).
 - `#scope_public` - See [here](manual.html#Public-Scope).
-- `#scope_module` - See [here](manual.html#Module-Scope).
 - `#tag` - See [here](manual.html#Member-Tagging).
 - `#test` - See [here](manual.html#Unit-Testing).
 - `#thread_local` - See [here](manual.html#Global).

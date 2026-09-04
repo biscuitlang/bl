@@ -40,7 +40,7 @@ struct mir_arg;
 struct mir_var;
 struct mir_fn;
 struct mir_fn_group;
-struct mir_fn_generated_recipe;
+struct mir_fn_recipe;
 struct mir_const_expr_value;
 
 #define GEN_INSTR(kind, name) struct name;
@@ -56,7 +56,9 @@ struct mir_arenas {
 	struct arena variant;
 	struct arena arg;
 	struct arena fn_group;
-	struct arena fn_generated;
+	struct arena fn_recipe;
+	struct arena fn_dyncall;
+	struct arena fn_instance;
 	struct arena codegen;
 };
 
@@ -237,58 +239,59 @@ struct dyncall_cb_context {
 
 struct recipe_entry {
 	hash_t         hash;
+	str_t          key;
 	struct mir_fn *replacement;
 };
 
-struct mir_fn_generated_recipe {
+enum mir_fn_recipe_flavor {
+	MIR_FN_RECIPE_FLAVOR_NONE          = 0,
+	MIR_FN_RECIPE_FLAVOR_POLY          = 1 << 1,
+	MIR_FN_RECIPE_FLAVOR_COMPTIME_ARGS = 1 << 2,
+};
+
+struct mir_fn_recipe {
+	enum mir_fn_recipe_flavor flavor;
+
 	// Function literal (used for function replacement generation).
 	struct ast *ast_lit_fn;
 	// Scope layer solves symbol collisions in reused scopes.
 	hash_t scope_layer;
 	// Cache of already generated functions (replacement hash -> struct mir_fn*).
 	hash_table(struct recipe_entry) entries;
+
 	bmagic_member
 };
 
-enum mir_fn_generated_flavor_flags {
-	MIR_FN_GENERATED_NONE  = 0,
-	MIR_FN_GENERATED_POLY  = 1 << 1,
-	MIR_FN_GENERATED_MIXED = 1 << 2,
+struct mir_fn_dyncall {
+	DCpointer                 extern_entry;
+	DCCallback               *extern_callback_handle;
+	struct dyncall_cb_context context;
+};
+
+struct mir_fn_instance {
+	// Optional, this is set to first call location used for generation of this function from
+	// polymorph recipe.
+	struct ast *first_call_node;
+
+	// Optional, simple stringification of the original polymorph argument types used to
+	// generate this function, this may be useful to produce informative error messages. In case
+	// the function is comptime or has mixed arguments without any polymorph replacements this
+	// string may be NULL.
+	str_t debug_replacement_types;
+
+	// Optionally points to last execution result data, in case the function is marked as comptime.
+	vm_stack_ptr_t exec_result;
+	bool is_exec_result_cache_enabled;
 };
 
 typedef sarr_t(struct ast *, 8) defer_stack_t;
 
-// FN
-// @Performance: Make smaller version of the function for function recipes.
 struct mir_fn {
 	// Must be first!!!
 	struct mir_instr   *prototype;
 	struct id          *id;
 	struct ast         *decl_node;
 	struct scope_entry *scope_entry;
-
-	// Optional, set only in case this function instance is only "recipe" and it is later used to
-	// generate actual implementation based on some compile time known requirements. I.e.
-	// polymorphic type replacement or comptime value replacement.
-	struct mir_fn_generated_recipe *generation_recipe;
-
-	// Describe compile-time generated function, set for polymorph, mixed and comptime-called
-	// function.
-	enum mir_fn_generated_flavor_flags generated_flavor;
-
-	// This structure is initialized only in case this function is generated from polymorphic
-	// function recipe, it's not polymorph anymore (its type is also not polymorph).
-	struct {
-		// Optional, this is set to first call location used for generation of this function from
-		// polymorph recipe.
-		struct ast *first_call_node;
-
-		// Optional, simple stringification of the original polymorph argument types used to
-		// generate this function, this may be useful to produce informative error messages. In case
-		// the function is comptime or has mixed arguments without any polymorph replacements this
-		// string may be NULL.
-		str_t debug_replacement_types;
-	} generated;
 
 	// function body scope if there is one (optional)
 	struct scope    *body_scope;
@@ -316,16 +319,25 @@ struct mir_fn {
 	// Return instruction of function.
 	struct mir_instr_ret *terminal_instr;
 
-	// @Performance: This is needed only for external functions!
-	struct {
-		DCpointer                 extern_entry;
-		DCCallback               *extern_callback_handle;
-		struct dyncall_cb_context context;
-	} dyncall;              // dyncall external context
 	str_t obsolete_message; // Optional, check len!
 
 	hash_table(struct block_entry) phi_block_mapping;
 	defer_stack_t defer_stack;
+
+	// --------------------------------------------------------------------------------
+	// Optional function extensions.
+	// --------------------------------------------------------------------------------
+
+	// Set in case this function instance is only "recipe" and it is later used to generate actual implementation
+	// based on some compile time known requirements. i.e. polymorphic type replacement or comptime value replacement.
+	struct mir_fn_recipe *recipe_ext;
+
+	// Extension created for external/custom intrinsic functions or lazily set in case function pointer is passed to extern code.
+	struct mir_fn_dyncall *dyncall_ext;
+
+	// This extension is initialized only in case this function is generated from polymorphic function recipe, it's not
+	// polymorph anymore (its type is also not polymorph).
+	struct mir_fn_instance *instance_ext;
 
 	bmagic_member
 };
@@ -843,8 +855,9 @@ struct mir_instr_call {
 	const mir_call_analyze_stage_fn_t *analyze_pipeline;
 
 	// Pointer to called function resolved after overload resolution.
-	struct mir_fn *called_function;
-	mir_instrs_t  *args; // Optional
+	struct mir_fn   *called_fn;      // Might be null in case call is done via runtime pointer; thus function object is not available.
+	struct mir_type *called_fn_type; // Might not match type of called_fn in case of recipe instantiation resolve analyze process.
+	mir_instrs_t    *args;           // Optional
 
 	// True if the call is inside the function type recipe, we should not call it while evaluation
 	// is done + we have to replace the result type by placeholder.
@@ -853,10 +866,17 @@ struct mir_instr_call {
 	// Optional, set in case the function has error handler.
 	struct ast *catch_block;
 
+	struct {
+		struct mir_instr *type_resolver;
+		mir_types_t      *type_replacement_queue;
+		str_t             debug_replacement;
+	} instantiation;
+
 	// clang-format off
 	bcalled_once_member(prescan_args)
 	bcalled_once_member(resolve_overload)
-	bcalled_once_member(generate)
+	bcalled_once_member(generate_proto)
+	bcalled_once_member(generate_body)
 	bcalled_once_member(finalize)
 	// clang-format on
 };

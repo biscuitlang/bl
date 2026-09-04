@@ -214,10 +214,10 @@ void str_buf_append_fmt(str_buf_t *buf, const char *fmt, ...) {
 	va_end(args);
 }
 
-#define BVSNPRINT_NUMBER(T, T_VA_ARG) \
+#define BVSNPRINT_NUMBER(T, T_VA_ARG, fmt) \
 	if (str_match(f, cstr(#T))) { \
-		const s32 s       = va_arg(args, T_VA_ARG); \
-		const s32 tmp_len = snprintf(tmp, static_arrlenu(tmp), "%i", s); \
+		const T_VA_ARG s       = va_arg(args, T_VA_ARG); \
+		const s32      tmp_len = snprintf(tmp, static_arrlenu(tmp), fmt, s); \
 		if (buf) { \
 			const s32 len = MIN(space_left, tmp_len); \
 			memcpy(&buf[buf_index], tmp, len); \
@@ -268,12 +268,12 @@ s32 bvsnprint(char *buf, s32 buf_len, const char *fmt, va_list args) {
 			goto PASSED;
 		}
 
-		BVSNPRINT_NUMBER(s16, s32);
-		BVSNPRINT_NUMBER(u16, u32);
-		BVSNPRINT_NUMBER(s32, s32);
-		BVSNPRINT_NUMBER(u32, u32);
-		BVSNPRINT_NUMBER(s64, s64);
-		BVSNPRINT_NUMBER(u64, u64);
+		BVSNPRINT_NUMBER(s16, s32, "%i");
+		BVSNPRINT_NUMBER(u16, u32, "%u");
+		BVSNPRINT_NUMBER(s32, s32, "%i");
+		BVSNPRINT_NUMBER(u32, u32, "%u");
+		BVSNPRINT_NUMBER(s64, s64, "%lli");
+		BVSNPRINT_NUMBER(u64, u64, "%llu");
 
 		switch (*i) {
 		case 's': {

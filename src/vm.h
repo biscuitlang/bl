@@ -159,5 +159,6 @@ ptrdiff_t      vm_get_struct_elem_offset(struct assembly *assembly, const struct
 ptrdiff_t      vm_get_array_elem_offset(const struct mir_type *type, u32 i);
 vm_stack_ptr_t vm_get_struct_elem_ptr(struct assembly *assembly, const struct mir_type *type, vm_stack_ptr_t ptr, u32 i);
 vm_stack_ptr_t vm_get_array_elem_ptr(const struct mir_type *type, vm_stack_ptr_t ptr, u32 i);
+void           vm_serialize_const_expr_value(struct mir_const_expr_value *v, str_buf_t *out);
 
 #endif

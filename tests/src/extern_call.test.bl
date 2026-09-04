@@ -4,11 +4,24 @@ C :: #import "libc";
 qsort_arg_pass :: fn () #test {
 	arr          := [10]s32.{1, 5, 99, 3, 4, 8, 11, 23, 45, 103};
 	arr_expected :: [10]s32.{1, 3, 4, 5, 8, 11, 23, 45, 99, 103};
-	// print_log("before: %", arr);
 	C.qsort(auto arr.ptr, auto arr.len, sizeof(s32), &fn (a: C.void_ptr, b: C.void_ptr) C.int {
 		return (@ cast(*s32)a) - (@ cast(*s32)b);
 	});
-	// print_log("after: %", arr);
+
+	loop i := 0; i < arr.len; i += 1 {
+		test_eq(arr[i], arr_expected[i]);
+	}
+}
+
+callback :: fn (a: C.void_ptr, b: C.void_ptr) C.int {
+	return (@ cast(*s32)a) - (@ cast(*s32)b);
+}
+
+qsort_arg_pass_with_explicit_function :: fn () #test {
+	arr          := [10]s32.{1, 5, 99, 3, 4, 8, 11, 23, 45, 103};
+	arr_expected :: [10]s32.{1, 3, 4, 5, 8, 11, 23, 45, 99, 103};
+	C.qsort(auto arr.ptr, auto arr.len, sizeof(s32), &callback);
+	C.qsort(auto arr.ptr, auto arr.len, sizeof(s32), &callback); // Reuse same function.
 
 	loop i := 0; i < arr.len; i += 1 {
 		test_eq(arr[i], arr_expected[i]);

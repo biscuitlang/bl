@@ -109,7 +109,7 @@ void print_trace_impl(void);
 	(void)0
 #define bmagic_member                  void *_magic;
 #define bmagic_set(O)                  (O)->_magic = (void *)&(O)->_magic
-#define bcalled_once_member(name)      s32 _##name##_call_count;
+#define bcalled_once_member(name)      s8 _##name##_call_count;
 #define bcalled_once_assert(obj, name) bassert((obj)->_##name##_call_count++ == 0 && "Expected to be called only once!")
 #define bcheck_main_thread()           bassert(thrd_equal(MAIN_THREAD, thrd_current()) && "Function is supposed to be called from the main thread!")
 #define bcheck_true(expr)              bassert(expr)

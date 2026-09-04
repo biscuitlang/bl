@@ -3,6 +3,6 @@ main :: fn () s32 {
 	return 0;
 }
 
-#private
+#scope_private
 var: s32;
 

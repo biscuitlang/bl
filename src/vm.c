@@ -643,15 +643,18 @@ BL_EXPORT void *__dlib_symbol(DLLib *lib, const char *symname) {
 	if (!sym) return NULL;
 
 	// Create function for the found symbol.
-
 	const u32          thread_index = get_worker_index();
 	struct mir_arenas *arenas       = &assembly->thread_local_contexts[thread_index].mir_arenas;
 	struct mir_fn     *fn           = arena_alloc(&arenas->fn);
 	bmagic_set(fn);
-	fn->flags                = FLAG_EXTERN;
-	fn->is_global            = true;
-	fn->dyncall.extern_entry = sym;
-	fn->is_fully_analyzed    = true;
+
+	bassert(!fn->dyncall_ext);
+	fn->dyncall_ext = arena_alloc(&arenas->fn_dyncall);
+
+	fn->flags                     = FLAG_EXTERN;
+	fn->is_global                 = true;
+	fn->dyncall_ext->extern_entry = sym;
+	fn->is_fully_analyzed         = true;
 
 	return fn;
 }
@@ -864,12 +867,19 @@ const char *dyncall_generate_signature(struct virtual_machine *vm, struct mir_ty
 }
 
 DCCallback *dyncall_fetch_callback(struct virtual_machine *vm, struct mir_fn *fn) {
-	if (fn->dyncall.extern_callback_handle) return fn->dyncall.extern_callback_handle;
-	const char *sig     = dyncall_generate_signature(vm, fn->type);
-	fn->dyncall.context = (struct dyncall_cb_context){.fn = fn, .vm = vm};
-	fn->dyncall.extern_callback_handle =
-	    dcbNewCallback(sig, &dyncall_cb_handler, &fn->dyncall.context);
-	return fn->dyncall.extern_callback_handle;
+	const u32          thread_index = get_worker_index();
+	struct mir_arenas *arenas       = &vm->assembly->thread_local_contexts[thread_index].mir_arenas;
+
+	if (!fn->dyncall_ext) {
+		fn->dyncall_ext = arena_alloc(&arenas->fn_dyncall);
+	}
+
+	if (fn->dyncall_ext->extern_callback_handle) return fn->dyncall_ext->extern_callback_handle;
+	const char *sig          = dyncall_generate_signature(vm, fn->type);
+	fn->dyncall_ext->context = (struct dyncall_cb_context){.fn = fn, .vm = vm};
+	fn->dyncall_ext->extern_callback_handle =
+	    dcbNewCallback(sig, &dyncall_cb_handler, &fn->dyncall_ext->context);
+	return fn->dyncall_ext->extern_callback_handle;
 }
 
 void dyncall_push_arg(struct virtual_machine *vm, vm_stack_ptr_t val_ptr, struct mir_type *type) {
@@ -1816,7 +1826,8 @@ enum vm_interp_state interp_instr_call(struct virtual_machine *vm, struct mir_in
 		return VM_INTERP_POSTPONE;
 	}
 	if (isflag(fn->flags, FLAG_EXTERN) || isflag(fn->flags, FLAG_INTRINSIC)) {
-		interp_extern_call(vm, call, fn->linkage_name, callee_type, fn->dyncall.extern_entry);
+		bassert(fn->dyncall_ext);
+		interp_extern_call(vm, call, fn->linkage_name, callee_type, fn->dyncall_ext->extern_entry);
 	} else {
 		// Push current frame stack top. (Later popped by ret instruction)
 		push_ra(vm, call);
@@ -2440,8 +2451,8 @@ void vm_print_backtrace(struct virtual_machine *vm) {
 			break;
 		}
 		struct mir_fn *fn = instr->owner_block->owner_fn;
-		if (fn && fn->generated.debug_replacement_types.len) {
-			const str_t replacement = fn->generated.debug_replacement_types;
+		if (fn && fn->instance_ext && fn->instance_ext->debug_replacement_types.len) {
+			const str_t replacement = fn->instance_ext->debug_replacement_types;
 			builder_msg(MSG_ERR_NOTE,
 			            0,
 			            instr->node->location,
@@ -2597,12 +2608,21 @@ static struct get_snapshot_result get_snapshot(struct virtual_machine *vm, struc
 
 enum vm_interp_state vm_execute_comptime_call(struct virtual_machine *vm, struct assembly *assembly, struct mir_instr_call *call) {
 	zone();
-	mtx_lock(&vm->lock);
-	vm->assembly = assembly;
 	bassert(call && isflag(call->base.state, MIR_IS_ANALYZED));
 	bassert(mir_is_comptime(&call->base) && "Top level call is expected to be comptime.");
 	struct mir_fn *fn = mir_get_callee(call);
 	bmagic_assert(fn);
+
+	const bool use_result_cache = fn->instance_ext && fn->instance_ext->is_exec_result_cache_enabled;
+
+	if (use_result_cache && fn->instance_ext->exec_result) {
+		// blog("Use cached execution result for " STR_FMT, STR_ARG(fn->linkage_name));
+		call->base.value.data = fn->instance_ext->exec_result;
+		return_zone(VM_INTERP_PASSED);
+	}
+
+	mtx_lock(&vm->lock);
+	vm->assembly = assembly;
 
 	// Compile-time calls use custom execution stack since its execution can be postponed.
 	struct get_snapshot_result snapshot       = get_snapshot(vm, call);
@@ -2645,6 +2665,9 @@ enum vm_interp_state vm_execute_comptime_call(struct virtual_machine *vm, struct
 			}
 			memcpy(dest, ptr, ret_type->store_size_bytes);
 			call->base.value.data = dest;
+			if (use_result_cache) {
+				fn->instance_ext->exec_result = dest;
+			}
 		} else {
 			call->base.value.data = NULL;
 		}
@@ -2986,4 +3009,25 @@ void vm_do_cast(vm_stack_ptr_t   dest,
 	default:
 		babort("invalid cast operation");
 	}
+}
+
+void vm_serialize_const_expr_value(struct mir_const_expr_value *v, str_buf_t *out) {
+	bassert(v->is_comptime);
+	static const char hex_digits[] = "0123456789abcdef";
+
+	const s32 num_bytes = (s32)v->type->store_size_bytes;
+	const u8 *bytes     = (const u8 *)v->data;
+
+	str_buf_t tmp = get_tmp_str();
+	for (s32 i = 0; i < num_bytes; ++i) {
+		const u8 byte        = bytes[i];
+		char     hex_pair[2] = {
+            hex_digits[(byte >> 4) & 0xF],
+            hex_digits[byte & 0xF],
+        };
+		_str_buf_append(&tmp, &hex_pair[0], 2);
+	}
+
+	str_buf_append(out, str_buf_view(tmp));
+	put_tmp_str(tmp);
 }

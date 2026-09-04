@@ -396,6 +396,7 @@ struct ast *parse_hash_directive(struct context *ctx, s32 expected_mask, enum ha
 	case HD_ENTRY:
 	case HD_MAYBE_UNUSED:
 	case HD_COMPTIME:
+	case HD_NO_CACHE:
 	case HD_COMPILER: {
 		// only flags
 		return_zone(NULL);
@@ -883,6 +884,7 @@ bool hash_directive_to_flags(enum hash_directive_flags hd, u32 *out_flags) {
 		FLAG_CASE(HD_BUILD_ENTRY, FLAG_BUILD_ENTRY);
 		FLAG_CASE(HD_COMPILER, FLAG_COMPILER);
 		FLAG_CASE(HD_INLINE, FLAG_INLINE);
+		FLAG_CASE(HD_NO_CACHE, FLAG_NO_CACHE);
 		FLAG_CASE(HD_NO_INLINE, FLAG_NO_INLINE);
 		FLAG_CASE(HD_NO_INIT, FLAG_NO_INIT);
 		FLAG_CASE(HD_TEST_FN, FLAG_TEST_FN);
@@ -1680,7 +1682,7 @@ struct ast *parse_expr_lit_fn(struct context *ctx) {
 	if (curr_decl && curr_decl->kind == AST_DECL_ENTITY) {
 		u32 accepted = HD_EXTERN | HD_NO_INLINE | HD_INLINE | HD_COMPILER | HD_ENTRY |
 		               HD_BUILD_ENTRY | HD_INTRINSIC | HD_TEST_FN | HD_EXPORT | HD_COMPTIME |
-		               HD_MAYBE_UNUSED | HD_OBSOLETE | HD_ENABLE_IF;
+		               HD_MAYBE_UNUSED | HD_OBSOLETE | HD_ENABLE_IF | HD_NO_CACHE;
 		u32 flags    = 0;
 		while (true) {
 			enum hash_directive_flags found        = HD_NONE;

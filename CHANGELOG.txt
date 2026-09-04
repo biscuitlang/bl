@@ -12,6 +12,9 @@ master
 - Fix SIMD bug in lexer ident scans by adding safety padding to loaded source files.
 - Add atomic intrinsic functions and custom generation of these to LLVM.
 - Add new functions to custom LLVM wrapper.
+- Redesign polymorph function generation to reduce amount of generated functions.
+- Add comptime evaluation call result cache. Used on some comptime functions.
+- Add #nocache directive to explicitly disable call-side result caching on comptime functions, see the documentation: https://biscuitlang.org/versions/master/manual.html#nocache.
 
 [Modules]
 

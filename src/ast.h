@@ -36,6 +36,7 @@ enum ast_flags {
 	FLAG_COMPTIME     = 1 << 14, // compile-time execution
 	FLAG_MAYBE_UNUSED = 1 << 15, // to markup unused declarations
 	FLAG_OBSOLETE     = 1 << 16, // obsolete functions
+	FLAG_NO_CACHE     = 1 << 17, // disable comptime execution cache for function
 };
 
 enum binop_kind {
