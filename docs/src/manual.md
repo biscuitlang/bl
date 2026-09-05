@@ -1620,7 +1620,8 @@ Compiler might cache result of compile-time execution in some cases when functio
 
 - Returns value which can be cached.
 - Is compile-time (`#comptime`).
-- Has no arguments or all passed arguments are compile-time (`#comptime`).
+- Has at least one argument.
+- All passed arguments are compile-time (`#comptime`).
 
 Directive `#nocache` can be used to disable this functionality in case you really need function body to be invoked every time function is called.
 

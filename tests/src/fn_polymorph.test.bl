@@ -146,3 +146,33 @@ get_type :: fn (T: type #comptime) T #comptime {
 foo :: fn (v: ?T) get_type(T) {
 	return v;
 }
+
+instance_cache :: fn () #test {
+	foo :: fn (_: ?T) u64 #noinline { // noinline otherwise inlined in release mode
+		a: s32;
+		return cast(u64) &a;
+	};
+
+	// Skip in comptime run, address of 'a' is allocated on stack once again on every run.
+	if IS_COMPTIME_RUN then return;
+
+	first :: foo(10);
+	test_eq(foo(20), first);
+
+	n1 : s32 = 10;
+	test_eq(foo(n1), first);
+
+	n2 : s64 = 10;
+	test_eq(foo(cast(s32)n2), first);
+
+	// Different arg type should generate a new function.
+	n3: u8;
+	second :: foo(n3);
+
+	n4 : u8 = 10;
+	test_eq(foo(n4), second);
+
+	n5 : s64 = 10;
+	test_eq(foo(cast(u8)n5), second);
+
+}

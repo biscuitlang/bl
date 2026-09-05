@@ -21,22 +21,22 @@ x :: foo() catch {}
  */
 
 #import "std/print"
-atomic :: #import "std/atomic";
+#import "std/test"
+
+foo :: fn (_: ?T) u64 {
+	a: s32;
+	return cast(u64) &a;
+}
 
 main :: fn () s32 {
-	{
-		n: atomic.s32_a;
-		atomic.store(&n, 10);
-		v :: atomic.load(&n);
-		print_log("v = %\n", v);
-	}
+	first :: foo(10);
+	test_eq(foo(20), first);
 
-	{
-		n: atomic.bool_a;
-		atomic.store(&n, true);
-		v :: atomic.load(&n);
-		print_log("v = %\n", v);
-	}
+	n1 : s32 = 10;
+	test_eq(foo(n1), first);
+
+	n2 : s64 = 10;
+	test_eq(foo(cast(s32)n2), first);
 
 	return 0;
 }

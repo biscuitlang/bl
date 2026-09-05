@@ -1,0 +1,130 @@
+#scope_private
+
+instance_cache_poly :: fn () #test {
+	foo :: fn (_: ?T) u64 #noinline { // noinline otherwise inlined in release mode
+		a: s32;
+		return cast(u64) &a;
+	};
+
+	// Skip in comptime run, address of 'a' is allocated on stack once again on every run.
+	if IS_COMPTIME_RUN then return;
+
+	first :: foo(10);
+	test_eq(foo(20), first);
+
+	n1 : s32 = 10;
+	test_eq(foo(n1), first);
+
+	n2 : s64 = 10;
+	test_eq(foo(cast(s32)n2), first);
+
+	// Different arg type should generate a new function.
+	second :: foo(cast(u8) 10);
+
+	n3 : u8 = 10;
+	test_eq(foo(n3), second);
+
+	n4 : s64 = 10;
+	test_eq(foo(cast(u8)n4), second);
+}
+
+instance_cache_comptime :: fn () #test {
+	foo :: fn (_: s32 #comptime) u64 #noinline { // noinline otherwise inlined in release mode
+		a: s32;
+		return cast(u64) &a;
+	};
+
+	// Skip in comptime run, address of 'a' is allocated on stack once again on every run.
+	if IS_COMPTIME_RUN then return;
+
+	first :: foo(10);
+	test_eq(foo(10), first);
+
+	N1 : s32 : 10;
+	test_eq(foo(N1), first);
+
+	N2 : s64 : 10;
+	test_eq(foo(cast(s32) N2), first);
+
+	second :: foo(20);
+	test_eq(foo(20), second);
+
+	N3 : s32 : 20;
+	test_eq(foo(N3), second);
+
+	N4 : s64 : 20;
+	test_eq(foo(cast(s32) N4), second);
+}
+
+instance_cache_poly_comptime :: fn () #test {
+	foo :: fn (_: ?T, _: T #comptime) u64 #noinline { // noinline otherwise inlined in release mode
+		a: s32;
+		return cast(u64) &a;
+	};
+
+	// Skip in comptime run, address of 'a' is allocated on stack once again on every run.
+	if IS_COMPTIME_RUN then return;
+
+	first :: foo(1, 10);
+	test_eq(foo(2, 10), first);
+	n1 : s32 = 3;
+	test_eq(foo(n1, 10), first);
+	N1 : s32 : 10;
+	test_eq(foo(4, N1), first);
+
+	second :: foo(1, 20);
+	test_eq(foo(2, 20), second);
+	n2 : s32 = 5;
+	test_eq(foo(n2, 20), second);
+	N2 : s32 : 20;
+	test_eq(foo(6, N2), second);
+
+	third :: foo(cast(u8) 1, 10);
+	n3 : u8 = 5;
+	test_eq(foo(n3, 10), third);
+	N3 : u8 : 10;
+	test_eq(foo(cast(u8) 6, N3), third);
+
+	fourth :: foo(cast(u8) 1, 20);
+	test_eq(foo(cast(u8) 2, 20), fourth);
+	N4 : u8 : 20;
+	test_eq(foo(cast(u8) 3, N4), fourth);
+}
+
+instance_result_not_cached_no_args :: fn () #test {
+	foo :: fn () u64 #comptime {
+		os_sleep_ms(10);
+		return os_tick_ms();
+	};
+
+	first :: foo();
+	test_neq(foo(), first);
+	test_neq(foo(), first);
+}
+
+instance_result_cached :: fn () #test {
+	foo :: fn (_: s32 #comptime) u64 #comptime {
+		os_sleep_ms(10);
+		return os_tick_ms();
+	};
+
+	first :: foo(1);
+	test_eq(foo(1), first);
+	test_eq(foo(1), first);
+
+	second :: foo(2);
+	test_neq(second, first);
+	test_eq(foo(2), second);
+	test_eq(foo(2), second);
+}
+
+instance_result_cache_disabled :: fn () #test {
+	foo :: fn (_: s32 #comptime) u64 #comptime #nocache {
+		os_sleep_ms(10);
+		return os_tick_ms();
+	};
+
+	first :: foo(1);
+	test_neq(foo(1), first);
+	test_neq(foo(1), first);
+}
