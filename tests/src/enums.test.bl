@@ -249,3 +249,24 @@ resolve_base_type_in_namespace :: fn () #test {
 	info :: cast(*TypeInfoEnum) typeinfo(E);
 	test_eq(info.base_type, typeinfo(C.char));
 }
+
+enum_type_deduction_inside_poly_1 :: fn () #test {
+	foo :: fn (_: ?T) {
+		v: ABC;
+		v = .A;
+		test_eq(v, ABC.A);
+	};
+
+	foo(10);
+}
+
+enum_type_deduction_inside_poly_2 :: fn () #test {
+	foo :: fn (_: ?T) {
+		E :: enum { A; B; };
+		v: E;
+		v = E.B;
+		test_eq(v, E.B);
+	};
+
+	foo(10);
+}

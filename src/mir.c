@@ -257,6 +257,7 @@ typedef struct
 {
 	struct id       *user_id;
 	struct scope    *scope;
+	hash_t           scope_layer;
 	struct mir_type *base_type;
 	mir_variants_t  *variants;
 	const bool       is_flags;
@@ -446,7 +447,18 @@ typedef struct {
 static struct mir_instr *_append_instr_type_struct(struct context *ctx, append_instr_type_struct_args_t *args);
 #define append_instr_type_struct(ctx, ...) _append_instr_type_struct((ctx), &(append_instr_type_struct_args_t){__VA_ARGS__})
 
-static struct mir_instr *append_instr_type_enum(struct context *ctx, struct ast *node, struct id *id, struct scope *scope, mir_instrs_t *variants, struct mir_instr *base_type, bool is_flags);
+typedef struct {
+	struct ast       *node;
+	struct id        *id;
+	struct scope     *scope;
+	hash_t            scope_layer;
+	mir_instrs_t     *variants;
+	struct mir_instr *base_type;
+	bool              is_flags;
+} append_instr_type_enum_args_t;
+static struct mir_instr *_append_instr_type_enum(struct context *ctx, append_instr_type_enum_args_t *args);
+#define append_instr_type_enum(ctx, ...) _append_instr_type_enum((ctx), &(append_instr_type_enum_args_t){__VA_ARGS__})
+
 static struct mir_instr *append_instr_type_ptr(struct context *ctx, struct ast *node, struct mir_instr *type);
 static struct mir_instr *append_instr_type_poly(struct context *ctx, struct ast *node, struct id *T_id);
 static struct mir_instr *append_instr_type_array(struct context *ctx, struct ast *node, struct id *id, struct mir_instr *elem_type, struct mir_instr *len);
@@ -2528,14 +2540,15 @@ static struct mir_type *_create_type_enum(struct context *ctx, create_type_enum_
 		goto DONE;
 	}
 
-	result                     = create_type(ctx, MIR_TYPE_ENUM, args->user_id);
-	result->id.hash            = hash;
-	result->id.str             = scdup2(ctx->string_cache, name);
-	result->data.enm.scope     = args->scope;
-	result->data.enm.base_type = args->base_type;
-	result->data.enm.variants  = args->variants;
-	result->data.enm.is_flags  = args->is_flags;
-	result->can_use_cache      = true;
+	result                       = create_type(ctx, MIR_TYPE_ENUM, args->user_id);
+	result->id.hash              = hash;
+	result->id.str               = scdup2(ctx->string_cache, name);
+	result->data.enm.scope       = args->scope;
+	result->data.enm.scope_layer = args->scope_layer;
+	result->data.enm.base_type   = args->base_type;
+	result->data.enm.variants    = args->variants;
+	result->data.enm.is_flags    = args->is_flags;
+	result->can_use_cache        = true;
 
 	type_init_llvm_enum(ctx, result);
 
@@ -3473,20 +3486,20 @@ struct mir_instr *_append_instr_type_struct(struct context *ctx, append_instr_ty
 	return &tmp->base;
 }
 
-struct mir_instr *
-append_instr_type_enum(struct context *ctx, struct ast *node, struct id *id, struct scope *scope, mir_instrs_t *variants, struct mir_instr *base_type, bool is_flags) {
-	struct mir_instr_type_enum *tmp = create_instr(ctx, MIR_INSTR_TYPE_ENUM, node);
+struct mir_instr *_append_instr_type_enum(struct context *ctx, append_instr_type_enum_args_t *args) {
+	struct mir_instr_type_enum *tmp = create_instr(ctx, MIR_INSTR_TYPE_ENUM, args->node);
 	tmp->base.value.type            = ctx->builtin_types->t_type;
 	tmp->base.value.is_comptime     = true;
 	tmp->base.value.addr_mode       = MIR_VAM_RVALUE;
-	tmp->variants                   = variants;
-	tmp->scope                      = scope;
-	tmp->user_id                    = id;
-	tmp->base_type                  = base_type;
-	tmp->is_flags                   = is_flags;
+	tmp->variants                   = args->variants;
+	tmp->scope                      = args->scope;
+	tmp->scope_layer                = args->scope_layer,
+	tmp->user_id                    = args->id;
+	tmp->base_type                  = args->base_type;
+	tmp->is_flags                   = args->is_flags;
 
-	for (usize i = 0; i < sarrlenu(variants); ++i) {
-		ref_instr(sarrpeek(variants, i));
+	for (usize i = 0; i < sarrlenu(args->variants); ++i) {
+		ref_instr(sarrpeek(args->variants, i));
 	}
 
 	append_current_block(ctx, &tmp->base);
@@ -5634,7 +5647,7 @@ struct result analyze_instr_member_ptr(struct context *ctx, struct mir_instr_mem
 			struct ast *ident = member_ptr->id.ident;
 
 			struct scope       *scope       = sub_type->data.enm.scope;
-			const hash_t        scope_layer = SCOPE_DEFAULT_LAYER; // @Incomplete
+			const hash_t        scope_layer = sub_type->data.enm.scope_layer;
 			struct scope_entry *found       = NULL;
 			scope_lookup(ctx->assembly, scope, &(scope_lookup_args_t){
 			                                       .layer = scope_layer,
@@ -7548,14 +7561,12 @@ struct result analyze_instr_type_poly(struct context *ctx, struct mir_instr_type
 struct result analyze_instr_type_enum(struct context *ctx, struct mir_instr_type_enum *type_enum) {
 	zone();
 	mir_instrs_t *variant_instrs = type_enum->variants;
-	struct scope *scope          = type_enum->scope;
 	const bool    is_flags       = type_enum->is_flags;
-	bassert(scope);
 	bassert(sarrlenu(variant_instrs));
 	// Validate and setup enum base type.
 	struct mir_type *base_type;
 	if (type_enum->base_type) {
-		// @Incomplete: Enum should probably use type resolver as well?
+		// @Incomplete 2026-09-05: Enum should probably use type resolver as well?
 		base_type = MIR_CEV_READ_AS(struct mir_type *, &type_enum->base_type->value);
 		bmagic_assert(base_type);
 
@@ -7579,12 +7590,14 @@ struct result analyze_instr_type_enum(struct context *ctx, struct mir_instr_type
 		bassert(variant && "Missing variant.");
 		sarrput(variants, variant);
 	}
+
 	struct mir_type *type = create_type_enum(ctx,
-	                                         .user_id   = type_enum->user_id,
-	                                         .scope     = scope,
-	                                         .base_type = base_type,
-	                                         .variants  = variants,
-	                                         .is_flags  = is_flags);
+	                                         .user_id     = type_enum->user_id,
+	                                         .scope       = type_enum->scope,
+	                                         .scope_layer = type_enum->scope_layer,
+	                                         .base_type   = base_type,
+	                                         .variants    = variants,
+	                                         .is_flags    = is_flags);
 
 	MIR_CEV_WRITE_AS(struct mir_type *, &type_enum->base.value, type);
 	return_zone(PASS);
@@ -9723,7 +9736,8 @@ struct result analyze_propagate_inferred_type(struct context *ctx, struct mir_in
 		decl_ref->base.value.type           = type;
 		if (type->kind == MIR_TYPE_ENUM) {
 			bassert(type->data.enm.scope);
-			decl_ref->scope = type->data.enm.scope;
+			decl_ref->scope       = type->data.enm.scope;
+			decl_ref->scope_layer = type->data.enm.scope_layer;
 		} else {
 			report_error(INVALID_TYPE, instr->node, INVALID_ENUM_TYPE_INFER_MESSAGE);
 			return FAIL;
@@ -12428,7 +12442,14 @@ struct mir_instr *ast_type_enum(struct context *ctx, struct ast *type_enum) {
 	}
 	// Consume declaration identifier.
 	struct id *id = type_enum->data.type_enm.user_id;
-	return append_instr_type_enum(ctx, type_enum, id, scope, variants, base_type, is_flags);
+	return append_instr_type_enum(ctx,
+	                              .node        = type_enum,
+	                              .id          = id,
+	                              .scope       = scope,
+	                              .scope_layer = ctx->codegen->current_scope_layer,
+	                              .variants    = variants,
+	                              .base_type   = base_type,
+	                              .is_flags    = is_flags);
 }
 
 struct mir_instr *ast_type_struct(struct context *ctx, struct ast *type_struct) {

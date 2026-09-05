@@ -281,7 +281,7 @@ struct mir_fn_instance {
 
 	// Optionally points to last execution result data, in case the function is marked as comptime.
 	vm_stack_ptr_t exec_result;
-	bool is_exec_result_cache_enabled;
+	bool           is_exec_result_cache_enabled;
 };
 
 typedef sarr_t(struct ast *, 8) defer_stack_t;
@@ -459,8 +459,8 @@ struct mir_type_struct {
 
 // Enum variants must be baked into enum type.
 struct mir_type_enum {
-	struct scope *scope;
-	// @Incomplete: missing scope_layer!
+	struct scope    *scope;
+	hash_t           scope_layer;
 	struct mir_type *base_type;
 	mir_variants_t  *variants;
 	bool             is_flags;
@@ -804,6 +804,7 @@ struct mir_instr_type_enum {
 	struct mir_instr  base;
 	struct id        *user_id;
 	struct scope     *scope;
+	hash_t            scope_layer;
 	mir_instrs_t     *variants;
 	struct mir_instr *base_type;
 	bool              is_flags;

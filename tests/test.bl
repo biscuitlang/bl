@@ -23,31 +23,16 @@ x :: foo() catch {}
 #import "std/print"
 #import "std/test"
 
-dont_use_cache :: fn () #comptime {
-}
 
-dont_use_cache :: fn () #comptime {
-}
 
-dont_use_cache :: fn () s32 #comptime {
-	...
-}
-
-use_cache :: fn (N: s32 #comptime) s32 #comptime {
-}
-
-dont_use_cache :: fn (N: s32 #comptime) s32 #comptime #nocache {
-}
+Enum :: enum foo() { A; B; }
 
 main :: fn () s32 {
-	first :: foo(10);
-	test_eq(foo(20), first);
-
-	n1 : s32 = 10;
-	test_eq(foo(n1), first);
-
-	n2 : s64 = 10;
-	test_eq(foo(cast(s32)n2), first);
-
+	s: Enum;
 	return 0;
 }
+
+foo :: fn () type #comptime {
+	return s32;
+}
+
