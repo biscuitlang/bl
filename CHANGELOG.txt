@@ -15,6 +15,7 @@ master
 - Redesign polymorph function generation to reduce amount of generated functions.
 - Add comptime evaluation call result cache. Used on some comptime functions.
 - Add #nocache directive to explicitly disable call-side result caching on comptime functions, see the documentation: https://biscuitlang.org/versions/master/manual.html#nocache.
+- Fix enum type propagation in polymorph instances.
 
 [Modules]
 

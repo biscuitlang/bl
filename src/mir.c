@@ -6900,9 +6900,16 @@ struct result analyze_instr_load(struct context *ctx, struct mir_instr_load *loa
 		enum mir_value_address_mode addr_mode = src->value.addr_mode;
 		if (load->is_deref) {
 			// Check if we're dereferencing pointer.
-			if (is_additional_load_needed && !mir_is_pointer_type(type)) {
-				err_type = type;
-				goto INVALID_SRC;
+			if (is_additional_load_needed) {
+				if (!mir_is_pointer_type(type)) {
+					err_type = type;
+					goto INVALID_SRC;
+				}
+
+				if (mir_deref_type(type)->kind == MIR_TYPE_FN) {
+					report_error(INVALID_TYPE, src->node, "Function pointers cannot be dereferenced. Function pointers are supposed to be called directly.");
+					return_zone(FAIL);
+				}
 			}
 
 			if (!mir_is_comptime(src)) {

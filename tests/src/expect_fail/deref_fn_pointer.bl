@@ -1,0 +1,7 @@
+// @ERR_INVALID_TYPE@
+foo :: fn (n: f32) {}
+main :: fn () s32 {
+	addr :: &foo;
+	(@addr)(1.f);
+	return 0;
+}
