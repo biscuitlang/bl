@@ -23,9 +23,20 @@ x :: foo() catch {}
 #import "std/print"
 #import "std/test"
 
-foo :: fn (_: ?T) u64 {
-	a: s32;
-	return cast(u64) &a;
+dont_use_cache :: fn () #comptime {
+}
+
+dont_use_cache :: fn () #comptime {
+}
+
+dont_use_cache :: fn () s32 #comptime {
+	...
+}
+
+use_cache :: fn (N: s32 #comptime) s32 #comptime {
+}
+
+dont_use_cache :: fn (N: s32 #comptime) s32 #comptime #nocache {
 }
 
 main :: fn () s32 {

@@ -1625,6 +1625,28 @@ Compiler might cache result of compile-time execution in some cases when functio
 
 Directive `#nocache` can be used to disable this functionality in case you really need function body to be invoked every time function is called.
 
+**Example**
+
+```bl
+dont_use_cache :: fn () #comptime {
+}
+
+dont_use_cache :: fn () s32 #comptime {
+}
+
+dont_use_cache :: fn (v: s32) s32 #comptime {
+}
+
+dont_use_cache :: fn (v: s32, N: s32 #comptime) s32 #comptime {
+}
+
+use_cache :: fn (v: s32 #comptime, N: s32 #comptime) s32 #comptime {
+}
+
+dont_use_cache :: fn (v: s32 #comptime, N: s32 #comptime) s32 #comptime #nocache {
+}
+```
+
 # Comments
 
 Simple documentation can be written directly into the code the same way as in other programming languages, simply by adding comments. The BL comments use the same syntax as in C. You can write a single-line comment or multi-line comment as needed. You can also write documentation directly into the code and let the compiler generate *markdown* files for you.

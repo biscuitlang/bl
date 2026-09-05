@@ -804,7 +804,7 @@ BL_DIRECTIVES :: [_]string_view.{
 	"inline", "noinline", "file", "line", "base", "entry", "build_entry",
 	"if", "tag", "noinit", "intrinsic", "test", "import", "export",
 	"scope_private", "scope_public", "scope_module", "thread_local",
-	"flags", "maybe_unused", "comptime", "obsolete",
+	"flags", "maybe_unused", "comptime", "obsolete", "nocache",
 };
 
 append_bl_code :: fn (ctx: *Ctx, code: string_view) {
