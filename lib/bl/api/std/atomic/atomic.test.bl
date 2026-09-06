@@ -143,6 +143,18 @@ simple_exchange :: fn () #test {
 	exchange_test(s16);
 	exchange_test(s32);
 	exchange_test(s64);
+
+	{
+		n := make(bool, false);
+		test_false(exchange(&n, true));
+		test_true(n.base);
+	}
+
+	{
+		n := make(bool, true);
+		test_true(exchange(&n, false));
+		test_false(n.base);
+	}
 }
 
 compare_exchange_test :: fn (T: type #comptime) {

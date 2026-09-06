@@ -32,6 +32,7 @@ extra/sdl3
 std/atomic
 - Added module.
 - Add `Atomic(T)` type and partial support for atomic bools.
+- Add missing support for atomic exchange on bools.
 
 std/message_queue
 - Added module.

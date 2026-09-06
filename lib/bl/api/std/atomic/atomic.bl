@@ -18,7 +18,7 @@ MemoryOrdering :: enum {
 /// Creates new atomic type for `T` type. Currently only integer types and boolean type are supported for `T`.
 ///
 /// !!! note
-///     For boolean type, only `load` and `store` operations are supported now.
+///     For boolean type, only `load`, `store` and `exchange` operations are supported now.
 Atomic :: fn (T: type #comptime) type #comptime {
 	#if T == bool {
 		// Padding added so we can manipulate this via i32 atomic API
@@ -108,10 +108,21 @@ exchange :: fn (ptr: *?TAtomic, v: TAtomic.base, ordering := MemoryOrdering.SEQU
 	#if ordering == MemoryOrdering.UNORDERED {
 		compiler_error("Invalid memory ordering 'MemoryOrdering.UNORDERED' for 'exchange'.");
 	}
-	#if !is_number(TAtomic.base) {
-		compiler_error("Integer type is required for 'exchange'.");
+	#if !is_number(TAtomic.base) && (TAtomic.base != bool) {
+		compiler_error("Integer or boolean type is required for 'exchange'.");
 	}
-	return _atomic_rmw(&ptr.base, v, ordering, OpKind.XCH);
+
+	#if TAtomic.base == bool {
+		static_assert(sizeof(TAtomic) == sizeof(s32));
+		b : s32 : if v then 1 else 0;
+		if _atomic_rmw_s32(&ptr.as_int, b, ordering, OpKind.XCH) == 0 {
+			return false;
+		} else {
+			return true;
+		}
+	} else {
+		return _atomic_rmw(&ptr.base, v, ordering, OpKind.XCH);
+	}
 }
 
 /// Atomically compares values held by `ptr` and `expected`. If they are equal, `desired` value is atomically written into `ptr`, otherwise `ptr` value is written to `expected`.
@@ -143,7 +154,7 @@ load :: fn (ptr: *?TAtomic, ordering := MemoryOrdering.SEQUENTIALLY_CONSISTENT #
 	#if TAtomic.base == bool {
 		static_assert(sizeof(TAtomic) == sizeof(s32));
 
-		if _atomic_load_s32(auto ptr, ordering) == 0 {
+		if _atomic_load_s32(&ptr.as_int, ordering) == 0 {
 			return false;
 		} else {
 			return true;
@@ -167,7 +178,7 @@ store :: fn (ptr: *?TAtomic, v: TAtomic.base, ordering := MemoryOrdering.SEQUENT
 		static_assert(sizeof(TAtomic) == sizeof(s32));
 
 		b : s32 : if v then 1 else 0;
-		_atomic_store_s32(auto ptr, b, ordering);
+		_atomic_store_s32(&ptr.as_int, b, ordering);
 	} else {
 		_atomic_store(&ptr.base, v, ordering);
 	}
