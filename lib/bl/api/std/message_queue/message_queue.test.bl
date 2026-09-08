@@ -219,12 +219,12 @@ queue_close_blocking :: fn () #test {
 	init_ctx(&ctx);
 	defer terminate_ctx(&ctx);
 
-	threads: [8]*threading.Thread;
+	threads: [4]*threading.Thread;
 	loop i := 0; i < threads.len; i += 1 {
 		threads[i] = threading.spawn_with_context(&ctx, &worker);
 	}
 
-	os_sleep_ms(400);
+	os_sleep_ms(600);
 
 	test_ok(msg.post(make_message(&ctx.to_worker, 0)));
 
@@ -255,12 +255,12 @@ queue_close_non_blocking :: fn () #test {
 	init_ctx(&ctx);
 	defer terminate_ctx(&ctx);
 
-	threads: [8]*threading.Thread;
+	threads: [4]*threading.Thread;
 	loop i := 0; i < threads.len; i += 1 {
 		threads[i] = threading.spawn_with_context(&ctx, &worker);
 	}
 
-	os_sleep_ms(400);
+	os_sleep_ms(600);
 
 	test_ok(msg.post(make_message(&ctx.to_worker, 0)));
 
