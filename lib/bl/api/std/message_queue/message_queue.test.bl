@@ -224,7 +224,7 @@ queue_close_blocking :: fn () #test {
 		threads[i] = threading.spawn_with_context(&ctx, &worker);
 	}
 
-	os_sleep_ms(100);
+	os_sleep_ms(400);
 
 	test_ok(msg.post(make_message(&ctx.to_worker, 0)));
 
@@ -260,7 +260,7 @@ queue_close_non_blocking :: fn () #test {
 		threads[i] = threading.spawn_with_context(&ctx, &worker);
 	}
 
-	os_sleep_ms(100);
+	os_sleep_ms(400);
 
 	test_ok(msg.post(make_message(&ctx.to_worker, 0)));
 
