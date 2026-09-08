@@ -33,6 +33,8 @@ Queue :: struct {
 	mutex:     Mutex;
 	condition: Condition;
 
+	is_closed: atomic.Atomic(bool);
+
 	num: s32;
 	max_messages: s32;
 }
@@ -134,9 +136,9 @@ make_message :: fn (TMessage: type #comptime, queue: *Queue) *TMessage {
 	return msg;
 }
 
-/// Terminates the message.
+/// Terminates the message. The `message` might be null.
 terminate_message :: fn (message: *Message) #inline {
-	assert(message);
+	if !message then return;
 
 	queue :: message.parent_queue;
 	put_allocator(queue.pool, message.allocator);
@@ -144,8 +146,9 @@ terminate_message :: fn (message: *Message) #inline {
 }
 
 /// Post a new `message` into the queue in which the `message` was created by `make_message` call. Post might fail when
-/// the target queue is full, and returns an error. In case of failure, message ownership stays on caller side, and
-/// the message might be reposted later or should be terminated by `terminate_message` call to prevent any leaks.
+/// the target queue is full (`queue.max_messages` number was reached), or queue is [closed](modules_message_queue.html#close),
+/// and returns an error. In case of failure, message ownership stays on caller side, and the message might be reposted later
+/// or should be terminated by `terminate_message` call to prevent any leaks.
 ///
 /// Once posted message cannot be reposted again (checked by assert).
 ///
@@ -156,6 +159,8 @@ post :: fn (message: *Message) Error {
 
 	queue :: message.parent_queue;
 	assert(queue);
+
+	if atomic.load(&queue.is_closed) then return error("Queue closed.");
 
 	mutex_lock(&queue.mutex);
 	defer mutex_unlock(&queue.mutex);
@@ -178,8 +183,8 @@ post :: fn (message: *Message) Error {
 }
 
 /// Polls a posted `message` from the `queue` into the `message` and returns `true`. Otherwise blocks in case `blocking`
-/// is `true`. In non-blocking mode `false` is returned in case there is currently no message in the queue. Once message
-/// is polled, it should be released by `terminate_message` call.
+/// is `true` and queue was not closed. In non-blocking mode `false` is returned in case there is currently no message
+/// in the queue. Once message is polled, it should be released by `terminate_message` call.
 ///
 /// This version polls general `Message` type, you might distinguish messages by `message.typeid` before casting to
 /// specific type; for example `if message.typeid == typeid(MyMessage) ...`. In case you only have one message type
@@ -191,6 +196,11 @@ poll :: fn (queue: *Queue, message: **Message, blocking := false) bool {
 	if !blocking && !queue.head then return false;
 	loop !queue.head {
 		condition_wait(&queue.condition, &queue.mutex);
+
+		if atomic.load(&queue.is_closed) {
+			assert(!queue.head, "Queue should not contain any new messages after it's closed.");
+			return false;
+		}
 	}
 
 	current :: queue.head;
@@ -234,13 +244,43 @@ clear :: fn (queue: *Queue) s32 {
 	}
 
 	num :: queue.num;
-	queue.num = 0;
+	queue.num  = 0;
+	queue.head = null;
 	return num;
+}
+
+/// Close the open `queue` and clears all pending messages. Once the `queue` is closed all waiting threads
+/// (in blocking setup) are signaled and `is_closed` returns `true` since then. Closed `queue` will reject any
+/// newly posted messages with an error.
+///
+/// This might be useful in case we have multiple consumer worker threads (like a thread pool) where it does not
+/// matter which thread will pick the message. Simply the first one wins. In such case we cannot terminate all
+/// workers by passing "quit" message, because only one will receive it. We might close the queue and break
+/// the event loops in all workers based on `is_closed` flag.
+///
+/// Calling this function is optional.
+///
+/// !!! note
+///     Queue is not automatically closed on `terminate` call, because we have to wait for all workers to finish
+///     first (reading the closed flag and exit). The queue termination should be done after all workers are joined.
+close :: fn (queue: *Queue) {
+	if atomic.exchange(&queue.is_closed, true) {
+		assert(false, "Pool already closed.");
+		return;
+	}
+
+	clear(queue);
+	condition_signal_all(&queue.condition);
+}
+
+is_closed :: fn (queue: *Queue) bool #inline {
+	return atomic.load(&queue.is_closed);
 }
 
 #scope_module
 
 threading :: #import "std/thread2";
+atomic    :: #import "std/atomic";
 
 #import "std/type_utils";
 #import "std/bucket_array"

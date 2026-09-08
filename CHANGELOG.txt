@@ -36,6 +36,7 @@ std/atomic
 
 std/message_queue
 - Added module.
+- Add `close` mechanism for multithread setup termination.
 
 std/type_utils
 - Add `is_base_of`.

@@ -205,4 +205,73 @@ queue_overflow :: fn () #test {
 	test_true(failed);
 }
 
+queue_close_blocking :: fn () #test {
+	worker :: fn (ctx: *Context) s32 {
+		m: *Message;
+		loop msg.poll_as(&ctx.to_worker, &m, true) {
+			defer msg.terminate_message(m);
+		}
+		return 0;
+	};
 
+	ctx: Context;
+
+	init_ctx(&ctx);
+	defer terminate_ctx(&ctx);
+
+	threads: [8]*threading.Thread;
+	loop i := 0; i < threads.len; i += 1 {
+		threads[i] = threading.spawn_with_context(&ctx, &worker);
+	}
+
+	os_sleep_ms(100);
+
+	test_ok(msg.post(make_message(&ctx.to_worker, 0)));
+
+	msg.close(&ctx.to_worker);
+
+	m :: make_message(&ctx.to_worker, 0);
+	test_not_ok(msg.post(m));
+	msg.terminate_message(m);
+
+	test_true(ctx.to_worker.is_closed.base);
+
+	threading.join_all(threads);
+	threading.destroy_all(threads);
+}
+
+queue_close_non_blocking :: fn () #test {
+	worker :: fn (ctx: *Context) s32 {
+		m: *Message;
+		loop !msg.is_closed(&ctx.to_worker) {
+			msg.poll_as(&ctx.to_worker, &m);
+			defer msg.terminate_message(m);
+		}
+		return 0;
+	};
+
+	ctx: Context;
+
+	init_ctx(&ctx);
+	defer terminate_ctx(&ctx);
+
+	threads: [8]*threading.Thread;
+	loop i := 0; i < threads.len; i += 1 {
+		threads[i] = threading.spawn_with_context(&ctx, &worker);
+	}
+
+	os_sleep_ms(100);
+
+	test_ok(msg.post(make_message(&ctx.to_worker, 0)));
+
+	msg.close(&ctx.to_worker);
+
+	m :: make_message(&ctx.to_worker, 0);
+	test_not_ok(msg.post(m));
+	msg.terminate_message(m);
+
+	test_true(ctx.to_worker.is_closed.base);
+
+	threading.join_all(threads);
+	threading.destroy_all(threads);
+}
