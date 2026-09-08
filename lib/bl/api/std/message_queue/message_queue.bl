@@ -160,10 +160,11 @@ post :: fn (message: *Message) Error {
 	queue :: message.parent_queue;
 	assert(queue);
 
-	if atomic.load(&queue.is_closed) then return error("Queue closed.");
 
 	mutex_lock(&queue.mutex);
 	defer mutex_unlock(&queue.mutex);
+
+	if atomic.load(&queue.is_closed) then return error("Queue closed.");
 
 	if queue.num >= queue.max_messages {
 		return error("Maximum message count reached. Message ignored.");
@@ -182,35 +183,43 @@ post :: fn (message: *Message) Error {
 	return OK;
 }
 
-/// Polls a posted `message` from the `queue` into the `message` and returns `true`. Otherwise blocks in case `blocking`
-/// is `true` and queue was not closed. In non-blocking mode `false` is returned in case there is currently no message
-/// in the queue. Once message is polled, it should be released by `terminate_message` call.
+/// Polls a posted `message` from the `queue` into the `message`.
+///
+/// The **non-blocking** version returns `true` in case the `message` was set, otherwise `false` when there was no message to poll
+/// or when the queue is closed.
+///
+/// The **blocking** version returns `true` in case the `message` was set, `false` only in case the queue was closed, otherwise blocks,
+/// waiting for messages.
+///
+/// Once a message is polled, it should be released by [terminate_message](modules_message_queue.html#terminate_message).
 ///
 /// This version polls general `Message` type, you might distinguish messages by `message.typeid` before casting to
 /// specific type; for example `if message.typeid == typeid(MyMessage) ...`. In case you only have one message type
 /// [poll_as](modules_message_queue.html#poll_as) might be more convenient.
+///
+/// *See also* [close](modules_message_queue.html#close)
 poll :: fn (queue: *Queue, message: **Message, blocking := false) bool {
 	mutex_lock(&queue.mutex);
 	defer mutex_unlock(&queue.mutex);
 
-	if !blocking && !queue.head then return false;
-	loop !queue.head {
-		condition_wait(&queue.condition, &queue.mutex);
+	loop {
+		if queue.head {
+			current :: queue.head;
+			assert(current.is_posted);
 
-		if atomic.load(&queue.is_closed) {
-			assert(!queue.head, "Queue should not contain any new messages after it's closed.");
-			return false;
+			queue.head = queue.head._next;
+			@message   = auto current;
+
+			queue.num -= 1;
+			return true;
 		}
+
+		if atomic.load(&queue.is_closed) then break;
+		if !blocking then break;
+		condition_wait(&queue.condition, &queue.mutex);
 	}
 
-	current :: queue.head;
-	assert(current.is_posted);
-
-	queue.head = queue.head._next;
-	@message   = auto current;
-
-	queue.num -= 1;
-	return true;
+	return false;
 }
 
 /// Same as [poll](modules_message_queue.html#poll), but expecting concrete message type `TMessage`.
@@ -249,9 +258,11 @@ clear :: fn (queue: *Queue) s32 {
 	return num;
 }
 
-/// Close the open `queue` and clears all pending messages. Once the `queue` is closed all waiting threads
-/// (in blocking setup) are signaled and `is_closed` returns `true` since then. Closed `queue` will reject any
-/// newly posted messages with an error.
+/// Close the open `queue`. Once the `queue` is closed all waiting threads (in blocking setup) are signaled and `is_closed`
+/// returns `true` since then. Closed `queue` will reject any newly posted messages with an error. Messages already pending
+/// in the queue will be processed unless [clear](modules_message_queue.html#clear) was called before closing in *blocking*
+/// mode. In *non-blocking* mode it's up to the user implementation whether a worker exits right after closing or processes
+/// what remains in the queue.
 ///
 /// This might be useful in case we have multiple consumer worker threads (like a thread pool) where it does not
 /// matter which thread will pick the message. Simply the first one wins. In such case we cannot terminate all
@@ -264,12 +275,13 @@ clear :: fn (queue: *Queue) s32 {
 ///     Queue is not automatically closed on `terminate` call, because we have to wait for all workers to finish
 ///     first (reading the closed flag and exit). The queue termination should be done after all workers are joined.
 close :: fn (queue: *Queue) {
+	mutex_lock(&queue.mutex);
+	defer mutex_unlock(&queue.mutex);
+
 	if atomic.exchange(&queue.is_closed, true) {
-		assert(false, "Pool already closed.");
+		assert(false, "Queue already closed.");
 		return;
 	}
-
-	clear(queue);
 	condition_signal_all(&queue.condition);
 }
 
