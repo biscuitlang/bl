@@ -400,7 +400,7 @@ typedef struct
 static struct mir_instr *_create_instr_call(struct context *ctx, create_instr_call_args_t *args);
 #define create_instr_call(ctx, ...) _create_instr_call((ctx), &(create_instr_call_args_t){__VA_ARGS__})
 
-static struct mir_instr *create_instr_defer_insert(struct context *ctx, struct ast *node, bool whole_tree);
+static struct mir_instr *create_instr_defer_insert(struct context *ctx, struct ast *node, struct scope *break_parent_scope);
 
 static struct mir_instr *insert_instr_load(struct context *ctx, struct mir_instr *src);
 static struct mir_instr *insert_instr_cast(struct context *ctx, struct mir_instr *src, struct mir_type *to_type);
@@ -567,7 +567,7 @@ static struct mir_instr *append_instr_debugbreak(struct context *ctx, struct ast
 static struct mir_instr *append_instr_addrof(struct context *ctx, struct ast *node, struct mir_instr *src);
 static struct mir_instr *append_instr_cond_insert(struct context *ctx, struct ast *node, struct mir_instr *cond, struct ast *then_block, struct ast *else_block);
 static struct mir_instr *append_instr_defer(struct context *ctx, struct ast *node, struct ast *code);
-static struct mir_instr *append_instr_defer_insert(struct context *ctx, struct ast *node, bool whole_tree);
+static struct mir_instr *append_instr_defer_insert(struct context *ctx, struct ast *node, struct scope *break_parent_scope);
 
 // This will erase whole instruction tree of instruction with ref_count == 0. When force is set
 // ref_count is ignored.
@@ -3628,13 +3628,13 @@ struct mir_instr *_create_instr_call(struct context *ctx, create_instr_call_args
 	return ref_instr(&tmp->base);
 }
 
-struct mir_instr *create_instr_defer_insert(struct context *ctx, struct ast *node, bool whole_tree) {
+struct mir_instr *create_instr_defer_insert(struct context *ctx, struct ast *node, struct scope *break_parent_scope) {
 	struct mir_instr_defer_insert *tmp = create_instr(ctx, MIR_INSTR_DEFER_INSERT, node);
 	tmp->base.ref_count                = 0; // @Note 2026-01-18: Removed everytime after analyze.
 	tmp->base.value.type               = ctx->builtin_types->t_void;
 	tmp->base.value.addr_mode          = MIR_VAM_RVALUE;
 	tmp->base.value.is_comptime        = true;
-	tmp->whole_tree                    = whole_tree;
+	tmp->break_parent_scope            = break_parent_scope;
 	tmp->codegen                       = duplicate_codegen(ctx, ctx->codegen);
 	return &tmp->base;
 }
@@ -3917,8 +3917,9 @@ struct mir_instr *append_instr_defer(struct context *ctx, struct ast *node, stru
 	return &tmp->base;
 }
 
-struct mir_instr *append_instr_defer_insert(struct context *ctx, struct ast *node, bool whole_tree) {
-	struct mir_instr *tmp = create_instr_defer_insert(ctx, node, whole_tree);
+// The break_parent_scope specifies last scope up the tree from defer owner scope to be included in defer list. Null means whole tree.
+struct mir_instr *append_instr_defer_insert(struct context *ctx, struct ast *node, struct scope *break_parent_scope) {
+	struct mir_instr *tmp = create_instr_defer_insert(ctx, node, break_parent_scope);
 	append_current_block(ctx, tmp);
 	return tmp;
 }
@@ -7888,7 +7889,7 @@ struct result analyze_instr_defer_insert(struct context *ctx, struct mir_instr_d
 	const s64 num = sarrlen(&fn->defer_stack);
 	if (!num) return_zone(PASS);
 
-	const bool whole_tree = defer_insert->whole_tree;
+	struct scope *break_parent_scope = defer_insert->break_parent_scope;
 
 	// clang-format off
 	struct mir_insertion_context insertion_context = {0};
@@ -7899,7 +7900,7 @@ struct result analyze_instr_defer_insert(struct context *ctx, struct mir_instr_d
 				if (node->owner_scope != scope) continue;
 				ast(ctx, node);
 			}
-			if (!whole_tree) break;
+			if (scope == break_parent_scope) break;
 			scope = scope->parent;
 		}
 	} insertion_end(ctx, &insertion_context);
@@ -9307,9 +9308,10 @@ struct result analyze_instr_block(struct context *ctx, struct mir_instr_block *b
 			//                   present and just change `whole_tree` in case it is. See function `ast_block()`.
 			if (block->base.node) {
 				if (block->last_instr && block->last_instr->kind == MIR_INSTR_DEFER_INSERT) {
-					((struct mir_instr_defer_insert *)block->last_instr)->whole_tree = true;
+					struct mir_instr_defer_insert *defer_insert = (struct mir_instr_defer_insert *)block->last_instr;
+					defer_insert->break_parent_scope = NULL;
 				} else {
-					append_instr_defer_insert(ctx, block->base.node, true);
+					append_instr_defer_insert(ctx, block->base.node, NULL);
 				}
 			}
 			append_instr_br(ctx, NULL, fn->exit_block);
@@ -10899,14 +10901,22 @@ void ast_ublock(struct context *ctx, struct ast *ublock) {
 }
 
 void ast_block(struct context *ctx, struct ast *ast_block) {
+	struct scope *block_scope = NULL;
 	for (usize i = 0; i < sarrlenu(ast_block->data.block.nodes); ++i) {
 		struct ast *tmp = sarrpeek(ast_block->data.block.nodes, i);
 		ast(ctx, tmp);
+
+		if (!block_scope) block_scope = tmp->owner_scope;
 	}
 
 	if (ast_block->data.block.has_return || is_current_block_terminated(ctx)) return;
+	if (!block_scope) {
+		bassert(sarrlenu(ast_block->data.block.nodes) == 0);
+		return; // Block is empty, thus we have nothing to defer.
+	}
+
 	// @Note 2026-01-26: Handle situation when explicit lexical block was introduced by user.
-	append_instr_defer_insert(ctx, ast_block, false);
+	append_instr_defer_insert(ctx, ast_block, block_scope);
 }
 
 void ast_unreachable(struct context *ctx, struct ast *unr) {
@@ -11024,9 +11034,12 @@ void ast_stmt_loop(struct context *ctx, struct ast *loop) {
 	struct mir_instr_block *continue_block      = append_block(ctx, NULL, fn, cstr("loop_continue"), is_unreachable);
 	struct mir_instr_block *prev_break_block    = ctx->codegen->break_block;
 	struct mir_instr_block *prev_continue_block = ctx->codegen->continue_block;
+	struct scope           *prev_loop_scope     = ctx->codegen->current_loop_scope;
 
-	ctx->codegen->break_block    = continue_block;
-	ctx->codegen->continue_block = ast_increment ? increment_block : decide_block;
+	// Update state.
+	ctx->codegen->break_block        = continue_block;
+	ctx->codegen->continue_block     = ast_increment ? increment_block : decide_block;
+	ctx->codegen->current_loop_scope = ast_block->owner_scope;
 
 	// generate initialization if there is one
 	if (ast_init) ast(ctx, ast_init);
@@ -11052,20 +11065,30 @@ void ast_stmt_loop(struct context *ctx, struct ast *loop) {
 		append_instr_br(ctx, ast_increment, decide_block);
 	}
 
-	ctx->codegen->break_block    = prev_break_block;
-	ctx->codegen->continue_block = prev_continue_block;
+	// Restore state
+	ctx->codegen->current_loop_scope = prev_loop_scope;
+	ctx->codegen->break_block        = prev_break_block;
+	ctx->codegen->continue_block     = prev_continue_block;
 	set_current_block(ctx, continue_block);
 }
 
 void ast_stmt_break(struct context *ctx, struct ast *br) {
 	bassert(ctx->codegen->break_block && "Break statement outside the loop.");
-	append_instr_defer_insert(ctx, br, false);
+
+	struct scope *loop_scope = ctx->codegen->current_loop_scope;
+	bassert(loop_scope);
+
+	append_instr_defer_insert(ctx, br, loop_scope);
 	append_instr_br(ctx, br, ctx->codegen->break_block);
 }
 
 void ast_stmt_continue(struct context *ctx, struct ast *cont) {
-	bassert(ctx->codegen->continue_block && "Break statement outside the loop.");
-	append_instr_defer_insert(ctx, cont, false);
+	bassert(ctx->codegen->continue_block && "Continue statement outside the loop.");
+
+	struct scope *loop_scope = ctx->codegen->current_loop_scope;
+	bassert(loop_scope);
+
+	append_instr_defer_insert(ctx, cont, loop_scope);
 	append_instr_br(ctx, cont, ctx->codegen->continue_block);
 }
 
@@ -11277,7 +11300,7 @@ void ast_stmt_return(struct context *ctx, struct ast *ret) {
 
 	struct mir_instr_block *exit_block = fn->exit_block;
 	bassert(exit_block);
-	append_instr_defer_insert(ctx, ret, true);
+	append_instr_defer_insert(ctx, ret, NULL);
 	append_instr_br(ctx, ret, exit_block);
 }
 

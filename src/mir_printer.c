@@ -651,7 +651,7 @@ void print_instr_defer(struct context *ctx, struct mir_instr_defer *defer) {
 
 void print_instr_defer_insert(struct context *ctx, struct mir_instr_defer_insert *defer_insert) {
 	print_instr_head(ctx, &defer_insert->base, "~deferinsert~");
-	fprintf(ctx->stream, "%s", defer_insert->whole_tree ? "TREE" : "SCOPE");
+	fprintf(ctx->stream, "%s", defer_insert->break_parent_scope ? "SCOPED" : "TREE");
 }
 
 void print_instr_cond_br(struct context *ctx, struct mir_instr_cond_br *cond_br) {

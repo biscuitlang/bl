@@ -236,3 +236,21 @@ defer_test_14 :: fn () #test {
 	str_terminate(&list);
 }
 
+defer_loop :: fn () #test {
+	list: string;
+
+	loop i := 0; i < 10; i += 1 {
+		defer str_append(&list, i % 2);
+
+		if i == 9 {
+			break;
+		} else {
+			continue;
+		}
+
+		defer str_append(&list,"X"); // Should not be reached
+	}
+
+	test_eq(list, "0101010101");
+	str_terminate(&list);
+}

@@ -17,6 +17,7 @@ master
 - Add #nocache directive to explicitly disable call-side result caching on comptime functions, see the documentation: https://biscuitlang.org/versions/master/manual.html#nocache.
 - Fix enum type propagation in polymorph instances.
 - Fix missing check for function pointer dereference.
+- Fix broken defer unwind on break and continue inside loop.
 
 [Modules]
 

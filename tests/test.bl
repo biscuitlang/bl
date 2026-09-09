@@ -21,18 +21,22 @@ x :: foo() catch {}
  */
 
 #import "std/print"
-#import "std/test"
-
-
-
-Enum :: enum foo() { A; B; }
 
 main :: fn () s32 {
-	s: Enum;
+	loop i := 0; i < 10; i += 1 {
+		if i < 9 then continue;
+
+		defer foo();
+
+		if i == 9 {
+			continue;
+		}
+	}
+
 	return 0;
 }
 
-foo :: fn () type #comptime {
-	return s32;
+foo :: fn () {
+	print("foo called!");
 }
 

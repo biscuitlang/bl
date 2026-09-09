@@ -71,6 +71,8 @@ struct mir_codegen {
 	struct mir_instr_block *break_block;
 	struct mir_instr_block *continue_block;
 
+	struct scope *current_loop_scope; // Set inside loop.
+
 	// True in case the current generation is done in context of function recipe generation.
 	// This may affect compile-time argument types.
 	bool is_inside_recipe;
@@ -937,7 +939,7 @@ struct mir_instr_defer {
 
 struct mir_instr_defer_insert {
 	struct mir_instr    base;
-	bool                whole_tree;
+	struct scope       *break_parent_scope; // NULL means whole tree.
 	struct mir_codegen *codegen;
 };
 
