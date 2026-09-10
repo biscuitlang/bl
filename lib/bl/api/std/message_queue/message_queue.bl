@@ -60,6 +60,7 @@ init_pool :: fn (pool: *MessagePool, expected_message_bytes := DEFAULT_MESSAGE_S
 	assert(expected_message_bytes >= sizeof(Message));
 	zeroinit(pool);
 	mutex_init(&pool.mutex);
+	pool.expected_message_bytes = expected_message_bytes;
 }
 
 /// Terminates the `pool`.
