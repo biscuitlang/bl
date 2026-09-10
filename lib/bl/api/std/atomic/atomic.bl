@@ -125,9 +125,10 @@ exchange :: fn (ptr: *?TAtomic, v: TAtomic.base, ordering := MemoryOrdering.SEQU
 	}
 }
 
-/// Atomically compares values held by `ptr` and `expected`. If they are equal, `desired` value is atomically written into `ptr`, otherwise `ptr` value is written to `expected`.
-/// Returns `true` in case the value pointed to by `ptr` was modified.
-compare_exchange :: fn (ptr: *?TAtomic, expected: *TAtomic, desired: TAtomic.base, success_ordering := MemoryOrdering.SEQUENTIALLY_CONSISTENT #comptime, failure_ordering := MemoryOrdering.SEQUENTIALLY_CONSISTENT #comptime) bool #inline {
+/// Atomically compares values held by `ptr` and `expected`. If they are equal, `desired` value is atomically written
+/// into `ptr`, otherwise `ptr` value is written to `expected`. Returns `true` in case the value pointed to by `ptr`
+/// was modified.
+compare_exchange :: fn (ptr: *?TAtomic, expected: *TAtomic.base, desired: TAtomic.base, success_ordering := MemoryOrdering.SEQUENTIALLY_CONSISTENT #comptime, failure_ordering := MemoryOrdering.SEQUENTIALLY_CONSISTENT #comptime) bool #inline {
 	#if success_ordering == MemoryOrdering.UNORDERED {
 		compiler_error("Invalid memory success ordering 'MemoryOrdering.UNORDERED' for 'compare_exchange'.");
 	}
@@ -137,7 +138,7 @@ compare_exchange :: fn (ptr: *?TAtomic, expected: *TAtomic, desired: TAtomic.bas
 	#if !is_number(TAtomic.base) {
 		compiler_error("Integer type is required for 'compare_exchange'.");
 	}
-	return _atomic_cmpxchg(&ptr.base, &expected.base, desired, success_ordering, failure_ordering);
+	return _atomic_cmpxchg(&ptr.base, expected, desired, success_ordering, failure_ordering);
 }
 
 /// Atomically loads the value pointed to by `ptr`.

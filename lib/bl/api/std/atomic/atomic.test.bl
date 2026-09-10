@@ -159,10 +159,10 @@ simple_exchange :: fn () #test {
 
 compare_exchange_test :: fn (T: type #comptime) {
 	n := make(T, 10);
-	e := make(T, 10);
+	e : T = 10;
 	test_true(compare_exchange(&n, &e, 15));
 	test_eq(n.base, 15);
-	test_eq(e.base, 10);
+	test_eq(e, 10);
 	test_false(compare_exchange(&n, &e, 20));
 	test_eq(n.base, 15);
 }
