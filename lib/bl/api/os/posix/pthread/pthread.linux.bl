@@ -9,12 +9,17 @@ PTHREAD_MUTEX :: enum {
 	DEFAULT    = NORMAL;
 }
 
-pthread_mutex_t :: struct {
-	_: [40]C.char;
+__SIZEOF_PTHREAD_MUTEX_T :: 40;
+__SIZEOF_PTHREAD_COND_T  :: 48;
+
+pthread_mutex_t :: union {
+	_: [__SIZEOF_PTHREAD_MUTEX_T]u8;
+	__align: s32;
 }
 
-pthread_cond_t :: struct {
-	_: [48]C.char;
+pthread_cond_t :: union {
+	_: [__SIZEOF_PTHREAD_COND_T]u8;
+	__align: s64;
 }
 
 pthread_condattr_t :: struct {

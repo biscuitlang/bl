@@ -130,7 +130,7 @@ terminate :: fn (queue: *Queue) {
 /// function or terminated by `terminate_message` function, otherwise it leaks.
 make_message :: fn (TMessage: type #comptime, queue: *Queue) *TMessage {
 	allocator :: get_allocator(queue.pool);
-	msg :: new(TMessage, false, allocator);
+	msg :: new(TMessage, false, allocator) catch panic($);
 	msg.allocator    = allocator;
 	msg.parent_queue = auto queue;
 	msg.typeid       = typeid(TMessage);
@@ -140,10 +140,8 @@ make_message :: fn (TMessage: type #comptime, queue: *Queue) *TMessage {
 /// Terminates the message. The `message` might be null.
 terminate_message :: fn (message: *Message) #inline {
 	if !message then return;
-
 	queue :: message.parent_queue;
 	put_allocator(queue.pool, message.allocator);
-	zeroinit(message);
 }
 
 /// Post a new `message` into the queue in which the `message` was created by `make_message` call. Post might fail when
@@ -309,6 +307,7 @@ get_allocator :: fn (pool: *MessagePool) *Allocator #inline {
 	if !array_pop(&pool.available, &allocator) {
 		allocator = bucket_array_push(&pool.pools, pool_make(null, pool.expected_message_bytes));
 	}
+
 	assert(allocator);
 	return allocator;
 }
@@ -319,6 +318,6 @@ put_allocator :: fn (pool: *MessagePool, allocator: *Allocator)  #inline {
 	defer mutex_unlock(&pool.mutex);
 
 	reset_allocator(allocator);
-	array_push(&pool.available, auto allocator);
+	array_push(&pool.available, allocator);
 }
 
