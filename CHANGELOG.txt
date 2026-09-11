@@ -38,6 +38,10 @@ std/atomic
 std/message_queue
 - Added module.
 - Add `close` mechanism for multithread setup termination.
+- Fix race condition issue clearing message after post when allocator is reused.
+
+os/posix/pthread
+- Use propper alignment for mutex and condition in pthread wrapper.
 
 std/type_utils
 - Add `is_base_of`.
