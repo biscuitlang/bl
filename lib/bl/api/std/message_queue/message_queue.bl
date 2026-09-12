@@ -159,7 +159,6 @@ post :: fn (message: *Message) Error {
 	queue :: message.parent_queue;
 	assert(queue);
 
-
 	mutex_lock(&queue.mutex);
 	defer mutex_unlock(&queue.mutex);
 

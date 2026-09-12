@@ -187,6 +187,14 @@ number_type :: fn (size_bytes: usize, is_signed: bool) type #comptime {
 	return s32;
 }
 
+/// Returns underlying int type used to hold enum value for `TEnum` type.
+enum_to_number_type :: fn (TEnum: type #comptime) type #comptime {
+	info :: cast(*TypeInfoEnum) typeinfo(TEnum);
+	assert(info.kind == .ENUM);
+	info_int :: cast(*TypeInfoInt) info.base_type;
+	return number_type(info_int.size_bytes, info_int.is_signed);
+}
+
 #scope_private
 C :: #import "libc";
 #import "std/string"

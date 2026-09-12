@@ -15,7 +15,7 @@ MemoryOrdering :: enum {
 	SEQUENTIALLY_CONSISTENT = 7;
 }
 
-/// Creates new atomic type for `T` type. Currently only integer types and boolean type are supported for `T`.
+/// Creates new atomic type for `T` type. Currently only integer, boolean and enum types are supported for `T`.
 ///
 /// !!! note
 ///     For boolean type, only `load`, `store` and `exchange` operations are supported now.
@@ -25,6 +25,8 @@ Atomic :: fn (T: type #comptime) type #comptime {
 		return union #base T { as_int: s32; };
 	} else if is_number(T) {
 		return struct #base T {};
+	} else if is_enum(T) {
+		return union #base T { as_int: enum_to_number_type(T); };
 	} else {
 		compiler_error("Unsupported atomic type T.");
 	}
@@ -108,8 +110,8 @@ exchange :: fn (ptr: *?TAtomic, v: TAtomic.base, ordering := MemoryOrdering.SEQU
 	#if ordering == MemoryOrdering.UNORDERED {
 		compiler_error("Invalid memory ordering 'MemoryOrdering.UNORDERED' for 'exchange'.");
 	}
-	#if !is_number(TAtomic.base) && (TAtomic.base != bool) {
-		compiler_error("Integer or boolean type is required for 'exchange'.");
+	#if !is_number(TAtomic.base) && (TAtomic.base != bool) && !is_enum(TAtomic.base) {
+		compiler_error("Integer, boolean or enum type is required for 'exchange'.");
 	}
 
 	#if TAtomic.base == bool {
@@ -120,6 +122,8 @@ exchange :: fn (ptr: *?TAtomic, v: TAtomic.base, ordering := MemoryOrdering.SEQU
 		} else {
 			return true;
 		}
+	} else if is_enum(TAtomic.base) {
+		return auto _atomic_rmw(&ptr.as_int, auto v, ordering, OpKind.XCH);
 	} else {
 		return _atomic_rmw(&ptr.base, v, ordering, OpKind.XCH);
 	}
@@ -135,10 +139,15 @@ compare_exchange :: fn (ptr: *?TAtomic, expected: *TAtomic.base, desired: TAtomi
 	#if failure_ordering == MemoryOrdering.UNORDERED {
 		compiler_error("Invalid memory failure ordering 'MemoryOrdering.UNORDERED' for 'compare_exchange'.");
 	}
-	#if !is_number(TAtomic.base) {
-		compiler_error("Integer type is required for 'compare_exchange'.");
+	#if !is_number(TAtomic.base) && !is_enum(TAtomic.base) {
+		compiler_error("Integer or enum type is required for 'compare_exchange'.");
 	}
-	return _atomic_cmpxchg(&ptr.base, expected, desired, success_ordering, failure_ordering);
+
+	#if is_enum(TAtomic.base) {
+		return _atomic_cmpxchg(&ptr.as_int, auto expected, auto desired, success_ordering, failure_ordering);
+	} else {
+		return _atomic_cmpxchg(&ptr.base, expected, desired, success_ordering, failure_ordering);
+	}
 }
 
 /// Atomically loads the value pointed to by `ptr`.
@@ -148,8 +157,8 @@ load :: fn (ptr: *?TAtomic, ordering := MemoryOrdering.SEQUENTIALLY_CONSISTENT #
 	} else if ordering == MemoryOrdering.ACQUIRE_RELEASE {
 		compiler_error("Invalid memory ordering 'MemoryOrdering.ACQUIRE_RELEASE' for 'load'.");
 	}
-	#if !is_number(TAtomic.base) && (TAtomic.base != bool) {
-		compiler_error("Integer or boolean type is required for 'load'.");
+	#if !is_number(TAtomic.base) && (TAtomic.base != bool) && !is_enum(TAtomic.base) {
+		compiler_error("Integer, boolean or enum type is required for 'load'.");
 	}
 
 	#if TAtomic.base == bool {
@@ -160,6 +169,8 @@ load :: fn (ptr: *?TAtomic, ordering := MemoryOrdering.SEQUENTIALLY_CONSISTENT #
 		} else {
 			return true;
 		}
+	} else if is_enum(TAtomic.base) {
+		return auto _atomic_load(&ptr.as_int, ordering);
 	} else {
 		return _atomic_load(&ptr.base, ordering);
 	}
@@ -172,14 +183,16 @@ store :: fn (ptr: *?TAtomic, v: TAtomic.base, ordering := MemoryOrdering.SEQUENT
 	} else if ordering == MemoryOrdering.ACQUIRE_RELEASE {
 		compiler_error("Invalid memory ordering 'MemoryOrdering.ACQUIRE_RELEASE' for 'store'.");
 	}
-	#if !is_number(TAtomic.base) && (TAtomic.base != bool) {
-		compiler_error("Integer or boolean type is required for 'store'.");
+	#if !is_number(TAtomic.base) && (TAtomic.base != bool) && !is_enum(TAtomic.base) {
+		compiler_error("Integer, boolean or enum type is required for 'store'.");
 	}
 	#if TAtomic.base == bool {
 		static_assert(sizeof(TAtomic) == sizeof(s32));
 
 		b : s32 : if v then 1 else 0;
 		_atomic_store_s32(&ptr.as_int, b, ordering);
+	} else if is_enum(TAtomic.base) {
+		_atomic_store(&ptr.as_int, auto v, ordering);
 	} else {
 		_atomic_store(&ptr.base, v, ordering);
 	}

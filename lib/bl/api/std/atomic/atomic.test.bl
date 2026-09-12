@@ -2,6 +2,8 @@
 #import "std/atomic"
 #import "std/thread2"
 
+Enum :: enum { A; B; C; }
+
 run_in_parallel :: fn (ctx: *?T, worker: *fn (ctx: *?T) s32, NUM_THREADS := 8 #comptime) {
 	if IS_COMPTIME_RUN {
 		loop i := 0; i < NUM_THREADS; i += 1 {
@@ -155,6 +157,12 @@ simple_exchange :: fn () #test {
 		test_true(exchange(&n, false));
 		test_false(n.base);
 	}
+
+	{
+		e := make(Enum, .B);
+		test_eq(exchange(&e, .C), .B);
+		test_eq(e.base, .C);
+	}
 }
 
 compare_exchange_test :: fn (T: type #comptime) {
@@ -176,6 +184,16 @@ simple_compare_exchange :: fn () #test {
 	compare_exchange_test(s16);
 	compare_exchange_test(s32);
 	compare_exchange_test(s64);
+
+	{
+		n := make(Enum, .B);
+		e : Enum = .B;
+		test_true(compare_exchange(&n, &e, .C));
+		test_eq(n.base, .C);
+		test_eq(e, .B);
+		test_false(compare_exchange(&n, &e, .A));
+		test_eq(n.base, .C);
+	}
 }
 
 load_test :: fn (T: type #comptime) {
@@ -201,6 +219,11 @@ simple_load :: fn () #test {
 	{
 		n :: make(bool, false);
 		test_false(load(&n));
+	}
+
+	{
+		n :: make(Enum, .B);
+		test_eq(load(&n), .B);
 	}
 }
 
@@ -230,5 +253,11 @@ simple_store :: fn () #test {
 		n: Atomic(bool);
 		store(&n, false);
 		test_false(n.base);
+	}
+
+	{
+		n: Atomic(Enum);
+		store(&n, .B);
+		test_eq(n.base, .B);
 	}
 }
