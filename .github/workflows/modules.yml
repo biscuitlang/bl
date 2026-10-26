@@ -96,7 +96,7 @@ jobs:
         path: patch-win32.patch
 
   linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       MODULE: ${{ inputs.module }}
     steps:
@@ -220,7 +220,7 @@ jobs:
 
   commit:
     needs: [windows, linux, macos]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       BRANCH: ${{ inputs.branch }}
       MODULE: ${{ inputs.module }}
