@@ -636,8 +636,7 @@ LLVMMetadataRef DI_scope_init(struct context *ctx, struct scope *scope) {
 		LLVMMetadataRef llvm_unit         = DI_unit_init(ctx, scope->location->unit);
 		bassert(llvm_parent_scope);
 		bassert(llvm_unit);
-		scope->llvm_meta = LLVMDIBuilderCreateLexicalBlock(
-		    ctx->llvm_di_builder, llvm_parent_scope, llvm_unit, (u32)scope->location->line, 0);
+		scope->llvm_meta = LLVMDIBuilderCreateLexicalBlock(ctx->llvm_di_builder, llvm_parent_scope, llvm_unit, (u32)scope->location->line, 0);
 		break;
 	}
 	default:
@@ -697,7 +696,8 @@ void emit_DI_var(struct context *ctx, struct mir_var *var) {
 	if (isflag(var->iflags, MIR_VAR_GLOBAL)) {
 		const str_t     name         = var->id->str;
 		const str_t     linkage_name = var->linkage_name;
-		LLVMMetadataRef llvm_scope   = DI_unit_init(ctx, location->unit);
+		LLVMMetadataRef llvm_scope   = DI_scope_init(ctx, var->decl_scope);
+		LLVMMetadataRef llvm_file    = DI_unit_init(ctx, location->unit);
 		LLVMMetadataRef llvm_expr    = LLVMDIBuilderCreateExpression(ctx->llvm_di_builder, NULL, 0);
 		LLVMMetadataRef llvm_meta =
 		    LLVMDIBuilderCreateGlobalVariableExpression(ctx->llvm_di_builder,
@@ -706,7 +706,7 @@ void emit_DI_var(struct context *ctx, struct mir_var *var) {
 		                                                (uint64_t)name.len,
 		                                                linkage_name.ptr,
 		                                                (uint64_t)linkage_name.len,
-		                                                llvm_scope,
+		                                                llvm_file,
 		                                                (u32)location->line,
 		                                                DI_type_init(ctx, var->value.type),
 		                                                false,
