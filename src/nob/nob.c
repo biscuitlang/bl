@@ -2,7 +2,7 @@
 #define BL_VERSION_MINOR 15
 #define BL_VERSION_PATCH 0
 
-#define LLVM_REQUIRED 18
+#define LLVM_REQUIRED 23
 
 #define BL_VERSION       VERSION_STRING(BL_VERSION_MAJOR, BL_VERSION_MINOR, BL_VERSION_PATCH)
 #define TRACY_VERSION    "0.9.1"
@@ -24,7 +24,7 @@ const char *CURSES_LINK = "";
 #include "../../deps/libyaml-0.2.5/nob.c"
 #ifdef __linux__
 #include "../../deps/zlib-1.3.2/nob.c"
-#include "../../deps/zstd-0.4.2/nob.c"
+#include "../../deps/zstd-1.5.7/nob.c"
 #include "../../deps/ncurses-tinfo-6.4.0/nob.c"
 #endif
 
