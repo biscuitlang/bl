@@ -191,6 +191,15 @@ void llvm_position_builder_at_end(LLVMBuilderRef B, LLVMBasicBlockRef Block) {
 	unwrap(B)->SetInsertPoint(unwrap(Block));
 }
 
+void llvm_di_builder_insert_declare_at_end(LLVMDIBuilderRef Builder, LLVMValueRef Storage, LLVMMetadataRef VarInfo, LLVMMetadataRef Expr, LLVMMetadataRef DL, LLVMBasicBlockRef InsertAtEnd) {
+	auto *DIB = unwrap(Builder);
+	DIB->insertDeclare(unwrap(Storage),
+	                   unwrap<DILocalVariable>(VarInfo),
+	                   unwrap<DIExpression>(Expr),
+	                   unwrap<DILocation>(DL),
+	                   unwrap(InsertAtEnd));
+}
+
 void llvm_opt_run_on_functions(LLVMModuleRef UNUSED(M), LLVMValueRef *fns, u32 fns_num, LLVMCodeGenOptLevel level) {
 	LoopAnalysisManager     LAM;
 	FunctionAnalysisManager FAM;

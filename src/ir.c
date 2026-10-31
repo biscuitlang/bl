@@ -726,26 +726,12 @@ void emit_DI_var(struct context *ctx, struct mir_var *var) {
 		bassert(var->llvm_value);
 
 		LLVMMetadataRef llvm_meta =
-		    LLVMDIBuilderCreateAutoVariable(ctx->llvm_di_builder,
-		                                    llvm_scope,
-		                                    name.ptr,
-		                                    (uint64_t)name.len,
-		                                    llvm_file,
-		                                    (u32)location->line,
-		                                    DI_type_init(ctx, var->value.type),
-		                                    false,
-		                                    LLVMDIFlagZero,
-		                                    (u32)var->value.type->alignment);
+		    LLVMDIBuilderCreateAutoVariable(ctx->llvm_di_builder, llvm_scope, name.ptr, (uint64_t)name.len, llvm_file, (u32)location->line, DI_type_init(ctx, var->value.type), false, LLVMDIFlagZero, (u32)var->value.type->alignment);
 
 		LLVMMetadataRef   llvm_expr         = LLVMDIBuilderCreateExpression(ctx->llvm_di_builder, NULL, 0);
 		LLVMMetadataRef   llvm_loc          = llvm_di_builder_create_debug_location(ctx->llvm_cnt, location->line, 0, llvm_scope, NULL);
 		LLVMBasicBlockRef llvm_insert_block = LLVMGetInsertBlock(ctx->llvm_builder);
-		LLVMDIBuilderInsertDeclareAtEnd(ctx->llvm_di_builder,
-		                                var->llvm_value,
-		                                llvm_meta,
-		                                llvm_expr,
-		                                llvm_loc,
-		                                llvm_insert_block);
+		llvm_di_builder_insert_declare_at_end(ctx->llvm_di_builder, var->llvm_value, llvm_meta, llvm_expr, llvm_loc, llvm_insert_block);
 	}
 }
 

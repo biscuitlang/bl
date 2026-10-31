@@ -7,10 +7,10 @@ void find_llvm(void) {
 	nob_log(NOB_INFO, "Looking for LLVM " STR(LLVM_REQUIRED) "...");
 
 #ifdef _WIN32
-	LLVM_VERSION = "18.1.8";
+	LLVM_VERSION = "23.1.4";
 
 	nob_log(NOB_INFO, "Using bundled LLVM package.");
-	if (!file_exists("./deps/llvm-18.1.8-win64-nob")) {
+	if (!file_exists(temp_sprintf("./deps/llvm-%s-win64-nob", LLVM_VERSION))) {
 		nob_log(NOB_INFO, "Unpacking LLVM...");
 		Cmd cmd = {0};
 		cmd_append(&cmd, "./deps/unzip/unzip.exe", "-o", "-q", temp_sprintf("./deps/llvm-%s-win64-nob.zip", LLVM_VERSION), "-d", "./deps");

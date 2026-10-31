@@ -23,7 +23,7 @@ Biscuit compiler is using [nob](https://github.com/tsoding/nob.h) "build system"
 
 ## Windows
 
-* Install Visual Studio 2022 or [MS Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools) with C/C++ support
+* Install Visual Studio 2026 or [MS Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools) with C/C++ support
 * Run `vcvars64.bat` in your shell or use Visual Studio Developer Command Prompt.
 * Download and compile
 
@@ -51,17 +51,9 @@ build.bat
 This step might differ across linux distributions, following snippet might help.
 
 ```bash
-# Ubuntu
-apt-get install llvm-18-dev
-
-# Fedora
-dnf copr enable -y @fedora-llvm-team/llvm-snapshots
-dnf install llvm18-devel
-
-# Using LLVM installation script
 wget https://apt.llvm.org/llvm.sh
 chmod +x llvm.sh
-sudo ./llvm.sh 18
+sudo ./llvm.sh 23
 ```
 
 * Download and compile
@@ -87,7 +79,7 @@ export PATH=$PATH:/path/to/bl/bin
 
 ## macOS
 * Install command line tools ``xcode-select --install``.
-* Install dependencies using [brew](https://brew.sh) `brew install llvm@18 zlib ncurses`.
+* Install dependencies using [brew](https://brew.sh) `brew install llvm@23 zlib ncurses`.
 * Download and compile
 
 ```bash

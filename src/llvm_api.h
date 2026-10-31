@@ -92,6 +92,7 @@ LLVMValueRef       llvm_build_cond_br(LLVMBuilderRef B, LLVMValueRef If, LLVMBas
 LLVMValueRef       llvm_build_br(LLVMBuilderRef B, LLVMBasicBlockRef Dest);
 LLVMValueRef       llvm_build_aligned_store(LLVMBuilderRef B, LLVMValueRef Val, LLVMValueRef Ptr, const u32 AlignmentBytes, bool isVolatile);
 void               llvm_position_builder_at_end(LLVMBuilderRef B, LLVMBasicBlockRef Block);
+void               llvm_di_builder_insert_declare_at_end(LLVMDIBuilderRef Builder, LLVMValueRef Storage, LLVMMetadataRef VarInfo, LLVMMetadataRef Expr, LLVMMetadataRef DL, LLVMBasicBlockRef InsertAtEnd);
 
 // Atomic
 LLVMValueRef llvm_build_atomic_rmw(LLVMBuilderRef B, LLVMAtomicRMWBinOp Op, LLVMValueRef Ptr, LLVMValueRef Val, const u32 AlignmentBytes, LLVMAtomicOrdering Ordering);

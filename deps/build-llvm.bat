@@ -1,9 +1,9 @@
 @echo off
 mkdir build
 cd build
-cmake ..\llvm -G"Ninja" -DCMAKE_INSTALL_PREFIX="llvm-18-release" -DLLVM_PARALLEL_LINK_JOBS=4 -DLLVM_TARGETS_TO_BUILD="X86;AArch64" -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_ZLIB=OFF -DCMAKE_C_COMPILER=CL -DCMAKE_CXX_COMPILER=CL -DCMAKE_MSVC_RUNTIME_LIBRARY="MultiThreaded"
+cmake ..\llvm -G"Ninja" -DCMAKE_INSTALL_PREFIX="llvm-23-release" -DLLVM_PARALLEL_LINK_JOBS=4 -DLLVM_TARGETS_TO_BUILD="X86;AArch64" -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_ZLIB=OFF -DCMAKE_C_COMPILER=CL -DCMAKE_CXX_COMPILER=CL -DCMAKE_MSVC_RUNTIME_LIBRARY="MultiThreaded" --fresh
 ninja install
-cd llvm-18-release
+cd llvm-23-release
 
 set LIBS=^
  "lib\LLVMCore.lib"^
@@ -62,7 +62,12 @@ set LIBS=^
  "lib\LLVMTextAPI.lib"^
  "lib\LLVMBinaryFormat.lib"^
  "lib\LLVMTargetParser.lib"^
- "lib\LLVMDemangle.lib"
+ "lib\LLVMDemangle.lib"^
+ "lib\LLVMSandboxIR.lib"^
+ "lib\LLVMCGData.lib"^
+ "lib\LLVMDebugInfoDWARFLowLevel.lib"^
+ "lib\LLVMFrontendHLSL.lib"^
+ "lib\LLVMFrontendAtomic.lib"
 
 echo Packing into single static lib: %LIBS%
 lib /nologo /OUT:lib\LLVM.lib %LIBS%

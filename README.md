@@ -77,17 +77,9 @@ build.bat
 * Install LLVM. This step might differ across linux distributions, following snippet might help.
 
 ```bash
-# Ubuntu
-apt-get install llvm-18-dev
-
-# Fedora
-dnf copr enable -y @fedora-llvm-team/llvm-snapshots
-dnf install llvm18-devel
-
-# Using LLVM installation script
 wget https://apt.llvm.org/llvm.sh
 chmod +x llvm.sh
-sudo ./llvm.sh 18
+sudo ./llvm.sh 23
 ```
 
 * Download and compile.
@@ -100,7 +92,7 @@ cd bl
 
 ## macOS
 * Install command line tools `xcode-select --install`.
-* Install dependencies using [brew](https://brew.sh) `brew install llvm@18 zlib ncurses`.
+* Install dependencies using [brew](https://brew.sh) `brew install llvm@23 zlib ncurses`.
 * Download and compile
 
 ```bash

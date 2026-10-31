@@ -96,7 +96,7 @@ jobs:
         path: patch-win32.patch
 
   linux:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     env:
       MODULE: ${{ inputs.module }}
     steps:
@@ -109,7 +109,7 @@ jobs:
       run: |
         wget https://apt.llvm.org/llvm.sh
         chmod +x llvm.sh
-        sudo ./llvm.sh 18
+        sudo ./llvm.sh 23
 
     - name: Download compiler from latest GitHub release
       if: inputs.compiler == 'release'
@@ -173,7 +173,7 @@ jobs:
     - name: Install LLVM
       if: inputs.compiler == 'source'
       run: |
-        brew install llvm@18 zlib ncurses
+        brew install llvm@23 zlib ncurses
         TMP_PATH=$(xcrun --show-sdk-path)/user/include
         echo "CPATH=$TMP_PATH" >> $GITHUB_ENV
 
@@ -220,7 +220,7 @@ jobs:
 
   commit:
     needs: [windows, linux, macos]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     env:
       BRANCH: ${{ inputs.branch }}
       MODULE: ${{ inputs.module }}
