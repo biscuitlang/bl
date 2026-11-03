@@ -56,6 +56,7 @@ debug_allocator_make :: fn (allocator: *Allocator) DebugAllocator {
 	dbgalloc: DebugAllocator;
 	dbgalloc.handler = auto &handler;
 	dbgalloc.allocator = allocator;
+	dbgalloc.name = "Debug";
 	tbl_init(&dbgalloc.alloc_table, 2048, dbgalloc.allocator);
 	mutex_init(&dbgalloc.mutex);
 	return dbgalloc;
