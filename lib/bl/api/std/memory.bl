@@ -31,7 +31,7 @@ DEFAULT_ALIGNMENT : usize : alignof(f64);
 ///     - [ ] Release
 ///     - [ ] Reset
 ///
-default_allocator :: Allocator.{ handler = &default_allocator_handler };
+default_allocator :: Allocator.{ handler = &default_allocator_handler, name = "Default" };
 
 /// Default temporary allocator instance using pool internally (by default set into the application context).
 ///
@@ -78,7 +78,7 @@ default_allocator :: Allocator.{ handler = &default_allocator_handler };
 /// !!! note
 ///     The temporary allocator internally use [pool allocator](pool.md#pool_allocator), see the documentation for
 ///     more details.
-default_temporary_allocator :: Allocator.{ handler = &temporary_allocator_handler };
+default_temporary_allocator :: Allocator.{ handler = &temporary_allocator_handler, name = "Temporary" };
 
 /// Specify allocator opratation.
 AllocOp :: enum {
@@ -110,6 +110,8 @@ AllocFn :: *fn (
 Allocator :: struct {
 	/// Pointer to the main allocator handler function.
 	handler: AllocFn;
+	/// Might be set for debugging.
+	name: string_view;
 }
 
 /// Allocate memory using specified `preferred_allocator`. In case the `preferred_allocator` is null, default application context

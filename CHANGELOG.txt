@@ -21,6 +21,7 @@ master
 - Fix enum flags using first variation as default value, now it's 0.
 - Add #hot directive to mark functions which are supposed to be optimized using O3 in debug mode.
 - Upgrade to LLVM 23.
+- Add debug name for allocators.
 
 [Modules]
 
