@@ -790,7 +790,7 @@ static void          analyze_report_skipped(struct context *ctx);
 //  RTTI
 // =================================================================================================
 
-static struct mir_var *get_rtti_no_lock(struct assembly *assembly, hash_t type_hash);
+static struct mir_var *get_rtti_no_lock(struct assembly *assembly, struct mir_type *type);
 static struct mir_var *_rtti_gen(struct context *ctx, struct mir_type *type);
 static struct mir_var *rtti_gen(struct context *ctx, struct mir_type *type);
 static struct mir_var *rtti_create_and_alloc_var(struct context *ctx, struct mir_type *type);
@@ -2119,6 +2119,19 @@ struct mir_type *create_type_inferred(struct context *ctx) {
 struct mir_type *create_type_fn(struct context *ctx, create_type_fn_args_t *args) {
 	struct mir_type *ret_type = args->ret_type ? args->ret_type : ctx->builtin_types->t_void;
 
+	// @Incomplete 2026-11-10: Caching
+	//
+	// After changes done in this commit, the type info generation is direclty connected to the type caching mechanism,
+	// since function types have caching disabled in all cases we cannot match them like `ptr_to_fn_info == typeinfo(*fn(s32))`.
+	// Every function gets it's own type and new type info record in case it's generated.
+	//
+	// We might consider some caching here, but keep in mind what actually type info contains! It's not just about matching
+	// the type signature, it stores also member names...
+	//
+	// fn (x: s32) vs fn (y: s32) cannot produce the same type information!!!
+	//
+	// I fact those are not the same type from type info pov, but might be from type system pov? IDK
+
 	str_buf_t name = get_tmp_str();
 	str_buf_append(&name, cstr("f.("));
 	for (usize i = 0; i < sarrlenu(args->args); ++i) {
@@ -2247,8 +2260,6 @@ struct mir_type *create_type_struct_incomplete(struct context *ctx, struct id *u
 	                              .user_id = user_id,
 	                          });
 
-	// The user_id is required so we can use cache every time? See comments in create_type_struct.
-
 	const hash_t     hash   = strhash(name);
 	struct mir_type *result = lookup_type(ctx, hash, str_buf_view(name)); // Locked implicitly.
 	if (result) {
@@ -2259,7 +2270,7 @@ struct mir_type *create_type_struct_incomplete(struct context *ctx, struct id *u
 
 	result->id.hash              = hash;
 	result->id.str               = scdup2(ctx->string_cache, name);
-	result->can_use_cache        = true;
+	result->can_use_cache        = true; // The user_id is required so we can use cache every time? See comments in create_type_struct.
 	result->data.strct.fwd_state = has_base ? MIR_TYPE_STRUCT_FWD_INCOMPLETE_WITH_BASE : MIR_TYPE_STRUCT_FWD_INCOMPLETE;
 
 	type_init_llvm_struct(ctx, result);
@@ -10411,9 +10422,9 @@ void rtti_satisfy_incomplete(struct context *ctx, struct mir_rtti_incomplete *in
 	rtti_gen_ptr(ctx, type, rtti_var);
 }
 
-struct mir_var *get_rtti_no_lock(struct assembly *assembly, hash_t type_hash) {
-	bassert(type_hash);
-	const s32 i = tbl_lookup_index(assembly->mir.rtti_table, type_hash);
+struct mir_var *get_rtti_no_lock(struct assembly *assembly, struct mir_type *type) {
+	bassert(type);
+	const s32 i = tbl_lookup_index(assembly->mir.rtti_table, (u64)type);
 	if (i < 0) return NULL;
 	struct mir_var *result = assembly->mir.rtti_table[i].value;
 	bassert(result);
@@ -10422,7 +10433,7 @@ struct mir_var *get_rtti_no_lock(struct assembly *assembly, hash_t type_hash) {
 
 struct mir_var *_rtti_gen(struct context *ctx, struct mir_type *type) {
 	bassert(type);
-	struct mir_var *rtti_var = mir_get_rtti(ctx->assembly, type->id.hash);
+	struct mir_var *rtti_var = mir_get_rtti(ctx->assembly, type);
 	if (rtti_var) return rtti_var;
 
 	switch (type->kind) {
@@ -10494,13 +10505,15 @@ struct mir_var *_rtti_gen(struct context *ctx, struct mir_type *type) {
 	bassert(type->id.hash && "Invalid type hash!");
 
 	spl_lock(&ctx->mir->rtti_table_lock);
-	bassert(get_rtti_no_lock(ctx->assembly, type->id.hash) == NULL && "RTTI variable already added for the type!");
+	bassert(get_rtti_no_lock(ctx->assembly, type) == NULL && "RTTI variable already added for the type!");
 	struct rtti_table_entry entry = (struct rtti_table_entry){
-	    .hash  = type->id.hash,
+	    .hash  = (u64)type,
 	    .value = rtti_var,
 	};
 	tbl_insert(ctx->mir->rtti_table, entry);
 	spl_unlock(&ctx->mir->rtti_table_lock);
+
+	batomic_fetch_add_s32(&ctx->assembly->stats.type_info_generated, 1);
 
 	return rtti_var;
 }
@@ -13405,10 +13418,10 @@ void mir_terminate(struct assembly *assembly) {
 	sarrfree(&mir->analyze.complete_check_type_stack);
 }
 
-struct mir_var *mir_get_rtti(struct assembly *assembly, hash_t type_hash) {
-	bassert(type_hash);
+struct mir_var *mir_get_rtti(struct assembly *assembly, struct mir_type *type) {
+	bassert(type);
 	spl_lock(&assembly->mir.rtti_table_lock);
-	struct mir_var *result = get_rtti_no_lock(assembly, type_hash);
+	struct mir_var *result = get_rtti_no_lock(assembly, type);
 	spl_unlock(&assembly->mir.rtti_table_lock);
 	return result;
 }

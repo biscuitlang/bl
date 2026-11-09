@@ -196,7 +196,7 @@ void blc(void) {
 
 		cmd_append(&cmd, "-link", "-LTCG", "-incremental:no", "-opt:ref", "-subsystem:console", "-NODEFAULTLIB:MSVCRTD.lib");
 		if (IS_DEBUG) {
-			cmd_append(&cmd, "-DEBUG:FULL");
+			cmd_append(&cmd, "-DEBUG:FULL", "-NATVIS:blc.natvis");
 		}
 
 		cmd_append(&cmd,

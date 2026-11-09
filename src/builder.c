@@ -222,7 +222,8 @@ static void print_stats(struct assembly *assembly) {
 	    "  LLVM IR:          %10.3f seconds    %3.0f%%\n"
 	    "  LLVM Obj:         %10.3f seconds    %3.0f%%\n"
 	    "  Linking:          %10.3f seconds    %3.0f%%\n\n"
-	    "  Polymorph:        %10d generated in %.3f seconds\n\n"
+	    "  Polymorph:        %10d generated in %.3f seconds\n"
+	    "  Type Info:        %10d generated\n\n"
 	    "  Total:            %10.3f seconds\n"
 	    "  Lines:              %8d\n"
 	    "  Speed:            %10.0f lines/second\n\n"
@@ -245,6 +246,7 @@ static void print_stats(struct assembly *assembly) {
 	    PERC(assembly->stats.linking_ms, total_ms),
 	    assembly->stats.polymorph_count,
 	    SECONDS(assembly->stats.polymorph_ms),
+		assembly->stats.type_info_generated,
 	    SECONDS(total_ms),
 	    builder.total_lines,
 	    ((f32)builder.total_lines) / SECONDS(total_ms),

@@ -22,6 +22,7 @@ master
 - Add #hot directive to mark functions which are supposed to be optimized using O3 in debug mode.
 - Upgrade to LLVM 23.
 - Add debug name for allocators.
+- Type info reuse now directly mirror compiler internal type caching.
 
 [Modules]
 

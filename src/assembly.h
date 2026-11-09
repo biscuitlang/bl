@@ -256,6 +256,8 @@ struct assembly {
 
 		batomic_s32 polymorph_count; // @Incomplete: rename to generated.
 		batomic_s32 comptime_call_stacks_count;
+
+		batomic_s32 type_info_generated;
 	} stats;
 
 	// DynCall/Lib data used for external method execution in compile time
