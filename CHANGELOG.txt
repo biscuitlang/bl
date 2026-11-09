@@ -25,6 +25,9 @@ master
 
 [Modules]
 
+memory:
+- Add `make_optional` helper.
+
 thread2:
 - Created new threading module.
 

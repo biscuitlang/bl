@@ -488,6 +488,10 @@ set_optional_ref :: fn (opt: *?T, v: *T.value) {
 	opt.has_value = true;
 }
 
+make_optional :: fn (v: ?T) Optional(T) #inline #hot {
+	return .{ value = v, has_value = true };
+}
+
 /// Allocation header data stored for every allocation made using default allocator.
 DefaultAllocatorHeader :: struct {
 	/// Raw pointer of allocated memory block from malloc.
