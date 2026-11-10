@@ -54,7 +54,7 @@ jobs:
         ./build.sh assert all
 
   macos-debug:
-    runs-on: macOS-14
+    runs-on: macOS-latest
     steps:
     - uses: actions/checkout@v2
     - name: Download LLVM
@@ -67,7 +67,7 @@ jobs:
         ./build.sh debug all
 
   macos-release:
-    runs-on: macOS-14
+    runs-on: macOS-latest
     steps:
     - uses: actions/checkout@v2
     - name: Download LLVM
