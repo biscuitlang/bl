@@ -63,7 +63,7 @@ jobs:
         path: dist
 
   macos-release:
-    runs-on: macOS-14
+    runs-on: macOS-latest
     steps:
     - uses: actions/checkout@v2
     - name: Download LLVM

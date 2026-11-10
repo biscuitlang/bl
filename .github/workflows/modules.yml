@@ -162,7 +162,7 @@ jobs:
         path: patch-linux.patch
 
   macos:
-    runs-on: macos-14
+    runs-on: macOS-latest
     env:
       MODULE: ${{ inputs.module }}
     steps:
