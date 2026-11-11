@@ -263,7 +263,7 @@ void blc(void) {
 #ifdef __APPLE__
 		cmd_append(&cmd, "c++", "-arch", "arm64", "-lm", "-mmacosx-version-min=14.3");
 #else
-		cmd_append(&cmd, "c++", "-D_GNU_SOURCE", "-lrt", "-ldl", "-lm", "-rdynamic", "-Wl,--export-dynamic");
+		cmd_append(&cmd, "c++", "-D_GNU_SOURCE", "-lrt", "-ldl", "-lm", "-rdynamic", "-Wl,--export-dynamic", "-lzstd");
 #endif
 
 		for (int i = 0; i < files.count; ++i) {
