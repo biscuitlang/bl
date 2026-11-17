@@ -112,6 +112,7 @@ struct waiting_entry {
 struct block_entry {
 	struct mir_instr_block *hash;
 	struct mir_instr_block *value;
+	u64                     insertion_boundary_id;
 };
 
 struct mir_analyze {

@@ -340,3 +340,48 @@ two_in_row :: fn () #test {
 	#if true {
 	}
 }
+
+with_or_phi_in_loop :: fn () #test {
+	n := 0;
+	loop i := 0; i < 10; i += 1 {
+		x := 10;
+
+		#if true {
+			if x == -1 || x == 10 {
+				n += 1;
+			}
+		}
+	}
+	test_eq(n, 10);
+}
+
+nested_insertion_with_phi :: fn () #test {
+	a := true;
+	b := true;
+	n := 0;
+	#if true {
+		#if true {
+		}
+		if a && b {
+			n += 1;
+		}
+	}
+	test_eq(n, 1);
+}
+
+nested_insertion_with_phi2 :: fn () #test {
+	a := true;
+	b := true;
+	n := 0;
+	#if true {
+		#if true {
+			if a {
+				n += 1;
+			}
+		}
+		if a && b {
+			n += 1;
+		}
+	}
+	test_eq(n, 2);
+}
