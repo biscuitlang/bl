@@ -385,3 +385,63 @@ nested_insertion_with_phi2 :: fn () #test {
 	}
 	test_eq(n, 2);
 }
+
+nested_insertion_with_phi3 :: fn () #test {
+	a := true;
+	b := true;
+	n := 0;
+	#if true {
+		#if true {
+			if a {
+				n += 1;
+			}
+		}
+		#if true {
+			if b {
+				n += 1;
+			}
+		}
+		if a && b {
+			n += 1;
+		}
+	}
+	test_eq(n, 3);
+}
+
+nested_insertion_with_phi_in_loop_with_continue :: fn () #test {
+	a := true;
+	b := true;
+	n := 0;
+	loop i := 0; i < 10; i += 1 {
+		#if true {
+			#if true {
+				if i == 5 {
+					continue;
+				}
+			}
+			if a && b {
+				n += 1;
+			}
+		}
+	}
+	test_eq(n, 9);
+}
+
+nested_insertion_with_phi_in_loop_with_break :: fn () #test {
+	a := true;
+	b := true;
+	n := 0;
+	loop i := 0; i < 10; i += 1 {
+		#if true {
+			#if true {
+				if i == 5 {
+					break;
+				}
+			}
+			if a && b {
+				n += 1;
+			}
+		}
+	}
+	test_eq(n, 5);
+}
