@@ -8,7 +8,7 @@
 
 #define BL_VERSION STR(BL_VERSION_MAJOR) "." STR(BL_VERSION_MINOR) "." STR(BL_VERSION_PATCH)
 
-#define BL_CONFIG_FILE "etc/bl.yaml"
+#define BL_CONFIG_FILE "etc/bl.ini"
 #define BL_API_DIR     "../lib/bl/api"
 
 // MULTIPLATFORM: os preload depends on target build platform and should be chosen in runtime later!
@@ -35,7 +35,6 @@
 #error "Unknown platform"
 #endif
 
-
 #ifdef __clang__
 #if defined(__apple_build_version__)
 #define BL_COMPILER_APPLE_CLANG 1
@@ -45,14 +44,14 @@
 #define BL_COMPILER_MSVC  0
 #elif defined(__GNUC__) || defined(__MINGW32__)
 #define BL_COMPILER_APPLE_CLANG 0
-#define BL_COMPILER_CLANG 0
-#define BL_COMPILER_GNUC  1
-#define BL_COMPILER_MSVC  0
+#define BL_COMPILER_CLANG       0
+#define BL_COMPILER_GNUC        1
+#define BL_COMPILER_MSVC        0
 #elif _MSC_VER
 #define BL_COMPILER_APPLE_CLANG 0
-#define BL_COMPILER_CLANG 0
-#define BL_COMPILER_GNUC  0
-#define BL_COMPILER_MSVC  1
+#define BL_COMPILER_CLANG       0
+#define BL_COMPILER_GNUC        0
+#define BL_COMPILER_MSVC        1
 #endif
 
 #define ENV_PATH "PATH"
@@ -90,7 +89,8 @@
 #define VM_STACK_SIZE               2097152 // 2MB
 #define VM_COMPTIME_CALL_STACK_SIZE 131072  // 128kB
 
-#define MODULE_CONFIG_FILE "module.yaml"
-#define BUILD_SCRIPT_FILE  "build.bl"
+#define MODULE_CONFIG_FILE        "module.ini"
+#define MODULE_CONFIG_FILE_LEGACY "module.yaml" // deprecated since 0.15
+#define BUILD_SCRIPT_FILE         "build.bl"
 
 #endif // BL_CONFIG_H

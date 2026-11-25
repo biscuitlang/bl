@@ -698,6 +698,15 @@ str_t _get_filename_from_filepath(const char *ptr, const s32 len) {
 	return str_empty;
 }
 
+str_t _get_file_extension(const char *ptr, const s32 len) {
+	for (s32 i = len - 1; i-- > 0;) {
+		if (ptr[i] == '.') {
+			return make_str(&ptr[i + 1], len - i - 1);
+		}
+	}
+	return str_empty;
+}
+
 str_buf_t platform_lib_name(const str_t name) {
 	str_buf_t tmp = get_tmp_str();
 	if (!name.len) return tmp;

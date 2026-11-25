@@ -489,6 +489,10 @@ char *str_dup_if_not_terminated(str_buf_t *tmp, char *ptr, const s32 len);
 	str_buf_t: _get_filename_from_filepath((B).ptr, (B).len), \
 	str_t: _get_filename_from_filepath((B).ptr, (B).len))
 
+#define get_file_extension(B) _Generic((B), \
+	str_buf_t: _get_file_extension((B).ptr, (B).len), \
+	str_t: _get_file_extension((B).ptr, (B).len))
+
 // Replace all backslashes in passed path with forward slash, this is used as workaround on Windows
 // platform due to inconsistency 'Unix vs Windows' path separators. This function will modify passed
 // buffer.
@@ -501,6 +505,7 @@ bool        _brealpath(char *ptr, const s32 len, str_buf_t *out_full_path);
 bool        set_current_working_dir(const char *path);
 str_t       _get_dir_from_filepath(const char *ptr, const s32 len);
 str_t       _get_filename_from_filepath(const char *ptr, const s32 len);
+str_t       _get_file_extension(const char *ptr, const s32 len);
 bool        get_current_exec_path(str_buf_t *out_full_path);
 bool        get_current_exec_dir(str_buf_t *out_full_path);
 bool        _create_dir(char *ptr, const s32 len);

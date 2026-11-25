@@ -1,8 +1,0 @@
-version: 20220923
-supported: "x86_64-pc-windows-msvc"
-src: "winapi.bl"
-
-# @Incomplete <2022-08-12 Fri>: The dbghelp.lib should be linked only in debug mode! But we cannot do it now because there is not
-# such option available.
-x86_64-pc-windows-msvc:
-  linker_opt: "kernel32.lib user32.lib gdi32.lib shell32.lib Shlwapi.lib comdlg32.lib legacy_stdio_definitions.lib dbghelp.lib Shcore.lib"

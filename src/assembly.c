@@ -396,7 +396,7 @@ static void add_user_define(struct target *target, struct ast *node, str_t sym_n
 }
 
 void target_add_bool_user_define(struct target *target, struct ast *node, str_t sym_name, bool value) {
-	add_user_define(target, node, sym_name, (bool) value, USER_DEFINE_TYPE_BOOL);
+	add_user_define(target, node, sym_name, (bool)value, USER_DEFINE_TYPE_BOOL);
 }
 
 void target_add_int_user_define(struct target *target, struct ast *node, str_t sym_name, s32 value) {
@@ -798,8 +798,7 @@ static struct module *import_module(struct assembly *assembly, str_t module_path
 	}
 
 	// III. Read target triple specific module options if any.
-	assembly_append_linker_options(assembly,
-	                               read_config(config, assembly->target, "linker_opt", ""));
+	assembly_append_linker_options(assembly, read_config(config, assembly->target, "linker_opt", ""));
 	process_tokens(&ctx,
 	               read_config(config, assembly->target, "src", ""),
 	               CONFIG_SEPARATOR,
@@ -845,7 +844,14 @@ struct module *assembly_import_module(struct assembly *assembly,
 
 	str_buf_t path = get_tmp_str();
 	str_buf_append_fmt(&path, "{str}/{s}", modulepath, MODULE_CONFIG_FILE);
-	found = search_source_file(str_buf_view(path), str_buf_view(target->module_dir), &module_config_path);
+	found             = search_source_file(str_buf_view(path), str_buf_view(target->module_dir), &module_config_path);
+	bool found_legacy = false;
+	if (!found) {
+		// Try legacy YAML file.
+		str_buf_clr(&path);
+		str_buf_append_fmt(&path, "{str}/{s}", modulepath, MODULE_CONFIG_FILE_LEGACY);
+		found = found_legacy = search_source_file(str_buf_view(path), str_buf_view(target->module_dir), &module_config_path);
+	}
 	put_tmp_str(path);
 
 	if (!found) {
@@ -861,6 +867,9 @@ struct module *assembly_import_module(struct assembly *assembly,
 	mtx_lock(&assembly->modules_lock);
 	module = lookup_module(assembly, module_hash, str_buf_view(module_config_path));
 	if (!module) {
+		if (found_legacy) {
+			builder_msg(MSG_WARN, 0, NULL, CARET_WORD, "Using deprecated yaml module configuration file '" STR_FMT "', ini should be used instead, yaml support will be removed in the next compiler version.", STR_ARG(path));
+		}
 		module = import_module(assembly, str_buf_view(module_config_path), module_hash, import_from);
 	}
 	mtx_unlock(&assembly->modules_lock);

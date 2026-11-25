@@ -2167,7 +2167,7 @@ Compiler will lookup source files according to the following rules.
 
 - Absolute path.
 - Load target file parent directory.
-- BL API directory set in `install-location/etc/bl.yaml`.
+- BL API directory set in `install-location/etc/bl.ini`.
 - System *PATH* environment variable.
 
 ### Import
@@ -2221,7 +2221,7 @@ More information about how to create modules can be found in [modules](manual.ht
 
 - Absolute path.
 - Custom module directory if set in [set_module_dir](modules_build.html#set_module_dir).
-- BL API directory set in `install-location/etc/bl.yaml`.
+- BL API directory set in `install-location/etc/bl.ini`.
 - System *PATH* environment variable.
 
 ## Private Scope
@@ -2379,30 +2379,30 @@ A module in BL is a chunk of reusable code bundled with a configuration file in 
 
 ```text
 thread/
-  module.yaml       - module config
+  module.ini        - module config
   _thread.win32.bl  - windows implementation
   _thread.posix.bl  - posix implementation
   thread.bl         - interface
   thread.test.bl    - unit tests
 ```
 
-Modules can be imported into other modules using the `#import` directive followed by the module root directory path. The configuration file *module.yaml* is mandatory for each module, and must be located in the module *root* directory. In general, the configuration file tells the compiler which source files should be loaded, which libraries are needed and what is the module version. See the module configuration example.
+Modules can be imported into other modules using the `#import` directive followed by the module root directory path. The configuration file *module.ini* is mandatory for each module, and must be located in the module *root* directory. In general, the configuration file tells the compiler which source files should be loaded, which libraries are needed and what is the module version. See the module configuration example.
 
-```yaml
-version: 20221021
-src: "thread.bl"
+```ini
+version = 20221021
+src = thread.bl
 
-x86_64-pc-windows-msvc:
-  src: "_thread.win32.bl"
+[x86_64-pc-windows-msvc]
+src = _thread.win32.bl
 
-x86_64-pc-linux-gnu:
-  src: "_thread.posix.bl"
+[x86_64-pc-linux-gnu]
+src = _thread.posix.bl
 
-x86_64-apple-darwin:
-  src: "_thread.posix.bl"
+[x86_64-apple-darwin]
+src = _thread.posix.bl
 
-arm64-apple-darwin:
-  src: "_thread.posix.bl"
+[arm64-apple-darwin]
+src = _thread.posix.bl
 ```
 
 The first in the file is the `version` of the module (usually in the format YYYYMMDD) followed by the list of all compilation targets supported by the module.  In this example, we use a different implementation for Windows. You can get a list of all supported platforms using the `blc --target-supported` command.
@@ -2424,34 +2424,35 @@ The configuration file entries may be *global* or *platform-specific*, see the f
 
 The *global* options are applied to the module on all target platforms.
 
-- `version: <N>` - Module version number used during import to distinguish various versions of the same module.
-- `supported: "[triple,...]"` - Optional list of target triples supported by module separated by comma. When module depends on some platform specific libraries (which are supposed to be bundled with the module), we might allow this module only on platforms we've provided the precompiled binaries for. Error is generated when module is used on target not included in this list. You can get a list of all supported platforms using the `blc --target-supported` command.
+- `version = <N>` - Module version number used during import to distinguish various versions of the same module.
+- `supported = [triple,...]` - Optional list of target triples supported by module separated by comma. When module depends on some platform specific libraries (which are supposed to be bundled with the module), we might allow this module only on platforms we've provided the precompiled binaries for. Error is generated when module is used on target not included in this list. You can get a list of all supported platforms using the `blc --target-supported` command.
 
 ### Global or Platform-Specific Options
 
 All the following options may be applied globally or just for a specific target platform.
 
-- `src: "<FILE1[,FILE2,...]>"` - List of source file paths relative to the module *root* directory separated by comma.
-- `linker_opt: "<OPTIONS>"` - Additional options passed directly into native platform linker executable.
-- `linker_lib_path: "<DIR1,[DIR2,...]>"` - Additional linker lookup directories relative to the module *root* directory.
-- `link: "<LIB1[,LIB2,...]>` - Dynamic libraries used in runtime and compile time.
-- `link_runtime: "<LIB1[,LIB2,...]>"` - Dynamic libraries used only in runtime.
-- `link_comptime: "<LIB1[,LIB2,...]>"` - Dynamic libraries used only in complile time.
+- `src = <FILE1[,FILE2,...]>` - List of source file paths relative to the module *root* directory separated by comma.
+- `linker_opt = <OPTIONS>` - Additional options passed directly into native platform linker executable.
+- `linker_lib_path = <DIR1,[DIR2,...]>` - Additional linker lookup directories relative to the module *root* directory.
+- `link = <LIB1[,LIB2,...]>` - Dynamic libraries used in runtime and compile time.
+- `link_runtime = <LIB1[,LIB2,...]>` - Dynamic libraries used only in runtime.
+- `link_comptime = <LIB1[,LIB2,...]>` - Dynamic libraries used only in complile time.
 
 **Example**
 
-```yaml
-# Load this file on all platforms.
-src: "my_file_imported_everytime.bl"
+```ini
+; Load this file on all platforms.
+src = my_file_imported_everytime.bl
 
-# Section specific for Windows.
-x86_64-pc-windows-msvc:
-  src: "my_file_only_for_windows.bl"
+; Section specific for Windows.
+[x86_64-pc-windows-msvc]
+src = my_file_only_for_windows.bl
 
-# Section specific for Linux.
-x86_64-pc-linux-gnu:
-  src: "my_file_only_for_linux.bl"
-  linker_opt: "-lc -lm" # link these only on linux
+; Section specific for Linux.
+[x86_64-pc-linux-gnu]
+src = my_file_only_for_linux.bl
+; Link these only on Linux.
+linker_opt = -lc -lm
 ```
 
 **Runtime vs Compile-time Linking**
@@ -2460,19 +2461,19 @@ You may notice that we have multiple options for how to handle dynamic library l
 
 Consider the following example where we link *glfw3*; the final native binary using this module will use the static version of *glfw3*, but in case the program is executed directly by `blc -run`, or the module is used in compile-time, the dynamic version is used instead.
 
-```yaml
-src: "glfw3.bl"
+```ini
+src = glfw3.bl
 
-x86_64-pc-windows-msvc:
-  # All libs and dlls are located in 'win32' directory next to the module
-  # configuration file.
-  linker_lib_path: "win32"
+[x86_64-pc-windows-msvc]
+; All libs and dlls are located in 'win32' directory next to the module
+; configuration file.
+linker_lib_path = win32
 
-  # Use static library when compiling native code.
-  linker_opt: "glfw3_static.lib"
+; Use static library when compiling native code.
+linker_opt = glfw3_static.lib
 
-  # Use dynamic version (dll) when module is used in VM or compile-time.
-  link_comptime: "glfw3"
+; Use dynamic version (dll) when module is used in VM or compile-time.
+link_comptime = glfw3
 ```
 
 ## Additional Module Assets
@@ -2522,7 +2523,7 @@ And finally our `test.bl` file using external code from the library:
 
 ## Library Path
 
-To find libraries we have to provide the linker with library paths for search. Compiler by default uses paths listed in `etc/bl.yaml` file in the compiler root directory. All paths are listed in `linker_lib_path` section, you might append this entry in case your path is missing from the list.
+To find libraries we have to provide the linker with library paths for search. Compiler by default uses paths listed in `etc/bl.ini` file in the compiler root directory. All paths are listed in `linker_lib_path` section, you might append this entry in case your path is missing from the list.
 
 Another option is using of `add_lib_path` function provided in the build API.
 
@@ -2865,7 +2866,7 @@ Specify name of the output binary.
 
 `--override-config=<STRING>`
 
-Set custom path to the `bl.yaml` configuration file.
+Set custom path to the `bl.ini` configuration file.
 
 `--reg-split=<off|on>`
 
@@ -2933,7 +2934,7 @@ Print path to API folder and exit.
 
 `--where-is-config`
 
-Print path to default `bl.yaml` configuration file and exit.
+Print path to default `bl.ini` configuration file and exit.
 
 `--work-dir=<STRING>`
 
@@ -2942,7 +2943,7 @@ Set current working directory. The compiler uses the current working directory b
 
 ## Compiler Configuration
 
-Use `blc --config` to change compiler configuration; this command generates a new `bl.yaml` configuration file containing all the needed information about your system. This configuration runs automatically in case the config file was not found.
+Use `blc --config` to change compiler configuration; this command generates a new `bl.ini` configuration file containing all the needed information about your system. This configuration runs automatically in case the config file was not found.
 
 ## Execution Status
 

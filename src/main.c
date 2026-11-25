@@ -387,7 +387,7 @@ int main(s32 argc, char *argv[]) {
 	    {
 	        .kind       = STRING,
 	        .name       = "--override-config",
-	        .help       = "Set custom path to the 'bl.yaml' configuration file.",
+	        .help       = "Set custom path to the 'bl.ini' configuration file.",
 	        .property.s = &user_conf_filepath,
 	    },
 	    {
@@ -413,7 +413,7 @@ int main(s32 argc, char *argv[]) {
 	    {
 	        .name       = "--where-is-config",
 	        .property.b = &opt.app.where_is_config,
-	        .help       = "Print path to default 'bl.yaml' configuration file and exit.",
+	        .help       = "Print path to default 'bl.ini' configuration file and exit.",
 	    },
 	    {
 	        .name       = "--target-host",

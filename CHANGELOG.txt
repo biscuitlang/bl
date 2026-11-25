@@ -24,6 +24,7 @@ master
 - Add debug name for allocators.
 - Type info reuse now directly mirror compiler internal type caching.
 - Fix static if issues caused by incorrect phi income remmaping.
+- Change module and compiler config format to ini, and migrate all modules to it. Yaml is still supported with deprecation warning.
 
 [Modules]
 

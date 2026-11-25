@@ -111,26 +111,25 @@ bool setup(const str_t filepath, const char *triple) {
 
 str_buf_t make_content(const struct context *ctx) {
 #define TEMPLATE \
-	"# Automatically generated configuration file used by 'blc' compiler.\n" \
-	"# To generate new one use 'blc --configure' command.\n\n" \
-	"# Compiler version, this should match the executable version 'blc --version'.\n" \
-	"version: \"{str}\"\n\n" \
-	"# Main API directory containing all modules and source files. This option is mandatory.\n" \
-	"lib_dir: \"{str}\"\n" \
+	"; Automatically generated configuration file used by 'blc' compiler.\n" \
+	"; To generate new one use 'blc --configure' command.\n\n" \
+	"; Compiler version, this should match the executable version 'blc --version'.\n" \
+	"version = {str}\n\n" \
+	"; Main API directory containing all modules and source files. This option is mandatory.\n" \
+	"lib_dir = {str}\n" \
 	"\n" \
-	"# Current default environment configuration.\n" \
-	"{s}:\n" \
-	"    # Platform operating system preload file (relative to 'lib_dir').\n" \
-	"    preload_file: \"{str}\"\n" \
-	"    # Optional path to the linker executable, 'lld' linker is used by default on some " \
-	"platforms.\n" \
-	"    linker_executable: \"{str}\"\n" \
-	"    # Linker flags and options used to produce executable binaries.\n" \
-	"    linker_opt_exec: \"{str}\"\n" \
-	"    # Linker flags and options used to produce shared libraries.\n" \
-	"    linker_opt_shared: \"{str}\"\n" \
-	"    # File system location where linker should lookup for dependencies.\n" \
-	"    linker_lib_path: \"{str}\"\n\n"
+	"; Current default environment configuration.\n" \
+	"[{s}]\n" \
+	";Platform operating system preload file (relative to 'lib_dir').\n" \
+	"preload_file = {str}\n" \
+	"; Optional path to the linker executable, 'lld' linker is used by default on some platforms.\n" \
+	"linker_executable = {str}\n" \
+	"; Linker flags and options used to produce executable binaries.\n" \
+	"linker_opt_exec = {str}\n" \
+	"; Linker flags and options used to produce shared libraries.\n" \
+	"linker_opt_shared = {str}\n" \
+	"; File system location where linker should lookup for dependencies.\n" \
+	"linker_lib_path = {str}\n\n"
 
 	str_buf_t tmp = get_tmp_str();
 	str_buf_append_fmt(&tmp,

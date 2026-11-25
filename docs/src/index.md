@@ -121,7 +121,7 @@ Other internal options might be adjusted directly in `nob.c` file.
 
 ## Configuration
 
-The compiler requires configuration file to be generated before the first use. Default configuration file `/path/to/bl/etc/bl.yaml` is created automatically on the first run.
+The compiler requires configuration file to be generated before the first use. Default configuration file `/path/to/bl/etc/bl.ini` is created automatically on the first run.
 
 You can use `blc --where-is-config` to get full path to the default config file.
 
@@ -132,28 +132,28 @@ To generate new one use `blc --configure` (the old one will be kept as a backup)
 
 **Example Windows config file:**
 
-```yaml
-# Automatically generated configuration file used by 'blc' compiler.
-# To generate new one use 'blc --configure' command.
+```ini
+; Automatically generated configuration file used by 'blc' compiler.
+; To generate new one use 'blc --configure' command.
 
-# Compiler version, this should match the executable version 'blc --version'.
-version: "0.11.0"
+; Compiler version, this should match the executable version 'blc --version'.
+version = 0.15.0
 
-# Main API directory containing all modules and source files. This option is mandatory.
-lib_dir: "C:/Develop/bl/lib/bl/api"
+; Main API directory containing all modules and source files. This option is mandatory.
+lib_dir = C:/Develop/bl/lib/bl/api
 
-# Current default environment configuration.
-x86_64-pc-windows-msvc:
-    # Platform operating system preload file (relative to 'lib_dir').
-    preload_file: "os/_windows.bl"
-    # Optional path to the linker executable, 'lld' linker is used by default on some platforms.
-    linker_executable: ""
-    # Linker flags and options used to produce executable binaries.
-    linker_opt_exec: "/NOLOGO /ENTRY:__os_start /SUBSYSTEM:CONSOLE /INCREMENTAL:NO /MACHINE:x64"
-    # Linker flags and options used to produce shared libraries.
-    linker_opt_shared: "/NOLOGO /INCREMENTAL:NO /MACHINE:x64 /DLL"
-    # File system location where linker should lookup for dependencies.
-    linker_lib_path: "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.22000.0/ucrt/x64;C:/Program Files (x86)/Windows Kits/10/Lib/10.0.22000.0/um/x64;C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.32.31326//lib/x64"
+; Current default environment configuration.
+[x86_64-pc-windows-msvc]
+; Platform operating system preload file (relative to 'lib_dir').
+preload_file = os/_windows.bl
+; Optional path to the linker executable, 'lld' linker is used by default on some platforms.
+linker_executable = <PATH>
+; Linker flags and options used to produce executable binaries.
+linker_opt_exec = /NOLOGO /ENTRY:__os_start /SUBSYSTEM:CONSOLE /INCREMENTAL:NO /MACHINE:x64
+; Linker flags and options used to produce shared libraries.
+linker_opt_shared = /NOLOGO /INCREMENTAL:NO /MACHINE:x64 /DLL
+; File system location where linker should lookup for dependencies.
+linker_lib_path = C:/Program Files (x86)/Windows Kits/10/Lib/10.0.22000.0/ucrt/x64;C:/Program Files (x86)/Windows Kits/10/Lib/10.0.22000.0/um/x64;C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.32.31326//lib/x64
 ```
 
 ## Unit Tests

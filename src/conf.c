@@ -1,35 +1,8 @@
-// =================================================================================================
-// bl
-//
-// File:   conf.c
-// Author: Martin Dorazil
-// Date:   12/19/21
-//
-// Copyright 2021 Martin Dorazil
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
-// =================================================================================================
-
 #include "conf.h"
 #include "builder.h"
 #include "table.h"
 #include <yaml.h>
+#include "../deps/ini.h"
 
 // =================================================================================================
 // Generic configuration loading
@@ -44,7 +17,7 @@ struct config {
 	struct string_cache *cache;
 };
 
-struct config *confload(const char *filepath) {
+static struct config *load_from_yaml(const char *filepath) {
 	FILE *input = fopen(filepath, "rb");
 	if (!input) {
 		return NULL;
@@ -143,6 +116,78 @@ LOAD_ERROR:
 	put_tmp_str(key);
 	put_tmp_str(path);
 	return NULL;
+}
+
+static struct config *load_from_ini(const char *filepath) {
+	FILE *file = fopen(filepath, "rb");
+	if (!file) {
+		builder_msg(MSG_ERR, ERR_FILE_NOT_FOUND, NULL, CARET_WORD, "Cannot open config file: '%s'.", filepath);
+		return NULL;
+	}
+
+	fseek(file, 0, SEEK_END);
+	usize fsize = (usize)ftell(file);
+	if (fsize == 0) {
+		fclose(file);
+		builder_msg(MSG_ERR, ERR_FILE_EMPTY, NULL, CARET_WORD, "Invalid or empty config file '%s'.", filepath);
+		return NULL;
+	}
+
+	fseek(file, 0, SEEK_SET);
+	char *file_contents = bmalloc(fsize + 1);
+	if (!fread(file_contents, sizeof(char), fsize, file)) {
+		fclose(file);
+		builder_msg(MSG_ERR, ERR_FILE_READ, NULL, CARET_WORD, "Cannot read config file '%s'.", filepath);
+		return NULL;
+	}
+	file_contents[fsize] = '\0';
+	fclose(file);
+
+	char        *cursor = file_contents, *sector = NULL, *key = NULL, *value = NULL;
+	struct entry entry = {0};
+	str_buf_t    path  = get_tmp_str();
+
+	struct config *conf = bmalloc(sizeof(struct config));
+	conf->data          = NULL;
+	conf->cache         = NULL;
+
+	while (*cursor != '\0') {
+		if (!parse_ini(&cursor, &sector, &key, &value)) {
+			builder_msg(MSG_ERR, ERR_INVALID_TOKEN, NULL, CARET_WORD, "Syntax error when parsing config file: '%s'.", filepath);
+			break;
+		}
+
+		if (sector) {
+			str_buf_append_fmt(&path, "/{s}", sector);
+		}
+
+		if (key) {
+			str_buf_append_fmt(&path, "/{s}", key);
+		}
+
+		if (value) {
+			blog("Add: " STR_FMT " with value: %s", STR_ARG(path), value);
+
+			entry.hash  = strhash(path);
+			entry.value = scdup(&conf->cache, value, strlen(value));
+			tbl_insert(conf->data, entry);
+		}
+
+		str_buf_clr(&path);
+	}
+
+	put_tmp_str(path);
+	return conf;
+}
+
+struct config *confload(const char *filepath) {
+	const str_t ext = get_file_extension(make_str_from_c(filepath));
+	if (str_match(ext, cstr("yaml"))) {
+		return load_from_yaml(filepath);
+	}
+
+	// ini is expected.
+	return load_from_ini(filepath);
 }
 
 void confdelete(struct config *conf) {
